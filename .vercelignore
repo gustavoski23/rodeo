@@ -1,0 +1,5 @@
+*.jpeg
+*.jpg
+*.png
+dev-server.mjs
+.env.local

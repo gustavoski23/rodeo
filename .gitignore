@@ -1,0 +1,15 @@
+# Secrets — NUNCA subir a git
+.env
+.env.local
+.env.*.local
+
+# Plantilla SÍ se sube (no tiene valores reales)
+!.env.example
+
+# Dependencias / plataforma
+node_modules/
+.vercel/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

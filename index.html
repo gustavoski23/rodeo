@@ -1,0 +1,2545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0e">
+<title>RODEO — tu inglés 24/7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   RODEO — TOKENS DE REDISEÑO v2  ("Dark Shell + Sticker Pop")
+   Pegar este :root COMPLETO reemplazando el actual (líneas 13-31 de index.html).
+   NO renombrar tokens: --accent, --bg-*, --text-*, --card-* son consumidos por el JS/CSS.
+   Valores oklch verificados con cálculo WCAG (script node): todo texto de card
+   pasa AA >= 4.5:1 (term, swap-old, swap-new, secundario). Ver notas al pie.
+
+   FUENTES — reemplazar el <link> de la línea 10 del <head> por ESTE (Bebas fuera):
+   <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+     · Archivo (600-900)        → DISPLAY grotesca pesada ancha  (reemplaza Bebas Neue)
+     · Familjen Grotesk (400-700, italic) → BODY + énfasis + itálicas de apoyo (reemplaza Manrope)
+     · Space Mono (400/700)     → labels, eyebrows, contadores, "Step 1"
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Shell oscuro (frío, se mantiene la temperatura 265, negros ligeramente
+        más profundos para que los stickers pastel salten más) ── */
+  --bg-void:        oklch(9% 0.008 265);
+  --bg-deep:        oklch(13% 0.012 265);
+  --bg-surface:     oklch(17% 0.015 265);
+  --bg-elevated:    oklch(21% 0.018 265);
+
+  --text-primary:   oklch(96% 0.004 265);
+  --text-secondary: oklch(68% 0.010 265);
+  --text-muted:     oklch(62% 0.010 265);   /* L62 → ~4.6:1 sobre shell: pasa AA en labels pequeños */
+
+  /* ── Acento: LIMA CHARTREUSE (empujado desde el verde eléctrico anterior:
+        L 72→87, hue 145→128). Sigue siendo el color de éxito/C1/CTA. ── */
+  --accent:         oklch(87% 0.21 128);              /* #aced37 aprox — sobre shell = 14.6:1 */
+  --accent-dim:     oklch(87% 0.21 128 / 0.14);       /* fondos tenues de acento */
+  --accent-ink:     oklch(24% 0.05 128);              /* texto OSCURO sobre botón lima (11.5:1) */
+
+  /* ── Glass (tab bar, sheets) ── */
+  --glass-bg:       oklch(15% 0.015 265 / 0.62);
+  --glass-border:   oklch(96% 0.004 265 / 0.09);
+
+  /* ── TARJETAS-STICKER pastel saturadas ──────────────────────────────────
+        CAMBIO ESTRUCTURAL CLAVE: todas las cards pasan a PASTEL CLARO con
+        TEXTO OSCURO (dark-text). Esto mata de raíz los 3 bugs de contraste:
+        el swap, el term y el secundario siempre leen porque el fondo es claro.
+        (Antes había cards oscuras con light-text donde el swap era invisible.)
+        Cada valor verificado: dark-ink term >=7.7:1 en todas. ── */
+  --card-blue:      oklch(76% 0.12 248);   /* cielo    · dark-text */
+  --card-lavender:  oklch(80% 0.10 290);   /* lavanda  · dark-text (REF 1) — NUEVO */
+  --card-green:     oklch(86% 0.13 158);   /* menta    · dark-text */
+  --card-yellow:    oklch(90% 0.15 95);    /* amarillo · dark-text */
+  --card-coral:     oklch(78% 0.13 28);    /* coral/durazno · dark-text (era 64% light-text: BUG 3 resuelto subiendo L y virando a dark-text) */
+  --card-peach:     oklch(86% 0.10 55);    /* durazno  · dark-text (REF 1) — NUEVO */
+  --card-paper:     oklch(95% 0.012 85);   /* papel    · dark-text */
+
+  /* Tinta de texto para TODAS las cards (fondos pastel claros) */
+  --card-ink:        oklch(24% 0.03 265);   /* texto primario sobre card  (>=7.7:1) */
+  --card-ink-soft:   oklch(32% 0.03 265);   /* texto secundario/nota sobre card (>=4.5:1) — reemplaza el opacity:0.75 que rompía AA */
+
+  /* SWAP (LEVEL UP) — tintas hue-locked oscuras que leen sobre CUALQUIER card.
+     BUG 1 RESUELTO: ya no son --accent/coral fijos pensados para fondo oscuro. */
+  --swap-new:        oklch(34% 0.16 132);   /* lima entintada (el upgrade C1) — >=5.2:1 en toda card */
+  --swap-old:        oklch(38% 0.20 27);    /* rojo entintado (el B2 tachado)  — >=4.5:1 en toda card */
+
+  /* ── Semántica viva (sobre SHELL oscuro, no sobre cards) ── */
+  --success:        oklch(87% 0.21 128);   /* = accent lima */
+  --danger:         oklch(66% 0.20 27);    /* coral vivo: error, HEAT, "básico" */
+  --danger-dim:     oklch(66% 0.20 27 / 0.16);
+  --warn:           oklch(84% 0.16 92);    /* amarillo: aviso, glosa, empate */
+
+  /* Sombra difusa de sticker (suave, no dura) + versión levantada */
+  --sticker-shadow: 0 14px 34px oklch(0% 0 0 / 0.34), 0 3px 8px oklch(0% 0 0 / 0.22);
+  --sticker-shadow-lift: 0 22px 50px oklch(0% 0 0 / 0.42), 0 4px 10px oklch(0% 0 0 / 0.28);
+
+  /* Glow de HEAT (STORY) — vira el ambient a coral cuando HEAT>55 */
+  --heat-glow-color: oklch(66% 0.20 27 / 0.16);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RODEO — COMPONENTES REDISEÑADOS v2   ("Dark Shell + Sticker Pop")
+   Pegar TODO esto dentro del <style> de index.html, DESPUÉS del bloque :root
+   de redesign-01-tokens.css (que ya reemplazó los tokens antiguos).
+   Reemplaza las reglas de componentes actuales (líneas ~32-347 del <style>).
+
+   CONTRATO INTACTO (NO tocar nombres): el JS togglea .hidden .active .flex
+   .flipped .recording .on .selected .heat-glow .show y consume las clases de
+   componente por nombre. Aquí sólo cambia la APARIENCIA, nunca los selectores
+   que el JS usa.
+
+   FUENTES (el <link> ya cambió en <head>): Archivo (display 600-900),
+   Familjen Grotesk (body 400-700 + italic), Space Mono (labels 400/700).
+
+   LOS 3 BUGS DE CONTRASTE — resueltos aquí:
+   · BUG 1 (swap invisible): .swap-old/.swap-new usan --swap-old/--swap-new
+     (tintas oscuras hue-locked, AA>=4.5 sobre TODA card). Ya no coral/accent fijos.
+   · BUG 2 (.term C1 casi-negra): con la paleta a cards CLARAS, el near-black que
+     el JS inyecta inline en el .term C1 pasa a ser texto-oscuro-sobre-claro
+     (>=12:1). Y como refuerzo, .slang-card .term hereda --card-ink; cualquier
+     card sin color inline lee dark. Bug neutralizado por la paleta clara.
+   · BUG 3 (texto pequeño sobre coral): --card-coral es ahora L=78 dark-text;
+     term >=7.8:1, secundario con --card-ink-soft >=4.5:1, .label-mini SIN
+     opacity (usa --card-ink-soft sólido). Nada bajo AA.
+
+   DECISIÓN MAESTRA: el JS todavía emite `light-text` para blue/green/coral
+   (CARD_THEMES / SAGAS). Como TODAS las cards ahora son pastel CLARO, el texto
+   blanco sería invisible. Por eso .slang-card.light-text Y .slang-card.dark-text
+   resuelven AMBAS a --card-ink oscuro. Esto arregla el contraste sin tocar JS.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   0. BASE — tipografía, shell, overlays ambientales
+   ───────────────────────────────────────────────────────────────────────── */
+* { -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-weight: 400;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+/* DISPLAY = Archivo grotesca ANCHA y PESADA (Bebas eliminado por completo) */
+.font-display {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.94;
+}
+/* Utilidad mono para labels/eyebrows/contadores (Space Mono) */
+.mono, .label-mini, .eyebrow {
+  font-family: 'Space Mono', monospace;
+}
+
+/* Grain / halftone overlay — mata la superficie plana AI */
+.grain::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 90; opacity: 0.42; mix-blend-mode: overlay;
+}
+/* Glow ambiental superior — lima tenue por defecto, coral cuando .heat-glow */
+.ambient-glow::before {
+  content: '';
+  position: fixed; top: -220px; left: 50%; transform: translateX(-50%);
+  width: 720px; height: 480px;
+  background: radial-gradient(ellipse, oklch(87% 0.21 128 / 0.11) 0%, transparent 70%);
+  pointer-events: none; z-index: 0;
+  transition: background .6s ease;
+}
+.heat-glow.ambient-glow::before,
+.heat-glow::before {
+  background: radial-gradient(ellipse, var(--heat-glow-color) 0%, transparent 70%) !important;
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+
+.view { display: none; }
+.view.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* Eyebrow / label pequeño mono (secciones, "Step 1", tags) sobre SHELL */
+.eyebrow {
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; line-height: 1.3;
+  color: var(--text-secondary);      /* --text-muted da 2.90:1 en 0.66rem (bajo AA); secundario = 7.18:1 */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   1. HEADER — logo RODEO + ticker de costo + línea luminosa
+   ───────────────────────────────────────────────────────────────────────── */
+.luminous-line {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    oklch(87% 0.21 128 / 0.55) 30%,
+    oklch(96% 0.004 265 / 0.35) 50%,
+    oklch(87% 0.21 128 / 0.55) 70%,
+    transparent);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   2. TAB BAR — pill nav glass, tab activa = pill lima sólida con ink oscuro
+   5 tabs reparten por flex → caben en 320px. Íconos con más peso (stroke 2).
+   ───────────────────────────────────────────────────────────────────────── */
+.tabbar {
+  position: fixed; bottom: max(14px, env(safe-area-inset-bottom));
+  left: 12px; right: 12px;
+  display: flex; gap: 2px;
+  padding: 5px;
+  border-radius: 100px;
+  z-index: 50;
+  box-shadow: 0 12px 34px oklch(0% 0 0 / 0.5);
+}
+.tab-item {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 3px; min-height: 54px;
+  border-radius: 100px; cursor: pointer;
+  color: var(--text-muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.56rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  border: none; background: transparent;
+  transition: color .3s ease, background .3s ease, transform .25s cubic-bezier(0.34,1.56,0.64,1);
+}
+.tab-item svg { stroke-width: 2; transition: transform .3s cubic-bezier(0.34,1.56,0.64,1); }
+.tab-item:active { transform: scale(0.94); }
+/* Tab activa: pill lima sólida + ink oscuro + pequeño pop */
+.tab-item.active {
+  color: var(--accent-ink);
+  background: var(--accent);
+  box-shadow: 0 4px 16px oklch(87% 0.21 128 / 0.4);
+}
+.tab-item.active svg { stroke: var(--accent-ink); transform: translateY(-1px) scale(1.06); }
+.tab-item:not(.active):hover { color: var(--text-secondary); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   3. BOTONES — pill lima chunky, ghost, icon-btn (normal/on/recording), chips
+   ───────────────────────────────────────────────────────────────────────── */
+.btn-accent {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 16px 34px; min-height: 52px;
+  border-radius: 100px;
+  background: var(--accent);
+  color: var(--accent-ink);              /* ink oscuro sobre lima, 11.5:1 — nunca lima/lima */
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-weight: 700; font-size: 0.95rem; letter-spacing: 0.01em;
+  border: none; cursor: pointer;
+  box-shadow: 0 0 32px oklch(87% 0.21 128 / 0.25);  /* glow bajado: la lima es muy brillante */
+  transition: transform .25s ease, box-shadow .25s ease, opacity .2s ease, filter .2s ease;
+}
+.btn-accent:hover { transform: translateY(-2px); box-shadow: 0 8px 44px oklch(87% 0.21 128 / 0.4); }
+.btn-accent:active { transform: scale(0.97); filter: brightness(0.96); }  /* feedback táctil */
+.btn-accent:disabled { opacity: 0.4; transform: none; cursor: default; box-shadow: none; }
+
+.btn-ghost {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 12px 22px; min-height: 44px;
+  border: 1px solid oklch(96% 0.004 265 / 0.22);
+  border-radius: 100px; background: transparent;
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 0.85rem; font-weight: 600;
+  cursor: pointer;
+  transition: border-color .3s ease, background .3s ease, transform .2s ease;
+}
+.btn-ghost:hover { border-color: oklch(96% 0.004 265 / 0.5); background: oklch(96% 0.004 265 / 0.05); }
+.btn-ghost:active { transform: scale(0.97); }
+
+.icon-btn {
+  width: 46px; height: 46px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1px solid oklch(96% 0.004 265 / 0.15);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all .25s ease;
+}
+.icon-btn svg { stroke-width: 2; }
+.icon-btn:hover { border-color: oklch(87% 0.21 128 / 0.6); color: var(--accent); }
+.icon-btn:active { transform: scale(0.94); }
+/* estado ON (TTS activo): relleno lima tenue */
+.icon-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+/* estado RECORDING (mic): pulsa coral */
+.icon-btn.recording {
+  background: oklch(66% 0.20 27 / 0.2);
+  border-color: var(--danger);
+  color: oklch(74% 0.20 27);
+  animation: pulse 1.4s infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 oklch(66% 0.20 27 / 0.45); }
+  50%     { box-shadow: 0 0 0 12px oklch(66% 0.20 27 / 0); }
+}
+
+/* mode-tab (SLANG: CALLE/TRABAJO/PAISA) — pill; activa = relleno lima ink oscuro */
+.mode-tab {
+  padding: 10px 18px; min-height: 44px;
+  border-radius: 100px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-secondary); cursor: pointer;
+  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  background: oklch(16% 0.015 265 / 0.5);
+  transition: all .25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.mode-tab:active { transform: scale(0.96); }
+.mode-tab.active {
+  color: var(--accent-ink); background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 3px 14px oklch(87% 0.21 128 / 0.3);
+}
+
+/* chip (escenarios) — pill fila oscura; seleccionada = relleno lima ink oscuro (REF 2) */
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 18px; min-height: 44px;
+  border: 1px solid oklch(96% 0.004 265 / 0.14);
+  border-radius: 100px;
+  background: oklch(16% 0.015 265 / 0.55);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 0.9rem; font-weight: 500;
+  cursor: pointer;
+  transition: border-color .25s ease, background .25s ease, color .25s ease, transform .2s ease;
+}
+.chip:hover, .chip:focus-visible { border-color: oklch(87% 0.21 128 / 0.7); background: var(--accent-dim); }
+.chip:active { transform: scale(0.97); }
+.chip.selected {
+  border-color: var(--accent); background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 3px 14px oklch(87% 0.21 128 / 0.28);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   4. TARJETAS STICKER — la unidad estrella (.slang-card). Pastel plano claro,
+   muy redondeada, sombra difusa tintada, borde interior fino = recorte sticker.
+   Term Archivo gigante. TODA card lee dark (light-text neutralizado).
+   ───────────────────────────────────────────────────────────────────────── */
+.slang-card {
+  border-radius: 26px;
+  padding: 28px 24px 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--sticker-shadow);
+  /* borde interior 1px de recorte — sensación pegatina */
+  border: 1px solid oklch(20% 0.03 265 / 0.15);
+  color: var(--card-ink);
+}
+/* DECISIÓN MAESTRA (arregla contraste sin tocar JS): AMBOS themes → ink oscuro.
+   El JS aún emite light-text para cards que ahora son pastel CLARO; el blanco
+   sería invisible. Forzamos oscuro en las dos clases. */
+.slang-card.dark-text,
+.slang-card.light-text { color: var(--card-ink); }
+
+.slang-card .term {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+  color: var(--card-ink);           /* hereda ink oscuro; refuerza BUG 2 en cards sin color inline */
+}
+.slang-card .label-mini {
+  display: inline-block;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--card-ink-soft);      /* SIN opacity:0.75 — sólido, pasa AA (BUG 3) */
+}
+.slang-card .ex   { font-size: 0.95rem; line-height: 1.55; color: var(--card-ink); }
+.slang-card .ex-es{ font-style: italic; font-size: 0.87rem; color: var(--card-ink-soft); }
+.slang-card .wrong{
+  font-size: 0.83rem; color: var(--card-ink-soft);
+  border-top: 1px dashed oklch(24% 0.03 265 / 0.3);
+  padding-top: 10px; margin-top: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   5. BURBUJAS DE CHAT — coach (izq oscura), user (der lima tint),
+   correction (der coral), npc-avatar, gloss-chip, mission-card
+   ───────────────────────────────────────────────────────────────────────── */
+.bubble-coach {
+  max-width: 85%;
+  background: var(--bg-surface);
+  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border-radius: 4px 20px 20px 20px;     /* esquina sup-izq cuadrada = viene del NPC */
+  padding: 14px 18px;
+  font-size: 1rem; line-height: 1.6; font-weight: 400;
+  color: var(--text-primary);
+}
+.bubble-user {
+  max-width: 85%; margin-left: auto;
+  background: oklch(87% 0.21 128 / 0.12);
+  border: 1px solid oklch(87% 0.21 128 / 0.28);
+  border-radius: 20px 4px 20px 20px;
+  padding: 14px 18px;
+  font-size: 1rem; line-height: 1.6;
+  color: var(--text-primary);
+}
+.correction-card {
+  margin-left: auto; max-width: 85%;
+  background: var(--danger-dim);
+  border: 1px solid oklch(66% 0.20 27 / 0.32);
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 15px;
+  font-size: 0.85rem;
+}
+.correction-card .quote {
+  color: oklch(80% 0.16 27);            /* coral claro — pasa AA 4.5 sobre danger-dim */
+  text-decoration: line-through; text-decoration-thickness: 1.5px;
+}
+.correction-card .fix { color: var(--accent); font-weight: 700; }
+.correction-card .why { color: var(--text-secondary); font-size: 0.8rem; margin-top: 4px; }
+
+/* typing-dots (loader inline de coach/npc) */
+.typing-dots span {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-muted); margin-right: 4px;
+  animation: bounce 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .15s; }
+.typing-dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+  30%           { transform: translateY(-5px); opacity: 1; }
+}
+
+/* npc-avatar — círculo en color de la saga (pastel claro) + inicial Archivo oscura */
+.npc-avatar {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 1.05rem;
+  color: var(--card-ink);               /* inicial oscura sobre pastel claro de saga */
+  border: 1px solid oklch(20% 0.03 265 / 0.18);
+}
+/* gloss-chip — colocación C1 tocable (sube al DNA) */
+.gloss-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 14px; min-height: 44px;
+  border: 1px dashed oklch(87% 0.21 128 / 0.55); border-radius: 100px;
+  background: oklch(87% 0.21 128 / 0.07); color: var(--accent);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  transition: background .2s ease, transform .2s ease;
+}
+.gloss-chip:hover { background: oklch(87% 0.21 128 / 0.16); }
+.gloss-chip:active { transform: scale(0.95); }
+/* mission-card — "TU MISIÓN" (acento lima) */
+.mission-card {
+  background: var(--accent-dim);
+  border: 1px solid oklch(87% 0.21 128 / 0.32);
+  border-radius: 16px; padding: 14px 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   6. MEDIDORES STORY — track más grueso (8px), fill con shine, shake al delta
+   ───────────────────────────────────────────────────────────────────────── */
+.meter-track {
+  height: 8px; border-radius: 100px;
+  background: oklch(96% 0.004 265 / 0.1);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px oklch(0% 0 0 / 0.3);
+}
+.meter-fill {
+  height: 100%; border-radius: 100px;
+  transition: width .55s cubic-bezier(0.32,0.72,0,1);
+  position: relative;
+  background-image: linear-gradient(90deg, transparent, oklch(100% 0 0 / 0.18));
+}
+/* pulso corto al cambiar valor — JS puede togglear .heat-glow/pulse; esta clase
+   .meter-fill.pulse (opcional, si el JS la añade) no rompe si no se usa */
+.meter-fill.pulse { animation: meter-shake .4s ease; }
+@keyframes meter-shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-2px); }
+  75%     { transform: translateX(2px); }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   7. FLIP LEVEL UP — 3D real (perspective + preserve-3d + backface-hidden).
+   Contrato de clases del brief §6: .flip-card / .flip-inner / .flip-face /
+   .flip-back / .flipped. El giro lo dispara SÓLO la clase .flipped (CSS puro,
+   sin depender de onComplete de GSAP). Si el JS usa el patrón de dos caras,
+   esto flipa correcto; si re-renderiza (patrón actual), las caras simplemente
+   no llevan estas clases y no hay conflicto.
+   ───────────────────────────────────────────────────────────────────────── */
+.flip-card {
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
+}
+.flip-inner {
+  position: relative;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transition: transform .7s cubic-bezier(0.4, 0.15, 0.2, 1);
+  transform: rotateY(0deg);
+}
+.flip-inner.flipped { transform: rotateY(180deg); }
+.flip-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-back {
+  position: absolute; inset: 0;
+  transform: rotateY(180deg);
+}
+
+/* SWAP — BUG 1 RESUELTO: tintas hue-locked oscuras, leen sobre CUALQUIER card.
+   Antes .swap-old=coral fijo (idéntico a --card-coral → invisible 1.0:1) y
+   .swap-new=--accent lima (2.46:1 sobre azul). Ahora ambos AA>=4.5 en toda card. */
+.swap-old {
+  color: var(--swap-old);
+  text-decoration: line-through; text-decoration-thickness: 1.5px;
+  font-weight: 600;
+}
+.swap-new {
+  color: var(--swap-new);
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   8. RANK / VCHIP / STAT / DNA
+   ───────────────────────────────────────────────────────────────────────── */
+.rank-badge {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 900;                      /* 900 sólo para el drama del rank */
+  font-size: 4.6rem; line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+.vchip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 100px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.74rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+}
+.stat-num {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: clamp(2.6rem, 11vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+.dna-item {
+  background: var(--bg-surface);
+  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+.dna-item .quote { color: oklch(74% 0.20 27); text-decoration: line-through; }
+.dna-item .fix   { color: var(--accent); font-weight: 700; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   9. INPUTS — pill, 16px anti-zoom iOS, focus lima
+   ───────────────────────────────────────────────────────────────────────── */
+input[type="text"], textarea {
+  background: var(--bg-surface);
+  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  border-radius: 100px;
+  color: var(--text-primary);
+  padding: 13px 20px;
+  font-size: 16px;                       /* evita zoom de iOS — NO bajar */
+  font-family: 'Familjen Grotesk', sans-serif;
+  outline: none;
+  transition: border-color .25s ease;
+  width: 100%;
+}
+textarea { border-radius: 22px; resize: none; }
+input[type="text"]:focus, textarea:focus { border-color: oklch(87% 0.21 128 / 0.6); }
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   10. LOADERS — skeleton temático (card pastel apagada) + barra indeterminada
+   ───────────────────────────────────────────────────────────────────────── */
+.skeleton {
+  border-radius: 26px; height: 210px;
+  background: linear-gradient(100deg,
+    var(--bg-surface) 40%, var(--bg-elevated) 50%, var(--bg-surface) 60%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border: 1px solid oklch(96% 0.004 265 / 0.05);
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+/* barra indeterminada lima fina para los picos de 20-30s (STORY bible) */
+.loading-bar {
+  height: 3px; border-radius: 100px; overflow: hidden;
+  background: oklch(96% 0.004 265 / 0.08);
+  position: relative;
+}
+.loading-bar::after {
+  content: ''; position: absolute; inset: 0;
+  width: 40%; border-radius: 100px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: loading-slide 1.3s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(320%); }
+}
+/* micro-copy narrativo del loader (Space Mono) */
+.loading-note {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   11. TOAST / OVERLAY / SHEET
+   ───────────────────────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+  z-index: 200;
+  padding: 12px 22px;
+  border-radius: 100px;
+  background: var(--bg-elevated);
+  border: 1px solid oklch(96% 0.004 265 / 0.15);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 0.85rem; font-weight: 600;
+  box-shadow: 0 16px 40px oklch(0% 0 0 / 0.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .3s ease, transform .3s ease;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+
+.overlay {
+  position: fixed; inset: 0; z-index: 150;
+  background: oklch(9% 0.008 265 / 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  width: 100%; max-width: 520px; max-height: 88vh;
+  overflow-y: auto;
+  background: var(--bg-deep);
+  border: 1px solid oklch(96% 0.004 265 / 0.1);
+  border-radius: 28px 28px 0 0;
+  padding: 28px 24px calc(28px + env(safe-area-inset-bottom));
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   12. SCROLL / FOCUS / REDUCED MOTION
+   ───────────────────────────────────────────────────────────────────────── */
+.scroll-area {
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin; scrollbar-color: var(--bg-elevated) transparent;
+}
+.scroll-area::-webkit-scrollbar { width: 4px; }
+.scroll-area::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 4px; }
+
+:focus-visible { outline: 2px solid oklch(87% 0.21 128 / 0.75); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .flip-inner { transition: none !important; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   RODEO — CSS de COMPOSICIÓN (clases rd-*) para las pantallas recompuestas.
+   Estilo editorial de las referencias: eyebrow mono + héroe Archivo gigante
+   + slots de ilustración + pills. Nada de esto toca el contrato JS.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Marca / header */
+.rd-mark { display: inline-flex; align-items: center; }
+.rd-logo { font-size: 2.3rem; }
+.rd-tagline { color: var(--text-muted); font-size: 0.6rem; padding-bottom: 3px; }
+.rd-cost-pill {
+  display: inline-flex; flex-direction: column; align-items: flex-end;
+  padding: 5px 12px; border-radius: 100px;
+  background: oklch(16% 0.015 265 / 0.6);
+  border: 1px solid oklch(96% 0.004 265 / 0.08);
+}
+.rd-cost-val { font-family: 'Space Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); }
+.rd-cost-label { font-family: 'Space Mono', monospace; font-size: 0.5rem; letter-spacing: 0.14em; color: var(--text-muted); }
+
+/* Eyebrow (Space Mono, con reglita) */
+.rd-eyebrow {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.64rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+  line-height: 1.3; margin-bottom: 12px;
+}
+.rd-eyebrow--accent { color: var(--accent); }
+.rd-eyebrow--muted  { color: var(--text-secondary); }
+.rd-eyebrow-rule { width: 24px; height: 2px; border-radius: 2px; background: currentColor; flex-shrink: 0; }
+
+/* Héroe */
+.rd-hero { position: relative; }
+.rd-hero-title {
+  font-family: 'Archivo', sans-serif; font-weight: 800;
+  font-size: clamp(2.3rem, 9.5vw, 3.4rem);
+  line-height: 0.92; letter-spacing: -0.035em;
+  margin-bottom: 12px;
+}
+.rd-hero-sub {
+  color: var(--text-secondary); font-size: 0.92rem; line-height: 1.55;
+  max-width: 330px;
+}
+.rd-sect > .rd-eyebrow { margin-bottom: 12px; }
+
+/* Emoji dentro de chips (adorno de contenido, no ícono de control) */
+.rd-chip-emoji { font-size: 1rem; line-height: 1; }
+
+/* Ilustraciones — slots. Line-art lima sobre shell, esquina superior derecha. */
+.rd-ill { position: absolute; pointer-events: none; color: var(--accent); opacity: 0.9; }
+.rd-ill svg { display: block; width: 100%; height: 100%; }
+.rd-ill--talk-hero  { top: -6px;  right: -4px; width: 108px; height: 108px; opacity: 0.85; }
+.rd-ill--slang-mascot { position: static; width: 128px; height: 128px; margin-top: 4px; opacity: 0.95; }
+.rd-ill--dna-hero   { top: -4px;  right: -2px; width: 92px;  height: 92px; opacity: 0.8; }
+
+/* Stats DNA */
+.rd-stats { max-width: 100%; }
+.rd-stat-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-muted); margin-top: 4px;
+}
+
+/* Barra B2→C1 (LADDER) */
+.rd-ladder-progress { margin-top: 2px; }
+.rd-ladder-ends { margin-bottom: 8px; }
+.rd-ladder-end {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-secondary);
+}
+.rd-ladder-end-ico { display: inline-flex; color: var(--text-muted); }
+.rd-streak { font-family: 'Space Mono', monospace; font-size: 0.66rem; font-weight: 700; color: var(--warn); letter-spacing: 0.04em; }
+.rd-ladder-track { height: 8px; }
+
+/* Medidores STORY (label mono) */
+.rd-meter-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.54rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+}
+.rd-run-title, .rd-session-title { font-family: 'Space Mono', monospace; font-weight: 700; }
+
+/* Tarjeta de saga: gutter derecho para el motivo, el texto nunca lo pisa */
+.rd-saga-card { padding-right: 92px; }
+.rd-saga-motif { position: absolute; right: 14px; bottom: 16px; width: 66px; height: 66px; color: var(--card-ink); opacity: 0.85; pointer-events: none; }
+.rd-saga-motif svg { width: 100%; height: 100%; display: block; }
+
+</style>
+</head>
+<body class="grain ambient-glow">
+
+<div class="relative z-10 flex flex-col" style="height: 100dvh;">
+<!--
+  ════════════════════════════════════════════════════════════════════════════
+  RODEO — RECOMPOSICIÓN HTML DE PANTALLAS · "Dark Shell + Sticker Pop"
+  ════════════════════════════════════════════════════════════════════════════
+  Este archivo contiene SOLO el markup recompuesto para reemplazar, en index.html:
+    · el <header> global            (líneas ~355-365 del index actual)
+    · el <main> con las 5 <section> (líneas ~368-573)
+    · la <nav class="tabbar">       (líneas ~576-597)
+    · los overlays #toast y #overlay (líneas ~599-604)
+
+  CONTRATO JS INTACTO (DESIGN-BRIEF §6): NINGÚN id/clase/data-attr que el JS
+  consume fue renombrado, movido de vista, ni borrado. Solo se reestructuró la
+  ENVOLTURA visual (héroes, eyebrows, paginación de puntos, afordances skip,
+  contenedores de ilustración). Todas las clases de componente reusadas
+  (.chip .slang-card .bubble-* .btn-* .icon-btn .meter-* etc.) se conservan tal
+  cual — su CSS lo rediseña otro dev. Las clases NUEVAS que agrego para
+  composición llevan prefijo `rd-` (rodeo) para no colisionar con el contrato.
+
+  Los contenedores de ilustración están marcados con
+    <!-- ILUSTRACIÓN: … --> + una clase .rd-ill-* vacía → otro agente inyecta el SVG.
+  ════════════════════════════════════════════════════════════════════════════
+-->
+
+<!-- ═══════════════════════════ HEADER GLOBAL ═══════════════════════════ -->
+<header class="rd-header flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
+  <!-- Marca: carita-logo line-art (motivo REF 1) + wordmark Archivo pesado -->
+  <div class="flex items-center gap-2.5">
+    <!-- ILUSTRACIÓN: mascot-mark RODEO (carita line-art lima, círculo + ojos + sonrisa wonky) -->
+    <span class="rd-mark" aria-hidden="true">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="16" cy="16" r="13"></circle>
+        <path d="M11 13.5h.01M21 13.5h.01"></path>
+        <path d="M10.5 19c1.6 2.4 3.4 3.4 5.5 3.4s3.9-1 5.5-3.4"></path>
+      </svg>
+    </span>
+    <div class="flex items-baseline gap-2.5">
+      <h1 class="font-display rd-logo" style="line-height: 0.82;">RODEO<span style="color: var(--accent);">.</span></h1>
+      <span class="rd-eyebrow rd-tagline">tu inglés 24/7</span>
+    </div>
+  </div>
+
+  <!-- Ticker de costo — pill técnico Space Mono (motivo tag "Step 1" de REF 1) -->
+  <div class="rd-cost-pill text-right">
+    <div id="cost-ticker" class="rd-cost-val" title="Costo acumulado de API">$0.0000</div>
+    <div class="rd-cost-label">GASTADO</div>
+  </div>
+</header>
+<div class="luminous-line mx-5 shrink-0"></div>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<main class="flex-1 flex flex-col min-h-0 px-5 pt-4" style="padding-bottom: 96px;">
+
+  <!-- ══════════════════════ VISTA: TALK ══════════════════════ -->
+  <section id="view-talk" class="view active">
+
+    <!-- ── Estado vacío: hero coach + escenarios en pills ── -->
+    <div id="talk-empty" class="flex flex-col gap-7 scroll-area" style="flex:1;">
+
+      <!-- HÉROE: eyebrow + titular gigante + ilustración coach line-art -->
+      <div class="rd-hero rd-hero--talk">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Talk · coach en vivo</p>
+        <p class="font-display rd-hero-title">¿DE QUÉ<br>HABLAMOS <span style="color: var(--accent);">HOY?</span></p>
+        <p class="rd-hero-sub">Elige un escenario. Hablas, yo respondo y te corrijo sin cortarte el flow.</p>
+        <!-- ILUSTRACIÓN: talk hero — personaje line-art lima con auriculares + bocadillo de diálogo, un solo color sobre shell -->
+        <div class="rd-ill rd-ill--talk-hero" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><circle cx="42" cy="46" r="24"/><path d="M18 46 Q18 20 42 20 Q66 20 66 46"/><path d="M16 44 L16 54" stroke-width="9"/><path d="M68 44 L68 54" stroke-width="9"/><path d="M68 52 Q68 66 54 66"/><path d="M52 66 L52 66" stroke-width="8"/><path d="M70 22 L92 22 Q98 22 98 28 L98 40 Q98 46 92 46 L84 46 L80 54 L79 46 L72 46" stroke-width="5"/><path d="M78 34 L78 34" stroke-width="5"/><path d="M85 34 L85 34" stroke-width="5"/><path d="M92 34 L92 34" stroke-width="5"/></svg></div>
+      </div>
+
+      <!-- Sección TRABAJO -->
+      <div class="rd-sect">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Trabajo</p>
+        <div class="flex flex-wrap gap-2.5">
+          <button class="chip" data-scenario="work-meeting"><span class="rd-chip-emoji" aria-hidden="true">🧑‍💻</span>Reunión con el equipo gringo</button>
+          <button class="chip" data-scenario="work-negotiation"><span class="rd-chip-emoji" aria-hidden="true">🤝</span>Negociar con un inversionista</button>
+          <button class="chip" data-scenario="work-interview"><span class="rd-chip-emoji" aria-hidden="true">💼</span>Entrevista de trabajo</button>
+          <button class="chip" data-scenario="work-pitch"><span class="rd-chip-emoji" aria-hidden="true">🚀</span>Pitch de tu producto</button>
+        </div>
+      </div>
+
+      <!-- Sección CALLE Y VIDA -->
+      <div class="rd-sect">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Calle y vida</p>
+        <div class="flex flex-wrap gap-2.5">
+          <button class="chip" data-scenario="street-bar"><span class="rd-chip-emoji" aria-hidden="true">🍺</span>Small talk en un bar</button>
+          <button class="chip" data-scenario="street-travel"><span class="rd-chip-emoji" aria-hidden="true">✈️</span>Aeropuerto y viaje</button>
+          <button class="chip" data-scenario="street-futbol"><span class="rd-chip-emoji" aria-hidden="true">⚽</span>Hablando de fútbol</button>
+          <button class="chip" data-scenario="street-date"><span class="rd-chip-emoji" aria-hidden="true">☕</span>Una cita</button>
+          <button class="chip" data-scenario="free"><span class="rd-chip-emoji" aria-hidden="true">💬</span>Free talk — de lo que sea</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Sesión activa ── -->
+    <div id="talk-session" class="hidden flex-col" style="flex:1; min-height:0;">
+      <div class="rd-session-bar flex items-center justify-between pb-3 shrink-0">
+        <span id="session-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
+        <div class="flex gap-2">
+          <button id="tts-toggle" class="icon-btn" aria-label="Activar o desactivar voz del coach" style="width:40px;height:40px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          </button>
+          <button id="end-session" class="btn-ghost" style="min-height:40px; padding: 8px 16px; font-size: 0.78rem;">Terminar</button>
+        </div>
+      </div>
+      <div id="chat-scroll" class="scroll-area flex flex-col gap-3" style="flex:1; min-height:0; padding-bottom: 8px;"></div>
+      <div class="rd-input-dock flex items-center gap-2 pt-3 shrink-0">
+        <button id="mic-btn" class="icon-btn" aria-label="Hablar por micrófono">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+        </button>
+        <input type="text" id="chat-input" placeholder="Escribe en inglés o toca el mic..." autocomplete="off" aria-label="Mensaje en inglés">
+        <button id="send-btn" class="icon-btn" aria-label="Enviar mensaje" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ VISTA: STORY ══════════════════════ -->
+  <section id="view-story" class="view">
+
+    <!-- ── Portada ── -->
+    <div id="story-home" class="scroll-area flex flex-col gap-6" style="flex:1;">
+
+      <!-- Tira CONTINUAR (la rellena JS con #story-cont-btn) -->
+      <div id="story-continue"></div>
+
+      <!-- HÉROE de portada -->
+      <div class="rd-hero rd-hero--story">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Story · thriller jugable</p>
+        <p class="font-display rd-hero-title">NO LEES INGLÉS.<br>LO <span style="color: var(--accent);">SOBREVIVES.</span></p>
+        <p class="rd-hero-sub">Un thriller donde tu única arma es la línea que produces en inglés bajo presión. Habla mal y la trama te castiga.</p>
+      </div>
+
+      <!-- Rótulo de sección de sagas -->
+      <p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>Elige tu saga</p>
+
+      <!-- Sagas (las inyecta JS como .slang-card rotadas: leak/ghost/pitch).
+           Cada card lleva su ILUSTRACIÓN diegética inyectada por el mismo motor. -->
+      <div id="story-sagas" class="flex flex-col gap-5 pb-4"></div>
+    </div>
+
+    <!-- ── Runner de episodio ── -->
+    <div id="story-run" class="hidden flex-col" style="flex:1; min-height:0;">
+      <div class="rd-run-head shrink-0 pb-3">
+        <div class="flex items-center justify-between">
+          <span id="story-run-title" class="rd-eyebrow rd-eyebrow--accent rd-run-title"></span>
+          <button id="story-quit" class="btn-ghost" style="min-height:38px; padding: 7px 14px; font-size: 0.76rem;">Salir</button>
+        </div>
+        <!-- Medidores LEVERAGE (lima) / HEAT (coral), track grueso -->
+        <div class="rd-meters flex gap-4 mt-3">
+          <div class="rd-meter" style="flex:1;">
+            <div class="flex justify-between rd-meter-label"><span>Leverage</span><span id="lev-val">30</span></div>
+            <div class="meter-track mt-1"><div id="lev-fill" class="meter-fill" style="width:30%; background: var(--accent);"></div></div>
+          </div>
+          <div class="rd-meter" style="flex:1;">
+            <div class="flex justify-between rd-meter-label"><span>Heat</span><span id="heat-val">20</span></div>
+            <div class="meter-track mt-1"><div id="heat-fill" class="meter-fill" style="width:20%; background: var(--danger, oklch(66% 0.20 27));"></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Conversación del beat (la llena JS: npc-avatar + bubble + gloss-chips + mission-card + rank + intel) -->
+      <div id="story-scroll" class="scroll-area flex flex-col gap-3" style="flex:1; min-height:0; padding-bottom: 8px;"></div>
+      <!-- Input dock del runner -->
+      <div id="story-input-zone" class="rd-input-dock shrink-0 pt-3">
+        <div class="flex items-center gap-2">
+          <button id="story-mic" class="icon-btn" aria-label="Hablar por micrófono">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+          </button>
+          <input type="text" id="story-input" placeholder="Tu línea en inglés..." autocomplete="off" aria-label="Tu línea en inglés">
+          <button id="story-send" class="icon-btn" aria-label="Enviar línea" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+        <button id="story-panic" class="btn-ghost" style="width:100%; margin-top: 8px; font-size: 0.78rem;">no sé qué decir</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ VISTA: SLANG ══════════════════════ -->
+  <section id="view-slang" class="view">
+
+    <!-- Modos como pills (calle/trabajo/paisa) — fila-pill de REF 2 -->
+    <div class="rd-modebar flex gap-2 pb-4 shrink-0">
+      <button class="mode-tab active" data-mode="calle">CALLE</button>
+      <button class="mode-tab" data-mode="trabajo">TRABAJO</button>
+      <button class="mode-tab" data-mode="paisa">PAISA → GRINGO</button>
+    </div>
+
+    <div id="slang-scroll" class="scroll-area" style="flex:1; min-height:0;">
+
+      <!-- Modo drop (calle/trabajo) -->
+      <div id="slang-drop-area">
+        <!-- HÉROE vacío: titular + mascota halftone (el "sticker guardable") -->
+        <div id="slang-empty" class="rd-hero rd-hero--slang flex flex-col items-start gap-4 pt-4">
+          <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Slang · fresco de la calle</p>
+          <p class="font-display rd-hero-title">SLANG QUE<br><span style="color: var(--accent);">SÍ SE USA.</span></p>
+          <p class="rd-hero-sub">Nada de libro de texto. Expresiones frescas con contexto, ejemplo y cómo NO usarlas.</p>
+          <!-- ILUSTRACIÓN: slang mascot — mascota halftone B&N de RODEO con actitud callejera (gafas, sombreado de puntos) -->
+          <div class="rd-ill rd-ill--slang-mascot" aria-hidden="true"><svg viewBox="0 0 120 120" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><defs><pattern id="rodeo-mascot-dots" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="2.2" cy="2.2" r="1.7" fill="currentColor"/></pattern><clipPath id="rodeo-mascot-clip"><path d="M60 14C40 14 24 22 24 40C24 52 30 58 30 68C30 88 42 104 60 104C78 104 90 88 90 68C90 58 96 52 96 40C96 22 80 14 60 14 Z"/></clipPath></defs><g clip-path="url(#rodeo-mascot-clip)" opacity="0.5"><rect x="20" y="10" width="80" height="100" fill="url(#rodeo-mascot-dots)"/></g><path d="M60 14C40 14 24 22 24 40C24 52 30 58 30 68C30 88 42 104 60 104C78 104 90 88 90 68C90 58 96 52 96 40C96 22 80 14 60 14 Z"/><path d="M34 50 L54 50 Q58 50 58 55 L57 63 Q56 68 50 68 L42 68 Q36 68 35 62 L33 54 Q32 50 34 50 Z" fill="currentColor" stroke-width="4"/><path d="M66 50 L86 50 Q88 50 87 54 L85 62 Q84 68 78 68 L70 68 Q64 68 63 63 L62 55 Q62 50 66 50 Z" fill="currentColor" stroke-width="4"/><path d="M58 55 Q60 53 62 55"/><path d="M44 82 Q56 92 74 84"/><path d="M60 14 Q60 4 70 4 Q80 4 80 12 Q80 19 72 19" stroke-width="5"/><circle cx="82" cy="10" r="4.5" stroke-width="4.5"/></svg></div>
+        </div>
+
+        <!-- Feed de cards (lo llena JS con .slang-card rotadas) -->
+        <div id="slang-feed" class="flex flex-col gap-4 pb-4"></div>
+
+        <!-- CTA DROP -->
+        <div class="rd-drop-dock flex justify-center py-4">
+          <button id="drop-btn" class="btn-accent">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            DROP
+          </button>
+        </div>
+      </div>
+
+      <!-- Modo paisa -->
+      <div id="slang-paisa-area" class="hidden flex-col gap-4 pt-2">
+        <div class="rd-hero rd-hero--paisa">
+          <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Paisa → gringo</p>
+          <p class="font-display rd-hero-title">¿CÓMO DIGO<br><span style="color: var(--accent);">ESO EN INGLÉS?</span></p>
+          <p class="rd-hero-sub">Escribe la expresión paisa o veneca y te doy los equivalentes gringos reales, con registro y matiz.</p>
+        </div>
+        <div class="rd-input-dock flex gap-2">
+          <input type="text" id="paisa-input" placeholder='"qué chimba", "está mamando gallo"...' aria-label="Expresión en español">
+          <button id="paisa-btn" class="icon-btn" aria-label="Traducir expresión" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </button>
+        </div>
+        <!-- Resultados (los llena JS con .slang-card) -->
+        <div id="paisa-results" class="flex flex-col gap-4 pb-6"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ VISTA: LADDER (SUBE) ══════════════════════ -->
+  <section id="view-ladder" class="view">
+    <div id="ladder-home" class="scroll-area flex flex-col gap-5" style="flex:1;">
+
+      <!-- HÉROE -->
+      <div class="rd-hero rd-hero--ladder">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Sube · B2 → C1</p>
+        <p class="font-display rd-hero-title">SUBE TU<br>INGLÉS<span style="color: var(--accent);">.</span></p>
+        <p class="rd-hero-sub">No estás mal. Estás siendo básico. Cambia lo que dice un B2 por lo que diría un C1 — pero lo produces tú.</p>
+      </div>
+
+      <!-- Barra B2→C1 con racha en el centro + anclas cook/simmer -->
+      <div class="rd-ladder-progress">
+        <div class="rd-ladder-ends flex justify-between items-center">
+          <span class="rd-ladder-end"><span class="rd-ladder-end-ico" aria-hidden="true">
+            <!-- ILUSTRACIÓN: cook (extremo B2) — olla fría line-art -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"></path><path d="M3 10h18M8 10V7M12 10V6M16 10V7"></path></svg>
+          </span>B2</span>
+          <span id="ladder-streak" class="rd-streak">racha 0</span>
+          <span class="rd-ladder-end"><span class="rd-ladder-end-ico" aria-hidden="true">
+            <!-- ILUSTRACIÓN: simmer (extremo C1) — llama line-art -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1.5 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.5-2.5 1-3 .3 1 1 1.5 1.5 1.5C10 6 12 4 12 2z"></path></svg>
+          </span>C1</span>
+        </div>
+        <div class="meter-track rd-ladder-track"><div id="ladder-bar" class="meter-fill" style="width:0%; background: var(--accent);"></div></div>
+      </div>
+
+      <!-- Vetas como pills -->
+      <div class="rd-veta-row flex flex-wrap gap-2.5 mt-1">
+        <button class="chip" data-veta="trabajo"><span class="rd-chip-emoji" aria-hidden="true">💼</span>TRABAJO</button>
+        <button class="chip" data-veta="calle"><span class="rd-chip-emoji" aria-hidden="true">🛹</span>CALLE</button>
+        <button class="chip" data-veta="fallos"><span class="rd-chip-emoji" aria-hidden="true">🎯</span>MIS FALLOS</button>
+      </div>
+
+      <!-- Sube tu propia frase -->
+      <div class="rd-input-dock flex gap-2">
+        <input type="text" id="ladder-own" placeholder="o sube esta frase tuya..." autocomplete="off" aria-label="Frase propia para subir de nivel">
+        <button id="ladder-own-btn" class="icon-btn" aria-label="Subir esta frase" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+        </button>
+      </div>
+
+      <!-- Zona del peldaño (la llena JS: .flip-card > #rung-card, etc.) -->
+      <div id="ladder-runarea" class="pb-6"></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════ VISTA: DNA ══════════════════════ -->
+  <section id="view-dna" class="view">
+    <div id="dna-scroll" class="scroll-area flex flex-col gap-6" style="flex:1; min-height:0;">
+
+      <!-- HÉROE con stats en fila desigual (motivo REF 2 racha/gemas) -->
+      <div class="rd-hero rd-hero--dna">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>DNA · tu cerebro de errores</p>
+        <!-- ILUSTRACIÓN: dna hero — hélice/red de nodos line-art lima, esquina -->
+        <div class="rd-ill rd-ill--dna-hero" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M32 12 C64 30 64 30 32 50 C0 70 0 70 32 88" transform="translate(4 0)"/><path d="M72 12 C40 30 40 30 72 50 C104 70 104 70 72 88" transform="translate(-4 0)"/><path d="M34 24 L66 24" stroke-width="5"/><path d="M28 40 L72 40" stroke-width="5"/><path d="M28 60 L72 60" stroke-width="5"/><path d="M34 76 L66 76" stroke-width="5"/></svg></div>
+        <div class="rd-stats flex flex-wrap items-end gap-x-7 gap-y-4 pt-1">
+          <div class="rd-stat">
+            <div class="stat-num" id="stat-errors">0</div>
+            <div class="rd-stat-label">Errores cazados</div>
+          </div>
+          <div class="rd-stat">
+            <div class="stat-num" id="stat-slang" style="color: var(--accent);">0</div>
+            <div class="rd-stat-label">Slang guardado</div>
+          </div>
+          <div class="rd-stat">
+            <div class="stat-num" id="stat-upgrades" style="color: var(--card-yellow);">0</div>
+            <div class="rd-stat-label">Upgrades clavados</div>
+          </div>
+          <div class="rd-stat">
+            <div class="stat-num" id="stat-stories">0</div>
+            <div class="rd-stat-label">Episodios</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="rd-hero-sub" style="max-width: 320px;">Tu ADN de errores. Todo lo que fallas vuelve aquí — y el repaso te lo cobra hasta que lo domines.</p>
+
+      <div class="flex gap-3">
+        <button id="quiz-btn" class="btn-accent" style="padding: 13px 28px; min-height: 48px; font-size: 0.88rem;">REPASO RÁPIDO</button>
+      </div>
+
+      <!-- Zona de quiz (la llena JS) -->
+      <div id="quiz-area" class="hidden flex-col gap-3"></div>
+
+      <!-- Rótulo + lista del DNA (la llena JS: .dna-item) -->
+      <p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>Todo lo que tocaste</p>
+      <div id="dna-list" class="flex flex-col gap-2.5 pb-6"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════ TAB BAR ═══════════════════════════ -->
+<!-- Íconos con más peso (stroke 2.2). Tab activa = pill lima sólida (CSS del dev).
+     data-view intacto: talk · story · slang · ladder · dna -->
+<nav class="tabbar glass" aria-label="Navegación principal">
+  <button class="tab-item active" data-view="talk" aria-label="Talk — conversación">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    TALK
+  </button>
+  <button class="tab-item" data-view="story" aria-label="Story — historia interactiva">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+    STORY
+  </button>
+  <button class="tab-item" data-view="slang" aria-label="Slang — expresiones">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+    SLANG
+  </button>
+  <button class="tab-item" data-view="ladder" aria-label="Sube — sube tu inglés de B2 a C1">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11l-5-5-5 5"></path><path d="M17 18l-5-5-5 5"></path></svg>
+    SUBE
+  </button>
+  <button class="tab-item" data-view="dna" aria-label="DNA — tus errores y repaso">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c6.667-6 13.333 0 20-6"></path><path d="M2 9c6.667 6 13.333 0 20 6"></path><path d="M9 6.3c.33 1 .33 2.4 0 3.4"></path><path d="M15 14.3c.33 1 .33 2.4 0 3.4"></path></svg>
+    DNA
+  </button>
+</nav>
+
+<!-- ═══════════════════════════ OVERLAYS ═══════════════════════════ -->
+<div id="toast" class="toast" role="status"></div>
+
+<!-- Overlay debrief / quiz results / cierre de episodio / veta hecha -->
+<div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
+  <div class="sheet" id="sheet-content"></div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script>
+'use strict';
+
+/* ═══════════════════ ESTADO Y UTILIDADES ═══════════════════ */
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+    catch { return fallback; }
+  },
+  set(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); }
+    catch { toast('No pude guardar — almacenamiento lleno o bloqueado'); }
+  },
+};
+
+const state = {
+  view: 'talk',
+  session: null,          // { scenario, title, messages:[{role,content}], displayLog:[] }
+  slangMode: 'calle',
+  ttsOn: store.get('rodeo_tts', true),
+  busy: false,
+  cost: store.get('rodeo_cost', 0),
+  seenSlang: store.get('rodeo_seen_slang', []),
+  dna: store.get('rodeo_dna', []),        // [{type:'error'|'slang'|'upgrade', ..., ts}]
+  sessions: store.get('rodeo_sessions', 0),
+  // ── Fase 2 ──
+  story: null,                            // run activo en memoria
+  stories: store.get('rodeo_stories', 0),
+  ladderXP: store.get('rodeo_ladder_xp', { pct: 0, clavados: 0, bestCombo: 0 }),
+  seenLadder: store.get('rodeo_seen_ladder', []),
+  streak: store.get('rodeo_streak', { days: 0, last: '' }),
+  ladderPool: [],                         // lote cacheado (no persiste)
+  ladderIdx: 0,
+  combo: 0,
+};
+
+function toast(msg, ms = 2600) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function updateCostTicker() {
+  $('#cost-ticker').textContent = '$' + state.cost.toFixed(4);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s ?? '');
+  return d.innerHTML;
+}
+
+function animateIn(els, opts = {}) {
+  if (REDUCED || !window.gsap || !els || (els.length !== undefined && !els.length)) return;
+  gsap.from(els, { y: 24, opacity: 0, duration: 0.9, ease: 'expo.out', stagger: 0.07, ...opts });
+}
+
+/* ═══════════════════ API ═══════════════════ */
+
+async function callAPI(mode, messages, maxTokens = 3200) {
+  const headers = { 'Content-Type': 'application/json' };
+  const pass = store.get('rodeo_pass', null);
+  if (pass) headers['x-rodeo-pass'] = pass;
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ mode, messages, max_tokens: maxTokens }),
+  });
+
+  if (res.status === 401) {
+    const pin = prompt('PIN de acceso a RODEO:');
+    if (pin) { store.set('rodeo_pass', pin); return callAPI(mode, messages, maxTokens); }
+    throw new Error('Sin PIN no hay rodeo.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || data.error || 'Error de conexión');
+
+  if (data.cost) {
+    state.cost += parseFloat(data.cost) || 0;
+    store.set('rodeo_cost', state.cost);
+    updateCostTicker();
+  }
+  return { content: data.content, finish: data.finish_reason };
+}
+
+// Kimi razona antes de responder: si se queda sin tokens a mitad de pensamiento,
+// el razonamiento se cuela en content y el JSON llega roto. Este helper detecta
+// el truncamiento, reintenta UNA vez con presupuesto máximo y nunca muestra
+// razonamiento crudo al usuario.
+async function callJSON(mode, messages, maxTokens = 3200) {
+  let { content, finish } = await callAPI(mode, messages, maxTokens);
+  let parsed = parseJSON(content);
+  // Reintento único ante CUALQUIER fallo de parseo (truncamiento o JSON sucio),
+  // con techo alto para que el razonamiento de Kimi no vuelva a truncar.
+  if (!parsed) {
+    ({ content, finish } = await callAPI(mode, messages, 8000));
+    parsed = parseJSON(content);
+  }
+  return { parsed, content, finish };
+}
+
+// Los modelos a veces envuelven el JSON en ```fences``` — parseo defensivo
+function parseJSON(raw) {
+  if (!raw) return null;
+  let s = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/,'').trim();
+  const objStart = s.indexOf('{'), arrStart = s.indexOf('[');
+  let start = -1, end = -1;
+  if (arrStart !== -1 && (arrStart < objStart || objStart === -1)) { start = arrStart; end = s.lastIndexOf(']'); }
+  else if (objStart !== -1) { start = objStart; end = s.lastIndexOf('}'); }
+  if (start === -1 || end === -1) return null;
+  try { return JSON.parse(s.slice(start, end + 1)); } catch { return null; }
+}
+
+/* ═══════════════════ NAVEGACIÓN ═══════════════════ */
+
+$$('.tab-item').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const v = tab.dataset.view;
+    if (v === state.view) return;
+    state.view = v;
+    $$('.tab-item').forEach((t) => t.classList.toggle('active', t === tab));
+    $$('.view').forEach((s) => s.classList.remove('active'));
+    const section = $('#view-' + v);
+    section.classList.add('active');
+    if (v !== 'story') document.body.classList.remove('heat-glow');
+    if (v === 'dna') renderDNA();
+    if (v === 'story') renderStoryHome();
+    if (v === 'ladder') renderLadder();
+    animateIn(section.children, { y: 18, duration: 0.7 });
+  });
+});
+
+/* ═══════════════════ TALK ═══════════════════ */
+
+const SCENARIOS = {
+  'work-meeting':     { title: 'Reunión de equipo',    prompt: 'a weekly team meeting at a tech startup. You are Alex, his American teammate. Discuss progress, blockers and plans. Business-casual register.' },
+  'work-negotiation': { title: 'Negociación',          prompt: 'a negotiation with a US investor interested in his crypto startup. You are Jordan, a sharp but fair VC. Push back on numbers, ask hard questions.' },
+  'work-interview':   { title: 'Entrevista',           prompt: 'a job interview for a senior role at an international company. You are Sam, the hiring manager. Ask behavioral and technical-ish questions.' },
+  'work-pitch':       { title: 'Pitch',                prompt: 'a pitch meeting where he presents his product. You are Casey, a skeptical potential client. Make him sell it and handle objections.' },
+  'street-bar':       { title: 'Bar',                  prompt: 'casual small talk at a bar in Austin, Texas. You are Tyler, a friendly local who loves music and sports. Very informal, use natural slang.' },
+  'street-travel':    { title: 'Viaje',                prompt: 'travel situations: airport check-in, immigration, asking directions, hotel issues. You play the various people he encounters. Realistic and sometimes impatient.' },
+  'street-futbol':    { title: 'Fútbol',               prompt: 'a passionate conversation about football/soccer — World Cup 2026, teams, matches. You are Danny, a British football fan. Use real football slang and banter.' },
+  'street-date':      { title: 'Cita',                 prompt: 'a first date at a coffee shop. You are Riley, interesting and a bit playful. Natural flirty-friendly conversation, informal register.' },
+  'free':             { title: 'Free talk',            prompt: 'open conversation about whatever he brings up. You are Coach, curious and engaging. Follow his lead, ask good questions.' },
+};
+
+function talkSystemPrompt(scenarioPrompt) {
+  return `You are the English conversation partner inside RODEO, a personal training app for Gus: a Venezuelan guy living in Medellín, Colombia. Level B2+ working toward C1 for work (crypto/tech startup) and daily life.
+
+SCENARIO: Role-play ${scenarioPrompt}
+
+RULES:
+- Stay in character. Contemporary, natural English. Keep replies to 2-4 sentences and always give him something to respond to.
+- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).
+- You MUST respond with STRICT JSON only, no text outside it, using exactly this shape:
+{"reply":"your in-character conversational reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}]}
+- "corrections": only REAL errors or clearly unnatural phrasing from HIS LAST message. Maximum 3, the most valuable ones. If his message was clean, return an empty array. Small typos don't count.
+- Never correct him inside "reply" — the conversation must flow naturally there.`;
+}
+
+function startSession(key) {
+  const sc = SCENARIOS[key];
+  state.session = {
+    scenario: key,
+    title: sc.title,
+    messages: [{ role: 'system', content: talkSystemPrompt(sc.prompt) }],
+  };
+  $('#talk-empty').classList.add('hidden');
+  $('#talk-session').classList.remove('hidden');
+  $('#talk-session').classList.add('flex');
+  $('#session-title').textContent = sc.title;
+  $('#chat-scroll').innerHTML = '';
+  syncTTSButton();
+  // El coach abre la conversación
+  sendTurn(null);
+}
+
+function addBubble(html, cls) {
+  const el = document.createElement('div');
+  el.className = cls;
+  el.innerHTML = html;
+  $('#chat-scroll').appendChild(el);
+  animateIn(el, { y: 14, duration: 0.6, stagger: 0 });
+  requestAnimationFrame(() => { const c = $('#chat-scroll'); c.scrollTop = c.scrollHeight; });
+  return el;
+}
+
+function addTyping() {
+  return addBubble('<div class="typing-dots"><span></span><span></span><span></span></div>', 'bubble-coach');
+}
+
+async function sendTurn(userText) {
+  if (state.busy || !state.session) return;
+  state.busy = true;
+  $('#send-btn').disabled = true;
+
+  if (userText) {
+    state.session.messages.push({ role: 'user', content: userText });
+    addBubble(esc(userText), 'bubble-user');
+  } else {
+    state.session.messages.push({ role: 'user', content: '(Open the conversation: greet me in character and kick things off.)' });
+  }
+
+  const typing = addTyping();
+  try {
+    const { parsed, content, finish } = await callJSON('chat', state.session.messages, 3200);
+    let reply, corrections;
+    if (parsed && parsed.reply) {
+      reply = parsed.reply;
+      corrections = Array.isArray(parsed.corrections) ? parsed.corrections : [];
+      state.session.messages.push({ role: 'assistant', content: JSON.stringify(parsed) });
+    } else if (finish === 'stop' && content && !content.trim().startsWith('{')) {
+      // El modelo respondió en texto plano legítimo (raro pero posible)
+      reply = content;
+      corrections = [];
+      state.session.messages.push({ role: 'assistant', content });
+    } else {
+      throw new Error('El coach se enredó — repite el mensaje');
+    }
+
+    typing.remove();
+    addBubble(esc(reply), 'bubble-coach');
+
+    corrections.forEach((c) => {
+      if (!c || !c.fix) return;
+      addBubble(
+        `<div><span class="quote">${esc(c.quote || '')}</span> → <span class="fix">${esc(c.fix)}</span></div><div class="why">${esc(c.why || '')}</div>`,
+        'correction-card'
+      );
+      saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
+    });
+
+    if (state.ttsOn) speak(reply);
+  } catch (err) {
+    typing.remove();
+    toast('Error: ' + err.message);
+    state.session.messages.pop(); // no dejar el turno colgado
+  } finally {
+    state.busy = false;
+    $('#send-btn').disabled = false;
+  }
+}
+
+$$('#talk-empty .chip').forEach((chip) => {
+  chip.addEventListener('click', () => startSession(chip.dataset.scenario));
+});
+
+$('#send-btn').addEventListener('click', submitInput);
+$('#chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitInput(); });
+
+function submitInput() {
+  const inp = $('#chat-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  sendTurn(text);
+}
+
+/* ── Debrief ── */
+$('#end-session').addEventListener('click', async () => {
+  if (!state.session || state.busy) return;
+  const userTurns = state.session.messages.filter((m) => m.role === 'user').length;
+  if (userTurns < 3) { closeSession(); return; }
+
+  state.busy = true;
+  toast('Preparando tu debrief...', 4000);
+  try {
+    const transcript = state.session.messages
+      .filter((m) => m.role !== 'system')
+      .map((m) => (m.role === 'user' ? 'GUS: ' : 'COACH: ') + m.content.slice(0, 600))
+      .join('\n');
+
+    const { parsed: d } = await callJSON('creative', [
+      { role: 'system', content: 'You are an expert English coach analyzing a conversation practice session. Respond with STRICT JSON only.' },
+      { role: 'user', content: `Analyze GUS's English in this transcript (he is B2+ aiming for C1). Return JSON:
+{"top_errors":[{"quote":"","fix":"","why":"en español, una línea"}],"upgrades":[{"b2":"something he said that was correct but basic","c1":"how a C1 speaker would phrase it","note":"en español, una línea"}],"closing":"2 honest sentences of coach feedback in English"}
+Max 3 top_errors (the most costly ones) and max 3 upgrades. TRANSCRIPT:\n${transcript}` },
+    ], 3200);
+
+    if (!d) throw new Error('No pude analizar la sesión');
+
+    state.sessions += 1;
+    store.set('rodeo_sessions', state.sessions);
+    (d.top_errors || []).forEach((e) => e && e.fix && saveDNA({ type: 'error', quote: e.quote || '', fix: e.fix, why: e.why || '' }));
+    // Los upgrades del debrief son la munición de LEVEL UP: se guardan como pendientes.
+    (d.upgrades || []).forEach((u) => u && u.c1 && u.b2 && recordUpgrade({ b2: u.b2, c1: u.c1, note: u.note || '', dominado: false }));
+
+    openSheet(`
+      <p class="font-display" style="font-size: 2.4rem; line-height: 0.95;">DEBRIEF<span style="color: var(--accent);">.</span></p>
+      ${(d.top_errors || []).length ? `<p style="font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: oklch(70% 0.19 30); margin: 18px 0 10px;">Errores que más te cuestan</p>` : ''}
+      ${(d.top_errors || []).map((e) => `
+        <div class="dna-item" style="margin-bottom: 8px;">
+          <div style="font-size: 0.9rem;"><span style="color: oklch(70% 0.19 30); text-decoration: line-through;">${esc(e.quote)}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(e.fix)}</span></div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">${esc(e.why)}</div>
+        </div>`).join('')}
+      ${(d.upgrades || []).length ? `<p style="font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin: 18px 0 10px;">Dilo como un C1</p>` : ''}
+      ${(d.upgrades || []).map((u) => `
+        <div class="dna-item" style="margin-bottom: 8px;">
+          <div style="font-size: 0.9rem; color: var(--text-secondary);">"${esc(u.b2)}"</div>
+          <div style="font-size: 0.95rem; color: var(--text-primary); font-weight: 600; margin-top: 3px;">"${esc(u.c1)}"</div>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">${esc(u.note)}</div>
+        </div>`).join('')}
+      <p style="font-size: 0.95rem; font-style: italic; color: var(--text-secondary); margin-top: 18px; line-height: 1.6;">"${esc(d.closing || 'Good session.')}"</p>
+      <div style="display:flex; justify-content:center; margin-top: 22px;">
+        <button class="btn-accent" onclick="closeSheetAndSession()" style="min-height: 48px; padding: 13px 32px;">LISTO</button>
+      </div>
+    `);
+  } catch (err) {
+    toast('Error en el debrief: ' + err.message);
+    closeSession();
+  } finally {
+    state.busy = false;
+  }
+});
+
+function closeSession() {
+  state.session = null;
+  stopSpeaking();
+  stopMic();
+  $('#talk-session').classList.add('hidden');
+  $('#talk-session').classList.remove('flex');
+  $('#talk-empty').classList.remove('hidden');
+}
+
+window.closeSheetAndSession = function () {
+  closeSheet();
+  closeSession();
+};
+
+/* ═══════════════════ VOZ (Web Speech API) ═══════════════════ */
+
+let recognition = null;
+let recognizing = false;
+
+function initRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'en-US';
+  r.interimResults = true;
+  r.continuous = false;
+  r.onresult = (e) => {
+    let final = '', interim = '';
+    for (const res of e.results) (res.isFinal ? final += res[0].transcript : interim += res[0].transcript);
+    $('#chat-input').value = (final || interim).trim();
+    if (final) r._finalText = final.trim();
+  };
+  r.onend = () => {
+    recognizing = false;
+    $('#mic-btn').classList.remove('recording');
+    const text = r._finalText;
+    r._finalText = '';
+    if (text) { $('#chat-input').value = ''; sendTurn(text); }
+  };
+  r.onerror = (e) => {
+    recognizing = false;
+    $('#mic-btn').classList.remove('recording');
+    if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador');
+    else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error);
+  };
+  return r;
+}
+
+$('#mic-btn').addEventListener('click', () => {
+  if (!recognition) recognition = initRecognition();
+  if (!recognition) { toast('Tu navegador no soporta voz — usa Chrome'); return; }
+  if (recognizing) { recognition.stop(); return; }
+  stopSpeaking();
+  recognition._finalText = '';
+  try { recognition.start(); recognizing = true; $('#mic-btn').classList.add('recording'); }
+  catch { /* start() doble */ }
+});
+
+function stopMic() { if (recognition && recognizing) try { recognition.abort(); } catch {} }
+
+let voiceEN = null;
+function pickVoice() {
+  const voices = speechSynthesis.getVoices();
+  voiceEN = voices.find((v) => v.lang === 'en-US' && /natural|google|premium/i.test(v.name))
+        || voices.find((v) => v.lang === 'en-US')
+        || voices.find((v) => v.lang.startsWith('en'))
+        || null;
+}
+if ('speechSynthesis' in window) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window) || !text) return;
+  stopSpeaking();
+  const u = new SpeechSynthesisUtterance(text);
+  if (voiceEN) u.voice = voiceEN;
+  u.lang = 'en-US';
+  u.rate = 1.0;
+  speechSynthesis.speak(u);
+}
+function stopSpeaking() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+
+function syncTTSButton() { $('#tts-toggle').classList.toggle('on', state.ttsOn); }
+$('#tts-toggle').addEventListener('click', () => {
+  state.ttsOn = !state.ttsOn;
+  store.set('rodeo_tts', state.ttsOn);
+  if (!state.ttsOn) stopSpeaking();
+  syncTTSButton();
+  toast(state.ttsOn ? 'Voz del coach: ON' : 'Voz del coach: OFF', 1500);
+});
+
+/* ═══════════════════ SLANG ═══════════════════ */
+
+const CARD_THEMES = [
+  { bg: 'var(--card-blue)',   text: 'light-text' },
+  { bg: 'var(--card-green)',  text: 'light-text' },
+  { bg: 'var(--card-yellow)', text: 'dark-text'  },
+  { bg: 'var(--card-coral)',  text: 'light-text' },
+  { bg: 'var(--card-paper)',  text: 'dark-text'  },
+];
+
+$$('.mode-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    state.slangMode = tab.dataset.mode;
+    $$('.mode-tab').forEach((t) => t.classList.toggle('active', t === tab));
+    const paisa = state.slangMode === 'paisa';
+    $('#slang-drop-area').classList.toggle('hidden', paisa);
+    $('#slang-paisa-area').classList.toggle('hidden', !paisa);
+    $('#slang-paisa-area').classList.toggle('flex', paisa);
+  });
+});
+
+$('#drop-btn').addEventListener('click', async () => {
+  if (state.busy) return;
+  state.busy = true;
+  const btn = $('#drop-btn');
+  btn.disabled = true;
+  $('#slang-empty').classList.add('hidden');
+
+  const feed = $('#slang-feed');
+  const skeletons = [];
+  for (let i = 0; i < 3; i++) {
+    const sk = document.createElement('div');
+    sk.className = 'skeleton';
+    feed.appendChild(sk);
+    skeletons.push(sk);
+  }
+  feed.parentElement.scrollTop = feed.parentElement.scrollHeight;
+
+  const category = state.slangMode === 'trabajo'
+    ? 'professional/business English actually used in 2026: expressions, phrasal verbs and idioms from real meetings, negotiations, startup and tech culture'
+    : 'street slang and informal expressions actually used by natives in 2026: internet culture, daily life, sports, going out';
+
+  try {
+    const avoid = state.seenSlang.slice(-60).join(', ') || 'none';
+    const { parsed: cards } = await callJSON('creative', [
+      { role: 'system', content: 'You create fresh English-learning content for a B2+ Venezuelan living in Medellín aiming for C1. Never textbook material. Respond with STRICT JSON only.' },
+      { role: 'user', content: `Generate exactly 5 REAL expressions of: ${category}.
+Already seen (do NOT repeat any of these): ${avoid}.
+Return a STRICT JSON array of 5 objects. Keys per object:
+- "term": the English expression itself
+- "meaning_es": significado directo en español
+- "example_en": one natural example sentence in English
+- "example_es": traducción natural del ejemplo
+- "wrong_use": en español — cuándo NO usarla o el error típico del hispanohablante al usarla
+- "vibe": exactly one of "casual", "spicy", "pro", "internet"
+Here is ONE example of a well-formed item — NEVER reuse its content, generate fresh real expressions:
+{"term":"no cap","meaning_es":"sin mentiras, en serio","example_en":"That match was insane, no cap.","example_es":"Ese partido estuvo una locura, en serio.","wrong_use":"No la uses en emails de trabajo ni con gente mayor: es slang de internet.","vibe":"internet"}
+Mix difficulty. Genuinely current and useful, zero textbook material.` },
+    ], 3800);
+    skeletons.forEach((s) => s.remove());
+    const PLACEHOLDERS = ['the expression', 'no cap', 'the english expression'];
+    const valid = (Array.isArray(cards) ? cards : []).filter((c) =>
+      c && c.term && c.meaning_es && c.example_en &&
+      !PLACEHOLDERS.includes(String(c.term).toLowerCase().trim()) &&
+      !/significado en español/i.test(String(c.meaning_es))
+    );
+    if (!valid.length) throw new Error('Respuesta inválida, dale otra vez');
+
+    valid.forEach((c, i) => {
+      state.seenSlang.push(c.term);
+      const theme = CARD_THEMES[(state.seenSlang.length + i) % CARD_THEMES.length];
+      const rot = [(-1.2), 0.8, -0.6, 1.1, -0.9][i % 5];
+      const el = document.createElement('div');
+      el.className = `slang-card ${theme.text}`;
+      el.style.background = theme.bg;
+      el.style.transform = `rotate(${rot}deg)`;
+      el.innerHTML = `
+        <div class="flex items-start justify-between gap-3">
+          <span class="label-mini">${esc(c.vibe || 'slang')}</span>
+          <button class="save-slang" aria-label="Guardar en DNA" style="background:none;border:none;cursor:pointer;color:currentColor;opacity:.8;padding:6px;min-width:44px;min-height:44px;display:flex;align-items:flex-start;justify-content:flex-end;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          </button>
+        </div>
+        <div class="term">${esc(c.term)}</div>
+        <div style="font-weight: 700; font-size: 0.95rem; margin: 6px 0 14px;">${esc(c.meaning_es)}</div>
+        <div class="ex">"${esc(c.example_en)}"</div>
+        <div class="ex-es">${esc(c.example_es)}</div>
+        <div class="wrong">⚠ ${esc(c.wrong_use)}</div>
+      `;
+      el.querySelector('.save-slang').addEventListener('click', (ev) => {
+        ev.currentTarget.style.opacity = '1';
+        ev.currentTarget.querySelector('path').setAttribute('fill', 'currentColor');
+        saveDNA({ type: 'slang', term: c.term, meaning: c.meaning_es, example: c.example_en });
+        toast('Guardado en tu DNA');
+      });
+      feed.appendChild(el);
+    });
+
+    store.set('rodeo_seen_slang', state.seenSlang.slice(-200));
+    animateIn(feed.querySelectorAll('.slang-card:nth-last-child(-n+5)'), { y: 40, duration: 1.1 });
+    feed.lastElementChild && feed.lastElementChild.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'nearest' });
+  } catch (err) {
+    skeletons.forEach((s) => s.remove());
+    toast('Error: ' + err.message);
+  } finally {
+    state.busy = false;
+    btn.disabled = false;
+  }
+});
+
+/* ── Paisa → Gringo ── */
+$('#paisa-btn').addEventListener('click', translatePaisa);
+$('#paisa-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') translatePaisa(); });
+
+async function translatePaisa() {
+  const inp = $('#paisa-input');
+  const phrase = inp.value.trim();
+  if (!phrase || state.busy) return;
+  state.busy = true;
+  $('#paisa-btn').disabled = true;
+
+  const results = $('#paisa-results');
+  const sk = document.createElement('div');
+  sk.className = 'skeleton';
+  sk.style.height = '140px';
+  results.prepend(sk);
+
+  try {
+    const { parsed: d } = await callJSON('creative', [
+      { role: 'system', content: 'You are a bilingual slang expert: Colombian/Venezuelan Spanish ↔ real native English. Respond with STRICT JSON only.' },
+      { role: 'user', content: `Gus (Venezuelan in Medellín) wants to say this in English: "${phrase}"
+Give REAL equivalents natives actually use — never literal translations.
+Return STRICT JSON: an object with "phrase" (the original) and "equivalents" (array of 2-4 objects, most common first). Keys per equivalent:
+- "en": the actual English expression
+- "register": exactly one of "casual", "neutral", "vulgar", "pro"
+- "example": one natural example sentence using it
+- "note_es": matiz o contexto en español, una línea
+Example of ONE well-formed equivalent (never reuse its content):
+{"en":"that's sick","register":"casual","example":"Bro, that goal was sick!","note_es":"Positivo entre jóvenes; no confundir con 'estar enfermo'."}` },
+    ], 2600);
+    sk.remove();
+    if (!d || !Array.isArray(d.equivalents)) throw new Error('No pude traducir eso, intenta de nuevo');
+
+    const theme = CARD_THEMES[Math.floor(Math.random() * CARD_THEMES.length)];
+    const el = document.createElement('div');
+    el.className = `slang-card ${theme.text}`;
+    el.style.background = theme.bg;
+    el.innerHTML = `
+      <span class="label-mini">paisa → gringo</span>
+      <div class="term" style="font-size: clamp(1.8rem, 8vw, 2.6rem);">"${esc(phrase)}"</div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+        ${d.equivalents.map((eq) => `
+          <div style="border-top: 1px dashed currentColor; padding-top: 10px;">
+            <div style="font-weight: 800; font-size: 1.15rem;">${esc(eq.en)} <span class="label-mini" style="font-weight:700;">· ${esc(eq.register || '')}</span></div>
+            <div class="ex" style="margin-top: 3px;">"${esc(eq.example)}"</div>
+            <div class="ex-es" style="margin-top: 2px;">${esc(eq.note_es)}</div>
+          </div>`).join('')}
+      </div>
+    `;
+    results.prepend(el);
+    animateIn(el, { y: 30, duration: 1 });
+    inp.value = '';
+  } catch (err) {
+    sk.remove();
+    toast('Error: ' + err.message);
+  } finally {
+    state.busy = false;
+    $('#paisa-btn').disabled = false;
+  }
+}
+
+/* ═══════════════════ DNA ═══════════════════ */
+
+function saveDNA(item) {
+  // evita duplicados exactos
+  const key = item.type + '|' + (item.fix || item.term || '');
+  if (state.dna.some((d) => (d.type + '|' + (d.fix || d.term || '')) === key)) return;
+  state.dna.unshift({ ...item, ts: Date.now() });
+  state.dna = state.dna.slice(0, 300);
+  store.set('rodeo_dna', state.dna);
+}
+
+// Upgrade (LEVEL UP): a diferencia de saveDNA, si ya existe ACTUALIZA su estado
+// dominado, para que un peldaño clavado salga de "MIS FALLOS" en vez de repetirse.
+function recordUpgrade({ b2, c1, swap, note, register, dominado }) {
+  const existing = state.dna.find((d) => d.type === 'upgrade' && (d.fix || '') === c1 && (d.b2 || '') === (b2 || ''));
+  if (existing) {
+    existing.dominado = existing.dominado || dominado;   // "clavado" es pegajoso
+    existing.b2 = existing.b2 || b2 || '';
+    existing.swap = existing.swap || swap || '';
+    existing.why = existing.why || note || '';
+    existing.register = existing.register || register || '';
+  } else {
+    state.dna.unshift({ type: 'upgrade', b2: b2 || '', fix: c1, swap: swap || '', why: note || '', register: register || '', dominado: !!dominado, ts: Date.now() });
+    state.dna = state.dna.slice(0, 300);
+  }
+  store.set('rodeo_dna', state.dna);
+}
+
+function renderDNA() {
+  const errors = state.dna.filter((d) => d.type === 'error');
+  const slang = state.dna.filter((d) => d.type === 'slang');
+  const upgradesDone = state.dna.filter((d) => d.type === 'upgrade' && d.dominado);
+  $('#stat-errors').textContent = errors.length;
+  $('#stat-slang').textContent = slang.length;
+  $('#stat-upgrades').textContent = upgradesDone.length;
+  $('#stat-stories').textContent = state.stories;
+
+  const list = $('#dna-list');
+  list.innerHTML = '';
+  if (!state.dna.length) {
+    list.innerHTML = `<p style="color: var(--text-muted); font-size: 0.88rem; padding-top: 8px;">Todavía no hay nada aquí. Habla en TALK o guarda slang — tus errores y hallazgos van cayendo solos.</p>`;
+    return;
+  }
+  state.dna.forEach((d, idx) => {
+    const el = document.createElement('div');
+    el.className = 'dna-item flex items-start justify-between gap-3';
+    if (d.type === 'error') {
+      el.innerHTML = `
+        <div style="min-width:0;">
+          <div style="font-size: 0.88rem;"><span style="color: oklch(70% 0.19 30); text-decoration: line-through;">${esc(d.quote)}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(d.fix)}</span></div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">${esc(d.why || '')}</div>
+        </div>
+        <button class="dna-del" data-idx="${idx}" aria-label="Borrar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>`;
+    } else if (d.type === 'upgrade') {
+      el.innerHTML = `
+        <div style="min-width:0;">
+          <div style="font-size: 0.88rem;"><span style="color: var(--text-muted); text-decoration: line-through;">${esc(d.b2 || '')}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(d.fix)}</span></div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">${d.dominado ? '<span style="color: var(--card-yellow);">clavado ✓</span> · ' : ''}${esc(d.why || '')}</div>
+        </div>
+        <button class="dna-del" data-idx="${idx}" aria-label="Borrar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>`;
+    } else {
+      el.innerHTML = `
+        <div style="min-width:0;">
+          <div style="font-size: 0.92rem; font-weight: 700;">${esc(d.term)} <span style="font-weight: 400; color: var(--text-secondary);">— ${esc(d.meaning)}</span></div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; font-style: italic;">"${esc(d.example || '')}"</div>
+        </div>
+        <button class="dna-del" data-idx="${idx}" aria-label="Borrar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>`;
+    }
+    // Borrar por identidad del objeto, no por índice: inmune a re-renders y doble-tap
+    el.querySelector('.dna-del').addEventListener('click', () => {
+      const i = state.dna.indexOf(d);
+      if (i > -1) {
+        state.dna.splice(i, 1);
+        store.set('rodeo_dna', state.dna);
+        renderDNA();
+      }
+    });
+    list.appendChild(el);
+  });
+}
+
+/* ── Repaso rápido ── */
+$('#quiz-btn').addEventListener('click', async () => {
+  if (state.busy) return;
+  if (state.dna.length < 3) { toast('Necesitas al menos 3 cosas en tu DNA — ve a hablar primero'); return; }
+  state.busy = true;
+  $('#quiz-btn').disabled = true;
+  toast('Armando tu repaso...', 3500);
+
+  try {
+    const pool = [...state.dna].sort(() => Math.random() - 0.5).slice(0, 8);
+    const material = pool.map((d) => d.type === 'error'
+      ? `ERROR: decía "${d.quote}" → correcto: "${d.fix}" (${d.why})`
+      : d.type === 'upgrade'
+      ? `UPGRADE: básico "${d.b2}" → C1 "${d.fix}" (${d.why})`
+      : `SLANG: "${d.term}" = ${d.meaning}. Ej: "${d.example}"`).join('\n');
+
+    const { parsed: quiz } = await callJSON('creative', [
+      { role: 'system', content: 'You create quick quiz questions to drill English mistakes and vocabulary. Respond with STRICT JSON only.' },
+      { role: 'user', content: `From this material of Gus's past errors and saved slang, create exactly 5 quiz questions in Spanish that force him to PRODUCE the correct English. STRICT JSON array:
+[{"q":"pregunta en español pidiendo producir el inglés","a":"respuesta correcta en inglés","hint":"pista corta en español"}]
+MATERIAL:\n${material}` },
+    ], 2600);
+    if (!Array.isArray(quiz) || !quiz.length) throw new Error('No pude armar el quiz');
+    runQuiz(quiz);
+  } catch (err) {
+    toast('Error: ' + err.message);
+  } finally {
+    state.busy = false;
+    $('#quiz-btn').disabled = false;
+  }
+});
+
+function runQuiz(quiz) {
+  let i = 0, score = 0;
+  const area = $('#quiz-area');
+  area.classList.remove('hidden');
+  area.classList.add('flex');
+
+  function renderQ() {
+    if (i >= quiz.length) {
+      area.innerHTML = `
+        <div class="dna-item" style="border-color: oklch(87% 0.21 128 / 0.4);">
+          <div class="font-display" style="font-size: 2rem;">${score}/${quiz.length}</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary);">${score === quiz.length ? 'Impecable. Eso ya no se te olvida.' : score >= quiz.length / 2 ? 'Bien — lo que fallaste se queda en el DNA para la próxima.' : 'Tranquilo, para eso existe el repaso. Otra ronda mañana.'}</div>
+          <button class="btn-ghost" style="margin-top: 12px;" onclick="document.getElementById('quiz-area').classList.add('hidden')">Cerrar</button>
+        </div>`;
+      return;
+    }
+    const q = quiz[i];
+    area.innerHTML = `
+      <div class="dna-item" style="border-color: oklch(87% 0.21 128 / 0.3);">
+        <div style="font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">${i + 1} / ${quiz.length}</div>
+        <div style="font-size: 0.95rem; font-weight: 600; line-height: 1.5;">${esc(q.q)}</div>
+        <div id="quiz-answer" class="hidden" style="margin-top: 12px; padding: 12px; background: var(--accent-dim); border-radius: 12px; color: var(--accent); font-weight: 700;">${esc(q.a)}</div>
+        <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;">
+          <button id="quiz-reveal" class="btn-ghost" style="font-size: 0.8rem;">Ver respuesta</button>
+          <button id="quiz-hint" class="btn-ghost" style="font-size: 0.8rem;">Pista</button>
+        </div>
+        <div id="quiz-judge" class="hidden" style="display: none; gap: 8px; margin-top: 12px;">
+          <button id="quiz-good" class="btn-accent" style="min-height: 44px; padding: 10px 22px; font-size: 0.82rem;">LA TENÍA ✓</button>
+          <button id="quiz-bad" class="btn-ghost" style="border-color: oklch(64% 0.19 30 / 0.5); color: oklch(70% 0.19 30);">Fallé</button>
+        </div>
+      </div>`;
+    $('#quiz-reveal').addEventListener('click', () => {
+      $('#quiz-answer').classList.remove('hidden');
+      const j = $('#quiz-judge');
+      j.classList.remove('hidden');
+      j.style.display = 'flex';
+    });
+    $('#quiz-hint').addEventListener('click', () => toast('Pista: ' + (typeof q.hint === 'string' ? q.hint : 'sin pista'), 3500));
+    // onclick (asignación, no addEventListener): un solo handler vivo aunque
+    // el usuario abandone un quiz a mitad y arranque otro.
+    area.onclick = (e) => {
+      if (e.target.id === 'quiz-good') { score++; i++; area.onclick = null; renderQ(); }
+      else if (e.target.id === 'quiz-bad') { i++; area.onclick = null; renderQ(); }
+    };
+  }
+  renderQ();
+  area.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' });
+}
+
+/* ═══════════════════ SHEET / OVERLAY ═══════════════════ */
+
+function openSheet(html) {
+  $('#sheet-content').innerHTML = html;
+  $('#overlay').classList.remove('hidden');
+  if (!REDUCED && window.gsap) gsap.from('#sheet-content', { y: 80, opacity: 0, duration: 0.7, ease: 'expo.out' });
+}
+function closeSheet() { $('#overlay').classList.add('hidden'); }
+window.closeSheet = closeSheet;
+$('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeSheet(); });
+
+/* ═══════════════════ MIC GENÉRICO (Story + Ladder) ═══════════════════ */
+// Cada llamada crea su propia instancia; solo una activa a la vez por el guard.
+function wireMic(btn, input, onFinal) {
+  if (!btn || !input) return;
+  let rec = null, active = false;
+  btn.addEventListener('click', () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { toast('Tu navegador no soporta voz — usa Chrome'); return; }
+    if (active) { try { rec.stop(); } catch {} return; }
+    if (!rec) {
+      rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
+      rec.onresult = (e) => {
+        let f = '', it = '';
+        for (const r of e.results) (r.isFinal ? f += r[0].transcript : it += r[0].transcript);
+        input.value = (f || it).trim();
+        if (f) rec._final = f.trim();
+      };
+      rec.onend = () => { active = false; btn.classList.remove('recording'); const t = rec._final; rec._final = ''; if (t) { input.value = ''; onFinal(t); } };
+      rec.onerror = (e) => { active = false; btn.classList.remove('recording'); if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador'); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error); };
+    }
+    stopSpeaking();
+    rec._final = '';
+    try { rec.start(); active = true; btn.classList.add('recording'); } catch {}
+  });
+}
+
+/* ═══════════════════ STORY MODE ═══════════════════ */
+
+const SAGAS = {
+  leak:  { title: 'THE MEDELLIN LEAK', color: 'var(--card-blue)',  txt: 'light-text', rot: -1.2, eyebrow: 'HEIST CRIPTO · AUSTIN/MEDELLÍN', trains: 'hedging + reported speech', logline: 'Una cold wallet drenada de noche. Todos en la mesa tienen un motivo — y tu inglés es tu única coartada.' },
+  ghost: { title: 'GHOST TENANT',      color: 'var(--card-coral)', txt: 'light-text', rot: 0.8,  eyebrow: 'MISTERIO · UN APARTAMENTO', trains: 'narrar en pasado + especular', logline: 'Alguien vivió en tu casa mientras no estabas. Reconstruye qué pasó hablando con quienes lo saben.' },
+  pitch: { title: 'THE PITCH FROM HELL',color: 'var(--card-green)', txt: 'light-text', rot: -0.6, eyebrow: 'THRILLER DE NEGOCIOS', trains: 'negociar + persuadir', logline: 'Un inversor brutal, cinco minutos, la ronda que salva tu empresa. Convéncelo o vete a casa.' },
+};
+
+// Motivos line-art diegéticos por saga (heredan --card-ink dentro de la card)
+const SAGA_MOTIFS = {
+  leak: '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 34 L74 34 Q82 34 82 42 L82 74 Q82 82 74 82 L26 82 Q18 82 18 74 Z"/><path d="M18 34 Q20 22 32 22 L64 22 Q72 22 72 34"/><path d="M64 54 L74 54"/><path d="M40 20 Q40 10 48 9"/><path d="M64 20 Q64 13 57 10"/><path d="M52 40 L44 56 L54 58 L46 74" stroke-width="5"/><circle cx="84" cy="86" r="6" stroke-width="5"/><circle cx="94" cy="74" r="4.5" stroke-width="4.5"/></svg>',
+  ghost: '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 88 L20 20 Q20 14 26 14 L58 14 Q64 14 64 20 L64 88"/><path d="M64 20 L84 26 L84 82 L64 88"/><path d="M58 54 L58 54" stroke-width="8"/><path d="M30 84 L30 56 Q30 40 44 40 Q57 40 57 56 L57 84 L51 78 L45 84 L38 78 Z"/><path d="M39 55 L39 55" stroke-width="7"/><path d="M49 55 L49 55" stroke-width="7"/></svg>',
+  pitch: '<svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 16 L18 84 L86 84"/><path d="M26 72 L42 60 L52 68 L70 38 L82 22"/><path d="M68 22 L82 22 L82 36"/><path d="M88 14 L92 10" stroke-width="5"/><path d="M86 20 L92 20" stroke-width="5"/></svg>',
+};
+
+const BEAT_EXAMPLE = '{"npc":"Marisol","role":"CFO","line":"Funny how the keys vanished the same week you asked for admin access. Care to walk me through that?","gloss":[{"w":"walk me through","es":"explicarme paso a paso","register":"neutral-pro"}],"mission_intent_es":"Hazle creer que no tuviste nada que ver, SIN admitir culpa ni sonar a la defensiva. Suaviza y desvía.","mission_register_es":"profesional, con hedging — nada agresivo","rubric":["usa una fórmula de hedging (I\'d say / as far as I know)","no admite culpa directa","redirige con tacto hacia un hecho o hacia otro sospechoso"],"intel_available":{"term":"cover your tracks","meaning_es":"borrar pruebas de lo que hiciste","use_en":"Whoever did this knew how to cover their tracks."}}';
+const JUDGE_EXAMPLE = '{"rank":"B","verdict_es":"Buen desvío, pero sonaste un pelín a la defensiva.","highlight":"As far as I know, the keys were rotated on schedule","corrections":[{"quote":"I don\'t have nothing to hide","fix":"I have nothing to hide","why":"doble negación: en inglés estándar no se usa"}],"upgrade":{"b2":"I don\'t know about that","c1":"I couldn\'t tell you off the top of my head"},"npc_reaction_en":"Marisol narrows her eyes. \'Rotated on schedule. Sure.\' She lets it slide — for now.","leverage_delta":6,"heat_delta":-3,"drop_intel":true,"beat_advance":"next"}';
+
+function bibleStr() {
+  const b = state.story.bible;
+  return `ARC: ${b.arc}\nSUSPECTS: ${(b.suspects || []).join('; ')}\nC1 TARGETS: ${(b.c1_targets || []).join('; ')}\nBEATS PLAN: ${(b.beats_plan || []).map((x, i) => `${i + 1}. ${x}`).join(' ')}\nCLIFFHANGER: ${b.cliffhanger}`;
+}
+function storyStateStr() {
+  const s = state.story;
+  return `Episode ${s.episode} "${s.bible.title}". Beat ${s.beat}/5. Leverage ${s.leverage}, Heat ${s.heat}. ${s.thread.length ? 'Recently: ' + s.thread.slice(-3).join(' | ') : 'Just started.'}`;
+}
+function persistStory() {
+  const s = state.story;
+  if (!s) return;
+  store.set('rodeo_story', { seriesId: s.seriesId, episode: s.episode, beat: s.beat, leverage: s.leverage, heat: s.heat, bible: s.bible, thread: s.thread, ranks: s.ranks });
+}
+
+function renderStoryHome() {
+  $('#story-run').classList.add('hidden');
+  $('#story-run').classList.remove('flex');
+  $('#story-home').classList.remove('hidden');
+
+  const done = store.get('rodeo_story_done', []);
+  const cached = store.get('rodeo_story', null);
+
+  // Tira CONTINUAR
+  const cont = $('#story-continue');
+  if (cached && cached.bible && SAGAS[cached.seriesId]) {
+    const sg = SAGAS[cached.seriesId];
+    cont.innerHTML = `
+      <button id="story-cont-btn" style="width:100%; text-align:left; background: var(--accent-dim); border: 1px solid oklch(87% 0.21 128 / 0.4); border-radius: 16px; padding: 14px 16px; cursor:pointer; color: var(--text-primary);">
+        <div style="font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); font-weight:700;">Continuar · EP.${cached.episode} · Beat ${cached.beat}/5</div>
+        <div class="font-display" style="font-size: 1.6rem; margin-top: 2px;">${esc(sg.title)}</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">${esc((cached.bible.cliffhanger || '').slice(0, 90))}</div>
+      </button>`;
+    $('#story-cont-btn').addEventListener('click', () => openStory(cached.seriesId, { resume: true }));
+  } else {
+    cont.innerHTML = '';
+  }
+
+  // Tarjetas de saga
+  const wrap = $('#story-sagas');
+  wrap.innerHTML = '';
+  Object.entries(SAGAS).forEach(([id, sg]) => {
+    const doneCount = done.filter((x) => x.seriesId === id).length;
+    const el = document.createElement('button');
+    el.className = `slang-card rd-saga-card ${sg.txt}`;
+    el.style.cssText = `background:${sg.color}; transform: rotate(${sg.rot}deg); text-align:left; width:100%; cursor:pointer;`;
+    el.innerHTML = `
+      <div class="rd-saga-motif" aria-hidden="true">${SAGA_MOTIFS[id] || ''}</div>
+      <div class="label-mini">${esc(sg.eyebrow)}${doneCount ? ' · ' + doneCount + ' EP. HECHOS' : ''}</div>
+      <div class="term" style="font-size: clamp(2.2rem, 9vw, 3rem); margin-top: 4px; max-width: 80%;">${esc(sg.title)}</div>
+      <div style="font-weight:700; font-size:0.8rem; margin:8px 0 10px;">DOMINA: ${esc(sg.trains)}</div>
+      <div class="ex" style="max-width: 84%;">${esc(sg.logline)}</div>`;
+    el.addEventListener('click', () => {
+      // La tarjeta SIEMPRE arranca episodio nuevo; reanudar es solo por la tira CONTINUAR.
+      openStory(id, { episode: doneCount + 1 });
+    });
+    wrap.appendChild(el);
+  });
+  animateIn(wrap.children, { y: 30, duration: 1 });
+}
+
+function showStoryRun() {
+  $('#story-home').classList.add('hidden');
+  $('#story-run').classList.remove('hidden');
+  $('#story-run').classList.add('flex');
+  const sg = SAGAS[state.story.seriesId];
+  $('#story-run-title').textContent = `${sg.title} · EP.${state.story.episode}`;
+  $('#story-scroll').innerHTML = '';
+  setMeters();
+}
+
+function setMeters() {
+  const s = state.story;
+  $('#lev-val').textContent = s.leverage;
+  $('#heat-val').textContent = s.heat;
+  $('#lev-fill').style.width = s.leverage + '%';
+  $('#heat-fill').style.width = s.heat + '%';
+  document.body.classList.toggle('heat-glow', s.heat > 55);
+}
+
+async function openStory(seriesId, opts = {}) {
+  if (state.busy) return;
+  const cached = store.get('rodeo_story', null);
+  if (opts.resume && cached && cached.seriesId === seriesId && cached.bible) {
+    state.story = { ...cached, ranks: cached.ranks || [], currentBeat: null };
+  } else {
+    state.story = { seriesId, episode: opts.episode || 1, beat: 1, leverage: 30, heat: 20, bible: null, thread: [], ranks: [], currentBeat: null };
+  }
+  showStoryRun();
+  if (!state.story.bible) {
+    const ok = await generateBible();
+    if (!ok) { quitStory(); return; }
+  }
+  runBeat();
+}
+
+async function generateBible() {
+  state.busy = true;
+  const sg = SAGAS[state.story.seriesId];
+  $('#story-scroll').innerHTML = '<div class="bubble-coach"><div class="typing-dots"><span></span><span></span><span></span></div> montando el episodio...</div>';
+  try {
+    const dnaErrors = state.dna.filter((d) => d.type === 'error').slice(0, 12)
+      .map((d) => `Gus dice "${d.quote}" cuando debería ser "${d.fix}"`).join('; ') || 'ninguno aún';
+    const { parsed: bible } = await callJSON('creative', [
+      { role: 'system', content: "You are the STORY ENGINE inside RODEO for Gus (Venezuelan in Medellín, B2+ → C1, crypto/tech). Build a serialized thriller EPISODE where GUS is the protagonist and his English is his only weapon. Rules: episode = EXACTLY 5 beats; each beat MUST end in a forced English-PRODUCTION objective (not multiple choice); weave in the target C1 structures; keep the bible compact. INJECT Gus's real DNA errors as 'weaknesses to provoke': design beats where he must correctly use the exact structures he fails. STRICT JSON only." },
+      { role: 'user', content: `Saga: ${sg.title} — ${sg.logline} Trains: ${sg.trains}. Episode ${state.story.episode}. Gus's DNA weaknesses to provoke: ${dnaErrors}.\nReturn STRICT JSON with keys: title, logline, arc, suspects (3), c1_targets (2-3), beats_plan (5), cliffhanger.\nInclude this FILLED EXAMPLE — NEVER reuse its content, generate fresh for THIS saga:\n{"title":"THE MEDELLIN LEAK","logline":"A cold wallet drained overnight; everyone at the table has a motive.","arc":"Gus is the CTO of a crypto startup whose treasury just got drained. Over one tense night he must clear his name before the investors pull out.","suspects":["Marisol, the sharp CFO who moved funds last week","Dev, the contractor who wrote the signing script","Reyes, the buyer who suddenly knows too much"],"c1_targets":["hedging to soften bad news","reported speech to deflect blame"],"beats_plan":["Marisol corners you about the missing keys","Reyes doubts your competence","Dev lies about the logs","The buyer sets a deadline","A second leak surfaces"],"cliffhanger":"The deleted logs weren't gone. Someone restored them before you woke up."}` },
+    ], 6000);
+    if (!bible || !bible.arc || !Array.isArray(bible.beats_plan)) throw new Error('No pude montar el episodio, reintenta');
+    state.story.bible = bible;
+    persistStory();
+    return true;
+  } catch (err) {
+    toast('Error: ' + err.message);
+    return false;
+  } finally {
+    state.busy = false;
+  }
+}
+
+async function runBeat() {
+  if (state.busy || !state.story) return;
+  state.busy = true;
+  storyInputEnabled(false);
+  $('#story-scroll').innerHTML = '<div class="bubble-coach"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  try {
+    const { parsed: beat } = await callJSON('chat', [
+      { role: 'system', content: `You are the STORY ENGINE for RODEO. Present the next beat: an NPC corners Gus, the mission gives the INTENT in Spanish (NEVER the English line to say), plus a 3-criteria measurable rubric in English so the judge is fair. Underline 1-2 C1 collocations from the NPC line as 'gloss'. STRICT JSON only.\nEPISODE BIBLE:\n${bibleStr()}` },
+      { role: 'user', content: `State: ${storyStateStr()}. Present beat ${state.story.beat} of 5.\nReturn STRICT JSON keys: npc, role, line, gloss (array of {w,es,register}), mission_intent_es, mission_register_es, rubric (3 strings), intel_available ({term,meaning_es,use_en}).\nInclude this FILLED EXAMPLE — never reuse its content, generate fresh:\n${BEAT_EXAMPLE}` },
+    ], 5000);
+    if (!beat || !beat.line || !beat.mission_intent_es) throw new Error('El beat salió raro, toca SIGUIENTE otra vez');
+    state.story.currentBeat = beat;
+    renderBeat(beat);
+  } catch (err) {
+    toast('Error: ' + err.message);
+    storyInputEnabled(true);
+    $('#story-scroll').innerHTML = `<div class="bubble-coach">Se enredó la escena. <button onclick="runBeat()" style="color:var(--accent);text-decoration:underline;background:none;border:none;cursor:pointer;">Reintentar</button></div>`;
+  } finally {
+    state.busy = false;
+  }
+}
+
+function renderBeat(beat) {
+  const sg = SAGAS[state.story.seriesId];
+  const scroll = $('#story-scroll');
+  const initial = (beat.npc || '?').trim().charAt(0).toUpperCase();
+  const gl = (beat.gloss || []).filter((g) => g && g.w);
+  const glossChips = gl.map((g, i) =>
+    `<button class="gloss-chip" data-gi="${i}">${esc(g.w)}</button>`).join('');
+  scroll.innerHTML = `
+    <div class="flex items-start gap-2">
+      <div class="npc-avatar" style="background:${sg.color};">${esc(initial)}</div>
+      <div style="min-width:0;">
+        <div style="font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:3px;">${esc(beat.npc || '')}${beat.role ? ' · ' + esc(beat.role) : ''}</div>
+        <div class="bubble-coach">${esc(beat.line)}</div>
+      </div>
+    </div>
+    ${glossChips ? `<div class="flex flex-wrap gap-2" style="margin-top:2px;">${glossChips}</div>` : ''}
+    <div class="mission-card">
+      <div style="font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); font-weight:700; margin-bottom:6px;">Tu misión</div>
+      <div style="font-size:0.95rem; line-height:1.5;">${esc(beat.mission_intent_es)}</div>
+      <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:6px;">Registro: ${esc(beat.mission_register_es || '')}</div>
+    </div>`;
+  // glosario tocable → guarda a DNA
+  scroll.querySelectorAll('.gloss-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const g = gl[Number(chip.dataset.gi)];
+      if (!g) return;
+      saveDNA({ type: 'slang', term: g.w, meaning: g.es || '', example: beat.line || '' });
+      chip.style.opacity = '0.5';
+      toast(`"${g.w}" → ${g.es || ''} · guardado`);
+    });
+  });
+  storyInputEnabled(true);
+  $('#story-input').value = '';
+  requestAnimationFrame(() => { scroll.scrollTop = scroll.scrollHeight; });
+}
+
+function storyInputEnabled(on) {
+  $('#story-send').disabled = !on;
+  $('#story-input').disabled = !on;
+  $('#story-mic').style.opacity = on ? '1' : '0.4';
+}
+
+async function submitStoryLine(text) {
+  if (state.busy || !state.story || !state.story.currentBeat) return;
+  const line = (text || $('#story-input').value).trim();
+  if (!line) return;
+  state.busy = true;
+  storyInputEnabled(false);
+  $('#story-input').value = '';
+  const scroll = $('#story-scroll');
+  // pinta la línea de Gus
+  const you = document.createElement('div');
+  you.className = 'bubble-user';
+  you.textContent = line;
+  scroll.appendChild(you);
+  const typing = document.createElement('div');
+  typing.className = 'bubble-coach';
+  typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  scroll.appendChild(typing);
+  scroll.scrollTop = scroll.scrollHeight;
+
+  try {
+    const { parsed: j } = await callJSON('chat', [
+      { role: 'system', content: `STORY ENGINE — judge & plot for RODEO. Judge the line A–D and be GENEROUS: A/B if it fulfills the mission's FUNCTION even if imperfect (register/intent matter as much as grammar). leverage_delta and heat_delta are integers clamped -12..+12. Extract ONLY real errors as corrections (quote/fix/why, why in Spanish one line). The NPC REACTS in English, branching the plot. If rank D or the core function is missed: beat_advance="retry". At beat 5: beat_advance="cliffhanger". STRICT JSON only.\nEPISODE BIBLE:\n${bibleStr()}` },
+      { role: 'user', content: `Beat rubric: ${JSON.stringify(state.story.currentBeat.rubric || [])}. Gus's line: "${line}". State: ${storyStateStr()}.\nReturn STRICT JSON keys: rank, verdict_es, highlight, corrections (array {quote,fix,why}), upgrade ({b2,c1}), npc_reaction_en, leverage_delta, heat_delta, drop_intel, beat_advance ("next"|"retry"|"cliffhanger").\nInclude this FILLED EXAMPLE — never reuse its content:\n${JUDGE_EXAMPLE}` },
+    ], 5000);
+    typing.remove();
+    if (!j || !j.rank) throw new Error('El juez se enredó, reformula tu línea');
+    applyJudge(j, line);
+  } catch (err) {
+    typing.remove();
+    toast('Error: ' + err.message);
+    storyInputEnabled(true);
+    $('#story-input').value = line;   // no perder la frase escrita si el juez falla
+  } finally {
+    state.busy = false;
+  }
+}
+
+function applyJudge(j, line) {
+  const s = state.story;
+  const scroll = $('#story-scroll');
+
+  // medidores
+  const ld = Math.max(-12, Math.min(12, parseInt(j.leverage_delta) || 0));
+  const hd = Math.max(-12, Math.min(12, parseInt(j.heat_delta) || 0));
+  s.leverage = Math.max(0, Math.min(100, s.leverage + ld));
+  s.heat = Math.max(0, Math.min(100, s.heat + hd));
+  setMeters();
+  s.ranks.push(j.rank);
+
+  // errores → DNA
+  (j.corrections || []).forEach((c) => c && c.fix && saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' }));
+  // upgrade → munición de LEVEL UP
+  if (j.upgrade && j.upgrade.c1) recordUpgrade({ b2: j.upgrade.b2 || line, c1: j.upgrade.c1, note: 'de la historia', dominado: false });
+
+  const rankColor = { A: 'var(--accent)', B: 'var(--accent)', C: 'var(--card-yellow)', D: 'oklch(70% 0.19 30)' }[j.rank] || 'var(--text-primary)';
+  const block = document.createElement('div');
+  block.className = 'flex flex-col gap-3';
+  block.innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="rank-badge" style="color:${rankColor};">${esc(j.rank)}</div>
+      <div style="font-size:0.7rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-secondary);">${esc(j.verdict_es || '')}</div>
+    </div>
+    <div style="font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted);">Leverage ${ld >= 0 ? '+' + ld : ld} · Heat ${hd >= 0 ? '+' + hd : hd}</div>
+    ${(j.corrections || []).filter((c) => c && c.fix).map((c) => `
+      <div class="correction-card" style="margin-left:0; max-width:100%;">
+        <div><span class="quote">${esc(c.quote || '')}</span> → <span class="fix">${esc(c.fix)}</span></div>
+        <div class="why">${esc(c.why || '')}</div>
+      </div>`).join('')}
+    <div class="flex items-start gap-2">
+      <div class="npc-avatar" style="background:${SAGAS[s.seriesId].color};">${esc((s.currentBeat.npc || '?').charAt(0).toUpperCase())}</div>
+      <div class="bubble-coach">${esc(j.npc_reaction_en || '')}</div>
+    </div>`;
+  scroll.appendChild(block);
+
+  // intel card
+  if (j.drop_intel && s.currentBeat.intel_available && s.currentBeat.intel_available.term) {
+    const intel = s.currentBeat.intel_available;
+    saveDNA({ type: 'slang', term: intel.term, meaning: intel.meaning_es || '', example: intel.use_en || '' });
+    const theme = CARD_THEMES[(state.dna.length) % CARD_THEMES.length];
+    const card = document.createElement('div');
+    card.className = `slang-card ${theme.text}`;
+    card.style.cssText = `background:${theme.bg}; transform: rotate(-0.8deg); margin-top:4px;`;
+    card.innerHTML = `
+      <div class="label-mini">intel · añadido a tu DNA</div>
+      <div class="term" style="font-size: clamp(2rem,9vw,2.8rem);">${esc(intel.term)}</div>
+      <div style="font-weight:700; font-size:0.9rem; margin:4px 0 10px;">${esc(intel.meaning_es || '')}</div>
+      <div class="ex">"${esc(intel.use_en || '')}"</div>`;
+    scroll.appendChild(card);
+    if (!REDUCED && window.gsap) gsap.from(card, { y: 40, opacity: 0, duration: 1.0, ease: 'expo.out' });
+  }
+
+  if (state.ttsOn && j.npc_reaction_en) speak(j.npc_reaction_en);
+
+  // avance
+  const advance = document.createElement('div');
+  advance.style.cssText = 'margin-top:8px;';
+  // Prioridad: cerrar en beat 5 SIEMPRE (evita bucle de retry en beat 5 y el
+  // cierre prematuro por un 'cliffhanger' temprano). Retry solo antes del beat 5.
+  if (s.beat >= 5) {
+    persistStory();
+    const btn = document.createElement('button');
+    btn.className = 'btn-accent';
+    btn.style.cssText = 'width:100%;';
+    btn.textContent = 'CERRAR EPISODIO';
+    btn.addEventListener('click', () => closeEpisode());
+    advance.appendChild(btn);
+    scroll.appendChild(advance);
+  } else if (j.beat_advance === 'retry') {
+    advance.innerHTML = `<div style="font-size:0.8rem; color:var(--danger); margin-bottom:8px;">Reformúlalo — segunda oportunidad, sin castigo.</div>`;
+    scroll.appendChild(advance);
+    storyInputEnabled(true);
+  } else {
+    s.thread.push(`Beat ${s.beat} (${j.rank}): ${(j.npc_reaction_en || '').slice(0, 80)}`);
+    s.beat += 1;
+    persistStory();
+    const btn = document.createElement('button');
+    btn.className = 'btn-accent';
+    btn.style.cssText = 'width:100%;';
+    btn.textContent = 'SIGUIENTE ↑';
+    btn.addEventListener('click', () => runBeat());
+    advance.appendChild(btn);
+    scroll.appendChild(advance);
+  }
+  if (!REDUCED && window.gsap) gsap.from(block, { y: 20, opacity: 0, duration: 0.7, ease: 'expo.out' });
+  requestAnimationFrame(() => { scroll.scrollTop = scroll.scrollHeight; });
+}
+
+async function panicStory() {
+  if (state.busy || !state.story || !state.story.currentBeat) return;
+  state.busy = true;
+  const b = state.story.currentBeat;
+  try {
+    const { parsed: p } = await callJSON('chat', [
+      { role: 'system', content: 'Give Gus TWO English sentence-starters (scaffolds) he must complete for the mission. NEVER the full line. STRICT JSON only.' },
+      { role: 'user', content: `Mission: ${b.mission_intent_es} (${b.mission_register_es || ''}). Return STRICT JSON {"scaffolds":["",""]}. Example: {"scaffolds":["To be fair, as far as I know...","I couldn\'t say for certain, but what I can tell you is..."]}` },
+    ], 600);
+    const sc = (p && Array.isArray(p.scaffolds)) ? p.scaffolds : [];
+    if (!sc.length) throw new Error('sin ideas ahora');
+    toast('Arranca con: ' + sc[0], 5000);
+    $('#story-input').value = sc[0] + ' ';
+    $('#story-input').focus();
+  } catch (err) {
+    toast('Error: ' + err.message);
+  } finally {
+    state.busy = false;
+  }
+}
+
+function closeEpisode() {
+  const s = state.story;
+  const pts = { A: 4, B: 3, C: 2, D: 1 };
+  const avg = s.ranks.length ? s.ranks.reduce((a, r) => a + (pts[r] || 2), 0) / s.ranks.length : 2;
+  const grade = avg >= 3.5 ? 'A' : avg >= 2.5 ? 'B' : avg >= 1.5 ? 'C' : 'D';
+
+  // guarda las estructuras C1 del episodio como slang (entran al quiz)
+  (s.bible.c1_targets || []).forEach((t) => t && saveDNA({ type: 'slang', term: t, meaning: 'estructura C1 del episodio', example: '' }));
+
+  state.stories += 1;
+  store.set('rodeo_stories', state.stories);
+  const done = store.get('rodeo_story_done', []);
+  done.unshift({ seriesId: s.seriesId, episode: s.episode, grade, ts: Date.now() });
+  store.set('rodeo_story_done', done.slice(0, 60));
+  store.set('rodeo_story', null);
+  document.body.classList.remove('heat-glow');
+
+  const nextEp = s.episode + 1;
+  const seriesId = s.seriesId;
+  openSheet(`
+    <p class="font-display" style="font-size: 2.2rem; line-height: 0.95;">EP.${s.episode} COMPLETO<span style="color: var(--accent);">.</span></p>
+    <div class="flex items-center gap-3" style="margin: 14px 0;">
+      <div class="rank-badge" style="color: var(--accent);">${grade}</div>
+      <div style="font-size:0.8rem; color:var(--text-secondary);">Leverage final ${s.leverage} · Heat ${s.heat}</div>
+    </div>
+    <p style="font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); margin: 14px 0 8px;">Lo que entrenaste</p>
+    ${(s.bible.c1_targets || []).map((t) => `<div class="dna-item" style="margin-bottom:6px; font-size:0.9rem;">${esc(t)}</div>`).join('')}
+    <p style="font-size:0.95rem; font-style:italic; color:var(--text-secondary); margin-top:16px; line-height:1.6;">"${esc(s.bible.cliffhanger || '')}"</p>
+    <div style="display:flex; gap:8px; margin-top:20px;">
+      <button class="btn-accent" id="ep-next" style="flex:1; min-height:48px;">EP.${nextEp} →</button>
+      <button class="btn-ghost" onclick="closeStoryFromSheet()">LISTO</button>
+    </div>`);
+  $('#ep-next').addEventListener('click', () => { closeSheet(); openStory(seriesId, { episode: nextEp }); });
+  state.story = null;
+}
+
+window.closeStoryFromSheet = function () { closeSheet(); state.story = null; renderStoryHome(); };
+
+function quitStory() {
+  state.story = null;
+  stopSpeaking();
+  document.body.classList.remove('heat-glow');
+  renderStoryHome();
+}
+
+$('#story-send').addEventListener('click', () => submitStoryLine());
+$('#story-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitStoryLine(); });
+$('#story-quit').addEventListener('click', quitStory);
+$('#story-panic').addEventListener('click', panicStory);
+wireMic($('#story-mic'), $('#story-input'), (t) => submitStoryLine(t));
+
+/* ═══════════════════ LEVEL UP (SUBE) ═══════════════════ */
+
+const LADDER_EXAMPLE = '[{"b2":"I think it\'s good.","context_en":"giving your take on a proposal in a meeting","c1":"I\'m sold on it — it\'s got real legs.","swap":"it\'s good→it\'s got real legs","register":"pro","note_es":"\'has real legs\' = tiene futuro real; suena a alguien que decide, no que opina."},{"b2":"The meeting was very long.","context_en":"venting to a coworker afterward","c1":"That meeting really dragged on.","swap":"was very long→dragged on","register":"casual","note_es":"\'drag on\' es el phrasal natural para algo que se hace eterno."},{"b2":"That\'s a big problem.","context_en":"flagging a risk to your team","c1":"That\'s a real sticking point.","swap":"big problem→sticking point","register":"neutral","note_es":"\'sticking point\' = el punto donde todo se traba."}]';
+
+function updateStreak() {
+  const today = new Date().toISOString().slice(0, 10);
+  const s = state.streak;
+  if (s.last === today) return;
+  const yest = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  s.days = (s.last === yest) ? (s.days + 1) : 1;
+  s.last = today;
+  store.set('rodeo_streak', s);
+}
+
+function updateBar() {
+  $('#ladder-bar').style.width = state.ladderXP.pct + '%';
+  $('#ladder-streak').textContent = 'racha ' + state.streak.days + (state.streak.days ? ' 🔥' : '');
+}
+
+function renderLadder() {
+  updateStreak();
+  updateBar();
+  $('#ladder-runarea').innerHTML = '';
+  state.combo = 0;
+}
+
+$$('#view-ladder .chip[data-veta]').forEach((chip) => {
+  chip.addEventListener('click', () => startVeta(chip.dataset.veta));
+});
+$('#ladder-own-btn').addEventListener('click', ladderOwnPhrase);
+$('#ladder-own').addEventListener('keydown', (e) => { if (e.key === 'Enter') ladderOwnPhrase(); });
+
+function ladderOwnPhrase() {
+  const v = $('#ladder-own').value.trim();
+  if (!v) return;
+  $('#ladder-own').value = '';
+  startVeta('own', v);
+}
+
+async function startVeta(veta, ownPhrase) {
+  if (state.busy) return;
+  state.combo = 0;
+  state.ladderRunClavados = 0;
+
+  if (veta === 'fallos') {
+    const pool = state.dna.filter((d) => d.type === 'upgrade' && !d.dominado)
+      .map((d) => ({ b2: d.b2 || '', context_en: 'de tu conversación en TALK', c1: d.fix, swap: d.swap || '', register: d.register || '', note_es: d.why || '' }))
+      .filter((r) => r.b2 && r.c1);
+    if (!pool.length) {
+      $('#ladder-runarea').innerHTML = `
+        <div class="dna-item" style="border-color: oklch(87% 0.21 128 / 0.3);">
+          <div style="font-size:0.92rem; font-weight:600;">Aquí caen las frases que TÚ dijiste en TALK, subidas a C1.</div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:6px;">Ve a hablar y termina con debrief para llenar esta veta.</div>
+          <button class="btn-accent" style="margin-top:12px; min-height:44px; padding:10px 22px; font-size:0.82rem;" onclick="document.querySelector('.tab-item[data-view=&quot;talk&quot;]').click()">IR A TALK</button>
+        </div>`;
+      return;
+    }
+    state.ladderPool = pool.sort(() => Math.random() - 0.5);
+    state.ladderIdx = 0;
+    showRung();
+    return;
+  }
+
+  // TRABAJO / CALLE / OWN → generar con IA
+  state.busy = true;
+  $('#ladder-runarea').innerHTML = '<div class="skeleton"></div>';
+  try {
+    const avoid = state.seenLadder.slice(-60).join(' | ') || 'ninguna';
+    const target = veta === 'own'
+      ? `Genera 3 versiones-peldaño C1 de ESTA frase de Gus: "${ownPhrase}".`
+      : `Genera exactamente 5 peldaños de registro para la veta ${veta === 'trabajo' ? 'TRABAJO (reuniones, negociación, cripto/tech)' : 'CALLE (vida diaria, casual, social)'}.`;
+    const { parsed: rungs } = await callJSON('creative', [
+      { role: 'system', content: 'You upgrade B2 English to precise, natural, idiomatic C1 for Gus (Venezuelan in Medellín, aiming C1 for crypto/tech and daily life). Never thesaurus-dumping, never textbook. The C1 must be genuinely more precise/idiomatic, NOT just longer. STRICT JSON only.' },
+      { role: 'user', content: `${target}\nYa vistos, NO repitas: ${avoid}.\nReturn a STRICT JSON array. Each object keys: b2, context_en, c1, swap ("old→new"), register ("casual"|"neutral"|"pro"), note_es (español, una línea).\nInclude this FILLED EXAMPLE — NEVER reuse its content, generate fresh:\n${LADDER_EXAMPLE}` },
+    ], 3800);
+
+    const EX_B2 = ["i think it's good.", 'the meeting was very long.', "that's a big problem."];
+    const valid = (Array.isArray(rungs) ? rungs : []).filter((r) =>
+      r && r.b2 && r.c1 && String(r.b2).trim() !== String(r.c1).trim() &&
+      !EX_B2.includes(String(r.b2).toLowerCase().trim()));
+    if (!valid.length) throw new Error('Respuesta inválida, dale otra vez');
+
+    valid.forEach((r) => state.seenLadder.push(r.b2));
+    store.set('rodeo_seen_ladder', state.seenLadder.slice(-200));
+    state.ladderPool = valid;
+    state.ladderIdx = 0;
+    showRung();
+  } catch (err) {
+    $('#ladder-runarea').innerHTML = '';
+    toast('Error: ' + err.message);
+  } finally {
+    state.busy = false;
+  }
+}
+
+function showRung() {
+  if (state.ladderIdx >= state.ladderPool.length) { ladderSummary(); return; }
+  const r = state.ladderPool[state.ladderIdx];
+  const rots = [-1.2, 0.8, -0.6, 1.1, -0.9];
+  const rot = rots[state.ladderIdx % rots.length];
+  const theme = CARD_THEMES[state.ladderIdx % CARD_THEMES.length];
+  const area = $('#ladder-runarea');
+  area.innerHTML = `
+    <div style="font-size:0.62rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--text-muted); margin-bottom:10px;">Peldaño ${state.ladderIdx + 1} / ${state.ladderPool.length}${state.combo > 1 ? ' · combo x' + state.combo : ''}</div>
+    <div class="flip-card">
+      <div id="rung-card" class="slang-card ${theme.text}" style="background:${theme.bg}; transform: rotate(${rot}deg);">
+        <span class="label-mini">B2 · ${esc(r.context_en || '')}</span>
+        <div class="term">${esc(r.b2)}</div>
+        <button id="rung-up" class="btn-accent" style="margin-top:18px;">SÚBELA ↑</button>
+      </div>
+    </div>`;
+  if (!REDUCED && window.gsap) gsap.from('#rung-card', { y: 30, opacity: 0, duration: 0.8, ease: 'expo.out' });
+  $('#rung-up').addEventListener('click', () => openRungInput(r, theme, rot));
+}
+
+function openRungInput(r, theme, rot) {
+  const card = $('#rung-card');
+  const zone = document.createElement('div');
+  zone.style.marginTop = '16px';
+  zone.innerHTML = `
+    <div class="flex gap-2">
+      <button id="rung-mic" class="icon-btn" aria-label="Dictar tu versión" style="width:44px;height:44px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+      </button>
+      <input type="text" id="rung-input" placeholder="tu versión C1..." autocomplete="off" aria-label="Tu versión C1" style="border-radius:100px;">
+      <button id="rung-send" class="icon-btn" aria-label="Enviar" style="width:44px;height:44px; background: var(--accent); color: var(--accent-ink); border-color: transparent;">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+    <button id="rung-skip" class="btn-ghost" style="width:100%; margin-top:8px; font-size:0.78rem; border-color: oklch(96% 0.004 265 / 0.25);">muéstrame la respuesta</button>`;
+  $('#rung-up').replaceWith(zone);
+  $('#rung-input').focus();
+  $('#rung-send').addEventListener('click', () => revealRung(r, theme, rot, $('#rung-input').value.trim()));
+  $('#rung-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') revealRung(r, theme, rot, $('#rung-input').value.trim()); });
+  $('#rung-skip').addEventListener('click', () => revealRung(r, theme, rot, ''));
+  wireMic($('#rung-mic'), $('#rung-input'), (t) => revealRung(r, theme, rot, t));
+}
+
+async function revealRung(r, theme, rot, attempt) {
+  if (state.busy) return;
+  let judge = null;
+  if (attempt) {
+    state.busy = true;
+    const card = $('#rung-card');
+    if (card) card.style.opacity = '0.6';
+    try {
+      const { parsed } = await callJSON('chat', [
+        { role: 'system', content: 'You judge whether a B2 learner reached C1 with their upgrade attempt. Accept valid synonyms — there is no single right answer. STRICT JSON only.' },
+        { role: 'user', content: `B2: "${r.b2}". Ideal C1: "${r.c1}". Gus wrote: "${attempt}". Return STRICT JSON {"verdict":"nailed|close|off","one_liner_es":"","better":""}. Example: {"verdict":"close","one_liner_es":"Subiste el registro, pero 'has potential' suena a informe; 'has real legs' es más natural.","better":"I'm sold on it — it's got real legs."}` },
+      ], 1500);
+      judge = parsed;
+    } catch { /* si el juez falla, seguimos sin él */ }
+    state.busy = false;
+  }
+  flipToBack(r, theme, rot, attempt, judge);
+}
+
+function flipToBack(r, theme, rot, attempt, judge) {
+  const [oldW, newW] = String(r.swap || '').split(/\s*(?:→|->|=>|➔|»)\s*/).map((x) => (x || '').trim());
+  const swapHtml = (oldW && newW)
+    ? `<div style="font-size:1rem; margin:10px 0;"><span class="swap-old">${esc(oldW)}</span> → <span class="swap-new">${esc(newW)}</span></div>`
+    : '';
+  const vchip = judge && judge.verdict ? ({
+    nailed: `<span class="vchip" style="background:oklch(87% 0.21 128 / 0.3); color:var(--swap-new);">CLAVADO</span>`,
+    close:  `<span class="vchip" style="background:oklch(85% 0.16 95 / 0.4); color:oklch(38% 0.11 92);">CASI</span>`,
+    off:    `<span class="vchip" style="background:oklch(66% 0.20 27 / 0.28); color:oklch(34% 0.20 27);">BÁSICO</span>`,
+  }[judge.verdict] || '') : '';
+
+  const backHtml = `
+    <div id="rung-card" class="slang-card ${theme.text}" style="background:${theme.bg}; transform: rotate(${-rot}deg);">
+      <span class="label-mini">C1${r.register ? ' · ' + esc(r.register) : ''}</span>
+      <div class="term" style="font-size: clamp(2rem, 8.5vw, 3rem);">${esc(r.c1)}</div>
+      ${swapHtml}
+      <div style="font-size:0.9rem; color:var(--card-ink-soft);">${esc(r.note_es || '')}</div>
+      ${attempt ? `<div style="border-top:1px dashed currentColor; margin-top:12px; padding-top:10px;">
+        <div style="font-size:0.78rem; color:var(--card-ink-soft);">tú escribiste: "${esc(attempt)}"</div>
+        ${vchip ? `<div style="margin-top:6px;">${vchip}</div>` : ''}
+        ${judge && judge.one_liner_es ? `<div style="font-size:0.82rem; margin-top:6px;">${esc(judge.one_liner_es)}</div>` : ''}
+      </div>` : ''}
+    </div>
+    <div class="flex gap-2" style="margin-top:14px;">
+      <button id="rung-nailed" class="btn-accent" style="flex:1; min-height:48px; font-size:0.85rem;">LA CLAVÉ ✓</button>
+      <button id="rung-casi" class="btn-ghost" style="min-height:48px; border-color: oklch(64% 0.19 30 / 0.5); color: oklch(70% 0.19 30);">CASI</button>
+    </div>`;
+
+  // Pintamos la cara trasera de INMEDIATO (nunca dependemos de un onComplete de
+  // GSAP: en tabs en segundo plano el rAF se estrangula y el callback no dispara).
+  // Solo animamos la ENTRADA de la respuesta.
+  const flipWrap = $('.flip-card');
+  flipWrap.innerHTML = backHtml;
+  $('#rung-nailed').addEventListener('click', () => selfJudge(r, true));
+  $('#rung-casi').addEventListener('click', () => selfJudge(r, false));
+  if (!REDUCED && window.gsap) gsap.fromTo('#rung-card', { scale: 0.88, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(1.4)' });
+}
+
+function selfJudge(r, nailed) {
+  const nb = $('#rung-nailed');
+  if (!nb || nb.disabled) return;               // guard anti doble-tap (no contar doble)
+  nb.disabled = true; $('#rung-casi').disabled = true;
+  recordUpgrade({ b2: r.b2, c1: r.c1, swap: r.swap, note: r.note_es, register: r.register, dominado: nailed });
+  if (nailed) {
+    state.combo += 1;
+    state.ladderRunClavados = (state.ladderRunClavados || 0) + 1;
+    state.ladderXP.pct = Math.min(97, state.ladderXP.pct + 3);
+    state.ladderXP.clavados += 1;
+    if (state.combo > state.ladderXP.bestCombo) state.ladderXP.bestCombo = state.combo;
+    store.set('rodeo_ladder_xp', state.ladderXP);
+    updateBar();
+    if (state.combo >= 2) toast('combo x' + state.combo + ' 🔥', 1500);
+  } else {
+    state.combo = 0;
+  }
+  // botón SIGUIENTE
+  const btns = document.createElement('div');
+  btns.style.marginTop = '14px';
+  btns.innerHTML = `<button id="rung-next" class="btn-accent" style="width:100%;">${state.ladderIdx + 1 >= state.ladderPool.length ? 'TERMINAR' : 'SIGUIENTE ↑'}</button>`;
+  $('#ladder-runarea').appendChild(btns);
+  $('#rung-nailed').disabled = true; $('#rung-casi').disabled = true;
+  $('#rung-nailed').style.opacity = nailed ? '1' : '0.4';
+  $('#rung-casi').style.opacity = nailed ? '0.4' : '1';
+  $('#rung-next').addEventListener('click', () => { state.ladderIdx += 1; showRung(); });
+}
+
+function ladderSummary() {
+  const clav = state.ladderRunClavados || 0;
+  openSheet(`
+    <p class="font-display" style="font-size: 2.4rem; line-height:0.95;">VETA HECHA<span style="color: var(--accent);">.</span></p>
+    <div class="flex items-end gap-8" style="margin:16px 0;">
+      <div><div class="stat-num" style="color:var(--accent);">${clav}</div><div style="font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted);">Clavados</div></div>
+      <div><div class="stat-num">${state.ladderXP.bestCombo}</div><div style="font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted);">Mejor combo</div></div>
+      <div><div class="stat-num" style="color:var(--card-yellow);">${state.ladderXP.pct}%</div><div style="font-size:0.6rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted);">Hacia C1</div></div>
+    </div>
+    <p style="font-size:0.9rem; color:var(--text-secondary); line-height:1.6;">Lo que fallaste ya está en tu DNA y vuelve en el REPASO. Lo que clavaste sale de "Mis fallos".</p>
+    <div style="display:flex; justify-content:center; margin-top:20px;">
+      <button class="btn-accent" style="min-height:48px; padding:13px 32px;" onclick="closeSheet(); document.getElementById('ladder-runarea').innerHTML='';">LISTO</button>
+    </div>`);
+}
+
+/* ═══════════════════ INIT ═══════════════════ */
+
+updateCostTicker();
+syncTTSButton();
+renderDNA();
+animateIn($('#view-talk').children, { y: 26, duration: 1 });
+</script>
+</body>
+</html>
