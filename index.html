@@ -1172,6 +1172,12 @@ function animateIn(els, opts = {}) {
 /* ═══════════════════ API ═══════════════════ */
 
 async function callAPI(mode, messages, maxTokens = 3200) {
+  // La API es una ruta relativa (/api/chat) y necesita un servidor. Si la app
+  // se abrió como archivo (file://), fetch no puede resolver la URL: avisamos claro.
+  if (location.protocol === 'file:') {
+    throw new Error('Abriste el archivo directo. Abre la app desde el servidor: producción o http://localhost:4870');
+  }
+
   const headers = { 'Content-Type': 'application/json' };
   const pass = store.get('rodeo_pass', null);
   if (pass) headers['x-rodeo-pass'] = pass;
@@ -2536,10 +2542,26 @@ function ladderSummary() {
 
 /* ═══════════════════ INIT ═══════════════════ */
 
-updateCostTicker();
-syncTTSButton();
-renderDNA();
-animateIn($('#view-talk').children, { y: 26, duration: 1 });
+// La app necesita un servidor (el backend vive en la ruta relativa /api/chat).
+// Si se abrió como archivo (file://), nada de eso funciona: mostramos una
+// pantalla clara con el link correcto en vez de dejar que reviente al primer clic.
+if (location.protocol === 'file:') {
+  document.body.insertAdjacentHTML('beforeend', `
+    <div style="position:fixed; inset:0; z-index:99999; background:var(--bg-void); display:flex; align-items:center; justify-content:center; padding:24px;">
+      <div style="max-width:440px; text-align:center;">
+        <p style="font-family:'Space Mono',monospace; font-size:0.62rem; font-weight:700; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); margin-bottom:18px;">⚠ Modo archivo</p>
+        <p class="font-display" style="font-size:2.3rem; line-height:0.92; margin-bottom:18px;">ÁBREME DESDE<br>EL SERVIDOR<span style="color:var(--accent);">.</span></p>
+        <p style="color:var(--text-secondary); font-size:0.95rem; line-height:1.6; margin-bottom:28px;">Abriste el archivo directo (<span style="font-family:'Space Mono',monospace; color:var(--accent);">file://</span>), y así la API no puede funcionar. Ábrela por una de estas:</p>
+        <a href="https://rodeo-gustavoski23s-projects.vercel.app" style="display:block; background:var(--accent); color:var(--accent-ink); font-weight:700; padding:15px 20px; border-radius:100px; text-decoration:none; margin-bottom:14px;">Abrir producción &rarr;</a>
+        <a href="http://localhost:4870" style="display:block; color:var(--text-secondary); font-family:'Space Mono',monospace; font-size:0.8rem; text-decoration:none;">&hellip; o local &rarr; http://localhost:4870</a>
+      </div>
+    </div>`);
+} else {
+  updateCostTicker();
+  syncTTSButton();
+  renderDNA();
+  animateIn($('#view-talk').children, { y: 26, duration: 1 });
+}
 </script>
 </body>
 </html>
