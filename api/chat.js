@@ -9,6 +9,14 @@ const MODELS = {
   creative: process.env.MODEL_CREATIVE || 'kimi-k2.7-code',
 };
 
+// Sin temperature explícita quedábamos con el default del proveedor. Subirla
+// ensancha el muestreo y ayuda a que TALK no caiga siempre en la misma frase.
+// No es la causa principal de la repetición (eso es el prompt), pero suma.
+const TEMPS = {
+  chat: 0.9,
+  creative: 0.85,
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.statusCode = 405;
@@ -60,7 +68,12 @@ export default async function handler(req, res) {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ model, max_tokens: safeMaxTokens, messages: safeMessages }),
+      body: JSON.stringify({
+        model,
+        max_tokens: safeMaxTokens,
+        temperature: TEMPS[mode] ?? TEMPS.chat,
+        messages: safeMessages,
+      }),
     });
 
     if (!upstream.ok) {
