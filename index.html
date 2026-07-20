@@ -245,6 +245,7 @@ body {
 .btn-accent:hover { transform: translateY(-2px); box-shadow: 0 8px 44px oklch(87% 0.21 128 / 0.4); }
 .btn-accent:active { transform: scale(0.97); filter: brightness(0.96); }  /* feedback táctil */
 .btn-accent:disabled { opacity: 0.4; transform: none; cursor: default; box-shadow: none; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
 
 .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -600,6 +601,32 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 /* ─────────────────────────────────────────────────────────────────────────
    11. TOAST / OVERLAY / SHEET
    ───────────────────────────────────────────────────────────────────────── */
+/* Barra de descarga del modelo de voz — abajo, para no tapar el toast */
+.voz-progreso {
+  position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
+  z-index: 200; width: min(320px, calc(100vw - 40px));
+  padding: 11px 16px 13px;
+  border-radius: 16px;
+  background: var(--bg-elevated);
+  border: 1px solid oklch(96% 0.004 265 / 0.15);
+  box-shadow: 0 16px 40px oklch(0% 0 0 / 0.5);
+}
+.voz-progreso.hidden { display: none; }
+.voz-progreso-fila {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-family: 'Space Mono', monospace; font-size: 0.68rem;
+  color: var(--text-secondary); margin-bottom: 8px;
+}
+.voz-progreso-riel {
+  height: 5px; border-radius: 100px; overflow: hidden;
+  background: oklch(96% 0.004 265 / 0.12);
+}
+.voz-progreso-barra {
+  height: 100%; width: 0%; border-radius: 100px;
+  background: var(--accent);
+  transition: width 0.25s ease;
+}
+
 .toast {
   position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
   z-index: 200;
@@ -847,6 +874,10 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
           <span id="session-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
         </div>
         <div class="flex gap-2">
+          <!-- Repetir: vuelve a leer en voz alta la última respuesta del coach. -->
+          <button id="replay-btn" class="icon-btn" aria-label="Repetir el audio de la última respuesta" style="width:40px;height:40px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+          </button>
           <button id="tts-toggle" class="icon-btn" aria-label="Activar o desactivar voz del coach" style="width:40px;height:40px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
           </button>
@@ -1103,6 +1134,16 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 <!-- ═══════════════════════════ OVERLAYS ═══════════════════════════ -->
 <div id="toast" class="toast" role="status"></div>
 
+<!-- Progreso de descarga del modelo de voz. Son ~165 MB: sin barra, el usuario
+     no sabe si está cargando, si falló, o si la voz que oye es la buena. -->
+<div id="voz-progreso" class="voz-progreso hidden" role="status" aria-live="polite">
+  <div class="voz-progreso-fila">
+    <span id="voz-progreso-texto">Descargando voz natural…</span>
+    <span id="voz-progreso-pct">0%</span>
+  </div>
+  <div class="voz-progreso-riel"><div id="voz-progreso-barra" class="voz-progreso-barra"></div></div>
+</div>
+
 <!-- Overlay debrief / quiz results / cierre de episodio / veta hecha -->
 <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
   <div class="sheet" id="sheet-content"></div>
@@ -1158,6 +1199,32 @@ function toast(msg, ms = 2600) {
   t.classList.add('show');
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* ── Barra de descarga del modelo de voz ── */
+const MB = (b) => (b / 1048576).toFixed(0);
+function mostrarProgresoVoz() {
+  $('#voz-progreso-texto').textContent = 'Descargando voz natural…';
+  $('#voz-progreso-pct').textContent = '0%';
+  $('#voz-progreso-barra').style.width = '0%';
+  $('#voz-progreso').classList.remove('hidden');
+}
+function actualizarProgresoVoz(frac, cargado, total) {
+  const pct = Math.min(100, Math.round(frac * 100));
+  $('#voz-progreso-barra').style.width = pct + '%';
+  $('#voz-progreso-pct').textContent = pct + '%';
+  $('#voz-progreso-texto').textContent = `Descargando voz natural… ${MB(cargado)}/${MB(total)} MB`;
+}
+function completarProgresoVoz() {
+  $('#voz-progreso-barra').style.width = '100%';
+  $('#voz-progreso-pct').textContent = '100%';
+  $('#voz-progreso-texto').textContent = '✓ Voz natural lista — dale al botón para probarla';
+  setTimeout(() => $('#voz-progreso').classList.add('hidden'), 3500);
+}
+function fallarProgresoVoz() {
+  $('#voz-progreso-texto').textContent = '✕ No cargó — uso la voz del sistema';
+  $('#voz-progreso-barra').style.background = 'oklch(70% 0.19 30)';
+  setTimeout(() => $('#voz-progreso').classList.add('hidden'), 4000);
 }
 
 function updateCostTicker() {
@@ -1636,6 +1703,10 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
       saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
     });
 
+    // Registrar el texto aunque la voz esté apagada, para que el botón de
+    // repetir tenga algo que reproducir si el usuario la enciende luego.
+    ultimoHablado = String(reply);
+    syncReplayButton();
     if (state.ttsOn) speak(reply);
   } catch (err) {
     typing.remove();
@@ -1835,7 +1906,23 @@ function cargarKokoro() {
     return Promise.reject(new Error('sin webgpu'));
   }
 
-  toast('Cargando voz natural (~165 MB, solo la primera vez)…', 6000);
+  mostrarProgresoVoz();
+
+  // transformers.js emite eventos por ARCHIVO (modelo, tokenizer, voces), no un
+  // total global. Sumamos bytes de todos para dar un porcentaje honesto.
+  const archivos = new Map();
+  const onProgreso = (e) => {
+    if (!e || !e.file) return;
+    if (e.status === 'progress' && e.total) {
+      archivos.set(e.file, { loaded: e.loaded || 0, total: e.total });
+    } else if (e.status === 'done') {
+      const a = archivos.get(e.file);
+      if (a) a.loaded = a.total;
+    }
+    let cargado = 0, total = 0;
+    for (const a of archivos.values()) { cargado += a.loaded; total += a.total; }
+    if (total > 0) actualizarProgresoVoz(cargado / total, cargado, total);
+  };
 
   kokoroPromise = (async () => {
     const { KokoroTTS } = await import('https://esm.sh/kokoro-js@1.2.0');
@@ -1847,15 +1934,15 @@ function cargarKokoro() {
     // fp32 queda de reserva por si la GPU no expone la extensión shader-f16.
     let ultimoError;
     for (const opts of [{ dtype: 'fp16', device: 'webgpu' }, { dtype: 'fp32', device: 'webgpu' }]) {
-      try { return await KokoroTTS.from_pretrained(KOKORO_MODELO, opts); }
+      try { return await KokoroTTS.from_pretrained(KOKORO_MODELO, { ...opts, progress_callback: onProgreso }); }
       catch (e) { ultimoError = e; }
     }
     throw ultimoError;
   })();
 
   kokoroPromise.then(
-    () => toast('Voz natural lista', 1800),
-    () => { kokoroRoto = true; toast('No pude cargar la voz natural — uso la del sistema', 4000); }
+    () => { completarProgresoVoz(); },
+    () => { kokoroRoto = true; fallarProgresoVoz(); }
   );
   return kokoroPromise;
 }
@@ -1867,21 +1954,42 @@ function precargarVozSiSePuede() {
   cargarKokoro().catch(() => {});
 }
 
+/* Reproducción por Web Audio API, no por <audio>. Brave bloquea el autoplay de
+   HTMLMediaElement, y como el sonido arranca SEGUNDOS después del clic (la
+   generación tarda), el gesto ya expiró y play() se rechazaba — y el .catch se
+   lo tragaba: silencio total sin error visible. Un AudioContext, en cambio, se
+   desbloquea con cualquier clic y queda desbloqueado para toda la sesión. */
+let audioCtx = null;
+function ctxAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+// Cualquier clic desbloquea el contexto; repetirlo es gratis.
+document.addEventListener('click', () => {
+  const c = ctxAudio();
+  if (c.state === 'suspended') c.resume().catch(() => {});
+}, true);
+
 function pararAudio() {
-  if (audioActual) { try { audioActual.pause(); } catch {} audioActual = null; }
+  if (audioActual) { try { audioActual.stop(); } catch {} audioActual = null; }
 }
 
-function reproducir(audio, token) {
-  return new Promise((resolve) => {
-    const url = URL.createObjectURL(audio.toBlob());
-    const el = new Audio(url);
-    audioActual = el;
-    const fin = () => { URL.revokeObjectURL(url); if (audioActual === el) audioActual = null; resolve(); };
-    el.onended = fin;
-    el.onerror = fin;
-    if (token !== speakToken) return fin();
-    el.play().catch(fin);
-  });
+async function reproducir(audio, token) {
+  const ctx = ctxAudio();
+  if (ctx.state === 'suspended') { try { await ctx.resume(); } catch {} }
+  if (ctx.state !== 'running') throw new Error('audio bloqueado por el navegador — toca la página y dale a repetir');
+  if (token !== speakToken) return;
+
+  // Kokoro entrega las muestras crudas (Float32Array + sampling_rate):
+  // se meten directas a un AudioBuffer, sin blob ni URL de por medio.
+  const buf = ctx.createBuffer(1, audio.audio.length, audio.sampling_rate);
+  buf.copyToChannel(audio.audio, 0);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(ctx.destination);
+  audioActual = src;
+  await new Promise((res) => { src.onended = res; src.start(); });
+  if (audioActual === src) audioActual = null;
 }
 
 // Trocea el texto para que el audio empiece pronto.
@@ -1929,34 +2037,68 @@ function speakSistema(text) {
   speechSynthesis.speak(u);
 }
 
+let ultimoHablado = '';            // para el botón de repetir
+
+// Diagnóstico: por qué la voz cayó al motor del sistema. Se muestra en pantalla
+// para no tener que adivinar contra un navegador que no controlo.
+function caerASistema(text, motivo, err) {
+  window.__vozMotor = 'sistema';
+  const detalle = err ? String(err && err.message || err) : '';
+  window.__vozMotivo = motivo + (detalle ? ' :: ' + detalle : '');
+  console.warn('[voz] motor del sistema —', motivo, err || '');
+  // Mostramos el error crudo en pantalla: sin acceso a tu navegador, esa línea
+  // es la única forma de saber por qué Brave rechaza la generación.
+  toast('Voz sistema — ' + motivo + (detalle ? ': ' + detalle.slice(0, 140) : ''), 9000);
+  speakSistema(text);
+}
+
 async function speak(text) {
   if (!text) return;
+  ultimoHablado = String(text);
+  syncReplayButton();
   stopSpeaking();                  // corta lo anterior e invalida su token
   const token = speakToken;
 
-  if (kokoroRoto) return speakSistema(text);
+  if (!navigator.gpu) return caerASistema(text, 'este navegador no expone WebGPU');
+  if (kokoroRoto)      return caerASistema(text, 'el modelo no cargó antes');
 
   let tts;
   try { tts = await cargarKokoro(); }
-  catch { return speakSistema(text); }
+  catch (e) { return caerASistema(text, 'falló la carga del modelo', e); }
   if (token !== speakToken) return;             // llegó otra respuesta mientras cargaba
 
   const frases = trocearParaVoz(text);
 
   try {
-    let pendiente = tts.generate(frases[0], { voice: KOKORO_VOZ });
+    let pendiente = generarSerial(tts, frases[0], token);
     for (let i = 0; i < frases.length; i++) {
       const audio = await pendiente;
-      if (token !== speakToken) return;
+      if (token !== speakToken || !audio) return;   // obsoleto o saltado
       pendiente = i + 1 < frases.length
-        ? tts.generate(frases[i + 1], { voice: KOKORO_VOZ })
+        ? generarSerial(tts, frases[i + 1], token)
         : null;
+      window.__vozMotor = 'kokoro';
       await reproducir(audio, token);
       if (token !== speakToken) return;
     }
-  } catch {
-    if (token === speakToken) speakSistema(text);
+  } catch (e) {
+    if (token === speakToken) caerASistema(text, 'falló la voz natural', e);
   }
+}
+
+// La sesión ONNX no es reentrante: dos generate() a la vez lanzan "Session
+// already started". stopSpeaking() invalida el token pero NO puede abortar una
+// generación en vuelo, así que un nuevo speak() (botón repetir, turno siguiente)
+// chocaba con la anterior. Encadenamos todas las generaciones para que nunca se
+// solapen; la que quedó obsoleta se salta sin gastar GPU.
+let cadenaGen = Promise.resolve();
+function generarSerial(tts, frase, token) {
+  const r = cadenaGen.then(() => {
+    if (token !== speakToken) return null;   // otro speak() la dejó obsoleta
+    return tts.generate(frase, { voice: KOKORO_VOZ });
+  });
+  cadenaGen = r.catch(() => {});             // la cadena sigue aunque una falle
+  return r;
 }
 
 function stopSpeaking() {
@@ -1974,6 +2116,18 @@ $('#tts-toggle').addEventListener('click', () => {
   syncTTSButton();
   toast(state.ttsOn ? 'Voz del coach: ON' : 'Voz del coach: OFF', 1500);
 });
+
+// Repetir: vuelve a leer la última respuesta del coach. Funciona aunque la voz
+// esté apagada — sirve justo para probar cómo suena sin activarla en cada turno.
+function syncReplayButton() {
+  const b = $('#replay-btn');
+  if (b) b.disabled = !ultimoHablado;
+}
+$('#replay-btn').addEventListener('click', () => {
+  if (!ultimoHablado) { toast('Aún no hay nada que repetir', 1500); return; }
+  speak(ultimoHablado);
+});
+syncReplayButton();
 
 // Precarga: los ~90 MB bajan mientras el usuario elige escenario, no cuando ya
 // está esperando oír algo. Solo si la voz está activada, para no gastar datos
