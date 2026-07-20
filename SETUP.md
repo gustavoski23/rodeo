@@ -37,16 +37,20 @@ La `OPENCODE_API_KEY` **no está en el repo** (a propósito: nunca se sube un
 secreto a git). Vercel la tiene guardada, y la bajas con un comando —
 no hay que copiarla a mano:
 
-```bash
-npx vercel login          # una vez por máquina (abre el navegador)
-npx vercel link           # elige el proyecto existente: rodeo
-npx vercel env pull .env.local   # baja la key a tu .env.local
+> ⚠️ **En PowerShell ejecuta un comando POR LÍNEA.** Windows PowerShell 5.1 **no
+> soporta `&&`** para encadenar (da `El token '&&' no es un separador de
+> instrucciones válido`). Si necesitas encadenar, usa `;`.
+
+```powershell
+npx vercel login                  # una vez por máquina (abre el navegador)
+npx vercel link                   # "Link to existing project?" → y → nombre: rodeo
+npx vercel env pull .env.local    # baja la key a tu .env.local
 ```
 
-Verifica que quedó:
+Verifica que quedó (PowerShell — `grep` no existe aquí):
 
-```bash
-cat .env.local | grep OPENCODE_API_KEY
+```powershell
+Select-String OPENCODE_API_KEY .env.local
 ```
 
 > Si prefieres a mano: copia el valor desde el `.env.local` de la laptop, o
@@ -57,11 +61,16 @@ cat .env.local | grep OPENCODE_API_KEY
 
 ## 3. Levantar la app
 
-```bash
+```powershell
 node dev-server.mjs
 ```
 
 Abre **http://localhost:4870**
+
+> 🔁 **Si el server ya estaba corriendo cuando bajaste la key, reinícialo**
+> (`Ctrl+C` y vuelve a lanzarlo). `dev-server.mjs` lee `.env.local` **una sola
+> vez, al arrancar** — si arrancó antes de que existiera la key, la API
+> responderá `missing_api_key` hasta que lo reinicies.
 
 > ⚠️ **Nunca** abras `index.html` con doble clic. El backend vive en la ruta
 > relativa `/api/chat` y necesita el servidor. Si lo haces, la app te muestra
