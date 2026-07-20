@@ -4,8 +4,13 @@
 
 const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 
+// chat: claude-haiku-4-5 en vez de kimi-k2.6. Kimi es un modelo razonador y
+// quemaba ~1200 tokens pensando antes de la primera palabra, dejando cada turno
+// de TALK en 9-19s. Medido con el prompt real: Haiku responde en 1.9-2.6s con
+// ~80 tokens, JSON siempre valido y correcciones bien formadas.
+// creative sigue en Kimi: SLANG/STORY/SUBE estan afinados a su salida.
 const MODELS = {
-  chat: process.env.MODEL_CHAT || 'kimi-k2.6',
+  chat: process.env.MODEL_CHAT || 'claude-haiku-4-5',
   creative: process.env.MODEL_CREATIVE || 'kimi-k2.7-code',
 };
 
