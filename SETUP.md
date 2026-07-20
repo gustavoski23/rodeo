@@ -53,6 +53,21 @@ Verifica que quedó (PowerShell — `grep` no existe aquí):
 Select-String OPENCODE_API_KEY .env.local
 ```
 
+> ⚠️ **Gotcha importante:** `vercel env pull` baja **solo** las variables del
+> entorno **Development**. Si una variable existe únicamente en *Production*,
+> **no la baja** y el `.env.local` queda incompleto (síntoma: solo aparece
+> `VERCEL_OIDC_TOKEN`). Para que una variable sea "pulleable" debe existir en
+> Development:
+>
+> ```powershell
+> npx vercel env ls                                  # ver en qué entornos está cada una
+> npx vercel env add OPENCODE_API_KEY development    # añadirla si falta
+> ```
+>
+> `OPENCODE_API_KEY` ya está en Development (añadida el 2026-07-12), así que
+> el pull funciona. `APP_PASS` sigue solo en Production a propósito: en local
+> no hace falta PIN.
+
 > Si prefieres a mano: copia el valor desde el `.env.local` de la laptop, o
 > desde el dashboard de Vercel → proyecto `rodeo` → Settings → Environment
 > Variables.
