@@ -1418,6 +1418,14 @@ const SEED_TWIST = [
   'no particular twist — just be present and real',
 ];
 
+// La instruccion SPEED baja el gasto medio a ~770 tokens, pero NO garantiza que
+// el modelo no razone: a veces gasta el presupuesto entero pensando. Con un
+// techo de 1600 eso daba finish 'length' con CERO contenido y el chat quedaba en
+// blanco. El techo generoso no encarece el caso normal (se cobra lo emitido);
+// solo evita el fallo total del caso raro.
+const TALK_MAX_TOKENS = 3200;
+const TALK_MAX_TOKENS_RETRY = 6000;
+
 function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 function buildSituation() {
@@ -1460,6 +1468,11 @@ HOW TO TALK:
 - Be specific. Names, places, numbers, small concrete details. Vague friendliness is exactly what makes you sound like a bot.
 - Let the conversation drift the way real ones do. Do not keep steering back to the same two topics.
 - Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).${avoid}${dnaBrief()}
+
+SPEED: do NOT deliberate or plan before answering. No preamble, no reasoning.
+Emit the JSON as your very first character — you are role-playing a person, not
+solving a problem. (Medido: sin esto Kimi gasta ~1400 tokens razonando y el turno
+pasa de ~8s a 10-19s, con la misma calidad de respuesta.)
 
 OUTPUT — STRICT JSON only, nothing outside it, exactly this shape:
 {"reply":"your in-character reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}]}
@@ -1543,7 +1556,7 @@ async function sendTurn(userText) {
       // Streaming: la respuesta empieza a verse en ~3s en vez de esperar el turno
       // completo. Solo pintamos cuando ya hay texto de "reply" que mostrar, así
       // los puntitos siguen mientras el modelo razona.
-      ({ content, finish } = await callStream('chat', state.session.messages, 3200, (acc) => {
+      ({ content, finish } = await callStream('chat', state.session.messages, TALK_MAX_TOKENS, (acc) => {
         const partial = extractPartialReply(acc);
         if (!partial) return;
         if (!liveBubble) {
@@ -1558,7 +1571,15 @@ async function sendTurn(userText) {
       // Si el stream no está disponible (proxy que bufferea, red rara), caemos
       // a la ruta clásica sin romperle la sesión al usuario.
       if (liveBubble) { liveBubble.remove(); liveBubble = null; }
-      ({ content, finish } = await callAPI('chat', state.session.messages, 3200));
+      ({ content, finish } = await callAPI('chat', state.session.messages, TALK_MAX_TOKENS));
+    }
+
+    // Red de seguridad: si Kimi gasta TODO el presupuesto razonando, el stream
+    // llega vacio con finish 'length'. Un solo reintento con techo mayor, en vez
+    // de dejarle el chat en blanco al usuario.
+    if ((!content || !content.trim()) && finish === 'length') {
+      if (liveBubble) { liveBubble.remove(); liveBubble = null; }
+      ({ content, finish } = await callAPI('chat', state.session.messages, TALK_MAX_TOKENS_RETRY));
     }
 
     const parsed = parseJSON(content);
