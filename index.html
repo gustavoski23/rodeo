@@ -601,32 +601,6 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 /* ─────────────────────────────────────────────────────────────────────────
    11. TOAST / OVERLAY / SHEET
    ───────────────────────────────────────────────────────────────────────── */
-/* Barra de descarga del modelo de voz — abajo, para no tapar el toast */
-.voz-progreso {
-  position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
-  z-index: 200; width: min(320px, calc(100vw - 40px));
-  padding: 11px 16px 13px;
-  border-radius: 16px;
-  background: var(--bg-elevated);
-  border: 1px solid oklch(96% 0.004 265 / 0.15);
-  box-shadow: 0 16px 40px oklch(0% 0 0 / 0.5);
-}
-.voz-progreso.hidden { display: none; }
-.voz-progreso-fila {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
-  font-family: 'Space Mono', monospace; font-size: 0.68rem;
-  color: var(--text-secondary); margin-bottom: 8px;
-}
-.voz-progreso-riel {
-  height: 5px; border-radius: 100px; overflow: hidden;
-  background: oklch(96% 0.004 265 / 0.12);
-}
-.voz-progreso-barra {
-  height: 100%; width: 0%; border-radius: 100px;
-  background: var(--accent);
-  transition: width 0.25s ease;
-}
-
 .toast {
   position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
   z-index: 200;
@@ -1105,10 +1079,6 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 
 </main>
 
-<!-- Panel de diagnóstico de voz. Fijo, no se desvanece: para ver EXACTAMENTE
-     en qué paso muere el audio en un navegador que no controlo. -->
-<div id="voz-debug" style="position:fixed; top:60px; left:12px; z-index:400; max-width:340px; padding:12px 14px; border-radius:12px; background:#0a0a0aee; border:1px solid #7fff0055; font-family:'Space Mono',monospace; font-size:11px; line-height:1.7; color:#cfffb0; display:none; white-space:pre-wrap; box-shadow:0 8px 30px #000a;"></div>
-
 <!-- ═══════════════════════════ TAB BAR ═══════════════════════════ -->
 <!-- Íconos con más peso (stroke 2.2). Tab activa = pill lima sólida (CSS del dev).
      data-view intacto: talk · story · slang · ladder · dna -->
@@ -1137,16 +1107,6 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 
 <!-- ═══════════════════════════ OVERLAYS ═══════════════════════════ -->
 <div id="toast" class="toast" role="status"></div>
-
-<!-- Progreso de descarga del modelo de voz. Son ~165 MB: sin barra, el usuario
-     no sabe si está cargando, si falló, o si la voz que oye es la buena. -->
-<div id="voz-progreso" class="voz-progreso hidden" role="status" aria-live="polite">
-  <div class="voz-progreso-fila">
-    <span id="voz-progreso-texto">Descargando voz natural…</span>
-    <span id="voz-progreso-pct">0%</span>
-  </div>
-  <div class="voz-progreso-riel"><div id="voz-progreso-barra" class="voz-progreso-barra"></div></div>
-</div>
 
 <!-- Overlay debrief / quiz results / cierre de episodio / veta hecha -->
 <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true">
@@ -1203,32 +1163,6 @@ function toast(msg, ms = 2600) {
   t.classList.add('show');
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove('show'), ms);
-}
-
-/* ── Barra de descarga del modelo de voz ── */
-const MB = (b) => (b / 1048576).toFixed(0);
-function mostrarProgresoVoz() {
-  $('#voz-progreso-texto').textContent = 'Descargando voz natural…';
-  $('#voz-progreso-pct').textContent = '0%';
-  $('#voz-progreso-barra').style.width = '0%';
-  $('#voz-progreso').classList.remove('hidden');
-}
-function actualizarProgresoVoz(frac, cargado, total) {
-  const pct = Math.min(100, Math.round(frac * 100));
-  $('#voz-progreso-barra').style.width = pct + '%';
-  $('#voz-progreso-pct').textContent = pct + '%';
-  $('#voz-progreso-texto').textContent = `Descargando voz natural… ${MB(cargado)}/${MB(total)} MB`;
-}
-function completarProgresoVoz() {
-  $('#voz-progreso-barra').style.width = '100%';
-  $('#voz-progreso-pct').textContent = '100%';
-  $('#voz-progreso-texto').textContent = '✓ Voz natural lista — dale al botón para probarla';
-  setTimeout(() => $('#voz-progreso').classList.add('hidden'), 3500);
-}
-function fallarProgresoVoz() {
-  $('#voz-progreso-texto').textContent = '✕ No cargó — uso la voz del sistema';
-  $('#voz-progreso-barra').style.background = 'oklch(70% 0.19 30)';
-  setTimeout(() => $('#voz-progreso').classList.add('hidden'), 4000);
 }
 
 function updateCostTicker() {
@@ -1883,83 +1817,20 @@ if ('speechSynthesis' in window) {
   speechSynthesis.onvoiceschanged = pickVoice;
 }
 
-/* ── Voz: Kokoro-82M en el navegador ──────────────────────────────────────
-   speechSynthesis en Windows 10 solo expone voces SAPI (David/Zira/Mark), que
-   suenan robóticas; las "Natural" son exclusivas de Windows 11 y Brave suele
-   quitar las voces de red de Google. Kokoro es un modelo de pesos abiertos que
-   corre local: gratis, sin límite, sin API key y sin backend. Cuesta ~90 MB de
-   descarga la primera vez (luego queda en la caché del navegador).
-   speechSynthesis se conserva como fallback: si el modelo no carga (Shields de
-   Brave, sin memoria, sin red) la app habla igual, más fea pero habla.        */
+/* ── Voz: Deepgram Aura-2 vía proxy /api/tts ──────────────────────────────
+   speechSynthesis en Windows 10 solo tiene voces SAPI robóticas. Kokoro en el
+   navegador resultó inviable en esta GPU: su backend WebGPU produce ruido, no
+   voz (verificado — correlación ~0 contra la salida de CPU, que sí es correcta).
+   Deepgram genera la voz en el servidor en ~1s y NO depende de la GPU. La API
+   key vive solo en api/tts.js. speechSynthesis queda de fallback si el proxy
+   falla o no hay key configurada.                                            */
 
-const KOKORO_MODELO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
-const KOKORO_VOZ = 'am_michael';   // masculina en-US; af_heart es la femenina mejor valorada
-
-let kokoroPromise = null;
-let kokoroRoto = false;
 let audioActual = null;
-let speakToken = 0;                // invalida generación/reproducción en curso
+let speakToken = 0;                // invalida reproducción en curso
 
-function cargarKokoro() {
-  if (kokoroPromise) return kokoroPromise;
-
-  // Sin WebGPU no vale la pena: medido en WASM, generar 4s de audio tarda ~22s.
-  // Eso es peor que la voz robótica del sistema, que al menos es instantánea.
-  if (!navigator.gpu) {
-    kokoroRoto = true;
-    return Promise.reject(new Error('sin webgpu'));
-  }
-
-  mostrarProgresoVoz();
-
-  // transformers.js emite eventos por ARCHIVO (modelo, tokenizer, voces), no un
-  // total global. Sumamos bytes de todos para dar un porcentaje honesto.
-  const archivos = new Map();
-  const onProgreso = (e) => {
-    if (!e || !e.file) return;
-    if (e.status === 'progress' && e.total) {
-      archivos.set(e.file, { loaded: e.loaded || 0, total: e.total });
-    } else if (e.status === 'done') {
-      const a = archivos.get(e.file);
-      if (a) a.loaded = a.total;
-    }
-    let cargado = 0, total = 0;
-    for (const a of archivos.values()) { cargado += a.loaded; total += a.total; }
-    if (total > 0) actualizarProgresoVoz(cargado / total, cargado, total);
-  };
-
-  kokoroPromise = (async () => {
-    const { KokoroTTS } = await import('https://esm.sh/kokoro-js@1.2.0');
-    // fp32 es OBLIGATORIO aquí. Medido comparando las muestras generadas en esta
-    // GPU (no solo el tiempo, que fue mi error antes):
-    //   fp32   picos ~0.33, sin NaN        → audio válido
-    //   fp16   NaN en todas las muestras   → silencio total
-    //   q4f16  NaN                          → silencio total
-    //   q8     picos ~74000 (fuera de rango) → ruido saturado
-    // fp16 no LANZA error, solo devuelve basura, así que un fallback por catch
-    // nunca lo detectaba. Pesa el doble (326 MB) pero es el único que suena.
-    return await KokoroTTS.from_pretrained(KOKORO_MODELO, { dtype: 'fp32', device: 'webgpu', progress_callback: onProgreso });
-  })();
-
-  kokoroPromise.then(
-    () => { completarProgresoVoz(); },
-    () => { kokoroRoto = true; fallarProgresoVoz(); }
-  );
-  return kokoroPromise;
-}
-
-// La precarga y el toggle llaman a esto: si no hay WebGPU no molestamos al
-// usuario con un toast de error, simplemente se queda con la voz del sistema.
-function precargarVozSiSePuede() {
-  if (!navigator.gpu) return;
-  cargarKokoro().catch(() => {});
-}
-
-/* Reproducción por Web Audio API, no por <audio>. Brave bloquea el autoplay de
-   HTMLMediaElement, y como el sonido arranca SEGUNDOS después del clic (la
-   generación tarda), el gesto ya expiró y play() se rechazaba — y el .catch se
-   lo tragaba: silencio total sin error visible. Un AudioContext, en cambio, se
-   desbloquea con cualquier clic y queda desbloqueado para toda la sesión. */
+/* Reproducción por Web Audio API, no por <audio>: Brave bloquea el autoplay de
+   HTMLMediaElement, pero un AudioContext se desbloquea con cualquier clic y
+   queda desbloqueado toda la sesión. */
 let audioCtx = null;
 function ctxAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1975,73 +1846,7 @@ function pararAudio() {
   if (audioActual) { try { audioActual.stop(); } catch {} audioActual = null; }
 }
 
-// Comprueba las primeras muestras: si son NaN (dtype incompatible con la GPU),
-// el audio suena a silencio absoluto. Mejor saberlo y caer a la voz del sistema
-// que reproducir nada mudo. Sondea el arranque, no las 60k muestras.
-function audioEsValido(audio) {
-  const a = audio && audio.audio;
-  if (!a || !a.length) return false;
-  const paso = Math.max(1, Math.floor(a.length / 64));
-  for (let i = 0; i < a.length; i += paso) if (Number.isNaN(a[i])) return false;
-  return true;
-}
-
-async function reproducir(audio, token) {
-  const ctx = ctxAudio();
-  dbg('5. reproducir · ctx=' + ctx.state);
-  if (ctx.state === 'suspended') { try { await ctx.resume(); dbg('5. tras resume=' + ctx.state); } catch (e) { dbg('5. resume ERROR ' + String(e).slice(0,60)); } }
-  if (ctx.state !== 'running') throw new Error('audio bloqueado (ctx=' + ctx.state + ') — toca la página');
-  if (token !== speakToken) return;
-
-  // Kokoro entrega las muestras crudas (Float32Array + sampling_rate):
-  // se meten directas a un AudioBuffer, sin blob ni URL de por medio.
-  const buf = ctx.createBuffer(1, audio.audio.length, audio.sampling_rate);
-  buf.copyToChannel(audio.audio, 0);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(ctx.destination);
-  audioActual = src;
-  const dur = (audio.audio.length / audio.sampling_rate).toFixed(1);
-  dbg('5. start() · ' + dur + 's de audio →');
-  await new Promise((res) => { src.onended = () => { dbg('5. onended ✓'); res(); }; src.start(); });
-  if (audioActual === src) audioActual = null;
-}
-
-// Trocea el texto para que el audio empiece pronto.
-// Medido: la generación va a ~0.7x de tiempo real, pero escala con la longitud
-// (16 chars → 1.5s · 136 chars → 6.9s). Como cada trozo se genera mientras suena
-// el anterior, y generar es más rápido que reproducir, la cadena nunca se queda
-// corta: SOLO el primer trozo determina cuánto esperas. Por eso el primero se
-// parte agresivamente en la primera coma o guion, y el resto se deja por
-// oraciones completas para que la entonación no salga picada.
-function trocearParaVoz(text) {
-  const oraciones = (String(text).match(/[^.!?…]+[.!?…]*/g) || [String(text)])
-    .map((s) => s.trim()).filter(Boolean);
-  if (!oraciones.length) return [];
-
-  const VENTANA = 90, MIN = 20, TOPE_PALABRA = 65;
-  const primera = oraciones[0];
-  if (primera.length <= VENTANA) return oraciones;
-
-  // Buscar el ÚLTIMO corte natural dentro de la ventana, no el primero: en
-  // "Dude, I've been going back and forth…" la primera coma está en el carácter
-  // 4 y partir ahí no ahorra nada.
-  let corte = -1;
-  const re = /[,;:—–]\s|\s-\s/g;
-  let m;
-  while ((m = re.exec(primera)) !== null) {
-    if (m.index >= MIN && m.index <= VENTANA) corte = m.index + m[0].length - 1;
-    else if (m.index > VENTANA) break;
-  }
-  // Sin puntuación aprovechable, cortar en el último espacio antes del tope.
-  if (corte < MIN) corte = primera.lastIndexOf(' ', TOPE_PALABRA);
-  if (corte < MIN) return oraciones;
-
-  return [primera.slice(0, corte + 1).trim(), primera.slice(corte + 1).trim(), ...oraciones.slice(1)]
-    .filter(Boolean);
-}
-
-// Fallback: el motor del sistema, tal como estaba antes.
+// Fallback: el motor del sistema (robótico pero instantáneo).
 function speakSistema(text) {
   if (!('speechSynthesis' in window) || !text) return;
   speechSynthesis.cancel();
@@ -2053,51 +1858,34 @@ function speakSistema(text) {
 }
 
 let ultimoHablado = '';            // para el botón de repetir
+let avisoTTSDado = false;          // no repetir el toast de fallo en cada turno
 
-/* ── Diagnóstico de voz en pantalla ── */
-let dbgLineas = [];
-function dbg(linea) {
-  const el = document.getElementById('voz-debug');
-  if (!el) return;
-  el.style.display = 'block';
-  dbgLineas.push(linea);
-  if (dbgLineas.length > 16) dbgLineas = dbgLineas.slice(-16);
-  el.textContent = 'DIAGNÓSTICO DE VOZ\n' + dbgLineas.join('\n');
-}
-function dbgReset() { dbgLineas = []; }
-
-// Beep de prueba: 440 Hz por el MISMO AudioContext que usa Kokoro. Aísla el
-// problema — si suena el beep, Web Audio funciona y el fallo está en generar;
-// si no suena ni el beep, Brave está bloqueando el audio del todo.
-async function beepPrueba() {
-  try {
-    const ctx = ctxAudio();
-    dbg('beep · ctx.state = ' + ctx.state);
-    if (ctx.state === 'suspended') { await ctx.resume(); dbg('beep · tras resume = ' + ctx.state); }
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    g.gain.value = 0.15;
-    osc.frequency.value = 440;
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.35);
-    dbg('beep · start() OK — ¿lo oíste?');
-  } catch (e) {
-    dbg('beep · ERROR: ' + String(e && e.message || e).slice(0, 100));
-  }
-}
-
-// Diagnóstico: por qué la voz cayó al motor del sistema. Se muestra en pantalla
-// para no tener que adivinar contra un navegador que no controlo.
+// Por qué la voz cayó al motor del sistema. Se avisa una vez, no en cada turno.
 function caerASistema(text, motivo, err) {
   window.__vozMotor = 'sistema';
   const detalle = err ? String(err && err.message || err) : '';
-  window.__vozMotivo = motivo + (detalle ? ' :: ' + detalle : '');
-  console.warn('[voz] motor del sistema —', motivo, err || '');
-  // Mostramos el error crudo en pantalla: sin acceso a tu navegador, esa línea
-  // es la única forma de saber por qué Brave rechaza la generación.
-  toast('Voz sistema — ' + motivo + (detalle ? ': ' + detalle.slice(0, 140) : ''), 9000);
+  console.warn('[voz] fallback al sistema —', motivo, err || '');
+  if (!avisoTTSDado) {
+    avisoTTSDado = true;
+    toast('Voz del sistema — ' + motivo + (detalle ? ': ' + detalle.slice(0, 120) : ''), 6000);
+  }
   speakSistema(text);
+}
+
+// Pide el audio al proxy /api/tts (Deepgram). Devuelve un ArrayBuffer MP3.
+async function pedirTTS(text) {
+  const headers = { 'Content-Type': 'application/json' };
+  const pass = store.get('rodeo_pass', null);
+  if (pass) headers['x-rodeo-pass'] = pass;
+  const r = await fetch('/api/tts', {
+    method: 'POST', headers,
+    body: JSON.stringify({ text: String(text).slice(0, 2000) }),
+  });
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    throw new Error(d.detail || d.error || ('HTTP ' + r.status));
+  }
+  return r.arrayBuffer();
 }
 
 async function speak(text) {
@@ -2107,60 +1895,31 @@ async function speak(text) {
   stopSpeaking();                  // corta lo anterior e invalida su token
   const token = speakToken;
 
-  dbgReset();
-  dbg('1. speak() — gpu=' + !!navigator.gpu + ' roto=' + kokoroRoto);
-  if (!window.__beepHecho) { window.__beepHecho = true; await beepPrueba(); }
-
-  if (!navigator.gpu) return caerASistema(text, 'este navegador no expone WebGPU');
-  if (kokoroRoto)      return caerASistema(text, 'el modelo no cargó antes');
-
-  let tts;
-  try { tts = await cargarKokoro(); dbg('2. modelo cargado OK'); }
-  catch (e) { dbg('2. modelo FALLÓ: ' + String(e).slice(0, 80)); return caerASistema(text, 'falló la carga del modelo', e); }
-  if (token !== speakToken) { dbg('x. cancelado (token viejo)'); return; }
-
-  const frases = trocearParaVoz(text);
-  dbg('3. troceado en ' + frases.length + ' frase(s)');
+  let ab;
+  try { ab = await pedirTTS(text); }
+  catch (e) { return caerASistema(text, 'falló la voz Deepgram', e); }
+  if (token !== speakToken) return;             // otra respuesta la reemplazó
 
   try {
-    const t0 = performance.now();
-    let pendiente = generarSerial(tts, frases[0], token);
-    for (let i = 0; i < frases.length; i++) {
-      const audio = await pendiente;
-      if (token !== speakToken || !audio) { dbg('x. gen ' + i + ' obsoleta/saltada'); return; }
-      if (!audioEsValido(audio)) { dbg('4.' + i + ' MUESTRAS NaN — dtype malo'); throw new Error('audio NaN (dtype incompatible con la GPU)'); }
-      dbg('4.' + i + ' generado ' + Math.round((performance.now() - t0)) + 'ms · ' + audio.audio.length + ' muestras @ ' + audio.sampling_rate);
-      pendiente = i + 1 < frases.length
-        ? generarSerial(tts, frases[i + 1], token)
-        : null;
-      window.__vozMotor = 'kokoro';
-      await reproducir(audio, token);
-      if (token !== speakToken) return;
-    }
-    dbg('6. FIN — audio completo');
+    const ctx = ctxAudio();
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch {} }
+    // decodeAudioData decodifica el MP3 y lo remuestrea al ritmo del contexto.
+    const buf = await ctx.decodeAudioData(ab);
+    if (token !== speakToken) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(ctx.destination);
+    audioActual = src;
+    window.__vozMotor = 'deepgram';
+    await new Promise((res) => { src.onended = res; src.start(); });
+    if (audioActual === src) audioActual = null;
   } catch (e) {
-    dbg('X. EXCEPCIÓN: ' + String(e && e.message || e).slice(0, 100));
-    if (token === speakToken) caerASistema(text, 'falló la voz natural', e);
+    if (token === speakToken) caerASistema(text, 'no pude reproducir el audio', e);
   }
 }
 
-// La sesión ONNX no es reentrante: dos generate() a la vez lanzan "Session
-// already started". stopSpeaking() invalida el token pero NO puede abortar una
-// generación en vuelo, así que un nuevo speak() (botón repetir, turno siguiente)
-// chocaba con la anterior. Encadenamos todas las generaciones para que nunca se
-// solapen; la que quedó obsoleta se salta sin gastar GPU.
-let cadenaGen = Promise.resolve();
-function generarSerial(tts, frase, token) {
-  const r = cadenaGen.then(() => {
-    if (token !== speakToken) return null;   // otro speak() la dejó obsoleta
-    return tts.generate(frase, { voice: KOKORO_VOZ });
-  });
-  cadenaGen = r.catch(() => {});             // la cadena sigue aunque una falle
-  return r;
-}
-
 function stopSpeaking() {
-  speakToken++;                    // cualquier generación en vuelo queda huérfana
+  speakToken++;                    // cualquier reproducción en vuelo queda huérfana
   pararAudio();
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
@@ -2170,7 +1929,6 @@ $('#tts-toggle').addEventListener('click', () => {
   state.ttsOn = !state.ttsOn;
   store.set('rodeo_tts', state.ttsOn);
   if (!state.ttsOn) stopSpeaking();
-  else precargarVozSiSePuede();          // empieza a bajar el modelo ya
   syncTTSButton();
   toast(state.ttsOn ? 'Voz del coach: ON' : 'Voz del coach: OFF', 1500);
 });
@@ -2186,11 +1944,6 @@ $('#replay-btn').addEventListener('click', () => {
   speak(ultimoHablado);
 });
 syncReplayButton();
-
-// Precarga: los ~90 MB bajan mientras el usuario elige escenario, no cuando ya
-// está esperando oír algo. Solo si la voz está activada, para no gastar datos
-// de quien la tiene apagada. Se retrasa para no competir con el render inicial.
-if (state.ttsOn) setTimeout(precargarVozSiSePuede, 2500);
 
 /* ═══════════════════ SLANG ═══════════════════ */
 

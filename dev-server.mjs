@@ -14,6 +14,7 @@ if (existsSync('.env.local')) {
 }
 
 const { default: handler } = await import('./api/chat.js');
+const { default: ttsHandler } = await import('./api/tts.js');
 
 const PORT = 4870;
 const ROOT = process.cwd();
@@ -34,6 +35,9 @@ createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (url.pathname === '/api/chat') {
     return handler(req, res);
+  }
+  if (url.pathname === '/api/tts') {
+    return ttsHandler(req, res);
   }
   let file = url.pathname === '/' ? '/index.html' : url.pathname;
   try {
