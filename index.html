@@ -1105,6 +1105,10 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 
 </main>
 
+<!-- Panel de diagnóstico de voz. Fijo, no se desvanece: para ver EXACTAMENTE
+     en qué paso muere el audio en un navegador que no controlo. -->
+<div id="voz-debug" style="position:fixed; top:60px; left:12px; z-index:400; max-width:340px; padding:12px 14px; border-radius:12px; background:#0a0a0aee; border:1px solid #7fff0055; font-family:'Space Mono',monospace; font-size:11px; line-height:1.7; color:#cfffb0; display:none; white-space:pre-wrap; box-shadow:0 8px 30px #000a;"></div>
+
 <!-- ═══════════════════════════ TAB BAR ═══════════════════════════ -->
 <!-- Íconos con más peso (stroke 2.2). Tab activa = pill lima sólida (CSS del dev).
      data-view intacto: talk · story · slang · ladder · dna -->
@@ -1976,8 +1980,9 @@ function pararAudio() {
 
 async function reproducir(audio, token) {
   const ctx = ctxAudio();
-  if (ctx.state === 'suspended') { try { await ctx.resume(); } catch {} }
-  if (ctx.state !== 'running') throw new Error('audio bloqueado por el navegador — toca la página y dale a repetir');
+  dbg('5. reproducir · ctx=' + ctx.state);
+  if (ctx.state === 'suspended') { try { await ctx.resume(); dbg('5. tras resume=' + ctx.state); } catch (e) { dbg('5. resume ERROR ' + String(e).slice(0,60)); } }
+  if (ctx.state !== 'running') throw new Error('audio bloqueado (ctx=' + ctx.state + ') — toca la página');
   if (token !== speakToken) return;
 
   // Kokoro entrega las muestras crudas (Float32Array + sampling_rate):
@@ -1988,7 +1993,9 @@ async function reproducir(audio, token) {
   src.buffer = buf;
   src.connect(ctx.destination);
   audioActual = src;
-  await new Promise((res) => { src.onended = res; src.start(); });
+  const dur = (audio.audio.length / audio.sampling_rate).toFixed(1);
+  dbg('5. start() · ' + dur + 's de audio →');
+  await new Promise((res) => { src.onended = () => { dbg('5. onended ✓'); res(); }; src.start(); });
   if (audioActual === src) audioActual = null;
 }
 
@@ -2039,6 +2046,39 @@ function speakSistema(text) {
 
 let ultimoHablado = '';            // para el botón de repetir
 
+/* ── Diagnóstico de voz en pantalla ── */
+let dbgLineas = [];
+function dbg(linea) {
+  const el = document.getElementById('voz-debug');
+  if (!el) return;
+  el.style.display = 'block';
+  dbgLineas.push(linea);
+  if (dbgLineas.length > 16) dbgLineas = dbgLineas.slice(-16);
+  el.textContent = 'DIAGNÓSTICO DE VOZ\n' + dbgLineas.join('\n');
+}
+function dbgReset() { dbgLineas = []; }
+
+// Beep de prueba: 440 Hz por el MISMO AudioContext que usa Kokoro. Aísla el
+// problema — si suena el beep, Web Audio funciona y el fallo está en generar;
+// si no suena ni el beep, Brave está bloqueando el audio del todo.
+async function beepPrueba() {
+  try {
+    const ctx = ctxAudio();
+    dbg('beep · ctx.state = ' + ctx.state);
+    if (ctx.state === 'suspended') { await ctx.resume(); dbg('beep · tras resume = ' + ctx.state); }
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    g.gain.value = 0.15;
+    osc.frequency.value = 440;
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+    dbg('beep · start() OK — ¿lo oíste?');
+  } catch (e) {
+    dbg('beep · ERROR: ' + String(e && e.message || e).slice(0, 100));
+  }
+}
+
 // Diagnóstico: por qué la voz cayó al motor del sistema. Se muestra en pantalla
 // para no tener que adivinar contra un navegador que no controlo.
 function caerASistema(text, motivo, err) {
@@ -2059,21 +2099,28 @@ async function speak(text) {
   stopSpeaking();                  // corta lo anterior e invalida su token
   const token = speakToken;
 
+  dbgReset();
+  dbg('1. speak() — gpu=' + !!navigator.gpu + ' roto=' + kokoroRoto);
+  await beepPrueba();
+
   if (!navigator.gpu) return caerASistema(text, 'este navegador no expone WebGPU');
   if (kokoroRoto)      return caerASistema(text, 'el modelo no cargó antes');
 
   let tts;
-  try { tts = await cargarKokoro(); }
-  catch (e) { return caerASistema(text, 'falló la carga del modelo', e); }
-  if (token !== speakToken) return;             // llegó otra respuesta mientras cargaba
+  try { tts = await cargarKokoro(); dbg('2. modelo cargado OK'); }
+  catch (e) { dbg('2. modelo FALLÓ: ' + String(e).slice(0, 80)); return caerASistema(text, 'falló la carga del modelo', e); }
+  if (token !== speakToken) { dbg('x. cancelado (token viejo)'); return; }
 
   const frases = trocearParaVoz(text);
+  dbg('3. troceado en ' + frases.length + ' frase(s)');
 
   try {
+    const t0 = performance.now();
     let pendiente = generarSerial(tts, frases[0], token);
     for (let i = 0; i < frases.length; i++) {
       const audio = await pendiente;
-      if (token !== speakToken || !audio) return;   // obsoleto o saltado
+      if (token !== speakToken || !audio) { dbg('x. gen ' + i + ' obsoleta/saltada'); return; }
+      dbg('4.' + i + ' generado ' + Math.round((performance.now() - t0)) + 'ms · ' + audio.audio.length + ' muestras @ ' + audio.sampling_rate);
       pendiente = i + 1 < frases.length
         ? generarSerial(tts, frases[i + 1], token)
         : null;
@@ -2081,7 +2128,9 @@ async function speak(text) {
       await reproducir(audio, token);
       if (token !== speakToken) return;
     }
+    dbg('6. FIN — audio completo');
   } catch (e) {
+    dbg('X. EXCEPCIÓN: ' + String(e && e.message || e).slice(0, 100));
     if (token === speakToken) caerASistema(text, 'falló la voz natural', e);
   }
 }
