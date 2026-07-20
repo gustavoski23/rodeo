@@ -847,10 +847,12 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
           </button>
           <span id="session-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
         </div>
-        <div class="flex gap-2">
-          <!-- Repetir: vuelve a leer en voz alta la última respuesta del coach. -->
-          <button id="replay-btn" class="icon-btn" aria-label="Repetir el audio de la última respuesta" style="width:40px;height:40px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+        <div class="flex gap-2 items-center">
+          <!-- Voz: alterna entre Helena (US, femenina) y Draco (UK, masculino). -->
+          <button id="voice-btn" class="btn-ghost" aria-label="Cambiar la voz del coach" style="min-height:36px; padding:6px 12px; font-size:0.72rem; font-family:'Space Mono',monospace; letter-spacing:0.04em;">Helena</button>
+          <!-- Play: lee en voz alta la última respuesta del coach. -->
+          <button id="replay-btn" class="icon-btn" aria-label="Reproducir el audio de la última respuesta" style="width:40px;height:40px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
           </button>
           <button id="tts-toggle" class="icon-btn" aria-label="Activar o desactivar voz del coach" style="width:40px;height:40px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
@@ -1872,6 +1874,14 @@ function caerASistema(text, motivo, err) {
   speakSistema(text);
 }
 
+// Voz seleccionable. Dos opciones por ahora; se persiste en localStorage.
+const VOCES = {
+  'aura-2-helena-en': 'Helena',   // US, femenina, cálida
+  'aura-2-draco-en':  'Draco',    // UK, masculino, barítono
+};
+let vozActual = store.get('rodeo_voz', 'aura-2-helena-en');
+if (!VOCES[vozActual]) vozActual = 'aura-2-helena-en';
+
 // Pide el audio al proxy /api/tts (Deepgram). Devuelve un ArrayBuffer MP3.
 async function pedirTTS(text) {
   const headers = { 'Content-Type': 'application/json' };
@@ -1879,7 +1889,7 @@ async function pedirTTS(text) {
   if (pass) headers['x-rodeo-pass'] = pass;
   const r = await fetch('/api/tts', {
     method: 'POST', headers,
-    body: JSON.stringify({ text: String(text).slice(0, 2000) }),
+    body: JSON.stringify({ text: String(text).slice(0, 2000), model: vozActual }),
   });
   if (!r.ok) {
     const d = await r.json().catch(() => ({}));
@@ -1944,6 +1954,21 @@ $('#replay-btn').addEventListener('click', () => {
   speak(ultimoHablado);
 });
 syncReplayButton();
+
+// Botón de voz: alterna Helena ⇄ Draco, persiste, y si hay algo dicho lo
+// vuelve a leer en la voz nueva para oír el cambio al instante.
+function syncVoiceButton() {
+  const b = $('#voice-btn');
+  if (b) b.textContent = VOCES[vozActual] || 'Voz';
+}
+$('#voice-btn').addEventListener('click', () => {
+  vozActual = vozActual === 'aura-2-helena-en' ? 'aura-2-draco-en' : 'aura-2-helena-en';
+  store.set('rodeo_voz', vozActual);
+  syncVoiceButton();
+  toast('Voz: ' + VOCES[vozActual], 1500);
+  if (ultimoHablado) speak(ultimoHablado);   // muestra el cambio de una vez
+});
+syncVoiceButton();
 
 /* ═══════════════════ SLANG ═══════════════════ */
 

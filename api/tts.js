@@ -3,9 +3,10 @@
 // El navegador manda {text} y recibe el MP3 ya sintetizado.
 
 const DEEPGRAM_URL = 'https://api.deepgram.com/v1/speak';
-// aura-2-apollo-en = "Confident, Comfortable, Casual" (US masculina), pega con
-// el tono de RODEO. Configurable por env sin tocar código.
-const TTS_MODEL = process.env.TTS_MODEL || 'aura-2-apollo-en';
+// aura-2-helena-en = "Caring, Natural, Positive, Friendly, Raspy" (US femenina).
+// Voz por defecto elegida por el usuario. El frontend puede pedir otra (Draco)
+// vía el parámetro model. Configurable por env sin tocar código.
+const TTS_MODEL = process.env.TTS_MODEL || 'aura-2-helena-en';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -42,10 +43,15 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'missing_text' }));
   }
 
+  // El frontend puede pedir una voz concreta (probador). Lista blanca estricta:
+  // solo modelos Aura-2 en inglés, para que nadie inyecte un modelo arbitrario.
+  const pedido = String(body.model || '').trim();
+  const model = /^aura-2-[a-z]+-en$/.test(pedido) ? pedido : TTS_MODEL;
+
   try {
     // Sin encoding/container explícito, Deepgram devuelve MP3 (audio/mpeg),
     // que el navegador decodifica nativo con decodeAudioData.
-    const upstream = await fetch(`${DEEPGRAM_URL}?model=${encodeURIComponent(TTS_MODEL)}`, {
+    const upstream = await fetch(`${DEEPGRAM_URL}?model=${encodeURIComponent(model)}`, {
       method: 'POST',
       headers: {
         Authorization: `Token ${apiKey}`,

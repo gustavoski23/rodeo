@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RODEO — probador de voces</title>
+<style>
+  :root { --bg:#0a0a0a; --card:#141414; --card2:#1c1c1c; --ink:#eaeaea; --dim:#8a8a8a; --accent:#c3f53b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,'Segoe UI',sans-serif; padding:24px; max-width:760px; margin:0 auto; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--dim); font-size:0.85rem; margin-bottom:18px; }
+  textarea { width:100%; background:var(--card); color:var(--ink); border:1px solid #2a2a2a; border-radius:10px; padding:10px 12px; font-size:0.9rem; font-family:inherit; resize:vertical; min-height:60px; }
+  .hint { color:var(--dim); font-size:0.75rem; margin:6px 0 18px; }
+  .voz { display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid #222; border-radius:12px; padding:12px 14px; margin-bottom:10px; transition:border-color .15s; }
+  .voz.sonando { border-color:var(--accent); }
+  .voz .meta { flex:1; min-width:0; }
+  .voz .nombre { font-weight:700; font-size:0.98rem; }
+  .voz .desc { color:var(--dim); font-size:0.8rem; margin-top:2px; }
+  .voz button { flex-shrink:0; background:var(--accent); color:#111; border:none; border-radius:100px; padding:10px 20px; font-weight:700; font-size:0.85rem; cursor:pointer; min-width:96px; }
+  .voz button:disabled { opacity:.5; cursor:default; }
+  .estado { font-size:0.75rem; color:var(--dim); margin-left:4px; min-height:1em; }
+  .elegida { color:var(--accent); font-weight:700; }
+</style>
+</head>
+<body>
+  <h1>Probador de voces · RODEO</h1>
+  <div class="sub">Dale a cada voz, escucha, y dime cuál te gusta. Todas son masculinas y americanas (menos las marcadas).</div>
+
+  <textarea id="texto">Hey man, good to see you. I've been going back and forth all day about whether to take this job — the money's there but the commute would kill me.</textarea>
+  <div class="hint">Puedes cambiar el texto de prueba. Cada clic genera el audio con esa voz (~1-2s).</div>
+
+  <div id="lista"></div>
+
+<script>
+const VOCES = [
+  { id:'aura-2-arcas-en',    n:'Arcas',    d:'Natural, suave, claro, cómodo' },
+  { id:'aura-2-orion-en',    n:'Orion',    d:'Cercano, cómodo, calmado, educado' },
+  { id:'aura-2-orpheus-en',  n:'Orpheus',  d:'Profesional, claro, seguro, confiable' },
+  { id:'aura-2-neptune-en',  n:'Neptune',  d:'Profesional, paciente, educado' },
+  { id:'aura-2-odysseus-en', n:'Odysseus', d:'Calmado, suave, cómodo, profesional' },
+  { id:'aura-2-aries-en',    n:'Aries',    d:'Cálido, enérgico, atento' },
+  { id:'aura-2-hermes-en',   n:'Hermes',   d:'Expresivo, envolvente, profesional' },
+  { id:'aura-2-atlas-en',    n:'Atlas',    d:'Entusiasta, seguro, cercano (maduro)' },
+  { id:'aura-2-mars-en',     n:'Mars',     d:'Suave, paciente, confiable (barítono)' },
+  { id:'aura-2-pluto-en',    n:'Pluto',    d:'Suave, calmado, empático (barítono)' },
+  { id:'aura-2-zeus-en',     n:'Zeus',     d:'Grave, confiable, suave' },
+  { id:'aura-2-saturn-en',   n:'Saturn',   d:'Seguro, sabio (barítono)' },
+  { id:'aura-2-jupiter-en',  n:'Jupiter',  d:'Expresivo, sabio (barítono)' },
+  { id:'aura-2-apollo-en',   n:'Apollo',   d:'Seguro, cómodo, casual — (la actual, no te gustó)' },
+  { id:'aura-2-draco-en',    n:'Draco',    d:'Cálido, confiable, barítono — BRITÁNICO' },
+];
+
+let ctx = null;
+function audioCtx(){ if(!ctx) ctx = new (window.AudioContext||window.webkitAudioContext)(); return ctx; }
+document.addEventListener('click', ()=>{ const c=audioCtx(); if(c.state==='suspended') c.resume(); }, true);
+
+let fuente = null;
+function parar(){ if(fuente){ try{fuente.stop();}catch(e){} fuente=null; } }
+
+async function probar(voz, btn, estadoEl){
+  parar();
+  document.querySelectorAll('.voz').forEach(v=>v.classList.remove('sonando'));
+  btn.disabled = true; estadoEl.textContent = 'generando…';
+  try {
+    const t0 = performance.now();
+    const r = await fetch('/api/tts', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text: document.getElementById('texto').value.slice(0,2000), model: voz.id })
+    });
+    if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.detail||d.error||('HTTP '+r.status)); }
+    const ab = await r.arrayBuffer();
+    const c = audioCtx();
+    if(c.state==='suspended') await c.resume();
+    const buf = await c.decodeAudioData(ab);
+    const src = c.createBufferSource();
+    src.buffer = buf; src.connect(c.destination);
+    fuente = src;
+    btn.closest('.voz').classList.add('sonando');
+    estadoEl.textContent = 'sonando · ' + Math.round(performance.now()-t0) + 'ms';
+    src.onended = ()=>{ btn.closest('.voz').classList.remove('sonando'); estadoEl.textContent=''; };
+    src.start();
+  } catch(e){
+    estadoEl.textContent = 'error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+const lista = document.getElementById('lista');
+VOCES.forEach(voz=>{
+  const div = document.createElement('div');
+  div.className = 'voz';
+  div.innerHTML = `<div class="meta"><div class="nombre">${voz.n}</div><div class="desc">${voz.d}</div><div class="estado"></div></div>`;
+  const btn = document.createElement('button');
+  btn.textContent = '▶ Oír';
+  const estadoEl = div.querySelector('.estado');
+  btn.addEventListener('click', ()=>probar(voz, btn, estadoEl));
+  div.appendChild(btn);
+  lista.appendChild(div);
+});
+</script>
+</body>
+</html>
