@@ -763,8 +763,9 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   cual — su CSS lo rediseña otro dev. Las clases NUEVAS que agrego para
   composición llevan prefijo `rd-` (rodeo) para no colisionar con el contrato.
 
-  Los contenedores de ilustración están marcados con
-    <!-- ILUSTRACIÓN: … --> + una clase .rd-ill-* vacía → otro agente inyecta el SVG.
+  Los contenedores de ilustración están marcados con un comentario
+    ILUSTRACIÓN: …
+  + una clase .rd-ill-* vacía → otro agente inyecta el SVG.
   ════════════════════════════════════════════════════════════════════════════
 -->
 
@@ -786,11 +787,9 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     </div>
   </div>
 
-  <!-- Ticker de costo — pill técnico Space Mono (motivo tag "Step 1" de REF 1) -->
-  <div class="rd-cost-pill text-right">
-    <div id="cost-ticker" class="rd-cost-val" title="Costo acumulado de API">$0.0000</div>
-    <div class="rd-cost-label">GASTADO</div>
-  </div>
+  <!-- Ticker de costo retirado de la UI. El costo se sigue acumulando en
+       state.cost y persistiendo en localStorage ('rodeo_cost'); solo se ocultó
+       la pastilla. updateCostTicker() tolera que #cost-ticker no exista. -->
 </header>
 <div class="luminous-line mx-5 shrink-0"></div>
 
@@ -1155,7 +1154,11 @@ function toast(msg, ms = 2600) {
 }
 
 function updateCostTicker() {
-  $('#cost-ticker').textContent = '$' + state.cost.toFixed(4);
+  // La pastilla de costo se retiró del header; el costo se sigue acumulando en
+  // state.cost. Sin esta guarda, callAPI() reventaría con TypeError en cada
+  // llamada y tumbaría la app entera.
+  const el = $('#cost-ticker');
+  if (el) el.textContent = '$' + state.cost.toFixed(4);
 }
 
 function esc(s) {
@@ -1211,9 +1214,11 @@ async function callAPI(mode, messages, maxTokens = 3200) {
 async function callJSON(mode, messages, maxTokens = 3200) {
   let { content, finish } = await callAPI(mode, messages, maxTokens);
   let parsed = parseJSON(content);
-  // Reintento único ante CUALQUIER fallo de parseo (truncamiento o JSON sucio),
-  // con techo alto para que el razonamiento de Kimi no vuelva a truncar.
-  if (!parsed) {
+  // Reintentar SOLO si el JSON se cortó por falta de techo (finish === 'length').
+  // Antes reintentábamos ante cualquier fallo de parseo: como cada llamada tarda
+  // minutos y se cobra, un JSON sucio con finish 'stop' duplicaba espera y costo
+  // sin ninguna posibilidad de arreglarse (más tokens no curan un JSON sucio).
+  if (!parsed && finish === 'length' && maxTokens < 8000) {
     ({ content, finish } = await callAPI(mode, messages, 8000));
     parsed = parseJSON(content);
   }
@@ -1253,38 +1258,128 @@ $$('.tab-item').forEach((tab) => {
 
 /* ═══════════════════ TALK ═══════════════════ */
 
+// Los escenarios describen la SITUACIÓN, no dos aficiones del personaje. Antes
+// decían cosas como "Tyler, a local who loves music and sports": eso le daba al
+// modelo tres sustantivos y siempre producía permutaciones de esos tres.
 const SCENARIOS = {
-  'work-meeting':     { title: 'Reunión de equipo',    prompt: 'a weekly team meeting at a tech startup. You are Alex, his American teammate. Discuss progress, blockers and plans. Business-casual register.' },
-  'work-negotiation': { title: 'Negociación',          prompt: 'a negotiation with a US investor interested in his crypto startup. You are Jordan, a sharp but fair VC. Push back on numbers, ask hard questions.' },
-  'work-interview':   { title: 'Entrevista',           prompt: 'a job interview for a senior role at an international company. You are Sam, the hiring manager. Ask behavioral and technical-ish questions.' },
-  'work-pitch':       { title: 'Pitch',                prompt: 'a pitch meeting where he presents his product. You are Casey, a skeptical potential client. Make him sell it and handle objections.' },
-  'street-bar':       { title: 'Bar',                  prompt: 'casual small talk at a bar in Austin, Texas. You are Tyler, a friendly local who loves music and sports. Very informal, use natural slang.' },
-  'street-travel':    { title: 'Viaje',                prompt: 'travel situations: airport check-in, immigration, asking directions, hotel issues. You play the various people he encounters. Realistic and sometimes impatient.' },
-  'street-futbol':    { title: 'Fútbol',               prompt: 'a passionate conversation about football/soccer — World Cup 2026, teams, matches. You are Danny, a British football fan. Use real football slang and banter.' },
-  'street-date':      { title: 'Cita',                 prompt: 'a first date at a coffee shop. You are Riley, interesting and a bit playful. Natural flirty-friendly conversation, informal register.' },
-  'free':             { title: 'Free talk',            prompt: 'open conversation about whatever he brings up. You are Coach, curious and engaging. Follow his lead, ask good questions.' },
+  'work-meeting':     { title: 'Reunión de equipo',    prompt: 'a weekly team sync at a tech startup. You are Alex, his American teammate — you have your own workload, opinions and frustrations.' },
+  'work-negotiation': { title: 'Negociación',          prompt: 'a negotiation with a US investor interested in his crypto startup. You are Jordan, a sharp but fair VC with your own thesis and constraints.' },
+  'work-interview':   { title: 'Entrevista',           prompt: 'a job interview for a senior role at an international company. You are Sam, the hiring manager — you have a role to fill and doubts to resolve.' },
+  'work-pitch':       { title: 'Pitch',                prompt: 'a meeting where he presents his product to you. You are Casey, a potential client with a budget, a boss and existing vendors.' },
+  'street-bar':       { title: 'Bar',                  prompt: 'a bar in Austin, Texas. You are Tyler, a local with a full life of your own. Very informal, natural slang.' },
+  'street-travel':    { title: 'Viaje',                prompt: 'travel situations: airport check-in, immigration, directions, hotel problems. You play whoever he runs into — each with their own job, pressure and patience.' },
+  'street-futbol':    { title: 'Fútbol',               prompt: 'football/soccer talk. You are Danny, a British fan with strong takes, a team you suffer for, and real banter.' },
+  'street-date':      { title: 'Cita',                 prompt: 'a first date at a coffee shop. You are Riley — a whole person with a job, a history and your own read on how this is going.' },
+  'free':             { title: 'Free talk',            prompt: 'open conversation. You are Coach — you have opinions and stories of your own, not just questions.' },
 };
 
-function talkSystemPrompt(scenarioPrompt) {
-  return `You are the English conversation partner inside RODEO, a personal training app for Gus: a Venezuelan guy living in Medellín, Colombia. Level B2+ working toward C1 for work (crypto/tech startup) and daily life.
+// ── Semilla de situación ──────────────────────────────────────────────────
+// Cada sesión compone un estado distinto para el personaje. Sin esto el modelo
+// recibe input idéntico cada vez y devuelve siempre los mismos cinco compases:
+// saludo → "¿primera vez por aquí?" → gancho → alternativa → pregunta.
+const SEED_MOOD = [
+  'in a great mood, expansive and talkative',
+  'a bit distracted — your mind keeps drifting elsewhere',
+  'tired after a long day, but glad for the company',
+  'mildly irritated about something that happened earlier',
+  'buzzing with news you are dying to tell someone',
+  'skeptical and hard to impress today',
+  'nostalgic, in the mood to reminisce',
+  'pressed for time and a little abrupt',
+  'relaxed and in no rush at all',
+];
+
+const SEED_BEAT = [
+  'you just got unexpected good news',
+  'something went badly wrong for you today',
+  'you got back from a trip a couple of days ago',
+  'you are stuck in an annoying bureaucratic mess',
+  'you just finished something you are genuinely proud of',
+  'a plan you were counting on just fell apart',
+  'you have a decision to make and keep flip-flopping',
+  'you had an argument with someone close this week',
+  'you recently picked up a new obsession or hobby',
+];
+
+const SEED_AGENDA = [
+  'you want a second opinion on something',
+  'you mostly want to vent a little',
+  'you are quietly sizing him up, deciding if you trust him',
+  'you want to talk him into something',
+  'you are killing time and genuinely enjoy the company',
+  'you are working up to asking him for a favour',
+  'you are curious about his life and where he came from',
+  'you are testing whether he actually knows his stuff',
+];
+
+const SEED_TWIST = [
+  'at some point, disagree with something he says',
+  'at some point, change the subject abruptly',
+  'at some point, mildly misunderstand something he said',
+  'at some point, voice a strong opinion he may not share',
+  'at some point, get briefly distracted by something around you',
+  'at some point, tell him a short story from your own life',
+  'no particular twist — just be present and real',
+];
+
+function pickOne(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function buildSituation() {
+  return {
+    mood:   pickOne(SEED_MOOD),
+    beat:   pickOne(SEED_BEAT),
+    agenda: pickOne(SEED_AGENDA),
+    twist:  pickOne(SEED_TWIST),
+  };
+}
+
+// Resumen del DNA para que el coach personalice y no repita temas ya trabajados.
+function dnaBrief() {
+  const errs = state.dna.filter((d) => d.type === 'error' && d.fix).slice(0, 6).map((d) => d.fix);
+  const slang = state.dna.filter((d) => d.type === 'slang' && d.term).slice(0, 6).map((d) => d.term);
+  const parts = [];
+  if (errs.length)  parts.push(`He has recently struggled with: ${errs.join(' · ')}. Create natural openings for him to get these right, but NEVER mention this list.`);
+  if (slang.length) parts.push(`He has recently learned: ${slang.join(' · ')}. Use one or two in passing if they fit naturally.`);
+  return parts.length ? `\nWHAT YOU KNOW ABOUT HIM (never say this out loud):\n- ${parts.join('\n- ')}` : '';
+}
+
+function talkSystemPrompt(scenarioPrompt, sit, avoidOpeners) {
+  const avoid = avoidOpeners && avoidOpeners.length
+    ? `\nDO NOT open anything like these — you have already used them:\n${avoidOpeners.map((o) => `- "${o}"`).join('\n')}`
+    : '';
+
+  return `You are Gus's conversation partner inside RODEO, a personal English trainer. Gus is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life.
 
 SCENARIO: Role-play ${scenarioPrompt}
 
-RULES:
-- Stay in character. Contemporary, natural English. Keep replies to 2-4 sentences and always give him something to respond to.
-- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).
-- You MUST respond with STRICT JSON only, no text outside it, using exactly this shape:
-{"reply":"your in-character conversational reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}]}
-- "corrections": only REAL errors or clearly unnatural phrasing from HIS LAST message. Maximum 3, the most valuable ones. If his message was clean, return an empty array. Small typos don't count.
-- Never correct him inside "reply" — the conversation must flow naturally there.`;
+YOUR STATE RIGHT NOW — this is what makes you a person instead of a chatbot. Let it colour everything:
+- Mood: ${sit.mood}
+- What just happened to you: ${sit.beat}
+- What you want out of this conversation: ${sit.agenda}
+- Somewhere in this conversation: ${sit.twist}
+
+HOW TO TALK:
+- Stay in character. Contemporary, natural English. 2-4 sentences.
+- CRITICAL: do NOT end every turn with a question. Vary it — react, tell a piece of your own story, disagree, make a remark and let it sit. Ask a real question maybe one turn in three. You are having a conversation, not conducting an interview.
+- Be specific. Names, places, numbers, small concrete details. Vague friendliness is exactly what makes you sound like a bot.
+- Let the conversation drift the way real ones do. Do not keep steering back to the same two topics.
+- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).${avoid}${dnaBrief()}
+
+OUTPUT — STRICT JSON only, nothing outside it, exactly this shape:
+{"reply":"your in-character reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}]}
+- "corrections": only REAL errors or clearly unnatural phrasing from HIS LAST message. Maximum 3, the most valuable. If his message was clean, return []. Typos don't count.
+- Never correct him inside "reply" — that must flow as pure conversation.`;
 }
 
 function startSession(key) {
   const sc = SCENARIOS[key];
+  const sit = buildSituation();
+  const avoidOpeners = store.get('rodeo_openers', []);
   state.session = {
     scenario: key,
     title: sc.title,
-    messages: [{ role: 'system', content: talkSystemPrompt(sc.prompt) }],
+    situation: sit,
+    messages: [{ role: 'system', content: talkSystemPrompt(sc.prompt, sit, avoidOpeners) }],
   };
   $('#talk-empty').classList.add('hidden');
   $('#talk-session').classList.remove('hidden');
@@ -1319,7 +1414,11 @@ async function sendTurn(userText) {
     state.session.messages.push({ role: 'user', content: userText });
     addBubble(esc(userText), 'bubble-user');
   } else {
-    state.session.messages.push({ role: 'user', content: '(Open the conversation: greet me in character and kick things off.)' });
+    // Antes esto era una línea fija. Combinada con un system prompt fijo, el
+    // modelo recibía input idéntico en cada sesión y abría siempre igual.
+    // Ahora la apertura nace del estado del personaje, no de un saludo genérico.
+    state.session.isOpening = true;
+    state.session.messages.push({ role: 'user', content: `(Start the conversation. Open from where your head actually is right now — your mood and what just happened to you — not with a generic greeting. Do NOT open by asking if I'm new here or what brings me here. Drop me straight into the middle of your situation, the way a real person would.)` });
   }
 
   const typing = addTyping();
@@ -1341,6 +1440,15 @@ async function sendTurn(userText) {
 
     typing.remove();
     addBubble(esc(reply), 'bubble-coach');
+
+    // Memoria anti-repetición: guardamos las últimas 8 aperturas y se las
+    // pasamos al prompt como "no abras así" en las siguientes sesiones.
+    if (state.session.isOpening) {
+      state.session.isOpening = false;
+      const prev = store.get('rodeo_openers', []);
+      prev.push(String(reply).slice(0, 140));
+      store.set('rodeo_openers', prev.slice(-8));
+    }
 
     corrections.forEach((c) => {
       if (!c || !c.fix) return;
@@ -1557,6 +1665,24 @@ $('#drop-btn').addEventListener('click', async () => {
 
   const feed = $('#slang-feed');
   const skeletons = [];
+
+  // Contador visible: el modelo puede tardar minutos y tres cajas grises mudas
+  // se leen como "se colgó". Se mete en `skeletons` para que los mismos
+  // .remove() de éxito y de error lo limpien sin duplicar lógica.
+  const status = document.createElement('div');
+  status.style.cssText = 'text-align:center;font-family:\'Space Mono\',monospace;font-size:0.75rem;color:var(--text-muted);padding:10px 0;';
+  status.textContent = 'generando… 0s';
+  feed.appendChild(status);
+  skeletons.push(status);
+
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    status.textContent = s < 45
+      ? `generando… ${s}s`
+      : `generando… ${s}s · el modelo está lento hoy, sigue trabajando`;
+  }, 1000);
+
   for (let i = 0; i < 3; i++) {
     const sk = document.createElement('div');
     sk.className = 'skeleton';
@@ -1573,9 +1699,11 @@ $('#drop-btn').addEventListener('click', async () => {
     const avoid = state.seenSlang.slice(-60).join(', ') || 'none';
     const { parsed: cards } = await callJSON('creative', [
       { role: 'system', content: 'You create fresh English-learning content for a B2+ Venezuelan living in Medellín aiming for C1. Never textbook material. Respond with STRICT JSON only.' },
-      { role: 'user', content: `Generate exactly 5 REAL expressions of: ${category}.
+      { role: 'user', content: `Generate exactly 3 REAL expressions of: ${category}.
 Already seen (do NOT repeat any of these): ${avoid}.
-Return a STRICT JSON array of 5 objects. Keys per object:
+Do NOT think out loud, do not explain your reasoning, do not write any preamble.
+Emit the JSON array immediately as your very first character. Keep every field to one short sentence.
+Return a STRICT JSON array of 3 objects. Keys per object:
 - "term": the English expression itself
 - "meaning_es": significado directo en español
 - "example_en": one natural example sentence in English
@@ -1585,7 +1713,7 @@ Return a STRICT JSON array of 5 objects. Keys per object:
 Here is ONE example of a well-formed item — NEVER reuse its content, generate fresh real expressions:
 {"term":"no cap","meaning_es":"sin mentiras, en serio","example_en":"That match was insane, no cap.","example_es":"Ese partido estuvo una locura, en serio.","wrong_use":"No la uses en emails de trabajo ni con gente mayor: es slang de internet.","vibe":"internet"}
 Mix difficulty. Genuinely current and useful, zero textbook material.` },
-    ], 3800);
+    ], 8000);   // techo alto: el razonamiento de Kimi truncaba el JSON a 3800
     skeletons.forEach((s) => s.remove());
     const PLACEHOLDERS = ['the expression', 'no cap', 'the english expression'];
     const valid = (Array.isArray(cards) ? cards : []).filter((c) =>
@@ -1630,8 +1758,9 @@ Mix difficulty. Genuinely current and useful, zero textbook material.` },
     feed.lastElementChild && feed.lastElementChild.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'nearest' });
   } catch (err) {
     skeletons.forEach((s) => s.remove());
-    toast('Error: ' + err.message);
+    toast('Error: ' + err.message, 6000);
   } finally {
+    clearInterval(tick);
     state.busy = false;
     btn.disabled = false;
   }
