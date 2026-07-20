@@ -30,6 +30,9 @@ Todo alimenta un solo **DNA** compartido.
 
 ## Correr en local (ej. en el desktop tras clonar)
 
+> 👉 **¿Configurando una máquina nueva?** Sigue **[SETUP.md](SETUP.md)** — tiene el
+> paso a paso completo (GitHub + Vercel + cómo bajar la API key sin copiarla a mano).
+
 ```bash
 # 1. Clonar
 git clone https://github.com/gustavoski23/rodeo.git
