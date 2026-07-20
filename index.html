@@ -1808,25 +1808,177 @@ if ('speechSynthesis' in window) {
   speechSynthesis.onvoiceschanged = pickVoice;
 }
 
-function speak(text) {
+/* ── Voz: Kokoro-82M en el navegador ──────────────────────────────────────
+   speechSynthesis en Windows 10 solo expone voces SAPI (David/Zira/Mark), que
+   suenan robóticas; las "Natural" son exclusivas de Windows 11 y Brave suele
+   quitar las voces de red de Google. Kokoro es un modelo de pesos abiertos que
+   corre local: gratis, sin límite, sin API key y sin backend. Cuesta ~90 MB de
+   descarga la primera vez (luego queda en la caché del navegador).
+   speechSynthesis se conserva como fallback: si el modelo no carga (Shields de
+   Brave, sin memoria, sin red) la app habla igual, más fea pero habla.        */
+
+const KOKORO_MODELO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
+const KOKORO_VOZ = 'am_michael';   // masculina en-US; af_heart es la femenina mejor valorada
+
+let kokoroPromise = null;
+let kokoroRoto = false;
+let audioActual = null;
+let speakToken = 0;                // invalida generación/reproducción en curso
+
+function cargarKokoro() {
+  if (kokoroPromise) return kokoroPromise;
+
+  // Sin WebGPU no vale la pena: medido en WASM, generar 4s de audio tarda ~22s.
+  // Eso es peor que la voz robótica del sistema, que al menos es instantánea.
+  if (!navigator.gpu) {
+    kokoroRoto = true;
+    return Promise.reject(new Error('sin webgpu'));
+  }
+
+  toast('Cargando voz natural (~165 MB, solo la primera vez)…', 6000);
+
+  kokoroPromise = (async () => {
+    const { KokoroTTS } = await import('https://esm.sh/kokoro-js@1.2.0');
+    // El dtype importa MUCHO más que el tamaño del archivo. Medido en esta
+    // máquina, generando 4s de audio:
+    //   fp16/webgpu  2.4s   fp32/webgpu  2.7s   q8/wasm  22s
+    // q8 parece la opción ligera, pero int8 no está soportado en shaders WebGPU
+    // y cae a CPU. fp16 pesa 163 MB (la mitad que fp32) y va igual de rápido.
+    // fp32 queda de reserva por si la GPU no expone la extensión shader-f16.
+    let ultimoError;
+    for (const opts of [{ dtype: 'fp16', device: 'webgpu' }, { dtype: 'fp32', device: 'webgpu' }]) {
+      try { return await KokoroTTS.from_pretrained(KOKORO_MODELO, opts); }
+      catch (e) { ultimoError = e; }
+    }
+    throw ultimoError;
+  })();
+
+  kokoroPromise.then(
+    () => toast('Voz natural lista', 1800),
+    () => { kokoroRoto = true; toast('No pude cargar la voz natural — uso la del sistema', 4000); }
+  );
+  return kokoroPromise;
+}
+
+// La precarga y el toggle llaman a esto: si no hay WebGPU no molestamos al
+// usuario con un toast de error, simplemente se queda con la voz del sistema.
+function precargarVozSiSePuede() {
+  if (!navigator.gpu) return;
+  cargarKokoro().catch(() => {});
+}
+
+function pararAudio() {
+  if (audioActual) { try { audioActual.pause(); } catch {} audioActual = null; }
+}
+
+function reproducir(audio, token) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(audio.toBlob());
+    const el = new Audio(url);
+    audioActual = el;
+    const fin = () => { URL.revokeObjectURL(url); if (audioActual === el) audioActual = null; resolve(); };
+    el.onended = fin;
+    el.onerror = fin;
+    if (token !== speakToken) return fin();
+    el.play().catch(fin);
+  });
+}
+
+// Trocea el texto para que el audio empiece pronto.
+// Medido: la generación va a ~0.7x de tiempo real, pero escala con la longitud
+// (16 chars → 1.5s · 136 chars → 6.9s). Como cada trozo se genera mientras suena
+// el anterior, y generar es más rápido que reproducir, la cadena nunca se queda
+// corta: SOLO el primer trozo determina cuánto esperas. Por eso el primero se
+// parte agresivamente en la primera coma o guion, y el resto se deja por
+// oraciones completas para que la entonación no salga picada.
+function trocearParaVoz(text) {
+  const oraciones = (String(text).match(/[^.!?…]+[.!?…]*/g) || [String(text)])
+    .map((s) => s.trim()).filter(Boolean);
+  if (!oraciones.length) return [];
+
+  const VENTANA = 90, MIN = 20, TOPE_PALABRA = 65;
+  const primera = oraciones[0];
+  if (primera.length <= VENTANA) return oraciones;
+
+  // Buscar el ÚLTIMO corte natural dentro de la ventana, no el primero: en
+  // "Dude, I've been going back and forth…" la primera coma está en el carácter
+  // 4 y partir ahí no ahorra nada.
+  let corte = -1;
+  const re = /[,;:—–]\s|\s-\s/g;
+  let m;
+  while ((m = re.exec(primera)) !== null) {
+    if (m.index >= MIN && m.index <= VENTANA) corte = m.index + m[0].length - 1;
+    else if (m.index > VENTANA) break;
+  }
+  // Sin puntuación aprovechable, cortar en el último espacio antes del tope.
+  if (corte < MIN) corte = primera.lastIndexOf(' ', TOPE_PALABRA);
+  if (corte < MIN) return oraciones;
+
+  return [primera.slice(0, corte + 1).trim(), primera.slice(corte + 1).trim(), ...oraciones.slice(1)]
+    .filter(Boolean);
+}
+
+// Fallback: el motor del sistema, tal como estaba antes.
+function speakSistema(text) {
   if (!('speechSynthesis' in window) || !text) return;
-  stopSpeaking();
+  speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   if (voiceEN) u.voice = voiceEN;
   u.lang = 'en-US';
   u.rate = 1.0;
   speechSynthesis.speak(u);
 }
-function stopSpeaking() { if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+
+async function speak(text) {
+  if (!text) return;
+  stopSpeaking();                  // corta lo anterior e invalida su token
+  const token = speakToken;
+
+  if (kokoroRoto) return speakSistema(text);
+
+  let tts;
+  try { tts = await cargarKokoro(); }
+  catch { return speakSistema(text); }
+  if (token !== speakToken) return;             // llegó otra respuesta mientras cargaba
+
+  const frases = trocearParaVoz(text);
+
+  try {
+    let pendiente = tts.generate(frases[0], { voice: KOKORO_VOZ });
+    for (let i = 0; i < frases.length; i++) {
+      const audio = await pendiente;
+      if (token !== speakToken) return;
+      pendiente = i + 1 < frases.length
+        ? tts.generate(frases[i + 1], { voice: KOKORO_VOZ })
+        : null;
+      await reproducir(audio, token);
+      if (token !== speakToken) return;
+    }
+  } catch {
+    if (token === speakToken) speakSistema(text);
+  }
+}
+
+function stopSpeaking() {
+  speakToken++;                    // cualquier generación en vuelo queda huérfana
+  pararAudio();
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+}
 
 function syncTTSButton() { $('#tts-toggle').classList.toggle('on', state.ttsOn); }
 $('#tts-toggle').addEventListener('click', () => {
   state.ttsOn = !state.ttsOn;
   store.set('rodeo_tts', state.ttsOn);
   if (!state.ttsOn) stopSpeaking();
+  else precargarVozSiSePuede();          // empieza a bajar el modelo ya
   syncTTSButton();
   toast(state.ttsOn ? 'Voz del coach: ON' : 'Voz del coach: OFF', 1500);
 });
+
+// Precarga: los ~90 MB bajan mientras el usuario elige escenario, no cuando ya
+// está esperando oír algo. Solo si la voz está activada, para no gastar datos
+// de quien la tiene apagada. Se retrasa para no competir con el render inicial.
+if (state.ttsOn) setTimeout(precargarVozSiSePuede, 2500);
 
 /* ═══════════════════ SLANG ═══════════════════ */
 
