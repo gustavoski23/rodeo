@@ -1534,7 +1534,9 @@ async function sendTurn(userText) {
     // modelo recibía input idéntico en cada sesión y abría siempre igual.
     // Ahora la apertura nace del estado del personaje, no de un saludo genérico.
     state.session.isOpening = true;
-    state.session.messages.push({ role: 'user', content: `(Start the conversation. Open from where your head actually is right now — your mood and what just happened to you — not with a generic greeting. Do NOT open by asking if I'm new here or what brings me here. Drop me straight into the middle of your situation, the way a real person would.)` });
+    state.session.messages.push({ role: 'user', content: `(Start the conversation. Open from where your head actually is right now — your mood and what just happened to you — not with a generic greeting. Do NOT open by asking if I'm new here or what brings me here.
+
+LENGTH — hard limit, this matters more than anything else here: AT MOST TWO short sentences, and under 150 characters total. Never three sentences. ONE vivid detail, not three. Do not explain or wrap up the story — drop me in mid-thought and stop. Leave me room to answer.)` });
   }
 
   const typing = addTyping();
