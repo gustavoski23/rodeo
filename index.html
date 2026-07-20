@@ -838,7 +838,14 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     <!-- ── Sesión activa ── -->
     <div id="talk-session" class="hidden flex-col" style="flex:1; min-height:0;">
       <div class="rd-session-bar flex items-center justify-between pb-3 shrink-0">
-        <span id="session-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
+        <div class="flex items-center gap-2">
+          <!-- Volver: sale al selector SIN disparar el debrief (que es una llamada
+               cara al modelo). "Terminar" sigue siendo el cierre con analisis. -->
+          <button id="back-btn" class="icon-btn" aria-label="Volver a los escenarios" style="width:36px;height:36px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+          <span id="session-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
+        </div>
         <div class="flex gap-2">
           <button id="tts-toggle" class="icon-btn" aria-label="Activar o desactivar voz del coach" style="width:40px;height:40px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
@@ -1557,6 +1564,7 @@ async function sendTurn(userText) {
       // completo. Solo pintamos cuando ya hay texto de "reply" que mostrar, así
       // los puntitos siguen mientras el modelo razona.
       ({ content, finish } = await callStream('chat', state.session.messages, TALK_MAX_TOKENS, (acc) => {
+        if (!state.session) return;          // volvio atras: no pintar nada
         const partial = extractPartialReply(acc);
         if (!partial) return;
         if (!liveBubble) {
@@ -1574,9 +1582,13 @@ async function sendTurn(userText) {
       ({ content, finish } = await callAPI('chat', state.session.messages, TALK_MAX_TOKENS));
     }
 
-    // Red de seguridad: si Kimi gasta TODO el presupuesto razonando, el stream
-    // llega vacio con finish 'length'. Un solo reintento con techo mayor, en vez
-    // de dejarle el chat en blanco al usuario.
+    // Si el usuario volvio a los escenarios mientras el turno estaba en vuelo,
+    // la respuesta ya no le sirve a nadie: se descarta en silencio.
+    if (!state.session) return;
+
+    // Red de seguridad: si el modelo gasta TODO el presupuesto razonando, el
+    // stream llega vacio con finish 'length'. Un solo reintento con techo mayor,
+    // en vez de dejarle el chat en blanco al usuario.
     if ((!content || !content.trim()) && finish === 'length') {
       if (liveBubble) { liveBubble.remove(); liveBubble = null; }
       ({ content, finish } = await callAPI('chat', state.session.messages, TALK_MAX_TOKENS_RETRY));
@@ -1626,8 +1638,11 @@ async function sendTurn(userText) {
   } catch (err) {
     typing.remove();
     if (liveBubble) liveBubble.remove();   // no dejar media respuesta en pantalla
-    toast('Error: ' + err.message, 5000);
-    state.session.messages.pop(); // no dejar el turno colgado
+    // Si volvio atras, la sesion ya no existe: ni toast ni pop (reventaria).
+    if (state.session) {
+      toast('Error: ' + err.message, 5000);
+      state.session.messages.pop(); // no dejar el turno colgado
+    }
   } finally {
     clearInterval(typingTick);
     state.busy = false;
@@ -1707,10 +1722,21 @@ Max 3 top_errors (the most costly ones) and max 3 upgrades. TRANSCRIPT:\n${trans
   }
 });
 
+// Volver: a diferencia de "Terminar", no dispara el debrief. Funciona tambien
+// con un turno en vuelo — si no, quedarias atrapado los segundos que tarda el
+// stream. El turno pendiente se descarta solo: sendTurn comprueba que la sesion
+// siga viva antes de pintar nada.
+$('#back-btn').addEventListener('click', () => {
+  state.busy = false;
+  $('#send-btn').disabled = false;
+  closeSession();
+});
+
 function closeSession() {
   state.session = null;
   stopSpeaking();
   stopMic();
+  $('#chat-scroll').innerHTML = '';   // que la proxima sesion no herede burbujas
   $('#talk-session').classList.add('hidden');
   $('#talk-session').classList.remove('flex');
   $('#talk-empty').classList.remove('hidden');
