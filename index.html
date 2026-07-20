@@ -1207,6 +1207,102 @@ async function callAPI(mode, messages, maxTokens = 3200) {
   return { content: data.content, finish: data.finish_reason };
 }
 
+// Igual que callAPI pero consumiendo SSE. `onDelta` recibe el contenido
+// ACUMULADO en cada chunk, no el fragmento suelto, para que quien pinte no
+// tenga que llevar su propio acumulador.
+async function callStream(mode, messages, maxTokens, onDelta) {
+  if (location.protocol === 'file:') {
+    throw new Error('Abriste el archivo directo. Abre la app desde el servidor: producción o http://localhost:4870');
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  const pass = store.get('rodeo_pass', null);
+  if (pass) headers['x-rodeo-pass'] = pass;
+
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ mode, messages, max_tokens: maxTokens, stream: true }),
+  });
+
+  if (res.status === 401) {
+    const pin = prompt('PIN de acceso a RODEO:');
+    if (pin) { store.set('rodeo_pass', pin); return callStream(mode, messages, maxTokens, onDelta); }
+    throw new Error('Sin PIN no hay rodeo.');
+  }
+  if (!res.ok) {
+    const d = await res.json().catch(() => ({}));
+    throw new Error(d.detail || d.error || 'Error de conexión');
+  }
+  if (!res.body) throw new Error('sin_stream');
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', content = '', finish = null;
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split('\n');
+    buf = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.startsWith('data:')) continue;
+      const p = line.slice(5).trim();
+      if (!p || p === '[DONE]') continue;
+      let j;
+      try { j = JSON.parse(p); } catch { continue; }
+      if (j.delta) { content += j.delta; onDelta(content); }
+      if (j.done) {
+        finish = j.finish_reason;
+        if (j.error) throw new Error(j.detail || j.error);
+        if (j.cost) {
+          state.cost += parseFloat(j.cost) || 0;
+          store.set('rodeo_cost', state.cost);
+          updateCostTicker();
+        }
+      }
+    }
+  }
+  return { content, finish };
+}
+
+// El modelo emite {"reply":"…","corrections":[…]}. Mientras streamea, ese JSON
+// está incompleto y JSON.parse falla, así que extraemos a mano el string de
+// "reply" tal como va llegando — respetando escapes a medias entre chunks.
+function extractPartialReply(raw) {
+  const k = raw.indexOf('"reply"');
+  if (k === -1) return '';
+  const colon = raw.indexOf(':', k + 7);
+  if (colon === -1) return '';
+  const q = raw.indexOf('"', colon + 1);
+  if (q === -1) return '';
+
+  let out = '';
+  for (let i = q + 1; i < raw.length; i++) {
+    const c = raw[i];
+    if (c === '\\') {
+      const n = raw[i + 1];
+      if (n === undefined) break;              // escape partido: llega en el próximo chunk
+      if (n === 'n') out += '\n';
+      else if (n === 't') out += '\t';
+      else if (n === 'r') { /* se ignora */ }
+      else if (n === 'u') {
+        const hex = raw.slice(i + 2, i + 6);
+        if (hex.length < 4) break;             // \uXXXX partido
+        out += String.fromCharCode(parseInt(hex, 16));
+        i += 5;
+        continue;
+      } else out += n;                          // \" \\ \/ …
+      i++;
+      continue;
+    }
+    if (c === '"') break;                       // cierre del string: reply completo
+    out += c;
+  }
+  return out;
+}
+
 // Kimi razona antes de responder: si se queda sin tokens a mitad de pensamiento,
 // el razonamiento se cuela en content y el JSON llega roto. Este helper detecta
 // el truncamiento, reintenta UNA vez con presupuesto máximo y nunca muestra
@@ -1422,8 +1518,50 @@ async function sendTurn(userText) {
   }
 
   const typing = addTyping();
+
+  // Kimi razona varios segundos antes de emitir el primer carácter de la
+  // respuesta, y ese pensamiento no se muestra (sería ruido). Sin un contador,
+  // esos segundos se leen como "se colgó". Aparece solo si tarda de verdad.
+  const tStart = Date.now();
+  const typingTick = setInterval(() => {
+    const s = Math.round((Date.now() - tStart) / 1000);
+    if (s < 3) return;
+    let hint = typing.querySelector('.rd-wait');
+    if (!hint) {
+      hint = document.createElement('span');
+      hint.className = 'rd-wait';
+      hint.style.cssText = 'margin-left:10px;font-family:\'Space Mono\',monospace;font-size:0.7rem;opacity:.55;';
+      typing.appendChild(hint);
+    }
+    hint.textContent = s < 25 ? `${s}s` : `${s}s · pensando`;
+  }, 1000);
+
+  let liveBubble = null;   // burbuja que crece con el stream
   try {
-    const { parsed, content, finish } = await callJSON('chat', state.session.messages, 3200);
+    let content, finish;
+    try {
+      // Streaming: la respuesta empieza a verse en ~3s en vez de esperar el turno
+      // completo. Solo pintamos cuando ya hay texto de "reply" que mostrar, así
+      // los puntitos siguen mientras el modelo razona.
+      ({ content, finish } = await callStream('chat', state.session.messages, 3200, (acc) => {
+        const partial = extractPartialReply(acc);
+        if (!partial) return;
+        if (!liveBubble) {
+          typing.remove();
+          liveBubble = addBubble('', 'bubble-coach');
+        }
+        liveBubble.textContent = partial;
+        const c = $('#chat-scroll');
+        c.scrollTop = c.scrollHeight;
+      }));
+    } catch (streamErr) {
+      // Si el stream no está disponible (proxy que bufferea, red rara), caemos
+      // a la ruta clásica sin romperle la sesión al usuario.
+      if (liveBubble) { liveBubble.remove(); liveBubble = null; }
+      ({ content, finish } = await callAPI('chat', state.session.messages, 3200));
+    }
+
+    const parsed = parseJSON(content);
     let reply, corrections;
     if (parsed && parsed.reply) {
       reply = parsed.reply;
@@ -1439,7 +1577,11 @@ async function sendTurn(userText) {
     }
 
     typing.remove();
-    addBubble(esc(reply), 'bubble-coach');
+    if (liveBubble) {
+      liveBubble.textContent = reply;   // texto definitivo ya parseado
+    } else {
+      addBubble(esc(reply), 'bubble-coach');
+    }
 
     // Memoria anti-repetición: guardamos las últimas 8 aperturas y se las
     // pasamos al prompt como "no abras así" en las siguientes sesiones.
@@ -1462,9 +1604,11 @@ async function sendTurn(userText) {
     if (state.ttsOn) speak(reply);
   } catch (err) {
     typing.remove();
-    toast('Error: ' + err.message);
+    if (liveBubble) liveBubble.remove();   // no dejar media respuesta en pantalla
+    toast('Error: ' + err.message, 5000);
     state.session.messages.pop(); // no dejar el turno colgado
   } finally {
+    clearInterval(typingTick);
     state.busy = false;
     $('#send-btn').disabled = false;
   }
@@ -1713,7 +1857,8 @@ Return a STRICT JSON array of 3 objects. Keys per object:
 Here is ONE example of a well-formed item — NEVER reuse its content, generate fresh real expressions:
 {"term":"no cap","meaning_es":"sin mentiras, en serio","example_en":"That match was insane, no cap.","example_es":"Ese partido estuvo una locura, en serio.","wrong_use":"No la uses en emails de trabajo ni con gente mayor: es slang de internet.","vibe":"internet"}
 Mix difficulty. Genuinely current and useful, zero textbook material.` },
-    ], 8000);   // techo alto: el razonamiento de Kimi truncaba el JSON a 3800
+    ], 5000);   // el caso bueno usa ~2200 tokens; 5000 deja margen y acota el
+                // peor caso (un finish 'length' a 8000 costaba ~4x mas).
     skeletons.forEach((s) => s.remove());
     const PLACEHOLDERS = ['the expression', 'no cap', 'the english expression'];
     const valid = (Array.isArray(cards) ? cards : []).filter((c) =>

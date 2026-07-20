@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'bad_json' }));
   }
 
-  const { mode = 'chat', messages, max_tokens } = body;
+  const { mode = 'chat', messages, max_tokens, stream: wantsStream = false } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     res.statusCode = 400;
     return res.end(JSON.stringify({ error: 'missing_messages' }));
@@ -72,6 +72,7 @@ export default async function handler(req, res) {
         model,
         max_tokens: safeMaxTokens,
         temperature: TEMPS[mode] ?? TEMPS.chat,
+        stream: wantsStream === true,
         messages: safeMessages,
       }),
     });
@@ -80,6 +81,59 @@ export default async function handler(req, res) {
       const detail = await upstream.text();
       res.statusCode = 502;
       return res.end(JSON.stringify({ error: 'upstream_error', status: upstream.status, detail: detail.slice(0, 500) }));
+    }
+
+    // ── Modo streaming (SSE) ───────────────────────────────────────────────
+    // Kimi razona antes de escribir: el razonamiento llega en reasoning_content
+    // y NO se reenvía al cliente. Solo van los deltas de content, para que la
+    // burbuja crezca con la respuesta de verdad y no con el pensamiento crudo.
+    if (wantsStream === true && upstream.body) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no',   // evita que un proxy bufferee y mate el stream
+      });
+
+      // Comentario SSE inmediato: fuerza el envío de cabeceras y confirma al
+      // cliente que la conexión está viva mientras el modelo aún razona.
+      res.write(': open\n\n');
+      if (typeof res.flush === 'function') res.flush();
+
+      const send = (obj) => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+      const reader = upstream.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let finishReason = null, usage = null, cost = null;
+
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+            try {
+              const j = JSON.parse(payload);
+              const choice = j.choices && j.choices[0];
+              const delta = (choice && choice.delta) || {};
+              if (delta.content) send({ delta: delta.content });
+              if (choice && choice.finish_reason) finishReason = choice.finish_reason;
+              if (j.usage) usage = j.usage;
+              if (j.cost) cost = j.cost;
+            } catch { /* linea partida entre chunks: se completa en la siguiente vuelta */ }
+          }
+        }
+        send({ done: true, finish_reason: finishReason, cost, usage, model: MODELS[mode] || model });
+      } catch (streamErr) {
+        send({ done: true, error: 'stream_broken', detail: String(streamErr && streamErr.message).slice(0, 200) });
+      }
+      res.write('data: [DONE]\n\n');
+      return res.end();
     }
 
     const data = await upstream.json();
