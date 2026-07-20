@@ -1930,18 +1930,15 @@ function cargarKokoro() {
 
   kokoroPromise = (async () => {
     const { KokoroTTS } = await import('https://esm.sh/kokoro-js@1.2.0');
-    // El dtype importa MUCHO más que el tamaño del archivo. Medido en esta
-    // máquina, generando 4s de audio:
-    //   fp16/webgpu  2.4s   fp32/webgpu  2.7s   q8/wasm  22s
-    // q8 parece la opción ligera, pero int8 no está soportado en shaders WebGPU
-    // y cae a CPU. fp16 pesa 163 MB (la mitad que fp32) y va igual de rápido.
-    // fp32 queda de reserva por si la GPU no expone la extensión shader-f16.
-    let ultimoError;
-    for (const opts of [{ dtype: 'fp16', device: 'webgpu' }, { dtype: 'fp32', device: 'webgpu' }]) {
-      try { return await KokoroTTS.from_pretrained(KOKORO_MODELO, { ...opts, progress_callback: onProgreso }); }
-      catch (e) { ultimoError = e; }
-    }
-    throw ultimoError;
+    // fp32 es OBLIGATORIO aquí. Medido comparando las muestras generadas en esta
+    // GPU (no solo el tiempo, que fue mi error antes):
+    //   fp32   picos ~0.33, sin NaN        → audio válido
+    //   fp16   NaN en todas las muestras   → silencio total
+    //   q4f16  NaN                          → silencio total
+    //   q8     picos ~74000 (fuera de rango) → ruido saturado
+    // fp16 no LANZA error, solo devuelve basura, así que un fallback por catch
+    // nunca lo detectaba. Pesa el doble (326 MB) pero es el único que suena.
+    return await KokoroTTS.from_pretrained(KOKORO_MODELO, { dtype: 'fp32', device: 'webgpu', progress_callback: onProgreso });
   })();
 
   kokoroPromise.then(
@@ -1976,6 +1973,17 @@ document.addEventListener('click', () => {
 
 function pararAudio() {
   if (audioActual) { try { audioActual.stop(); } catch {} audioActual = null; }
+}
+
+// Comprueba las primeras muestras: si son NaN (dtype incompatible con la GPU),
+// el audio suena a silencio absoluto. Mejor saberlo y caer a la voz del sistema
+// que reproducir nada mudo. Sondea el arranque, no las 60k muestras.
+function audioEsValido(audio) {
+  const a = audio && audio.audio;
+  if (!a || !a.length) return false;
+  const paso = Math.max(1, Math.floor(a.length / 64));
+  for (let i = 0; i < a.length; i += paso) if (Number.isNaN(a[i])) return false;
+  return true;
 }
 
 async function reproducir(audio, token) {
@@ -2101,7 +2109,7 @@ async function speak(text) {
 
   dbgReset();
   dbg('1. speak() — gpu=' + !!navigator.gpu + ' roto=' + kokoroRoto);
-  await beepPrueba();
+  if (!window.__beepHecho) { window.__beepHecho = true; await beepPrueba(); }
 
   if (!navigator.gpu) return caerASistema(text, 'este navegador no expone WebGPU');
   if (kokoroRoto)      return caerASistema(text, 'el modelo no cargó antes');
@@ -2120,6 +2128,7 @@ async function speak(text) {
     for (let i = 0; i < frases.length; i++) {
       const audio = await pendiente;
       if (token !== speakToken || !audio) { dbg('x. gen ' + i + ' obsoleta/saltada'); return; }
+      if (!audioEsValido(audio)) { dbg('4.' + i + ' MUESTRAS NaN — dtype malo'); throw new Error('audio NaN (dtype incompatible con la GPU)'); }
       dbg('4.' + i + ' generado ' + Math.round((performance.now() - t0)) + 'ms · ' + audio.audio.length + ' muestras @ ' + audio.sampling_rate);
       pendiente = i + 1 < frases.length
         ? generarSerial(tts, frases[i + 1], token)
