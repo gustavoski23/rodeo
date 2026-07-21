@@ -15,6 +15,8 @@ if (existsSync('.env.local')) {
 
 const { default: handler } = await import('./api/chat.js');
 const { default: ttsHandler } = await import('./api/tts.js');
+const { default: cronHandler } = await import('./api/cron-drop.js');
+const { default: dropTodayHandler } = await import('./api/drop-today.js');
 
 const PORT = 4870;
 const ROOT = process.cwd();
@@ -29,6 +31,7 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.json': 'application/json',
   '.woff2': 'font/woff2',
+  '.webmanifest': 'application/manifest+json',
 };
 
 createServer(async (req, res) => {
@@ -38,6 +41,12 @@ createServer(async (req, res) => {
   }
   if (url.pathname === '/api/tts') {
     return ttsHandler(req, res);
+  }
+  if (url.pathname === '/api/cron-drop') {
+    return cronHandler(req, res);
+  }
+  if (url.pathname === '/api/drop-today') {
+    return dropTodayHandler(req, res);
   }
   let file = url.pathname === '/' ? '/index.html' : url.pathname;
   try {

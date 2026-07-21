@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0e">
 <title>RODEO — tu inglés 24/7</title>
+<!-- PWA: app instalable + offline. El service worker se registra por JS al final. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RODEO">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -3194,6 +3200,12 @@ function renderPortadaDrop() {
   } else {
     badge.classList.add('hidden');
   }
+  // Prefetch: promover el de mañana si ya es hoy, y cocinar el de mañana en
+  // background. Un solo punto de enganche — cubre el toggle a DROP y el cierre
+  // de sesión, que también llaman renderPortadaDrop. El diferido no le roba
+  // CPU/red a la animación de entrada de la portada.
+  promoverPrefetchSiToca();
+  setTimeout(prefetchDropManana, 1200);
 }
 
 $$('.dp-tema').forEach((ch) => ch.addEventListener('click', () => {
@@ -3212,8 +3224,47 @@ $('#drop-go').addEventListener('click', () => generarDrop(false));
 // Misma convención de fecha que updateStreak (UTC): consistencia > precisión.
 function fechaDropHoy() { return new Date().toISOString().slice(0, 10); }
 
+/* ── Prefetch del drop de mañana ──────────────────────────────────────────
+   El motor real del "abrir instantáneo": el drop se personaliza con el DNA
+   LOCAL, así que no puede vivir en un cron de servidor. Se pre-genera en el
+   cliente, en background, y al llegar mañana se promueve a "hoy". */
+function fechaDropManana() {
+  return new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+}
+let prefetchEnVuelo = false;
+async function prefetchDropManana() {
+  if (dropBusy || prefetchEnVuelo) return;   // no competir con lo que Gus espera
+  const manana = fechaDropManana();
+  const ya = store.get('rodeo_drop_manana', null);
+  if (ya && ya.fecha === manana && ya.edicion) return;   // ya cocinado, no rehacer
+  prefetchEnVuelo = true;
+  try {
+    const semillas = elegirSemillasDrop(3);
+    const ed = await pedirEdicion('sorpréndeme', semillas.map((s) => s.term));
+    store.set('rodeo_drop_manana', { fecha: manana, edicion: ed, semillas });
+  } catch (e) {
+    console.warn('[drop] prefetch de mañana falló (se regenerará en vivo):', e && e.message || e);
+  } finally {
+    prefetchEnVuelo = false;
+  }
+}
+// Al abrir DROP: si no hay drop de hoy pero el prefetch ya es de hoy, promuévelo.
+function promoverPrefetchSiToca() {
+  const hoy = fechaDropHoy();
+  const cacheHoy = store.get('rodeo_drop_hoy', null);
+  if (cacheHoy && cacheHoy.fecha === hoy && cacheHoy.edicion) return false;
+  const man = store.get('rodeo_drop_manana', null);
+  if (man && man.fecha === hoy && man.edicion) {
+    store.set('rodeo_drop_hoy', { fecha: hoy, edicion: man.edicion, semillas: man.semillas || [] });
+    store.set('rodeo_drop_manana', null);
+    return true;
+  }
+  return false;
+}
+
 async function generarDrop(fuerza) {
   if (dropBusy) return;
+  promoverPrefetchSiToca();   // que el cache-hit de abajo vea lo ya cocinado
   // Cache del día: el generador tarda 15-25s y cuesta; si ya se cocinó hoy y
   // no piden tema nuevo ni sorpresa, se reabre al instante. La cache se
   // re-normaliza y el render va en try/catch: una edición envenenada (deforme
@@ -4686,6 +4737,22 @@ if (location.protocol === 'file:') {
   renderDNA();
   animateIn($('#view-talk').children, { y: 26, duration: 1 });
 }
+
+/* ── PWA: registro del Service Worker (mejora progresiva) ──────────────────
+   Solo si el navegador lo soporta; tras 'load'; idempotente; envuelto para que
+   un fallo del SW JAMÁS tumbe la app (funciona perfecto sin él). El SW usa
+   navegación network-first: online siempre trae el index fresco, el cache es
+   solo el paracaídas offline. */
+(function registrarSW() {
+  if (!('serviceWorker' in navigator)) return;
+  if (window.__rodeoSWInit) return;
+  window.__rodeoSWInit = true;
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {
+      // Servido por file:// o sin HTTPS: la app sigue igual, solo sin offline.
+    });
+  });
+})();
 </script>
 </body>
 </html>
