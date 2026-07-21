@@ -377,6 +377,38 @@ body {
   .ob-title, .ob-sub, .ob-chips .chip { animation: none; }
 }
 
+/* ── Dibujo libre (TALK): el coach abre con un rompehielos en la landing ────
+   Cliente puro: instantáneo, gratis, offline. El usuario lo sigue o lo ignora
+   (elige un escenario). Entrada por keyframe con fill-mode both. */
+.rd-libre {
+  border: 1px solid oklch(87% 0.21 128 / 0.24);
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.07), oklch(16% 0.015 265 / 0.4));
+  border-radius: 20px; padding: 16px 18px 15px;
+  animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.05s both;
+}
+.rd-libre-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent);
+}
+.rd-libre-tag .rd-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 4px oklch(87% 0.21 128 / 0.14);
+}
+.rd-libre-ice {
+  font-size: 1.06rem; line-height: 1.5; color: var(--text-primary);
+  font-weight: 500; margin: 11px 0 15px; min-height: 1.5em;
+}
+.rd-libre-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.rd-libre-go { min-height: 46px; padding: 12px 22px; }
+.rd-libre-shuffle {
+  background: none; border: none; color: var(--text-muted);
+  font-family: 'Space Mono', monospace; font-size: 0.74rem; letter-spacing: 0.04em;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 6px 4px;
+}
+.rd-libre-shuffle:hover, .rd-libre-shuffle:focus-visible { color: var(--text-secondary); }
+@media (prefers-reduced-motion: reduce) { .rd-libre { animation: none; } }
+
 /* ─────────────────────────────────────────────────────────────────────────
    4. TARJETAS STICKER — la unidad estrella (.slang-card). Pastel plano claro,
    muy redondeada, sombra difusa tintada, borde interior fino = recorte sticker.
@@ -669,6 +701,18 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   box-shadow: 0 12px 34px oklch(0% 0 0 / 0.55);
   pointer-events: none;
 }
+/* Cuando el tooltip está FIJADO sobre un chunk explicado del coach, deja de ser
+   sólo texto: aparece un botón para mandar la expresión al DNA de un toque. */
+.gloss-tip-es { margin-bottom: 9px; }
+.gloss-save {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; min-height: 34px;
+  background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128));
+  border: none; border-radius: 8px; padding: 7px 12px;
+  font-family: 'Familjen Grotesk', sans-serif; font-size: 0.76rem; font-weight: 700;
+  cursor: pointer;
+}
+.gloss-save:disabled { background: oklch(87% 0.21 128 / 0.16); color: var(--accent); cursor: default; }
 
 .toast {
   position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
@@ -1179,6 +1223,16 @@ body.rd-lectura .luminous-line { opacity: 0; }
         <p class="rd-hero-sub">Elige un escenario. Hablas, yo respondo y te corrijo sin cortarte el flow.</p>
         <!-- ILUSTRACIÓN: talk hero — personaje line-art lima con auriculares + bocadillo de diálogo, un solo color sobre shell -->
         <div class="rd-ill rd-ill--talk-hero" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><circle cx="42" cy="46" r="24"/><path d="M18 46 Q18 20 42 20 Q66 20 66 46"/><path d="M16 44 L16 54" stroke-width="9"/><path d="M68 44 L68 54" stroke-width="9"/><path d="M68 52 Q68 66 54 66"/><path d="M52 66 L52 66" stroke-width="8"/><path d="M70 22 L92 22 Q98 22 98 28 L98 40 Q98 46 92 46 L84 46 L80 54 L79 46 L72 46" stroke-width="5"/><path d="M78 34 L78 34" stroke-width="5"/><path d="M85 34 L85 34" stroke-width="5"/><path d="M92 34 L92 34" stroke-width="5"/></svg></div>
+      </div>
+
+      <!-- ── Dibujo libre: el coach abre con un rompehielos; síguelo o ignóralo ── -->
+      <div class="rd-libre" id="libre-card">
+        <span class="rd-libre-tag"><span class="rd-dot" aria-hidden="true"></span>Dibujo libre · el coach arranca</span>
+        <p class="rd-libre-ice" id="libre-ice">&nbsp;</p>
+        <div class="rd-libre-actions">
+          <button class="btn-accent rd-libre-go" id="libre-go">Sígueme el hilo &rarr;</button>
+          <button class="rd-libre-shuffle" id="libre-shuffle" type="button" aria-label="Otro rompehielos">otro tema</button>
+        </div>
       </div>
 
       <!-- Sección TRABAJO -->
@@ -1762,14 +1816,12 @@ function escAttr(s) {
 // (phrasal verbs, slang, idioms) en <span.gloss> con su explicación en español.
 // Se trabaja sobre posiciones del texto PLANO para no romper el HTML ni glosar
 // dos veces lo mismo; luego se escapa cada tramo.
-function glossHTML(reply, glosses) {
-  const text = String(reply ?? '');
-  if (!glosses || !glosses.length) return esc(text);
-
+// Coloca en `spans` (respetando `ocupado`) las apariciones de cada glosa del
+// array {term,es} por indexOf sobre el texto plano. Núcleo compartido por
+// glossHTML (DROP) y renderReply (TALK).
+function glossSpans(text, glosses, ocupado, spans) {
+  if (!glosses || !glosses.length) return;
   const lower = text.toLowerCase();
-  const ocupado = new Array(text.length).fill(false);
-  const spans = [];
-
   glosses.forEach((g) => {
     if (!g || !g.term || !g.es) return;
     const term = String(g.term).trim();
@@ -1786,18 +1838,94 @@ function glossHTML(reply, glosses) {
       from = idx + 1;   // esa aparición ya estaba glosada; probar la siguiente
     }
   });
+}
 
+// Pinta el texto plano insertando <span.gloss> en cada tramo de `spans`. Con
+// `savable` cada span lleva data-term (su inglés) para poder guardarse a DNA
+// desde el tooltip — sólo lo usan las respuestas del coach en TALK.
+function spansToHTML(text, spans, savable) {
   if (!spans.length) return esc(text);
   spans.sort((a, b) => a.start - b.start);
-
   let html = '', pos = 0;
   for (const s of spans) {
     html += esc(text.slice(pos, s.start));
-    html += `<span class="gloss" data-es="${escAttr(s.es)}" tabindex="0" role="button" aria-label="Ver significado">${esc(text.slice(s.start, s.end))}</span>`;
+    const chunk = text.slice(s.start, s.end);
+    const term = savable ? ` data-term="${escAttr(chunk)}"` : '';
+    html += `<span class="gloss" data-es="${escAttr(s.es)}"${term} tabindex="0" role="button" aria-label="Ver significado">${esc(chunk)}</span>`;
     pos = s.end;
   }
   html += esc(text.slice(pos));
   return html;
+}
+
+function glossHTML(reply, glosses) {
+  const text = String(reply ?? '');
+  if (!glosses || !glosses.length) return esc(text);
+  const ocupado = new Array(text.length).fill(false);
+  const spans = [];
+  glossSpans(text, glosses, ocupado, spans);
+  return spansToHTML(text, spans, false);
+}
+
+// ── Marcadores inline del coach: ⟦inglés||explicación en español⟧ ───────────
+// Nueva regex por llamada para no arrastrar lastIndex entre exec() y replace().
+function chunkRe() { return /⟦([\s\S]*?)\|\|([\s\S]*?)⟧/g; }
+
+// Devuelve el texto LIMPIO (sólo el inglés visible) y las glosas embebidas en
+// coords del limpio. Así jamás queda un ⟦⟧ a la vista al terminar el stream.
+function parseChunks(reply) {
+  const src = String(reply ?? '');
+  const re = chunkRe();
+  let clean = '', last = 0, m;
+  const marks = [];
+  while ((m = re.exec(src)) !== null) {
+    clean += src.slice(last, m.index);
+    const en = m[1].trim(), es = m[2].trim();
+    const start = clean.length;
+    clean += en;
+    if (en && es) marks.push({ start, end: clean.length, es });
+    last = re.lastIndex;
+  }
+  clean += src.slice(last);
+  return { clean, marks };
+}
+
+// Render final de una respuesta del coach: funde las glosas embebidas ⟦||⟧
+// (prioridad) con las del array `glosses`, sobre el texto ya limpio, reutilizando
+// el patrón .gloss/#gloss-tip de SLANG/DROP. Cada chunk queda guardable a DNA.
+function renderReply(reply, glosses) {
+  const { clean, marks } = parseChunks(reply);
+  const ocupado = new Array(clean.length).fill(false);
+  const spans = [];
+  for (const mk of marks) {
+    let libre = true;
+    for (let i = mk.start; i < mk.end; i++) if (ocupado[i]) { libre = false; break; }
+    if (!libre) continue;
+    for (let i = mk.start; i < mk.end; i++) ocupado[i] = true;
+    spans.push({ start: mk.start, end: mk.end, es: mk.es });
+  }
+  glossSpans(clean, glosses || [], ocupado, spans);
+  return spansToHTML(clean, spans, true);
+}
+
+// Mientras streamea, el JSON llega a medias con los marcadores crudos. Esto
+// muestra ya el inglés (sin ⟦ ⟧) aunque la explicación aún no haya llegado, para
+// que el usuario nunca vea un corchete raro mientras teclea el modelo.
+function stripChunksLive(s) {
+  let out = String(s ?? '').replace(chunkRe(), '$1');   // marcadores completos → inglés
+  const open = out.lastIndexOf('⟦');
+  if (open !== -1) {
+    const rest = out.slice(open + 1);
+    const sep = rest.indexOf('||');
+    out = out.slice(0, open) + (sep !== -1 ? rest.slice(0, sep) : rest);
+  }
+  return out;
+}
+
+// ¿Ya está esta expresión guardada como slang en el DNA? (para el botón del tip)
+function dnaTieneSlang(term) {
+  const k = String(term || '').trim().toLowerCase();
+  return Array.isArray(state.dna) && state.dna.some((d) => d.type === 'slang' && (d.term || '').trim().toLowerCase() === k);
 }
 
 // Tooltip flotante único (posicionado con JS para no recortarse dentro del
@@ -1820,21 +1948,47 @@ function posicionarTip(el) {
   glossTip.style.left = left + 'px';
   glossTip.style.top = top + 'px';
 }
-function abrirTip(el) { glossTip.textContent = el.getAttribute('data-es') || ''; posicionarTip(el); }
-function cerrarTip() { glossTip.style.display = 'none'; glossFijado = null; }
+function abrirTip(el, pinned) {
+  const es = el.getAttribute('data-es') || '';
+  const term = el.getAttribute('data-term');
+  if (pinned && term) {
+    // Fijado sobre un chunk del coach: tooltip interactivo con botón a DNA.
+    const ya = dnaTieneSlang(term);
+    glossTip.innerHTML = `<div class="gloss-tip-es">${esc(es)}</div>`
+      + `<button type="button" class="gloss-save" data-term="${escAttr(term)}" data-es="${escAttr(es)}"${ya ? ' disabled' : ''}>${ya ? '✓ en tu DNA' : '＋ guardar a DNA'}</button>`;
+    glossTip.style.pointerEvents = 'auto';
+  } else {
+    glossTip.textContent = es;
+    glossTip.style.pointerEvents = 'none';
+  }
+  posicionarTip(el);
+}
+function cerrarTip() { glossTip.style.display = 'none'; glossTip.style.pointerEvents = 'none'; glossFijado = null; }
 
 document.addEventListener('mouseover', (e) => {
   const g = e.target.closest && e.target.closest('.gloss');
-  if (g && !glossFijado) abrirTip(g);
+  if (g && !glossFijado) abrirTip(g, false);
 });
 document.addEventListener('mouseout', (e) => {
   const g = e.target.closest && e.target.closest('.gloss');
   if (g && !glossFijado) cerrarTip();
 });
 document.addEventListener('click', (e) => {
+  // Los clics DENTRO del tooltip (p.ej. "guardar a DNA") los maneja el tip; no
+  // deben cerrarlo ni contar como "clic fuera".
+  if (e.target.closest && e.target.closest('#gloss-tip')) return;
   const g = e.target.closest && e.target.closest('.gloss');
-  if (g) { if (glossFijado === g) cerrarTip(); else { glossFijado = g; abrirTip(g); } }
+  if (g) { if (glossFijado === g) cerrarTip(); else { glossFijado = g; abrirTip(g, true); } }
   else if (glossFijado) cerrarTip();
+});
+// Guardar el chunk explicado al DNA de un toque, sin cerrar el tooltip.
+glossTip.addEventListener('click', (e) => {
+  const btn = e.target.closest('.gloss-save');
+  if (!btn) return;
+  saveDNA({ type: 'slang', term: btn.dataset.term, meaning: btn.dataset.es || '', example: '' });
+  btn.textContent = '✓ en tu DNA';
+  btn.disabled = true;
+  toast(`"${btn.dataset.term}" · guardado en tu DNA`);
 });
 
 function animateIn(els, opts = {}) {
@@ -2032,6 +2186,7 @@ function switchView(v) {
   if (v === 'dna') renderDNA();
   if (v === 'story') renderStoryHome();
   if (v === 'ladder') renderLadder();
+  if (v === 'talk') refrescarRompehielos();   // rompehielos fresco al volver a TALK
   animateIn(section.children, { y: 18, duration: 0.7 });
 }
 $$('.tab-item').forEach((tab) => {
@@ -2200,6 +2355,12 @@ HOW TO TALK:
 - Let the conversation drift the way real ones do. Do not keep steering back to the same two topics.
 - Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).${avoid}${dnaBrief()}${interesesBriefTalk()}
 
+CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
+- Gus sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a gringo would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
+- To underline the tricky part, wrap it INSIDE "reply" with these EXACT markers: ⟦english chunk||explicación corta y cercana, en español⟧. The explanation is contextual and buddy-style, the way a bilingual friend riffs — NEVER a grammar book. GOOD: ⟦three times in a row||así dicen los gringos eso de "X veces seguidas" — sirve para intentos, días, victorias, lo que sea⟧. BAD: "estructura adverbial de frecuencia".
+- Use the SAME ⟦english||español⟧ markers when you fold a correction into your reply, or when you drop an idiom / phrasal verb he probably won't fully catch. AT MOST 1-2 marked chunks per reply, and ONLY when it truly helps — most casual turns have zero.
+- The markers are the ONLY place Spanish may appear inside "reply"; everything else stays natural English. NEVER leave a ⟦ or a ⟧ unmatched, and never mark the same phrase both inline with ⟦||⟧ and again in the glosses array.
+
 SPEED: do NOT deliberate or plan before answering. No preamble, no reasoning.
 Emit the JSON as your very first character — you are role-playing a person, not
 solving a problem. (Medido: sin esto Kimi gasta ~1400 tokens razonando y el turno
@@ -2208,8 +2369,8 @@ pasa de ~8s a 10-19s, con la misma calidad de respuesta.)
 OUTPUT — STRICT JSON only, nothing outside it, exactly this shape:
 {"reply":"your in-character reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}],"glosses":[{"term":"the exact phrase as it appears in your reply","es":"qué significa y por qué se dice así, natural"}]}
 - "corrections": only REAL errors or clearly unnatural phrasing from HIS LAST message. Maximum 3, the most valuable. If his message was clean, return []. Typos don't count.
-- "glosses": pick 2-4 phrases FROM YOUR OWN reply that a B2 learner likely won't fully get — phrasal verbs, slang, idioms, natural collocations (e.g. "wound up", "blowout", "shoot the breeze"). For each, "term" must be the EXACT substring as written in reply (same case, same words), and "es" explains in Spanish what it MEANS and why a native uses it there — conversational, like a friend explaining, NEVER grammar-speak (no "subjuntivo", no "phrasal verb", no tense names). One or two lines. If the reply has no such phrases, return [].
-- Never correct him inside "reply" — that must flow as pure conversation.`;
+- "glosses": pick 2-4 phrases FROM YOUR OWN reply that a B2 learner likely won't fully get — phrasal verbs, slang, idioms, natural collocations (e.g. "wound up", "blowout", "shoot the breeze"). For each, "term" must be the EXACT substring as written in reply (same case, same words), and "es" explains in Spanish what it MEANS and why a native uses it there — conversational, like a friend explaining, NEVER grammar-speak (no "subjuntivo", no "phrasal verb", no tense names). One or two lines. If the reply has no such phrases, or you already underlined them inline with ⟦||⟧, return [].
+- Never correct him inside "reply" — that must flow as pure conversation (the only exception is a correction you fold in and underline with ⟦english||español⟧).`;
 }
 
 function startSession(key) {
@@ -2230,6 +2391,88 @@ function startSession(key) {
   syncTTSButton();
   // El coach abre la conversación
   sendTurn(null);
+}
+
+// ── Dibujo libre: rompehielos que abre TALK ─────────────────────────────────
+// El coach "arranca" con un tema/pregunta corta (≤180 car.), variada cada vez y,
+// si Gus eligió intereses, inclinada hacia su mundo. Es cliente puro: instantáneo
+// y gratis en la landing; el modelo entra recién cuando Gus responde.
+const ROMPEHIELOS_BASE = [
+  "Okay, quickfire — what's the last thing that genuinely made you laugh?",
+  "Give me a hot take. Something most people would push back on.",
+  "If money weren't a thing, what would you be doing with this year?",
+  "What's something you changed your mind about recently?",
+  "Be honest: are you a morning person or is that a lie people tell?",
+  "What's a small win you had this week? Doesn't have to be big.",
+  "Pitch me your city like I'm about to move there tomorrow.",
+  "What's the most overrated thing everyone seems to love?",
+  "If you had a free afternoon and zero guilt, where would you go?",
+  "What's a skill you wish you'd picked up ten years ago?",
+];
+// Claves = items EXACTOS de INTERESES_GRUPOS. Sin match: cae al pool base.
+const ROMPEHIELOS_POR_INTERES = {
+  'Cripto/Web3':      ["Be real — are we still early, or is the hype fully cooked?", "What would actually get your mom to use crypto?"],
+  'Developer':        ["What's the one bug that still haunts you?", "AI pair-programming: game changer or overhyped autocomplete?"],
+  'Founder/Startup':  ["What's the hardest 'no' you've had to give this year?", "If you had to kill one feature today, which one goes?"],
+  'Marketing & Ads':  ["What's an ad that actually stuck with you lately?", "Sell me a pen. No, seriously — go."],
+  'Ventas':           ["What's your move when a deal goes quiet on you?", "Best cold opener you've ever gotten hit with?"],
+  'Diseño':           ["What's a piece of design you can't stop thinking about?", "Ugly-but-works or gorgeous-but-clunky — pick one."],
+  'Oficina/Corporate':["What meeting could've been an email this week?", "What's the office snack you'd riot over if they cut it?"],
+  'Deportes':         ["Give me your take: who's the GOAT, and don't hedge.", "What game had you screaming at the screen recently?"],
+  'Cine & Series':    ["What's the last thing you binged in one sitting?", "A movie everyone loves that you just don't get?"],
+  'Música':           ["What's on repeat for you right now?", "Concert you'd fly across the world to catch?"],
+  'Gaming':           ["What's the game that ate way too much of your life?", "Controller or keyboard — and defend it."],
+  'Viajes':           ["Best meal you ever had abroad — where was it?", "One place that totally wasn't what you expected?"],
+  'Fitness':          ["What's your workout you'd never skip?", "Early gym or late gym — and why are you wrong?"],
+  'Comida':           ["What's the dish you'd cook to impress someone?", "Pineapple on pizza — defend or destroy."],
+};
+
+function rompehielosPool() {
+  let pool = ROMPEHIELOS_BASE.slice();
+  interesesArr().forEach((it) => { if (ROMPEHIELOS_POR_INTERES[it]) pool = pool.concat(ROMPEHIELOS_POR_INTERES[it]); });
+  return pool;
+}
+let ultimoRompe = null;
+function elegirRompehielos() {
+  const pool = rompehielosPool();
+  let pick = pool[Math.floor(Math.random() * pool.length)];
+  if (pool.length > 1) { let g = 0; while (pick === ultimoRompe && g++ < 8) pick = pool[Math.floor(Math.random() * pool.length)]; }
+  ultimoRompe = pick;
+  return pick;
+}
+function refrescarRompehielos() {
+  const el = $('#libre-ice');
+  if (el) el.textContent = elegirRompehielos();
+}
+
+// Arranca una sesión libre: el rompehielos YA es la apertura del coach, así que
+// lo sembramos como turno 'assistant' (para continuidad del modelo) y lo pintamos
+// directo, sin gastar una llamada a la API en la apertura.
+function startLibre() {
+  if (state.busy) return;
+  const el = $('#libre-ice');
+  const ice = ((el && el.textContent) || '').trim() || elegirRompehielos();
+  const sit = buildSituation();
+  const avoidOpeners = store.get('rodeo_openers', []);
+  state.session = {
+    scenario: 'free',
+    title: 'Dibujo libre',
+    situation: sit,
+    messages: [
+      { role: 'system', content: talkSystemPrompt(SCENARIOS.free.prompt, sit, avoidOpeners) },
+      { role: 'assistant', content: JSON.stringify({ reply: ice, corrections: [], glosses: [] }) },
+    ],
+  };
+  $('#talk-empty').classList.add('hidden');
+  $('#talk-session').classList.remove('hidden');
+  $('#talk-session').classList.add('flex');
+  $('#session-title').textContent = 'Dibujo libre';
+  $('#chat-scroll').innerHTML = '';
+  syncTTSButton();
+  addBubble(esc(ice), 'bubble-coach');   // la apertura del coach (sin API)
+  ultimoHablado = String(ice);
+  syncReplayButton();
+  if (state.ttsOn) speak(ice);
 }
 
 function addBubble(html, cls) {
@@ -2320,7 +2563,7 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
           typing.remove();
           liveBubble = addBubble('', 'bubble-coach');
         }
-        liveBubble.textContent = partial;
+        liveBubble.textContent = stripChunksLive(partial);
         const c = $('#chat-scroll');
         c.scrollTop = c.scrollHeight;
       }));
@@ -2366,8 +2609,11 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
     const glosses = (parsed && Array.isArray(parsed.glosses)) ? parsed.glosses : [];
     if (!liveBubble) liveBubble = addBubble('', 'bubble-coach');
     const burbuja = liveBubble;
-    escribirMaquina(burbuja, reply, () => {
-      burbuja.innerHTML = glossHTML(reply, glosses);
+    // Se teclea el texto YA limpio de marcadores; al terminar, el innerHTML pasa
+    // a la versión glosada (subrayados + tooltip). Nunca queda un ⟦⟧ a la vista.
+    const { clean: replyLimpio } = parseChunks(reply);
+    escribirMaquina(burbuja, replyLimpio, () => {
+      burbuja.innerHTML = renderReply(reply, glosses);
       corrections.forEach((c) => {
         if (!c || !c.fix) return;
         addBubble(
@@ -2410,6 +2656,13 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
 $$('#talk-empty .chip').forEach((chip) => {
   chip.addEventListener('click', () => startSession(chip.dataset.scenario));
 });
+
+// Dibujo libre: seguir el hilo del coach, o pedir otro rompehielos.
+{
+  const go = $('#libre-go'), sh = $('#libre-shuffle');
+  if (go) go.addEventListener('click', startLibre);
+  if (sh) sh.addEventListener('click', refrescarRompehielos);
+}
 
 $('#send-btn').addEventListener('click', submitInput);
 $('#chat-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitInput(); });
@@ -2497,6 +2750,7 @@ function closeSession() {
   $('#talk-session').classList.add('hidden');
   $('#talk-session').classList.remove('flex');
   $('#talk-empty').classList.remove('hidden');
+  refrescarRompehielos();   // deja listo un rompehielos nuevo para la próxima
 }
 
 window.closeSheetAndSession = function () {
@@ -4919,6 +5173,7 @@ if (location.protocol === 'file:') {
   updateCostTicker();
   syncTTSButton();
   renderDNA();
+  refrescarRompehielos();   // el coach ya tiene su rompehielos al abrir TALK
   animateIn($('#view-talk').children, { y: 26, duration: 1 });
   // Onboarding de intereses: SOLO la primera vez. Si la clave rodeo_intereses
   // no existe todavía (ni respondió ni saltó) se muestra el selector; al elegir
