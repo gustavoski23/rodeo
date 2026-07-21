@@ -332,6 +332,51 @@ body {
   box-shadow: 0 3px 14px oklch(87% 0.21 128 / 0.28);
 }
 
+/* ── Onboarding de intereses (full-screen, solo la primera vez) ────────────
+   Reusa .chip / .chip.selected para las píldoras. Entradas por CSS keyframes
+   con animation-fill-mode: both (NUNCA GSAP para visibilidad): si el ticker
+   no dispara, el contenido queda igual visible. Ver REGLA DE ORO del repo. */
+#onboarding {
+  position: fixed; inset: 0; z-index: 250;
+  background: var(--bg-void);
+  display: none; flex-direction: column;
+  padding: max(30px, env(safe-area-inset-top)) 22px calc(26px + env(safe-area-inset-bottom));
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+#onboarding.show { display: flex; }
+.ob-inner { width: 100%; max-width: 560px; margin: 0 auto; }
+.ob-title {
+  font-size: clamp(2.1rem, 8.5vw, 3.2rem); line-height: 0.9; margin-top: 14px;
+  animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.ob-sub {
+  color: var(--text-secondary); margin: 14px 0 30px; max-width: 34ch;
+  font-size: 0.98rem; line-height: 1.45;
+  animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both;
+}
+.ob-group { margin-bottom: 26px; }
+.ob-group > .rd-eyebrow { margin-bottom: 12px; }
+.ob-chips, .perf-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.ob-chips .chip {
+  animation: ob-chip-in 0.5s cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-delay: calc(0.14s + var(--i, 0) * 0.045s);
+}
+.ob-actions { margin-top: 6px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+#ob-done { width: 100%; max-width: 340px; }
+#ob-done:disabled { opacity: 0.4; pointer-events: none; }
+.ob-skip {
+  background: none; border: none; color: var(--text-muted);
+  font-family: 'Space Mono', monospace; font-size: 0.76rem; letter-spacing: 0.05em;
+  cursor: pointer; padding: 8px 12px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.ob-skip:hover, .ob-skip:focus-visible { color: var(--text-secondary); }
+@keyframes ob-rise { from { opacity: 0; transform: translateY(20px); } }
+@keyframes ob-chip-in { from { opacity: 0; transform: translateY(14px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) {
+  .ob-title, .ob-sub, .ob-chips .chip { animation: none; }
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    4. TARJETAS STICKER — la unidad estrella (.slang-card). Pastel plano claro,
    muy redondeada, sombra difusa tintada, borde interior fino = recorte sticker.
@@ -1543,6 +1588,10 @@ body.rd-lectura .luminous-line { opacity: 0; }
   <div class="sheet" id="sheet-content"></div>
 </div>
 
+<!-- Onboarding de intereses (full-screen, primera vez). Contenido inyectado por
+     mostrarOnboarding() desde INTERESES_GRUPOS — fuente única para perfil también. -->
+<div id="onboarding" role="dialog" aria-modal="true" aria-label="Elige tus intereses"></div>
+
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -1585,7 +1634,100 @@ const state = {
   ladderPool: [],                         // lote cacheado (no persiste)
   ladderIdx: 0,
   combo: 0,
+  // ── Intereses (onboarding + editable en perfil) ──
+  // Array plano de strings, listo para sync futuro. La CLAVE existe ⇒ ya
+  // respondió o saltó ⇒ el onboarding no vuelve. [] = saltó / sin elegir.
+  intereses: store.get('rodeo_intereses', []),
 };
+
+// Dos grupos de chips. Fuente única para el onboarding y para la sección
+// "Tus intereses" del perfil. Editar aquí cambia ambos.
+const INTERESES_GRUPOS = [
+  { titulo: 'CARRERAS',  items: ['Marketing & Ads', 'Oficina/Corporate', 'Developer', 'Cripto/Web3', 'Diseño', 'Ventas', 'Founder/Startup'] },
+  { titulo: 'INTERESES', items: ['Deportes', 'Cine & Series', 'Música', 'Gaming', 'Viajes', 'Fitness', 'Comida'] },
+];
+
+function interesesArr() { return Array.isArray(state.intereses) ? state.intereses : []; }
+function guardarIntereses(arr) {
+  const limpio = Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
+  state.intereses = limpio;
+  store.set('rodeo_intereses', limpio);   // la clave queda escrita ⇒ no re-onboarding
+}
+
+// Líneas de contexto que inyectan los intereses en los prompts existentes.
+// Vacías si no eligió nada ⇒ el comportamiento por defecto no cambia.
+function interesesBriefTalk() {
+  const xs = interesesArr();
+  return xs.length
+    ? `\nHIS WORLD — weave topics, examples and the flavour of the scenario around these when it fits naturally, never force them and never list them out loud: ${xs.join(', ')}.`
+    : '';
+}
+function interesesLineaDrop() {
+  const xs = interesesArr();
+  return xs.length ? `\nIntereses del lector (elige el ángulo y los ejemplos que le hablen, sin nombrarlo nunca en el texto): ${xs.join(', ')}.` : '';
+}
+function interesesLineaSlang() {
+  const xs = interesesArr();
+  return xs.length ? `Cuando sea natural, inclina los EJEMPLOS hacia su mundo (${xs.join(', ')}), pero las expresiones deben seguir siendo de uso general, no jerga de nicho.\n` : '';
+}
+
+// Renderiza los dos grupos de chips. chipsClass distingue onboarding (animado)
+// de perfil (sin animación de entrada, la hoja ya tiene la suya).
+function renderInteresGrupos(chipsClass) {
+  const sel = new Set(interesesArr());
+  return INTERESES_GRUPOS.map((g) => `
+    <div class="ob-group">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>${esc(g.titulo)}</p>
+      <div class="${chipsClass}">
+        ${g.items.map((it, i) => `<button type="button" class="chip int-chip${sel.has(it) ? ' selected' : ''}" data-val="${escAttr(it)}" style="--i:${i}">${esc(it)}</button>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function mostrarOnboarding() {
+  const cont = $('#onboarding');
+  if (!cont) return;
+  const seleccion = new Set();
+  cont.innerHTML = `
+    <div class="ob-inner">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>RODEO · a tu medida</p>
+      <p class="font-display ob-title">¿DE QUÉ VA<br>TU <span style="color:var(--accent);">MUNDO?</span></p>
+      <p class="ob-sub">Elige lo tuyo. Con eso armo tus conversaciones, tus lecturas y tu slang — cero genérico.</p>
+      ${renderInteresGrupos('ob-chips')}
+      <div class="ob-actions">
+        <button id="ob-done" class="btn-accent" style="min-height:52px;padding:14px 32px;" disabled>LISTO</button>
+        <button id="ob-skip" class="ob-skip" type="button">saltar por ahora</button>
+      </div>
+    </div>`;
+  cont.classList.add('show');
+
+  const done = $('#ob-done');
+  const sync = () => { done.disabled = seleccion.size < 1; };
+  cont.querySelectorAll('.int-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.val;
+      if (seleccion.has(v)) { seleccion.delete(v); chip.classList.remove('selected'); }
+      else { seleccion.add(v); chip.classList.add('selected'); }
+      sync();
+    });
+  });
+  done.addEventListener('click', () => {
+    if (seleccion.size < 1) return;
+    guardarIntereses([...seleccion]);
+    cerrarOnboarding();
+    toast('Listo — RODEO ya va contigo');
+  });
+  $('#ob-skip').addEventListener('click', () => {
+    guardarIntereses([]);   // registra el salto: la clave existe ⇒ no vuelve
+    cerrarOnboarding();
+  });
+}
+function cerrarOnboarding() {
+  const cont = $('#onboarding');
+  if (!cont) return;
+  cont.classList.remove('show');
+  cont.innerHTML = '';
+}
 
 function toast(msg, ms = 2600) {
   const t = $('#toast');
@@ -2056,7 +2198,7 @@ HOW TO TALK:
 - CRITICAL: do NOT end every turn with a question. Vary it — react, tell a piece of your own story, disagree, make a remark and let it sit. Ask a real question maybe one turn in three. You are having a conversation, not conducting an interview.
 - Be specific. Names, places, numbers, small concrete details. Vague friendliness is exactly what makes you sound like a bot.
 - Let the conversation drift the way real ones do. Do not keep steering back to the same two topics.
-- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).${avoid}${dnaBrief()}
+- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).${avoid}${dnaBrief()}${interesesBriefTalk()}
 
 SPEED: do NOT deliberate or plan before answering. No preamble, no reasoning.
 Emit the JSON as your very first character — you are role-playing a person, not
@@ -2644,7 +2786,7 @@ $('#drop-btn').addEventListener('click', async () => {
       { role: 'system', content: 'You create fresh English-learning content for a B2+ Venezuelan living in Medellín aiming for C1. Never textbook material. Respond with STRICT JSON only.' },
       { role: 'user', content: `Generate exactly 3 REAL expressions of: ${category}.
 Already seen (do NOT repeat any of these): ${avoid}.
-Do NOT think out loud, do not explain your reasoning, do not write any preamble.
+${interesesLineaSlang()}Do NOT think out loud, do not explain your reasoning, do not write any preamble.
 Emit the JSON array immediately as your very first character. Keep every field to one short sentence.
 Return a STRICT JSON array of 3 objects. Keys per object:
 - "term": the English expression itself
@@ -2975,7 +3117,24 @@ function openPerfil() {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11l-5-5-5 5"></path><path d="M17 18l-5-5-5 5"></path></svg>
       <span><b style="font-weight:700;">Sube a C1 — SUBE</b><br><span class="rd-eyebrow">reescribe frases básicas a nivel C1</span></span>
     </button>
+
+    <div style="margin-top:24px;">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Tus intereses</p>
+      <p class="rd-eyebrow rd-eyebrow--muted" style="margin:8px 0 14px;text-transform:none;letter-spacing:normal;">Tócalos para activar — moldean tus charlas, lecturas y slang.</p>
+      ${renderInteresGrupos('perf-chips')}
+    </div>
   `);
+
+  // Toggle directo en el perfil: se guarda al tocar (sin mínimo — puede vaciar).
+  $('#sheet-content').querySelectorAll('.int-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const cur = new Set(interesesArr());
+      const v = chip.dataset.val;
+      if (cur.has(v)) cur.delete(v); else cur.add(v);
+      chip.classList.toggle('selected');
+      guardarIntereses([...cur]);
+    });
+  });
 }
 $('#profile-btn').addEventListener('click', openPerfil);
 
@@ -3024,7 +3183,7 @@ EXAMPLE — this anchors the FORMAT and the VOICE. Match its structure exactly; 
 // semillas: expresiones inglesas (0-3) que DEBEN quedar tejidas verbatim
 const dropUserPrompt = (tema, semillas) => `Generate today's edition.
 TOPIC: ${tema}
-SEEDS (weave each one verbatim into the passage): ${JSON.stringify(semillas)}
+SEEDS (weave each one verbatim into the passage): ${JSON.stringify(semillas)}${interesesLineaDrop()}
 Remember: your very first character must be the JSON (a fence is tolerada, nothing else is), compact on one line, zero deliberation before it.`;
 
 // Parseo en 2 pasos: JSON normal (con o sin fences) y rescate primer-{ .. último-}
@@ -4761,6 +4920,10 @@ if (location.protocol === 'file:') {
   syncTTSButton();
   renderDNA();
   animateIn($('#view-talk').children, { y: 26, duration: 1 });
+  // Onboarding de intereses: SOLO la primera vez. Si la clave rodeo_intereses
+  // no existe todavía (ni respondió ni saltó) se muestra el selector; al elegir
+  // o saltar se escribe la clave y no vuelve a aparecer nunca.
+  if (store.get('rodeo_intereses', null) === null) mostrarOnboarding();
 }
 
 /* ── PWA: registro del Service Worker (mejora progresiva) ──────────────────
