@@ -991,6 +991,42 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   margin-top: 2px;
 }
 
+/* ── Cromo de sesión ──────────────────────────────────────────────────────
+   Dentro de una actividad (sesión de TALK, run de STORY, lectura de DROP) la
+   tab bar se esconde con motion — el ← es el camino de vuelta al home de cada
+   sección, donde el nav reaparece. El toggle HISTORIA/DROP también se va: en
+   plena lectura solo resta espacio. */
+.tabbar { transition: transform .38s cubic-bezier(0.32, 0.72, 0, 1), opacity .3s ease; }
+body.rd-sesion .tabbar { transform: translateY(130%); opacity: 0; pointer-events: none; }
+body.rd-sesion main { padding-bottom: 24px !important; }
+body.rd-sesion .dp-modebar { display: none; }
+
+/* ── Columna de lectura centrada ──────────────────────────────────────────
+   En desktop todo quedaba pegado a la izquierda; la lectura se centra como
+   un artículo real. En móvil (≤760px) no cambia nada. */
+#drop-session > .scroll-area { width: 100%; max-width: 720px; margin: 0 auto; }
+.dp-session-bar { width: 100%; max-width: 720px; margin: 0 auto; }
+#drop-home { width: 100%; max-width: 760px; margin: 0 auto; }
+
+/* ── Play del passage: cargando (spinner) y sonando ─────────────────────── */
+.dp-play { position: relative; }
+.dp-play.cargando svg { opacity: 0; }
+.dp-play.cargando::after {
+  content: ''; position: absolute; inset: 15px;
+  border: 3px solid oklch(24% 0.05 128 / 0.3);
+  border-top-color: var(--accent-ink);
+  border-radius: 50%;
+  animation: dp-spin .8s linear infinite;
+}
+@keyframes dp-spin { to { transform: rotate(360deg); } }
+
+/* ── Máquina de escribir del coach (TALK) ───────────────────────────────── */
+.bubble-coach.escribiendo::after {
+  content: '▍'; margin-left: 2px; color: var(--accent);
+  animation: rd-caret 0.9s steps(1) infinite;
+}
+@keyframes rd-caret { 50% { opacity: 0; } }
+
 </style>
 </head>
 <body class="grain ambient-glow">
@@ -1271,19 +1307,26 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
             <div id="drop-lexicon" class="flex flex-col gap-3"></div>
           </section>
 
-          <section class="dp-sect">
-            <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>¿La cazaste?</p>
-            <div id="drop-questions" class="flex flex-col gap-3"></div>
-          </section>
+          <!-- Etapa 1 termina en el léxico. La práctica (preguntas, producción,
+               shadowing) queda detrás de este botón: leer primero, practicar
+               cuando el lector lo pida. -->
+          <button id="drop-practicar" class="btn-accent dp-go">¿QUIERES PRACTICAR?</button>
 
-          <section class="dp-sect">
-            <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Hazlo tuyo</p>
-            <div id="drop-prod" class="flex flex-col gap-3"></div>
-          </section>
+          <div id="drop-practica" class="hidden flex-col gap-6">
+            <section class="dp-sect">
+              <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>¿La cazaste?</p>
+              <div id="drop-questions" class="flex flex-col gap-3"></div>
+            </section>
 
-          <div class="dp-shadow-dock flex flex-col gap-3 pb-2">
-            <button id="drop-shadow-btn" class="btn-accent dp-go">SONAR NATIVO 🎙</button>
-            <div id="shadow-area" class="dp-shadow-area"></div>
+            <section class="dp-sect">
+              <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Hazlo tuyo</p>
+              <div id="drop-prod" class="flex flex-col gap-3"></div>
+            </section>
+
+            <div class="dp-shadow-dock flex flex-col gap-3 pb-2">
+              <button id="drop-shadow-btn" class="btn-accent dp-go">SONAR NATIVO 🎙</button>
+              <div id="shadow-area" class="dp-shadow-area"></div>
+            </div>
           </div>
 
         </div>
@@ -1814,6 +1857,29 @@ $$('.tab-item').forEach((tab) => {
   tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
 
+// ── Cromo de sesión ────────────────────────────────────────────────────────
+// Dentro de una actividad (sesión de TALK, run de STORY, lectura de DROP) la
+// tab bar desaparece: el ← de cada pantalla es el camino de vuelta al home de
+// su sección, donde el nav reaparece. Un MutationObserver sobre las clases
+// evita tener que cazar cada punto del código que muestra/oculta una sesión.
+function actualizarCromo() {
+  const pares = [['view-talk', 'talk-session'], ['view-story', 'story-run'], ['view-story', 'drop-session']];
+  const enSesion = pares.some(([v, s]) => {
+    const vista = document.getElementById(v);
+    const sesion = document.getElementById(s);
+    return vista && sesion && vista.classList.contains('active') && !sesion.classList.contains('hidden');
+  });
+  document.body.classList.toggle('rd-sesion', enSesion);
+}
+{
+  const obs = new MutationObserver(actualizarCromo);
+  ['view-talk', 'view-story', 'talk-session', 'story-run', 'drop-session'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+  actualizarCromo();
+}
+
 /* ═══════════════════ TALK ═══════════════════ */
 
 // Los escenarios describen la SITUACIÓN, no dos aficiones del personaje. Antes
@@ -1977,6 +2043,28 @@ function addTyping() {
   return addBubble('<div class="typing-dots"><span></span><span></span><span></span></div>', 'bubble-coach');
 }
 
+// Máquina de escribir para la respuesta del coach: haiku contesta tan rápido
+// que el texto aparecía de golpe y se sentía artificial. Continúa desde el
+// prefijo ya mostrado por el streaming (si coincide) para no reiniciar.
+function escribirMaquina(el, texto, alTerminar) {
+  if (el._tw) { clearInterval(el._tw); el._tw = null; }
+  texto = String(texto ?? '');
+  if (REDUCED) { el.textContent = texto; if (alTerminar) alTerminar(); return; }
+  let i = (el.textContent && texto.startsWith(el.textContent)) ? el.textContent.length : 0;
+  el.classList.add('escribiendo');
+  const c = $('#chat-scroll');
+  el._tw = setInterval(() => {
+    i = Math.min(texto.length, i + 2);
+    el.textContent = texto.slice(0, i);
+    if (c) c.scrollTop = c.scrollHeight;
+    if (i >= texto.length) {
+      clearInterval(el._tw); el._tw = null;
+      el.classList.remove('escribiendo');
+      if (alTerminar) alTerminar();
+    }
+  }, 28);
+}
+
 async function sendTurn(userText) {
   if (state.busy || !state.session) return;
   state.busy = true;
@@ -2068,14 +2156,24 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
     }
 
     typing.remove();
-    // Glosas: expresiones de la respuesta con explicación al pasar el cursor.
+    // La respuesta se teclea letra a letra (la voz arranca en paralelo: leer y
+    // oír a la vez es la gracia). Al terminar el tecleo se aplican las glosas
+    // (los subrayados "aparecen" como remate) y recién entonces caen las
+    // correcciones, para no pisar la lectura.
     const glosses = (parsed && Array.isArray(parsed.glosses)) ? parsed.glosses : [];
-    const htmlCoach = glossHTML(reply, glosses);
-    if (liveBubble) {
-      liveBubble.innerHTML = htmlCoach;   // reemplaza el texto plano del stream
-    } else {
-      addBubble(htmlCoach, 'bubble-coach');
-    }
+    if (!liveBubble) liveBubble = addBubble('', 'bubble-coach');
+    const burbuja = liveBubble;
+    escribirMaquina(burbuja, reply, () => {
+      burbuja.innerHTML = glossHTML(reply, glosses);
+      corrections.forEach((c) => {
+        if (!c || !c.fix) return;
+        addBubble(
+          `<div><span class="quote">${esc(c.quote || '')}</span> → <span class="fix">${esc(c.fix)}</span></div><div class="why">${esc(c.why || '')}</div>`,
+          'correction-card'
+        );
+        saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
+      });
+    });
 
     // Memoria anti-repetición: guardamos las últimas 8 aperturas y se las
     // pasamos al prompt como "no abras así" en las siguientes sesiones.
@@ -2085,15 +2183,6 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
       prev.push(String(reply).slice(0, 140));
       store.set('rodeo_openers', prev.slice(-8));
     }
-
-    corrections.forEach((c) => {
-      if (!c || !c.fix) return;
-      addBubble(
-        `<div><span class="quote">${esc(c.quote || '')}</span> → <span class="fix">${esc(c.fix)}</span></div><div class="why">${esc(c.why || '')}</div>`,
-        'correction-card'
-      );
-      saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
-    });
 
     // Registrar el texto aunque la voz esté apagada, para que el botón de
     // repetir tenga algo que reproducir si el usuario la enciende luego.
@@ -2241,6 +2330,7 @@ function initRecognition() {
     recognizing = false;
     $('#mic-btn').classList.remove('recording');
     if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador');
+    else if (e.error === 'network') toast('El dictado usa el servicio de voz de Google y este navegador lo bloquea (típico de Brave). Escribe o usa Chrome.', 5000);
     else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error);
   };
   return r;
@@ -3168,11 +3258,80 @@ function abrirEdicionDrop(ed, semillas) {
   renderLexicoDrop(ed.lexicon || []);
   renderPreguntasDrop(ed);
   renderProduccionDrop(ed.produccion || '');
-  animateIn(ses.querySelectorAll('.dp-head, .dp-audiobar, .dp-passage, .dp-sect'), { y: 18, duration: 0.7 });
+
+  // Etapa 1: solo lectura + léxico. La práctica espera detrás del botón.
+  $('#drop-practicar').classList.remove('hidden');
+  const pr = $('#drop-practica');
+  pr.classList.add('hidden');
+  pr.classList.remove('flex');
+
+  animateIn(ses.querySelectorAll('.dp-head, .dp-audiobar, .dp-passage, .dp-sect, #drop-practicar'), { y: 18, duration: 0.7 });
 }
 
+// Etapa 2: revelar la práctica con motion y llevar la vista hasta ella.
+$('#drop-practicar').addEventListener('click', () => {
+  $('#drop-practicar').classList.add('hidden');
+  const pr = $('#drop-practica');
+  pr.classList.remove('hidden');
+  pr.classList.add('flex');
+  animateIn(pr.querySelectorAll('.dp-sect, .dp-shadow-dock'), { y: 26, duration: 0.85 });
+  pr.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+});
+
+// Escuchar el passage POR ORACIONES. Una sola llamada TTS con el texto entero
+// tardaba tanto (Gus midió ~90s sin ninguna señal) que el botón parecía
+// muerto. Troceado: la primera oración suena en ~2s, la siguiente se pide
+// mientras suena la anterior, el botón muestra spinner al cargar y se vuelve
+// "tocar para parar" mientras suena.
+async function reproducirPassageDrop() {
+  const ed = state.dropEdicion;
+  if (!ed || !ed.passage) return;
+  const btn = $('#drop-play');
+  const sub = document.querySelector('.dp-audiobar-sub');
+  stopSpeaking();                       // silencio total e invalidación de tokens
+  const token = speakToken;
+  const frases = String(ed.passage).replace(/\n+/g, ' ')
+    .split(/(?<=[.!?…])\s+/).map((s) => s.trim()).filter(Boolean);
+  if (!frases.length) return;
+
+  btn.classList.add('cargando');
+  if (sub) sub.textContent = 'cargando la voz…';
+  const traer = async (fr) => ctxAudio().decodeAudioData(await pedirTTS(fr));
+
+  try {
+    let siguiente = traer(frases[0]);
+    for (let i = 0; i < frases.length; i++) {
+      const buf = await siguiente;
+      if (token !== speakToken) return;
+      siguiente = (i + 1 < frases.length) ? traer(frases[i + 1]) : null;
+
+      btn.classList.remove('cargando');
+      btn.classList.add('playing');
+      if (sub) sub.textContent = 'sonando · toca para parar';
+
+      const ctx = ctxAudio();
+      if (ctx.state === 'suspended') { try { await ctx.resume(); } catch {} }
+      if (token !== speakToken) return;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      audioActual = src;                // stopSpeaking() puede cortar el trozo actual
+      await new Promise((res) => { src.onended = res; src.start(); });
+      if (audioActual === src) audioActual = null;
+      if (token !== speakToken) return;
+    }
+  } catch (e) {
+    if (token === speakToken) toast('No pude leer el passage: ' + (e.message || e), 3500);
+  } finally {
+    btn.classList.remove('cargando', 'playing');
+    if (sub) sub.textContent = 'voz nativa · sigue el texto abajo';
+  }
+}
 $('#drop-play').addEventListener('click', () => {
-  if (state.dropEdicion && state.dropEdicion.passage) speak(state.dropEdicion.passage);
+  const btn = $('#drop-play');
+  // Toca para parar: el bucle detecta el token viejo y restaura el botón solo.
+  if (btn.classList.contains('playing') || btn.classList.contains('cargando')) { stopSpeaking(); return; }
+  reproducirPassageDrop();
 });
 
 function renderLexicoDrop(items) {
@@ -3298,14 +3457,102 @@ function cardAbiertaDrop(pregunta, tipo) {
     + '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>'
     + '</button></div>'
     + '<div class="dp-open-fb"></div>';
+  // Botón de pista: guía ANTES de enviar (¿va bien? ¿cómo lo mejorarías?),
+  // sin calificar y sin tocar el DNA.
+  const pista = document.createElement('button');
+  pista.className = 'btn-ghost dp-open-pista';
+  pista.style.cssText = 'align-self:flex-start; font-size:0.75rem; min-height:36px; padding:6px 14px; margin-top:8px;';
+  pista.textContent = '💡 ¿Va bien? ¿Cómo lo mejorarías?';
+  card.insertBefore(pista, card.querySelector('.dp-open-fb'));
+
   const ta = card.querySelector('.dp-open-input');
   const fb = card.querySelector('.dp-open-fb');
   const send = card.querySelector('.dp-open-send');
-  // wireMic limpia el input al terminar y entrega el final por callback:
-  // lo devolvemos al textarea para que Gus pueda editarlo antes de enviar.
-  wireMic(card.querySelector('.dp-open-mic'), ta, (t) => { ta.value = t; });
+  // Mic tipo nota de voz: tolera pausas para pensar; ver wireMicNota.
+  wireMicNota(card.querySelector('.dp-open-mic'), ta);
   send.addEventListener('click', () => enviarAbiertaDrop(tipo, pregunta, ta, fb, send));
+  pista.addEventListener('click', () => pedirPistaDrop(pregunta, ta, fb, pista));
   return card;
+}
+
+// Pide orientación al coach sobre el borrador SIN evaluarlo: una línea de
+// veredicto y dos formas naturales de decirlo/arrancar. No guarda nada en DNA.
+async function pedirPistaDrop(pregunta, ta, fb, btn) {
+  btn.disabled = true;
+  fb.textContent = 'el coach está pensando…';
+  try {
+    const { parsed } = await callJSON('chat', [
+      { role: 'system', content: 'You are a supportive English coach. The learner is DRAFTING an answer and wants guidance BEFORE submitting — do NOT grade. STRICT JSON only: {"veredicto_es":"1 línea en español: si el borrador va bien o qué le falta (si está vacío, anímalo y oriéntalo)","opciones":["two different natural English ways to say it or to start"]}. No grammar jargon.' },
+      { role: 'user', content: 'QUESTION: ' + pregunta + '\n\nDRAFT (may be empty): ' + ta.value.trim() },
+    ], 900);
+    if (!parsed) throw new Error('se enredó, dale otra vez');
+    let html = '💡 ' + esc(parsed.veredicto_es || '');
+    (Array.isArray(parsed.opciones) ? parsed.opciones : []).slice(0, 2).forEach((o) => {
+      html += '<br>· <b style="color: var(--accent);">' + esc(o) + '</b>';
+    });
+    fb.innerHTML = html;
+  } catch (e) {
+    fb.textContent = '';
+    toast('Error: ' + (e.message || e), 3000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* Mic tipo nota de voz (como WhatsApp): un toque graba y el botón se vuelve
+   ■ parar; las PAUSAS para pensar no cortan — cuando el reconocimiento se
+   apaga solo por silencio, se re-arranca acumulando lo ya dicho. Otro toque
+   detiene y deja el texto en el campo para editar/enviar. (El wireMic clásico
+   de Story/Ladder corta al primer silencio y reinicia de cero: obligaba a
+   soltar todo de un tirón.) */
+const MIC_ICON_NOTA = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>';
+const STOP_ICON_NOTA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"></rect></svg>';
+
+function wireMicNota(btn, ta) {
+  let rec = null, activo = false;
+  const pintar = () => {
+    btn.classList.toggle('recording', activo);
+    btn.innerHTML = activo ? STOP_ICON_NOTA : MIC_ICON_NOTA;
+    btn.setAttribute('aria-label', activo ? 'Parar la grabación' : 'Responder por voz');
+  };
+  btn.addEventListener('click', () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { toast('Tu navegador no soporta dictado — usa Chrome'); return; }
+    if (activo) { activo = false; try { rec.stop(); } catch {} pintar(); return; }
+
+    stopSpeaking();
+    // Lo ya escrito (a mano o de una toma anterior) se conserva y se acumula.
+    let base = ta.value.trim() ? ta.value.trim() + ' ' : '';
+    rec = new SR();
+    rec.lang = 'en-US';
+    rec.interimResults = true;
+    rec.continuous = true;
+    rec.onresult = (e) => {
+      let fin = '', inter = '';
+      for (const r of e.results) (r.isFinal ? fin += r[0].transcript + ' ' : inter += r[0].transcript);
+      ta.value = (base + fin + inter).replace(/\s+/g, ' ').trimStart();
+    };
+    rec.onend = () => {
+      if (!activo) { pintar(); return; }
+      // Silencio largo: el navegador corta solo. Re-arrancamos conservando lo
+      // dicho — esta es la diferencia con el mic clásico que reiniciaba de cero.
+      base = ta.value.trim() ? ta.value.trim() + ' ' : '';
+      try { rec.start(); } catch { activo = false; pintar(); }
+    };
+    rec.onerror = (ev) => {
+      if (ev.error === 'network') {
+        activo = false; pintar();
+        toast('El dictado usa el servicio de voz de Google y este navegador lo bloquea (típico de Brave). Escribe tu respuesta o usa Chrome.', 5000);
+      } else if (ev.error === 'not-allowed') {
+        activo = false; pintar();
+        toast('Permite el micrófono en el navegador');
+      }
+      // 'no-speech' y 'aborted' se dejan pasar: onend decide si re-arrancar.
+    };
+    activo = true;
+    pintar();
+    try { rec.start(); } catch { activo = false; pintar(); }
+  });
 }
 
 async function enviarAbiertaDrop(tipo, pregunta, ta, fb, btn) {
@@ -3719,7 +3966,7 @@ function wireMic(btn, input, onFinal) {
         if (f) rec._final = f.trim();
       };
       rec.onend = () => { active = false; btn.classList.remove('recording'); const t = rec._final; rec._final = ''; if (t) { input.value = ''; onFinal(t); } };
-      rec.onerror = (e) => { active = false; btn.classList.remove('recording'); if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador'); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error); };
+      rec.onerror = (e) => { active = false; btn.classList.remove('recording'); if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador'); else if (e.error === 'network') toast('El dictado usa el servicio de voz de Google y este navegador lo bloquea (típico de Brave). Escribe o usa Chrome.', 5000); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error); };
     }
     stopSpeaking();
     rec._final = '';
