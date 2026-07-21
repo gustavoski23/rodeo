@@ -1,5 +1,8 @@
-*.jpeg
-*.jpg
-*.png
+# Imágenes basura sueltas en la RAÍZ (fotos de WhatsApp, pruebas) — NO deben
+# desplegarse. Se anclan con "/" para NO excluir las imágenes reales de la app
+# en subcarpetas (episodios/, icons/), que sí las necesita el frontend.
+/*.jpeg
+/*.jpg
+/*.png
 dev-server.mjs
 .env.local
