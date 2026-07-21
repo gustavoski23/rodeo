@@ -2767,7 +2767,7 @@ function startLibre() {
   $('#chat-scroll').innerHTML = '';
   syncTTSButton();
   addBubble(esc(ice), 'bubble-coach');   // la apertura del coach (sin API)
-  ultimoHablado = String(ice);
+  ultimoHablado = parseChunks(ice).clean;   // sin marcadores ⟦⟧, para el botón repetir
   syncReplayButton();
   if (state.ttsOn) speak(ice);
 }
@@ -2932,7 +2932,7 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
 
     // Registrar el texto aunque la voz esté apagada, para que el botón de
     // repetir tenga algo que reproducir si el usuario la enciende luego.
-    ultimoHablado = String(reply);
+    ultimoHablado = parseChunks(reply).clean;   // sin marcadores ⟦⟧ (repetir con voz off)
     syncReplayButton();
     if (state.ttsOn) speak(reply);
   } catch (err) {
@@ -3199,6 +3199,11 @@ async function pedirTTS(text) {
 }
 
 async function speak(text) {
+  // La voz habla SOLO el texto limpio: parseChunks descarta los marcadores
+  // ⟦en||es⟧ (traducción en español + separador) que la glosa embebida usa para
+  // pintar los tips. Sin esto, Deepgram pronunciaba "ponerse al día" y los "||"
+  // dentro de una voz en inglés. Idempotente: sobre texto ya limpio no cambia nada.
+  text = parseChunks(text).clean;
   if (!text) return;
   ultimoHablado = String(text);
   syncReplayButton();
@@ -5732,7 +5737,7 @@ async function rpTurn(userText, isOpening) {
     liveBubble.innerHTML = renderReply(reply, glosses);
     if (consejo && consejo.trim()) rpAddConsejo(consejo);
 
-    ultimoHablado = String(reply);
+    ultimoHablado = parseChunks(reply).clean;   // sin marcadores ⟦⟧ (repetir con voz off)
     const rb = $('#rp-replay'); if (rb) rb.disabled = false;
     if (state.ttsOn) speak(reply);
   } catch (err) {
