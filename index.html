@@ -806,9 +806,12 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     </div>
   </div>
 
-  <!-- Ticker de costo retirado de la UI. El costo se sigue acumulando en
-       state.cost y persistiendo en localStorage ('rodeo_cost'); solo se ocultó
-       la pastilla. updateCostTicker() tolera que #cost-ticker no exista. -->
+  <!-- Perfil: agrupa lo secundario (DNA, SUBE, racha) que salió del tab bar,
+       para dejar el nav en 3 pestañas de práctica. El ticker de costo se retiró
+       antes; updateCostTicker() tolera que #cost-ticker no exista. -->
+  <button id="profile-btn" class="icon-btn" aria-label="Tu perfil, racha y repaso" style="width:42px;height:42px;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+  </button>
 </header>
 <div class="luminous-line mx-5 shrink-0"></div>
 
@@ -1100,28 +1103,21 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 </main>
 
 <!-- ═══════════════════════════ TAB BAR ═══════════════════════════ -->
-<!-- Íconos con más peso (stroke 2.2). Tab activa = pill lima sólida (CSS del dev).
-     data-view intacto: talk · story · slang · ladder · dna -->
+<!-- Nav de 3 pestañas de práctica: talk · story (con DROP dentro) · slang.
+     SUBE (ladder) y DNA salieron del nav al icono de perfil del header; sus
+     vistas #view-ladder / #view-dna siguen existiendo, se abren desde ahí. -->
 <nav class="tabbar glass" aria-label="Navegación principal">
   <button class="tab-item active" data-view="talk" aria-label="Talk — conversación">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
     TALK
   </button>
-  <button class="tab-item" data-view="story" aria-label="Story — historia interactiva">
+  <button class="tab-item" data-view="story" aria-label="Story — historia y lectura">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
     STORY
   </button>
   <button class="tab-item" data-view="slang" aria-label="Slang — expresiones">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
     SLANG
-  </button>
-  <button class="tab-item" data-view="ladder" aria-label="Sube — sube tu inglés de B2 a C1">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11l-5-5-5 5"></path><path d="M17 18l-5-5-5 5"></path></svg>
-    SUBE
-  </button>
-  <button class="tab-item" data-view="dna" aria-label="DNA — tus errores y repaso">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c6.667-6 13.333 0 20-6"></path><path d="M2 9c6.667 6 13.333 0 20 6"></path><path d="M9 6.3c.33 1 .33 2.4 0 3.4"></path><path d="M15 14.3c.33 1 .33 2.4 0 3.4"></path></svg>
-    DNA
   </button>
 </nav>
 
@@ -1453,21 +1449,25 @@ function parseJSON(raw) {
 
 /* ═══════════════════ NAVEGACIÓN ═══════════════════ */
 
+// Cambio de vista centralizado: lo usan las pestañas Y el menú de perfil.
+// dna/ladder ya no tienen pestaña; se abren desde el perfil, así que el
+// resaltado de pestaña se limpia solo cuando la vista no está en el nav.
+function switchView(v) {
+  if (!v || v === state.view) return;
+  state.view = v;
+  $$('.tab-item').forEach((t) => t.classList.toggle('active', t.dataset.view === v));
+  $$('.view').forEach((s) => s.classList.remove('active'));
+  const section = $('#view-' + v);
+  if (!section) return;
+  section.classList.add('active');
+  if (v !== 'story') document.body.classList.remove('heat-glow');
+  if (v === 'dna') renderDNA();
+  if (v === 'story') renderStoryHome();
+  if (v === 'ladder') renderLadder();
+  animateIn(section.children, { y: 18, duration: 0.7 });
+}
 $$('.tab-item').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    const v = tab.dataset.view;
-    if (v === state.view) return;
-    state.view = v;
-    $$('.tab-item').forEach((t) => t.classList.toggle('active', t === tab));
-    $$('.view').forEach((s) => s.classList.remove('active'));
-    const section = $('#view-' + v);
-    section.classList.add('active');
-    if (v !== 'story') document.body.classList.remove('heat-glow');
-    if (v === 'dna') renderDNA();
-    if (v === 'story') renderStoryHome();
-    if (v === 'ladder') renderLadder();
-    animateIn(section.children, { y: 18, duration: 0.7 });
-  });
+  tab.addEventListener('click', () => switchView(tab.dataset.view));
 });
 
 /* ═══════════════════ TALK ═══════════════════ */
@@ -2450,6 +2450,35 @@ function openSheet(html) {
 function closeSheet() { $('#overlay').classList.add('hidden'); }
 window.closeSheet = closeSheet;
 $('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeSheet(); });
+
+// Perfil: hogar de lo que salió del tab bar (DNA, SUBE) + racha y stats.
+// Navega a las vistas que ya existen vía switchView y cierra la hoja.
+window.irA = (v) => { closeSheet(); switchView(v); };
+function openPerfil() {
+  const dias = (state.streak && state.streak.days) || 0;
+  const fallos = Array.isArray(state.dna) ? state.dna.length : 0;
+  const pct = (state.ladderXP && state.ladderXP.pct) || 0;
+  const stat = (n, l) => `<div style="flex:1;text-align:center;padding:10px 6px;background:var(--bg-surface);border-radius:12px;">
+      <div class="font-display" style="font-size:1.6rem;line-height:1;color:var(--accent);">${n}</div>
+      <div class="rd-eyebrow" style="margin-top:4px;">${l}</div></div>`;
+  openSheet(`
+    <p class="font-display" style="font-size:2.2rem;line-height:0.9;">TU PERFIL<span style="color:var(--accent);">.</span></p>
+    <div style="display:flex;gap:8px;margin:16px 0 20px;">
+      ${stat('🔥 ' + dias, 'racha')}
+      ${stat(fallos, 'en tu DNA')}
+      ${stat(pct + '%', 'camino a C1')}
+    </div>
+    <button class="btn-ghost" onclick="irA('dna')" style="width:100%;display:flex;align-items:center;gap:12px;justify-content:flex-start;min-height:56px;padding:0 18px;margin-bottom:10px;text-align:left;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c6.667-6 13.333 0 20-6"></path><path d="M2 9c6.667 6 13.333 0 20 6"></path><path d="M9 6.3c.33 1 .33 2.4 0 3.4"></path><path d="M15 14.3c.33 1 .33 2.4 0 3.4"></path></svg>
+      <span><b style="font-weight:700;">Mis fallos — DNA</b><br><span class="rd-eyebrow">tus errores y repaso espaciado</span></span>
+    </button>
+    <button class="btn-ghost" onclick="irA('ladder')" style="width:100%;display:flex;align-items:center;gap:12px;justify-content:flex-start;min-height:56px;padding:0 18px;text-align:left;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11l-5-5-5 5"></path><path d="M17 18l-5-5-5 5"></path></svg>
+      <span><b style="font-weight:700;">Sube a C1 — SUBE</b><br><span class="rd-eyebrow">reescribe frases básicas a nivel C1</span></span>
+    </button>
+  `);
+}
+$('#profile-btn').addEventListener('click', openPerfil);
 
 /* ═══════════════════ MIC GENÉRICO (Story + Ladder) ═══════════════════ */
 // Cada llamada crea su propia instancia; solo una activa a la vez por el guard.
