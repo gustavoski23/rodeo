@@ -759,6 +759,238 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 .rd-saga-motif { position: absolute; right: 14px; bottom: 16px; width: 66px; height: 66px; color: var(--card-ink); opacity: 0.85; pointer-events: none; }
 .rd-saga-motif svg { width: 100%; height: 100%; display: block; }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   DROP · LECTURA DIARIA — estilos (prefijo .dp-)
+   Mobile-first: todo funciona en 375px sin media queries.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Toggle de modo Story (HISTORIA/DROP). Clon visual de .mode-tab de SLANG;
+   se DUPLICA en vez de compartir clase porque el JS de slang engancha
+   $$('.mode-tab') y dispararía sobre estos botones. */
+.story-tab {
+  padding: 10px 18px; min-height: 44px;
+  border-radius: 100px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-secondary); cursor: pointer;
+  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  background: oklch(16% 0.015 265 / 0.5);
+  transition: all .25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.story-tab:active { transform: scale(0.96); }
+.story-tab.active {
+  color: var(--accent-ink); background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 3px 14px oklch(87% 0.21 128 / 0.3);
+}
+
+/* Héroe pequeño de la portada: no compite con el héroe del thriller */
+.dp-hero .rd-hero-title { font-size: clamp(2rem, 8.5vw, 2.8rem); }
+
+/* Badge de semillas (DNA doble-vía): pill warn punteada, promesa de repaso */
+.dp-badge-semillas:not(.hidden) { display: inline-flex; }
+.dp-badge-semillas {
+  align-items: center; gap: 8px;
+  align-self: flex-start;
+  padding: 10px 16px; min-height: 40px;
+  border: 1px dashed oklch(84% 0.16 92 / 0.55);
+  border-radius: 100px;
+  background: oklch(84% 0.16 92 / 0.08);
+  color: var(--warn);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
+}
+
+.dp-go { width: 100%; letter-spacing: 0.03em; }
+
+/* Estado de espera del generador (~15-25s de creative). La barrita vive en el
+   ::after a propósito: el JS reescribe textContent y el ::after sobrevive. */
+.dp-status:not(.hidden) { display: block; }
+.dp-status {
+  text-align: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.dp-status::after {
+  content: '';
+  display: block;
+  height: 3px; margin-top: 10px;
+  border-radius: 100px;
+  background-color: oklch(96% 0.004 265 / 0.08);
+  background-image: linear-gradient(90deg, transparent, var(--accent), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: dp-status-slide 1.3s ease-in-out infinite;
+}
+@keyframes dp-status-slide {
+  0%   { background-position: -60% 0; }
+  100% { background-position: 160% 0; }
+}
+
+/* El eyebrow del repo trae margin-bottom pensado para héroes; en la fila flex
+   de la barra de sesión lo torcería. */
+.dp-session-eyebrow { margin-bottom: 0; }
+
+.dp-headline {
+  font-size: clamp(1.55rem, 6.8vw, 2.2rem);
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  margin-bottom: 10px;
+}
+.dp-meta {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* Barra de audio */
+.dp-audiobar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--bg-surface);
+  border: 1px solid oklch(96% 0.004 265 / 0.07);
+}
+.dp-play {
+  width: 54px; height: 54px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: none; cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 0 24px oklch(87% 0.21 128 / 0.28);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.dp-play svg { margin-left: 2px; }
+.dp-play:hover { transform: translateY(-1px); box-shadow: 0 6px 30px oklch(87% 0.21 128 / 0.4); }
+.dp-play:active { transform: scale(0.94); }
+.dp-play.playing { box-shadow: 0 0 0 6px oklch(87% 0.21 128 / 0.14), 0 0 24px oklch(87% 0.21 128 / 0.35); }
+.dp-audiobar-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dp-audiobar-title { font-weight: 600; font-size: 0.92rem; color: var(--text-primary); }
+.dp-audiobar-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Passage: la única pantalla donde Gus lee 200+ palabras seguidas */
+.dp-passage {
+  font-size: 1.04rem;
+  line-height: 1.78;
+  color: var(--text-primary);
+  max-width: 62ch;
+}
+.dp-passage p + p { margin-top: 1em; }
+
+.dp-sect > .rd-eyebrow { margin-bottom: 12px; }
+
+/* Tarjeta de léxico */
+.dp-lex-card {
+  background: var(--bg-surface);
+  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+.dp-lex-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-bottom: 8px;
+}
+.dp-lex-term {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--accent);
+  min-width: 0; overflow-wrap: anywhere;
+}
+.dp-lex-frase {
+  font-size: 0.9rem; line-height: 1.55;
+  font-style: italic;
+  color: var(--text-primary);
+}
+.dp-lex-frase b { font-style: normal; font-weight: 700; color: var(--accent); }
+.dp-lex-es {
+  margin-top: 6px;
+  font-size: 0.85rem; line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Tarjeta de pregunta (mc y open comparten esqueleto) */
+.dp-q-card {
+  background: var(--bg-surface);
+  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border-radius: 18px;
+  padding: 16px;
+}
+.dp-q-text {
+  font-size: 0.98rem; font-weight: 600; line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.dp-opt {
+  display: block; width: 100%; text-align: left;
+  padding: 12px 16px; min-height: 44px;
+  border-radius: 16px;
+  background: oklch(16% 0.015 265 / 0.55);
+  border: 1px solid oklch(96% 0.004 265 / 0.14);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 0.92rem; font-weight: 500; line-height: 1.45;
+  cursor: pointer;
+  transition: border-color .25s ease, background .25s ease, color .25s ease, transform .2s ease;
+}
+.dp-opt:hover, .dp-opt:focus-visible { border-color: oklch(87% 0.21 128 / 0.6); }
+.dp-opt:active { transform: scale(0.98); }
+.dp-opt:disabled { opacity: 0.5; cursor: default; transform: none; }
+.dp-opt.correct {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-weight: 600;
+  opacity: 1;
+}
+.dp-opt.wrong {
+  border-color: var(--danger);
+  background: var(--danger-dim);
+  color: oklch(80% 0.16 27);
+  opacity: 1;
+}
+.dp-q-why {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px dashed oklch(96% 0.004 265 / 0.15);
+  font-size: 0.82rem; line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Dock de respuesta abierta (open + producción) */
+.dp-open-dock {
+  display: flex; align-items: flex-end; gap: 8px;
+}
+.dp-open-input {
+  flex: 1; min-width: 0;
+  background: var(--bg-elevated);
+  border-radius: 18px;
+  line-height: 1.45;
+}
+.dp-open-fb:not(:empty) {
+  margin-top: 12px;
+  padding: 10px 12px 10px 14px;
+  border-left: 2px solid var(--accent);
+  border-radius: 4px 12px 12px 4px;
+  background: oklch(87% 0.21 128 / 0.06);
+  font-size: 0.85rem; line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* Área de shadowing: vacía hasta que el JS la construya */
+.dp-shadow-area:not(:empty) {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 2px;
+}
+
 </style>
 </head>
 <body class="grain ambient-glow">
@@ -897,6 +1129,19 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   <!-- ══════════════════════ VISTA: STORY ══════════════════════ -->
   <section id="view-story" class="view">
 
+    <!-- Toggle HISTORIA/DROP. Clase propia .story-tab (NO .mode-tab): el
+         handler de SLANG engancha $$('.mode-tab') y dispararía sobre estos
+         botones con data-mode undefined. -->
+    <div class="dp-modebar flex gap-2 pb-4 shrink-0" role="tablist" aria-label="Modo de Story">
+      <button class="story-tab active" data-smode="historia" role="tab" aria-selected="true">HISTORIA</button>
+      <button class="story-tab" data-smode="drop" role="tab" aria-selected="false">DROP</button>
+    </div>
+
+    <!-- Los dos modos de la pestaña STORY: la historia jugable de siempre
+         (#story-pane) y la lectura diaria DROP (#drop-pane). Los IDs internos
+         de story no se tocan. -->
+    <div id="story-pane" class="flex flex-col" style="flex:1; min-height:0;">
+
     <!-- ── Portada ── -->
     <div id="story-home" class="scroll-area flex flex-col gap-6" style="flex:1;">
 
@@ -953,6 +1198,97 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
         <button id="story-panic" class="btn-ghost" style="width:100%; margin-top: 8px; font-size: 0.78rem;">no sé qué decir</button>
       </div>
     </div>
+    </div><!-- /#story-pane -->
+
+    <!-- ══════════ DROP · LECTURA DIARIA (oculto por defecto) ══════════ -->
+    <div id="drop-pane" class="hidden flex-col" style="flex:1; min-height:0;">
+
+      <!-- ── PORTADA ── -->
+      <div id="drop-home" class="scroll-area flex flex-col gap-6" style="flex:1;">
+
+        <!-- Héroe pequeño: DROP vive DENTRO de Story, no compite con el thriller -->
+        <div class="rd-hero dp-hero">
+          <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Drop · lectura diaria</p>
+          <p class="font-display rd-hero-title">HOY CAE TU<br><span style="color: var(--accent);">DROP.</span></p>
+          <p class="rd-hero-sub">Dos minutos de lectura sobre tu mundo — crypto, startups, Medellín. La lees, la suenas y la haces tuya.</p>
+        </div>
+
+        <div class="rd-sect">
+          <p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>Elige el tema</p>
+          <div class="flex flex-wrap gap-2.5" role="group" aria-label="Tema del drop">
+            <button class="chip dp-tema" data-tema="CRYPTO"><span class="rd-chip-emoji" aria-hidden="true">🪙</span>CRYPTO</button>
+            <button class="chip dp-tema" data-tema="STARTUP"><span class="rd-chip-emoji" aria-hidden="true">🚀</span>STARTUP</button>
+            <button class="chip dp-tema" data-tema="MEDELLIN"><span class="rd-chip-emoji" aria-hidden="true">🚡</span>MEDELLÍN</button>
+            <button class="chip dp-tema" data-tema="TECH"><span class="rd-chip-emoji" aria-hidden="true">🤖</span>TECH</button>
+            <button id="drop-sorpresa" class="chip"><span class="rd-chip-emoji" aria-hidden="true">🎲</span>Sorpréndeme</button>
+          </div>
+        </div>
+
+        <!-- Badge de semillas (DNA doble-vía). El JS lo reescribe con textContent. -->
+        <div id="drop-badge-semillas" class="dp-badge-semillas hidden">🔥 hoy vuelven 3 palabras tuyas</div>
+
+        <div class="flex flex-col gap-3 pb-6">
+          <button id="drop-go" class="btn-accent dp-go">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            DROP DEL DÍA
+          </button>
+          <div id="drop-status" class="dp-status hidden" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- ── SESIÓN (oculta al inicio) ── -->
+      <div id="drop-session" class="hidden flex-col" style="flex:1; min-height:0;">
+
+        <div class="dp-session-bar flex items-center gap-2 pb-3 shrink-0">
+          <button id="drop-close" class="icon-btn" aria-label="Volver a la portada del drop" style="width:36px;height:36px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+          <span class="rd-eyebrow rd-eyebrow--accent dp-session-eyebrow"><span class="rd-eyebrow-rule"></span>Drop del día</span>
+        </div>
+
+        <div class="scroll-area flex flex-col gap-6" style="flex:1; min-height:0; padding-bottom: 16px;">
+
+          <div class="dp-head">
+            <h2 id="drop-headline" class="font-display dp-headline"></h2>
+            <p id="drop-meta" class="dp-meta"></p>
+          </div>
+
+          <div class="dp-audiobar">
+            <button id="drop-play" class="dp-play" aria-label="Escuchar el passage en voz nativa">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+            </button>
+            <div class="dp-audiobar-txt">
+              <span class="dp-audiobar-title">Escúchalo primero</span>
+              <span class="dp-audiobar-sub">voz nativa · sigue el texto abajo</span>
+            </div>
+          </div>
+
+          <!-- Passage con glosas (reusa span.gloss + #gloss-tip del repo) -->
+          <article id="drop-passage" class="dp-passage"></article>
+
+          <section class="dp-sect">
+            <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Léxico · lo que te llevas</p>
+            <div id="drop-lexicon" class="flex flex-col gap-3"></div>
+          </section>
+
+          <section class="dp-sect">
+            <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>¿La cazaste?</p>
+            <div id="drop-questions" class="flex flex-col gap-3"></div>
+          </section>
+
+          <section class="dp-sect">
+            <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Hazlo tuyo</p>
+            <div id="drop-prod" class="flex flex-col gap-3"></div>
+          </section>
+
+          <div class="dp-shadow-dock flex flex-col gap-3 pb-2">
+            <button id="drop-shadow-btn" class="btn-accent dp-go">SONAR NATIVO 🎙</button>
+            <div id="shadow-area" class="dp-shadow-area"></div>
+          </div>
+
+        </div>
+      </div>
+    </div><!-- /#drop-pane -->
   </section>
 
   <!-- ══════════════════════ VISTA: SLANG ══════════════════════ -->
@@ -1460,7 +1796,11 @@ function switchView(v) {
   const section = $('#view-' + v);
   if (!section) return;
   section.classList.add('active');
-  if (v !== 'story') document.body.classList.remove('heat-glow');
+  if (v !== 'story') {
+    document.body.classList.remove('heat-glow');
+    // Salir de Story con el shadowing abierto debe soltar el micrófono.
+    if (window.cerrarShadow) cerrarShadow();
+  }
   if (v === 'dna') renderDNA();
   if (v === 'story') renderStoryHome();
   if (v === 'ladder') renderLadder();
@@ -2479,6 +2819,758 @@ function openPerfil() {
   `);
 }
 $('#profile-btn').addEventListener('click', openPerfil);
+
+/* ═══════════════════ DROP · LECTURA DIARIA ═══════════════════
+   La edición diaria: un passage de opinión generado a nivel B2+→C1 sobre el
+   mundo real de Gus, con glosas, léxico, preguntas, producción, shadowing y
+   DNA doble-vía (las palabras falladas vuelven sembradas en el texto).
+   Prompts certificados en vivo contra kimi-k2.7 (3/3 corridas válidas). */
+
+// El passage vive o muere por la VOZ: columnista de opinión, nunca reporte ni
+// libro de texto. Cláusulas medidas con kimi-k2.7: sin la regla de "primer
+// carácter = JSON" razona en voz alta y quema el techo; sin el ejemplo completo
+// divaga; el presupuesto explícito eliminó los cortes por finish=length.
+const DROP_SYSTEM = `You are the editorial engine of RODEO DROP, a daily one-passage English edition written for one reader: Gus — Venezuelan, lives in Medellín, works at a crypto/tech startup, English level B2+ pushing into C1. He reads sharp opinion writing for fun; he abandons anything that smells like a textbook or "AI filler".
+
+OUTPUT RULE — ABSOLUTE: Do NOT think out loud. Do NOT plan. Do NOT explain your choices. Do NOT write anything before or after the JSON. Emit the JSON immediately as your very first character. One single JSON object, valid JSON, double quotes everywhere. Print it COMPACT, on a single line, no pretty-printing, no indentation. Your total output has a hard budget of ~1800 tokens: every token you spend deliberating is stolen from the edition and truncates it mid-JSON, which counts as total failure.
+
+VOICE — this is where the product lives or dies:
+- Write like a sharp newsletter columnist with a strong take: a hook, an argument, a bit of wit, a turn at the end. Think opinionated essay, never a report.
+- Register is ANALYSIS / OPINION / SCENARIO only. ZERO verifiable facts: no prices, no dates, no statistics, no named recent events, no "last week", no company earnings. Gus instantly catches an invented number and it kills all trust. Timeless arguments only.
+- It must read like something a human editor would proudly publish. Concrete images over abstractions. No throat-clearing openings ("In today's fast-paced world..." = instant failure). No balanced-on-both-hands hedging. Take a side.
+- Never mention Gus, "the reader" or "someone like you" inside the passage. The essay stands on its own; the personal connection happens only in "produccion".
+
+LEVEL: B2+ → C1. Natural, idiomatic English: phrasal verbs, collocations, native turns of phrase worth stealing. Do not simplify; do not go academic.
+
+ALL SPANISH FIELDS ("es", "why_es", "meaning_es"): casual Spanish, like a friend explaining over coffee — what it means HERE and why natives say it that way. NEVER grammar jargon (forbidden: "phrasal verb", "verbo compuesto", "gerundio", "voz pasiva", etc.).
+
+SCHEMA — obey exactly:
+{
+  "headline": string — hooky, in English, no colon-cliché "X: why Y" if avoidable,
+  "topic": one of "CRYPTO"|"STARTUP"|"MEDELLIN"|"TECH"|"WILDCARD",
+  "passage": string — 160-260 words,
+  "glosses": 3 to 5 items {"term","es"} — "term" MUST be a character-exact substring of passage (copy-paste it),
+  "lexicon": exactly 5 items {"term","frase","es"} — "frase" is the real sentence from the passage containing the term,
+  "questions": {"mc": exactly 2 items {"q","options"(3),"correct"(index),"why_es"}, "open": exactly 2 strings} — inference and opinion, never literal recall,
+  "seeded": one entry per seed the user gave you {"term","meaning_es","distractors"(2 plausible wrong meanings in Spanish)} — [] if no seeds,
+  "produccion": string — an English prompt connecting the passage to Gus's real work/life, answerable in 2 sentences
+}
+
+SEEDS: the user may pass seed expressions. You MUST weave each one into the passage VERBATIM (exact characters, exact spelling) and naturally — never highlighted, never forced, never in quotes. If a seed doesn't fit the topic, bend the essay's angle until it does. No seeds → "seeded": [].
+
+EXAMPLE — this anchors the FORMAT and the VOICE. Match its structure exactly; never reuse its content or topic. (This example was generated with seeds: ["pull through"].)
+{"headline":"Your Startup Doesn't Have a Growth Problem. It Has a Truth Problem.","topic":"STARTUP","passage":"Every founder swears their startup is six months away from taking off. Scratch the surface, though, and you'll often find a team quietly papering over the same cracks: churn nobody wants to name, a roadmap that bends to whoever shouted last, metrics dressed up for the next board deck. The problem isn't growth. It's honesty.\\n\\nHere's the uncomfortable part: dishonesty inside a startup rarely looks like lying. It looks like optimism. It's the demo that only works on the founder's laptop, the pipeline full of deals that were never really alive, the pivot everyone saw coming but nobody dared to bring up. Optimism is cheap fuel — it burns fast and leaves nothing behind.\\n\\nThe startups that pull through tend to share one boring habit: they say the ugly thing early. They'd rather kill a feature in a meeting than let it die slowly in production. That takes a certain kind of culture — one where bad news travels faster than good news, and where being wrong out loud is safer than being wrong in silence.","glosses":[{"term":"papering over the same cracks","es":"tapar los mismos problemas con arreglos superficiales — la imagen es empapelar una pared agrietada en vez de repararla"},{"term":"dressed up","es":"maquillados para verse mejor de lo que son, como cuando te arreglas para una cita"},{"term":"dared to bring up","es":"se atrevió a sacar el tema; 'bring up' es poner algo incómodo sobre la mesa en una conversación"},{"term":"out loud","es":"en voz alta, delante de todos — lo contrario de guardártelo"}],"lexicon":[{"term":"scratch the surface","frase":"Scratch the surface, though, and you'll often find a team quietly papering over the same cracks.","es":"rascar apenas la superficie: mirar un poquito más allá de la primera impresión"},{"term":"taking off","frase":"Every founder swears their startup is six months away from taking off.","es":"despegar, explotar en crecimiento — la imagen del avión que levanta vuelo"},{"term":"bends to whoever shouted last","frase":"a roadmap that bends to whoever shouted last","es":"se dobla ante el último que gritó: cede al que más presiona, no al que tiene razón"},{"term":"cheap fuel","frase":"Optimism is cheap fuel — it burns fast and leaves nothing behind.","es":"combustible barato: energía fácil de conseguir pero que no dura nada"},{"term":"pull through","frase":"The startups that pull through tend to share one boring habit: they say the ugly thing early.","es":"salir adelante después de una etapa que casi te mata"}],"questions":{"mc":[{"q":"What does the author suggest optimism can do inside a startup?","options":["Disguise problems the team refuses to name","Attract more ambitious investors","Speed up honest conversations"],"correct":0,"why_es":"Dice que la deshonestidad no parece mentira sino optimismo: el demo que solo corre en la laptop del founder."},{"q":"Why does the author call saying the ugly thing early a 'boring habit'?","options":["It is unglamorous but it is what actually saves companies","Founders find those meetings tedious","It slows down shipping new features"],"correct":0,"why_es":"Lo contrasta con el drama del optimismo: el hábito aburrido y sin gloria es el que funciona."}],"open":["Think of a moment when a team you were on avoided saying 'the ugly thing'. What did that silence end up costing?","Where is the line between healthy optimism and self-deception in a startup? Who should police it?"]},"seeded":[{"term":"pull through","meaning_es":"salir adelante, sobrevivir una etapa muy difícil","distractors":["tirar de algo con mucha fuerza","atravesar un lugar sin detenerse"]}],"produccion":"Your team just found out a metric on the last board deck was 'dressed up'. In two sentences, what do you say at the next all-hands?"}`;
+
+// tema: "CRYPTO"|"STARTUP"|"MEDELLIN"|"TECH"|"WILDCARD" o "sorpréndeme"
+// semillas: expresiones inglesas (0-3) que DEBEN quedar tejidas verbatim
+const dropUserPrompt = (tema, semillas) => `Generate today's edition.
+TOPIC: ${tema}
+SEEDS (weave each one verbatim into the passage): ${JSON.stringify(semillas)}
+Remember: your very first character must be the JSON (a fence is tolerada, nothing else is), compact on one line, zero deliberation before it.`;
+
+// Parseo en 2 pasos: JSON normal (con o sin fences) y rescate primer-{ .. último-}
+function parsearEdicion(raw) {
+  const sinFences = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  for (const c of [sinFences, raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)]) {
+    try { return JSON.parse(c); } catch { /* siguiente */ }
+  }
+  return null; // → reintentar la llamada completa
+}
+
+/* ── DNA doble-vía ─────────────────────────────────────────────────────────
+   Campos NUEVOS sobre items del DNA (aditivos, renderDNA nunca los lee):
+     d.dropVisto    → Date.now() de la última vez que salió sembrada
+     d.dropAciertos → micro-chequeos acertados; con 2 se marca dominado      */
+
+// Una expresión de más de 5 palabras no se puede tejer natural sin que cante.
+function _drop_palabras(s) {
+  return String(s || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+// Candidatas inglesas del DNA: error→fix, slang→term. Fuera dominados,
+// upgrades y frases largas. Prioridad: lo MENOS visto (dropVisto asc), y a
+// igual visto el más viejo (ts asc) porque lleva más tiempo esperando turno.
+function elegirSemillasDrop(max = 3) {
+  if (!Array.isArray(state.dna) || !state.dna.length) return [];
+  const vistos = new Set();
+  const candidatas = [];
+  for (const d of state.dna) {
+    if (d.dominado) continue;
+    let term = '', es = '';
+    if (d.type === 'error' && d.fix) { term = d.fix; es = d.why || ''; }
+    else if (d.type === 'slang' && d.term) { term = d.term; es = d.meaning || ''; }
+    else continue;
+    if (_drop_palabras(term) > 5) continue;
+    const clave = term.trim().toLowerCase();
+    if (vistos.has(clave)) continue;
+    vistos.add(clave);
+    candidatas.push({ term, es, _visto: d.dropVisto || 0, _ts: d.ts || 0 });
+  }
+  candidatas.sort((a, b) => (a._visto - b._visto) || (a._ts - b._ts));
+  return candidatas.slice(0, max).map(({ term, es }) => ({ term, es }));
+}
+
+// Tras el micro-chequeo: la semilla sale al fondo de la rotación y, con 2
+// aciertos, queda dominada. Búsqueda case-insensitive SOLO en error/slang
+// (los upgrades también tienen .fix y no queremos marcarlos por accidente).
+function registrarSemillaDrop(term, acierto) {
+  if (!Array.isArray(state.dna) || !term) return false;
+  const clave = String(term).trim().toLowerCase();
+  const d = state.dna.find((x) => {
+    if (x.type === 'error') return (x.fix || '').trim().toLowerCase() === clave;
+    if (x.type === 'slang') return (x.term || '').trim().toLowerCase() === clave;
+    return false;
+  });
+  if (!d) return false;
+  d.dropVisto = Date.now();
+  if (acierto) {
+    d.dropAciertos = (d.dropAciertos || 0) + 1;
+    if (d.dropAciertos >= 2) d.dominado = true;
+  }
+  store.set('rodeo_dna', state.dna);
+  return true;
+}
+
+// El léxico de la edición entra al DNA como vocabulario. saveDNA deduplica
+// pero con clave CASE-SENSITIVE — pre-filtramos en minúsculas porque el LLM
+// capitaliza a su antojo; saveDNA queda como segunda barrera.
+function guardarLexicoDrop(items) {
+  if (!Array.isArray(items)) return 0;
+  let nuevos = 0;
+  for (const it of items) {
+    if (!it || !it.term) continue;
+    const clave = String(it.term).trim().toLowerCase();
+    const yaEsta = state.dna.some(
+      (d) => d.type === 'slang' && (d.term || '').trim().toLowerCase() === clave
+    );
+    if (yaEsta) continue;
+    saveDNA({ type: 'slang', term: it.term, meaning: it.es || '', example: it.frase || '' });
+    nuevos++;
+  }
+  return nuevos;
+}
+
+/* ── Estado y toggle HISTORIA ⇄ DROP ── */
+state.storyMode = 'historia';
+state.dropEdicion = null;
+state.dropSemillas = [];
+let dropTema = null;
+let dropBusy = false;
+
+function mostrarPaneDrop(drop) {
+  const sp = $('#story-pane'), dp = $('#drop-pane');
+  sp.classList.toggle('hidden', drop);  sp.classList.toggle('flex', !drop);
+  dp.classList.toggle('hidden', !drop); dp.classList.toggle('flex', drop);
+}
+
+$$('.story-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    const m = tab.dataset.smode;
+    if (m === state.storyMode) return;
+    state.storyMode = m;
+    $$('.story-tab').forEach((t) => {
+      t.classList.toggle('active', t === tab);
+      t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+    });
+    mostrarPaneDrop(m === 'drop');
+    if (m === 'drop') renderPortadaDrop();
+    else cerrarShadow();   // volver a HISTORIA suelta el micrófono del shadow
+  });
+});
+
+function renderPortadaDrop() {
+  const semillas = elegirSemillasDrop(3);
+  const badge = $('#drop-badge-semillas');
+  if (semillas.length) {
+    const n = semillas.length;
+    badge.textContent = '🔥 hoy ' + (n === 1 ? 'vuelve 1 palabra tuya' : 'vuelven ' + n + ' palabras tuyas');
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+$$('.dp-tema').forEach((ch) => ch.addEventListener('click', () => {
+  const ya = ch.classList.contains('selected');
+  $$('.dp-tema').forEach((c) => c.classList.remove('selected'));
+  dropTema = ya ? null : ch.dataset.tema;
+  if (!ya) ch.classList.add('selected');
+}));
+$('#drop-sorpresa').addEventListener('click', () => {
+  $$('.dp-tema').forEach((c) => c.classList.remove('selected'));
+  dropTema = null;
+  generarDrop(true);
+});
+$('#drop-go').addEventListener('click', () => generarDrop(false));
+
+// Misma convención de fecha que updateStreak (UTC): consistencia > precisión.
+function fechaDropHoy() { return new Date().toISOString().slice(0, 10); }
+
+async function generarDrop(fuerza) {
+  if (dropBusy) return;
+  // Cache del día: el generador tarda 15-25s y cuesta; si ya se cocinó hoy y
+  // no piden tema nuevo ni sorpresa, se reabre al instante.
+  const cache = store.get('rodeo_drop_hoy', null);
+  if (!fuerza && !dropTema && cache && cache.fecha === fechaDropHoy() && cache.edicion) {
+    abrirEdicionDrop(cache.edicion, cache.semillas || []);
+    return;
+  }
+  dropBusy = true;
+  $('#drop-go').disabled = true;
+  const status = $('#drop-status');
+  status.classList.remove('hidden');
+  status.textContent = 'cocinando tu drop…';
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - t0) / 1000);
+    status.textContent = s < 30 ? ('cocinando tu drop… ' + s + ' s') : ('cocinando tu drop… ' + s + ' s · el horno está lento, aguanta');
+  }, 1000);
+
+  const semillas = elegirSemillasDrop(3);
+  try {
+    const ed = await pedirEdicion(dropTema || 'sorpréndeme', semillas.map((s) => s.term));
+    store.set('rodeo_drop_hoy', { fecha: fechaDropHoy(), edicion: ed, semillas });
+    abrirEdicionDrop(ed, semillas);
+  } catch (e) {
+    toast('El drop se enredó: ' + (e.message || e), 5000);
+  } finally {
+    clearInterval(tick);
+    status.classList.add('hidden');
+    $('#drop-go').disabled = false;
+    dropBusy = false;
+  }
+}
+
+// Reintentos MEDIDOS en vivo: ~1 de 5 corridas kimi razona en voz alta y quema
+// el techo (JSON null); el proveedor a veces da 502/429 o 200 con content
+// vacío. Backoff 4s, máximo 3 intentos. NO usar prefill de assistant "{":
+// probado — Fireworks corrompe los tokens en la frontera.
+async function pedirEdicion(tema, terms) {
+  let motivo = 'sin respuesta';
+  for (let i = 0; i < 3; i++) {
+    if (i) await new Promise((r) => setTimeout(r, 4000));
+    try {
+      const { content } = await callAPI('creative', [
+        { role: 'system', content: DROP_SYSTEM },
+        { role: 'user', content: dropUserPrompt(tema, terms) },
+      ], 5000);
+      if (!content || !content.trim()) { motivo = 'respuesta vacía'; continue; }
+      const ed = parsearEdicion(content);
+      if (ed && ed.headline && ed.passage) return ed;
+      motivo = 'JSON inválido';
+    } catch (e) { motivo = String(e && e.message || e).slice(0, 90); }
+  }
+  throw new Error(motivo);
+}
+
+function abrirEdicionDrop(ed, semillas) {
+  cerrarShadow();
+  state.dropEdicion = ed;
+  state.dropSemillas = semillas;
+  $('#drop-home').classList.add('hidden');
+  const ses = $('#drop-session');
+  ses.classList.remove('hidden'); ses.classList.add('flex');
+
+  $('#drop-headline').textContent = ed.headline || '';
+  $('#drop-meta').textContent = (ed.topic || 'DROP') + ' · B2+ → C1 · ~2 min';
+
+  // Passage por párrafos; las glosas usan el sistema existente (gloss + tooltip)
+  $('#drop-passage').innerHTML = String(ed.passage || '')
+    .split(/\n{2,}/)
+    .map((p) => '<p>' + glossHTML(p, ed.glosses || []) + '</p>')
+    .join('');
+
+  renderLexicoDrop(ed.lexicon || []);
+  renderPreguntasDrop(ed);
+  renderProduccionDrop(ed.produccion || '');
+  animateIn(ses.querySelectorAll('.dp-head, .dp-audiobar, .dp-passage, .dp-sect'), { y: 18, duration: 0.7 });
+}
+
+$('#drop-play').addEventListener('click', () => {
+  if (state.dropEdicion && state.dropEdicion.passage) speak(state.dropEdicion.passage);
+});
+
+function renderLexicoDrop(items) {
+  const cont = $('#drop-lexicon');
+  cont.innerHTML = '';
+  items.forEach((it) => {
+    if (!it || !it.term) return;
+    const card = document.createElement('div');
+    card.className = 'dp-lex-card';
+    // resaltar el término dentro de la frase real (case-insensitive)
+    let fraseHTML = esc(it.frase || '');
+    const f = String(it.frase || '');
+    const idx = f.toLowerCase().indexOf(String(it.term).toLowerCase());
+    if (idx !== -1) {
+      fraseHTML = esc(f.slice(0, idx)) + '<b>' + esc(f.slice(idx, idx + it.term.length)) + '</b>' + esc(f.slice(idx + it.term.length));
+    }
+    card.innerHTML = '<div class="dp-lex-head">'
+      + '<span class="dp-lex-term">' + esc(it.term) + '</span>'
+      + '<button class="icon-btn dp-lex-audio" aria-label="Escuchar ' + escAttr(it.term) + '" style="width:38px;height:38px;">'
+      + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>'
+      + '</button></div>'
+      + '<p class="dp-lex-frase">“' + fraseHTML + '”</p>'
+      + '<p class="dp-lex-es">' + esc(it.es || '') + '</p>';
+    card.querySelector('.dp-lex-audio').addEventListener('click', () => speak(it.term));
+    cont.appendChild(card);
+  });
+}
+
+function mezclarDrop(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function renderPreguntasDrop(ed) {
+  const cont = $('#drop-questions');
+  cont.innerHTML = '';
+  const qs = ed.questions || {};
+
+  (qs.mc || []).forEach((q) => {
+    if (!q || !Array.isArray(q.options)) return;
+    const card = document.createElement('div');
+    card.className = 'dp-q-card';
+    card.innerHTML = '<p class="dp-q-text">' + esc(q.q || '') + '</p>'
+      + '<div class="flex flex-col gap-2"></div>'
+      + '<p class="dp-q-why hidden">💡 ' + esc(q.why_es || '') + '</p>';
+    const fila = card.querySelector('div');
+    q.options.forEach((op, oi) => {
+      const b = document.createElement('button');
+      b.className = 'dp-opt';
+      b.textContent = op;
+      b.addEventListener('click', () => {
+        fila.querySelectorAll('.dp-opt').forEach((x, xi) => {
+          x.disabled = true;
+          if (xi === q.correct) x.classList.add('correct');
+        });
+        if (oi !== q.correct) b.classList.add('wrong');
+        card.querySelector('.dp-q-why').classList.remove('hidden');
+      });
+      fila.appendChild(b);
+    });
+    cont.appendChild(card);
+  });
+
+  (qs.open || []).forEach((preg) => cont.appendChild(cardAbiertaDrop(preg, 'open')));
+
+  // Micro-chequeo de semillas (DNA doble-vía). Se registra con el term
+  // ORIGINAL de elegirSemillasDrop, no con el del LLM (puede venir conjugado).
+  (state.dropSemillas || []).forEach((sem) => {
+    const seeded = (ed.seeded || []).find((x) => x && x.term && (
+      x.term.toLowerCase() === sem.term.toLowerCase() ||
+      x.term.toLowerCase().includes(sem.term.toLowerCase()) ||
+      sem.term.toLowerCase().includes(x.term.toLowerCase())
+    ));
+    if (!seeded || !seeded.meaning_es) return;
+    const card = document.createElement('div');
+    card.className = 'dp-q-card';
+    card.innerHTML = '<p class="dp-q-text">🔥 Volvió de tu DNA: “' + esc(sem.term) + '” — ¿qué significaba aquí?</p>'
+      + '<div class="flex flex-col gap-2"></div>';
+    const fila = card.querySelector('div');
+    const ops = mezclarDrop([
+      { txt: seeded.meaning_es, ok: true },
+      ...(seeded.distractors || []).slice(0, 2).map((d) => ({ txt: d, ok: false })),
+    ]);
+    ops.forEach((op) => {
+      const b = document.createElement('button');
+      b.className = 'dp-opt';
+      b.textContent = op.txt;
+      b.addEventListener('click', () => {
+        const botones = fila.querySelectorAll('.dp-opt');
+        botones.forEach((x, xi) => { x.disabled = true; if (ops[xi].ok) x.classList.add('correct'); });
+        if (!op.ok) b.classList.add('wrong');
+        registrarSemillaDrop(sem.term, op.ok);
+        if (op.ok) toast('Clavada — un acierto más y queda dominada 🔥', 2200);
+      });
+      fila.appendChild(b);
+    });
+    cont.appendChild(card);
+  });
+}
+
+function cardAbiertaDrop(pregunta, tipo) {
+  const card = document.createElement('div');
+  card.className = 'dp-q-card dp-q-open';
+  card.innerHTML = '<p class="dp-q-text">' + esc(pregunta) + '</p>'
+    + '<div class="dp-open-dock">'
+    + '<button class="icon-btn dp-open-mic" aria-label="Responder por voz">'
+    + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>'
+    + '</button>'
+    + '<textarea class="dp-open-input" rows="2" placeholder="Your take, in English..." aria-label="Tu respuesta en inglés" style="padding: 12px 14px;"></textarea>'
+    + '<button class="icon-btn dp-open-send" aria-label="Enviar respuesta" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">'
+    + '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>'
+    + '</button></div>'
+    + '<div class="dp-open-fb"></div>';
+  const ta = card.querySelector('.dp-open-input');
+  const fb = card.querySelector('.dp-open-fb');
+  const send = card.querySelector('.dp-open-send');
+  // wireMic limpia el input al terminar y entrega el final por callback:
+  // lo devolvemos al textarea para que Gus pueda editarlo antes de enviar.
+  wireMic(card.querySelector('.dp-open-mic'), ta, (t) => { ta.value = t; });
+  send.addEventListener('click', () => enviarAbiertaDrop(tipo, pregunta, ta, fb, send));
+  return card;
+}
+
+async function enviarAbiertaDrop(tipo, pregunta, ta, fb, btn) {
+  const texto = ta.value.trim();
+  if (!texto) { toast('Escribe (o dicta) tu respuesta primero', 1800); return; }
+  btn.disabled = true;
+  fb.textContent = 'el coach está leyendo…';
+  try {
+    const esProd = tipo === 'prod';
+    const sys = esProd
+      ? 'You are an English coach for a B2+ learner pushing C1. Evaluate his short production. STRICT JSON only: {"feedback_es":"1-2 líneas en español, directas y amables","correccion":{"quote":"exact wrong words","fix":"native phrasing","why":"por qué, en español, 1 línea"}|null,"upgrade":{"b2":"something he wrote that was fine but basic","c1":"the C1 phrasing","note":"en español, 1 línea"}|null}. No grammar jargon anywhere.'
+      : 'You are an English coach checking reading comprehension for a B2+ learner. STRICT JSON only: {"ok":true|false,"feedback_es":"1-2 líneas en español: si entendió y qué se le escapó","correccion":{"quote":"exact wrong words","fix":"native phrasing","why":"por qué, en español, 1 línea"}|null}. "ok" judges COMPREHENSION, not grammar. Correct only the single most valuable English error, null if clean. No grammar jargon.';
+    const { parsed } = await callJSON('chat', [
+      { role: 'system', content: sys },
+      { role: 'user', content: 'PASSAGE:\n' + ((state.dropEdicion && state.dropEdicion.passage) || '') + '\n\nQUESTION: ' + pregunta + '\n\nHIS ANSWER: ' + texto },
+    ], 1400);
+    if (!parsed) throw new Error('el coach se enredó, intenta de nuevo');
+
+    let html = (tipo === 'prod' ? '💬 ' : (parsed.ok ? '✅ ' : '🤔 ')) + esc(parsed.feedback_es || '');
+    if (parsed.correccion && parsed.correccion.fix) {
+      const c = parsed.correccion;
+      html += '<br><span style="color: oklch(70% 0.19 30); text-decoration: line-through;">' + esc(c.quote || '') + '</span> → <b style="color: var(--accent);">' + esc(c.fix) + '</b> · ' + esc(c.why || '');
+      saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
+    }
+    if (esProd && parsed.upgrade && parsed.upgrade.c1) {
+      const u = parsed.upgrade;
+      html += '<br>⬆️ “' + esc(u.b2 || '') + '” → <b style="color: var(--accent);">“' + esc(u.c1) + '”</b> · ' + esc(u.note || '');
+      recordUpgrade({ b2: u.b2 || '', c1: u.c1, note: u.note || '', dominado: false });
+    }
+    fb.innerHTML = html;
+  } catch (e) {
+    fb.textContent = '';
+    toast('Error: ' + (e.message || e), 4000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderProduccionDrop(prompt) {
+  const cont = $('#drop-prod');
+  cont.innerHTML = '';
+  if (prompt) cont.appendChild(cardAbiertaDrop(prompt, 'prod'));
+}
+
+$('#drop-shadow-btn').addEventListener('click', () => {
+  const ed = state.dropEdicion;
+  if (!ed || !ed.passage) return;
+  // 3 oraciones con chicha (6+ palabras); si el split no da, arranque del passage
+  const frases = String(ed.passage).replace(/\n+/g, ' ').split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.split(/\s+/).length >= 6)
+    .slice(0, 3);
+  iniciarShadow(frases.length ? frases : [String(ed.passage).slice(0, 140)]);
+});
+
+$('#drop-close').addEventListener('click', () => {
+  cerrarShadow();
+  const ed = state.dropEdicion;
+  if (ed) {
+    const n = guardarLexicoDrop(ed.lexicon || []);
+    updateStreak();
+    if (n) toast(n === 1 ? '1 expresión nueva en tu DNA' : n + ' expresiones nuevas en tu DNA', 2500);
+  }
+  const ses = $('#drop-session');
+  ses.classList.add('hidden'); ses.classList.remove('flex');
+  $('#drop-home').classList.remove('hidden');
+  renderPortadaDrop();
+});
+
+/* ═══════════════════ DROP · SHADOWING — "tu voz vs. Helena" ═══════════════════
+   Módulo autocontenido. Checklist de verificación manual completo en el
+   entregable del scratchpad (drop-shadow.js); los puntos críticos en Brave:
+   la toma debe sonar AL PRIMER clic (cero awaits antes de play()) y el
+   indicador de mic del navegador debe apagarse SIEMPRE al cerrar. */
+(function () {
+'use strict';
+
+let cards = [];            // {frase, buf, cargando, tomaUrl, el, btnRec, ab}
+let srcModelo = null;      // BufferSource del modelo sonando (separado de audioActual)
+let audioToma = null;      // <audio> de la toma del usuario sonando
+let opToken = 0;           // invalida cargas TTS en vuelo al cerrar/reiniciar
+let micStream = null;      // stream compartido del micrófono
+let recorder = null;
+let cardGrabando = null;
+let micDenegado = false;
+
+// CSS de respaldo con tokens del rediseño; si el <style> principal define
+// .dp-sh-*, sus reglas ganan por cascada.
+function inyectarCSS() {
+  if (document.getElementById('dp-sh-css')) return;
+  const st = document.createElement('style');
+  st.id = 'dp-sh-css';
+  st.textContent = '#shadow-area { display: flex; flex-direction: column; gap: 12px; }'
+    + '.dp-sh-card { background: var(--bg-elevated, #1c1c24); border: 1px solid var(--glass-border, rgba(255,255,255,.09)); border-radius: 16px; padding: 14px 16px; }'
+    + '.dp-sh-num { font-family: "Space Mono", monospace; font-size: .62rem; letter-spacing: .14em; color: var(--text-muted, #9a9aa6); margin-bottom: 6px; }'
+    + '.dp-sh-frase { font-family: "Familjen Grotesk", system-ui, sans-serif; font-size: 1rem; line-height: 1.45; color: var(--text-primary, #f4f4f7); margin: 0 0 10px; }'
+    + '.dp-sh-btns, .dp-sh-ab { display: flex; flex-wrap: wrap; gap: 8px; }'
+    + '.dp-sh-ab { margin-top: 8px; }'
+    + '.dp-sh-btn { font-family: "Space Mono", monospace; font-size: .7rem; font-weight: 700; letter-spacing: .05em; padding: 8px 14px; border-radius: 999px; cursor: pointer; border: 1px solid var(--glass-border, rgba(255,255,255,.12)); background: var(--bg-surface, #14141a); color: var(--text-primary, #f4f4f7); }'
+    + '.dp-sh-btn:disabled { opacity: .35; cursor: not-allowed; }'
+    + '.dp-sh-modelo, .dp-sh-a { background: var(--accent-dim, rgba(172,237,55,.14)); color: var(--accent, #aced37); border-color: transparent; }'
+    + '.dp-sh-cargando .dp-sh-modelo, .dp-sh-cargando .dp-sh-a { opacity: .45; }'
+    + '.dp-sh-grabando .dp-sh-rec { background: var(--danger-dim, rgba(224,90,60,.16)); color: var(--danger, #e05a3c); border-color: var(--danger, #e05a3c); animation: dp-sh-pulso 1.1s ease-in-out infinite; }'
+    + '.dp-sh-card.dp-sh-sonando { border-color: var(--accent, #aced37); }'
+    + '.dp-sh-oculta { display: none !important; }'
+    + '@keyframes dp-sh-pulso { 50% { opacity: .55; } }'
+    + '@media (prefers-reduced-motion: reduce) { .dp-sh-grabando .dp-sh-rec { animation: none; } }';
+  document.head.appendChild(st);
+}
+
+// Nunca suenan dos cosas a la vez. Todo SÍNCRONO a propósito: playToma()
+// depende de que este paso no meta ningún await antes de su play().
+function pararReproduccion() {
+  if (srcModelo) { try { srcModelo.stop(); } catch {} srcModelo = null; }
+  if (audioToma) { try { audioToma.pause(); } catch {} audioToma = null; }
+  if (typeof stopSpeaking === 'function') stopSpeaking();
+  cards.forEach((c) => c.el && c.el.classList.remove('dp-sh-sonando'));
+}
+
+// Los botones prometen HELENA aunque Gus tenga Draco activo en TALK: se fija
+// la voz solo durante esta petición y se restaura si nadie la tocó mientras.
+async function pedirTTSHelena(texto) {
+  const puedoFijar = typeof vozActual !== 'undefined';
+  let previa = null;
+  if (puedoFijar) { previa = vozActual; vozActual = 'aura-2-helena-en'; }
+  try { return await pedirTTS(texto); }
+  finally { if (puedoFijar && vozActual === 'aura-2-helena-en') vozActual = previa; }
+}
+
+// El MP3 se pide UNA vez por frase y se cachea ya DECODIFICADO (AudioBuffer):
+// decodeAudioData "consume" el ArrayBuffer, así que guardar el MP3 crudo no
+// serviría; el AudioBuffer es reutilizable en infinitos BufferSource.
+async function playModelo(card) {
+  if (cardGrabando) { toast('Para la grabación primero — Helena se colaría en tu toma'); return; }
+  pararReproduccion();
+
+  if (!card.buf) {
+    if (card.cargando) return;
+    card.cargando = true;
+    card.el.classList.add('dp-sh-cargando');
+    const miToken = opToken;
+    try {
+      const ab = await pedirTTSHelena(card.frase);
+      // Se decodifica aunque el token caducara: la caché sirve para la próxima.
+      card.buf = await ctxAudio().decodeAudioData(ab);
+    } catch (e) {
+      toast('No pude traer la voz de Helena: ' + String(e && e.message || e).slice(0, 80));
+      return;
+    } finally {
+      card.cargando = false;
+      card.el.classList.remove('dp-sh-cargando');
+    }
+    if (miToken !== opToken) return;   // cerraron el shadow mientras cargaba
+  }
+
+  const ctx = ctxAudio();
+  if (ctx.state === 'suspended') { try { ctx.resume(); } catch {} }
+  const src = ctx.createBufferSource();
+  src.buffer = card.buf;
+  src.connect(ctx.destination);
+  srcModelo = src;
+  card.el.classList.add('dp-sh-sonando');
+  src.onended = () => {
+    if (srcModelo === src) srcModelo = null;
+    card.el.classList.remove('dp-sh-sonando');
+  };
+  src.start();
+}
+
+// OJO BRAVE: cero awaits antes de play(). new Audio + play() síncrono dentro
+// del clic = gesto válido; una microtarea de por medio y Brave lo bloquea.
+function playToma(card) {
+  if (!card.tomaUrl) return;
+  if (cardGrabando) { toast('Para la grabación primero'); return; }
+  pararReproduccion();
+  const a = new Audio(card.tomaUrl);
+  audioToma = a;
+  card.el.classList.add('dp-sh-sonando');
+  a.onended = () => {
+    if (audioToma === a) audioToma = null;
+    card.el.classList.remove('dp-sh-sonando');
+  };
+  a.play().catch((e) => {
+    card.el.classList.remove('dp-sh-sonando');
+    toast('No pude reproducir tu toma (' + (e && e.name || 'error') + ')');
+  });
+}
+
+// Un solo stream para toda la sesión (un único prompt de permiso); se libera
+// en cerrarShadow(). Si se deniega, la grabación se apaga y la escucha sigue.
+async function asegurarMic() {
+  if (micStream && micStream.getTracks().some((t) => t.readyState === 'live')) return micStream;
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  return micStream;
+}
+
+function toggleRec(card) {
+  if (cardGrabando === card) { pararRec(false); return; }
+  if (cardGrabando) { toast('Ya estás grabando otra frase'); return; }
+  if (micDenegado) { toast('Micrófono bloqueado — actívalo en el candado de la barra de dirección'); return; }
+  if (!window.MediaRecorder || !navigator.mediaDevices) { toast('Tu navegador no soporta grabación'); return; }
+  empezarRec(card);
+}
+
+async function empezarRec(card) {
+  pararReproduccion();   // que Helena no acabe dentro de tu toma
+  const miToken = opToken;
+  let stream;
+  try {
+    stream = await asegurarMic();
+  } catch (e) {
+    micDenegado = true;
+    cards.forEach((c) => { if (c.btnRec) c.btnRec.disabled = true; });
+    toast(e && e.name === 'NotFoundError'
+      ? 'No encuentro ningún micrófono conectado'
+      : 'Micrófono denegado — puedes seguir escuchando a Helena');
+    return;
+  }
+  if (miToken !== opToken) {
+    // Cerraron el shadow con el prompt de permiso abierto y LUEGO concedieron:
+    // soltar este stream recién nacido o el indicador de mic queda encendido.
+    stream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+    if (micStream === stream) micStream = null;
+    return;
+  }
+  if (cardGrabando) return;
+
+  let mime = '';
+  for (const m of ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']) {
+    if (MediaRecorder.isTypeSupported(m)) { mime = m; break; }
+  }
+  const chunks = [];
+  const rec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    if (recorder === rec) recorder = null;
+    if (cardGrabando === card) cardGrabando = null;
+    if (card.el) {
+      card.el.classList.remove('dp-sh-grabando');
+      card.btnRec.textContent = '● GRABAR';
+    }
+    if (rec._descartar) return;
+    if (!chunks.length) { toast('No se grabó nada — ¿otro app está usando el micro?'); return; }
+    const blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
+    // Re-grabar: revocar el URL viejo o los blobs se acumulan toda la sesión.
+    if (card.tomaUrl) { try { URL.revokeObjectURL(card.tomaUrl); } catch {} }
+    card.tomaUrl = URL.createObjectURL(blob);
+    card.ab.classList.remove('dp-sh-oculta');
+  };
+
+  recorder = rec;
+  cardGrabando = card;
+  card.el.classList.add('dp-sh-grabando');
+  card.btnRec.textContent = '■ PARAR';
+  rec.start();
+}
+
+function pararRec(descartar) {
+  if (recorder && recorder.state !== 'inactive') {
+    recorder._descartar = !!descartar;
+    try { recorder.stop(); } catch {}
+  }
+}
+
+function descartarToma(card) {
+  pararReproduccion();
+  if (card.tomaUrl) { try { URL.revokeObjectURL(card.tomaUrl); } catch {} card.tomaUrl = null; }
+  card.ab.classList.add('dp-sh-oculta');
+}
+
+// Todo por DOM: la frase viene del modelo y puede traer comillas/ángulos —
+// textContent la neutraliza gratis.
+function boton(txt, clase) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'dp-sh-btn ' + clase;
+  b.textContent = txt;
+  return b;
+}
+
+function construirCard(frase, i) {
+  const card = { frase, buf: null, cargando: false, tomaUrl: null };
+
+  const el = document.createElement('div');
+  el.className = 'dp-sh-card';
+
+  const num = document.createElement('div');
+  num.className = 'dp-sh-num';
+  num.textContent = 'TOMA ' + String(i + 1).padStart(2, '0');
+
+  const p = document.createElement('p');
+  p.className = 'dp-sh-frase';
+  p.textContent = frase;
+
+  const fila = document.createElement('div');
+  fila.className = 'dp-sh-btns';
+  const btnModelo = boton('▶ MODELO', 'dp-sh-modelo');
+  const btnRec = boton('● GRABAR', 'dp-sh-rec');
+  if (micDenegado) btnRec.disabled = true;
+  fila.append(btnModelo, btnRec);
+
+  const ab = document.createElement('div');
+  ab.className = 'dp-sh-ab dp-sh-oculta';
+  const btnA = boton('A · HELENA', 'dp-sh-a');
+  const btnB = boton('B · TU TOMA', 'dp-sh-b');
+  const btnOtra = boton('OTRA VEZ', 'dp-sh-otra');
+  ab.append(btnA, btnB, btnOtra);
+
+  btnModelo.addEventListener('click', () => playModelo(card));
+  btnA.addEventListener('click', () => playModelo(card));
+  btnRec.addEventListener('click', () => toggleRec(card));
+  btnB.addEventListener('click', () => playToma(card));
+  btnOtra.addEventListener('click', () => descartarToma(card));
+
+  el.append(num, p, fila, ab);
+  card.el = el; card.btnRec = btnRec; card.ab = ab;
+  cards.push(card);
+  return el;
+}
+
+window.iniciarShadow = function (frases) {
+  const area = document.querySelector('#shadow-area');
+  if (!area) { console.warn('[shadow] falta #shadow-area en el DOM'); return; }
+  if (typeof pedirTTS !== 'function' || typeof ctxAudio !== 'function') {
+    toast('Shadowing no disponible: falta el módulo de voz');
+    return;
+  }
+  window.cerrarShadow();
+  inyectarCSS();
+
+  const lista = (Array.isArray(frases) ? frases : [])
+    .map((f) => String(f || '').trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  if (!lista.length) { toast('No hay frases para el shadowing'); return; }
+
+  lista.forEach((frase, i) => area.appendChild(construirCard(frase, i)));
+};
+
+window.cerrarShadow = function () {
+  opToken++;                 // deja huérfana cualquier carga TTS en vuelo
+  pararRec(true);            // descarta una toma a medias
+  pararReproduccion();
+  cardGrabando = null;
+  // CRÍTICO: soltar el micrófono. Sin track.stop() el indicador de "mic en
+  // uso" queda encendido aunque el pane esté cerrado. stop() del MediaRecorder
+  // NO libera el hardware.
+  if (micStream) {
+    micStream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+    micStream = null;
+  }
+  cards.forEach((c) => { if (c.tomaUrl) { try { URL.revokeObjectURL(c.tomaUrl); } catch {} } });
+  cards = [];
+  const area = document.querySelector('#shadow-area');
+  if (area) area.innerHTML = '';
+};
+
+})();
 
 /* ═══════════════════ MIC GENÉRICO (Story + Ladder) ═══════════════════ */
 // Cada llamada crea su propia instancia; solo una activa a la vez por el guard.
