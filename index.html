@@ -1020,6 +1020,26 @@ body.rd-sesion .dp-modebar { display: none; }
 }
 @keyframes dp-spin { to { transform: rotate(360deg); } }
 
+/* ── CTA de práctica fijado ───────────────────────────────────────────────
+   "¿QUIERES PRACTICAR?" quedaba debajo del fold tras 5 tarjetas de léxico y
+   nadie lo encontraba (pregunta real de Gus). Fijado abajo mientras dura la
+   etapa de lectura — el hueco del navbar (oculto en sesión) es suyo. Centrado
+   con left/right+margin, NUNCA con translateX: gsap pisa el transform al
+   animarlo y lo descentraría. */
+#drop-practicar {
+  position: fixed; left: 20px; right: 20px; bottom: 18px;
+  margin: 0 auto; max-width: 720px;
+  z-index: 90;
+  box-shadow: 0 14px 40px oklch(0% 0 0 / 0.6), 0 4px 18px oklch(87% 0.21 128 / 0.35);
+  /* Entrada por CSS, NO por gsap (regla de oro del repo): si el motion decide
+     la visibilidad y no corre, el CTA queda en opacity 0 — pasó de verdad. */
+  animation: dp-cta-in 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.25s both;
+}
+@keyframes dp-cta-in { from { opacity: 0; transform: translateY(26px); } }
+@media (prefers-reduced-motion: reduce) { #drop-practicar { animation: none; } }
+/* aire extra al final del scroll para que la última tarjeta no quede tapada */
+#drop-session > .scroll-area { padding-bottom: 96px !important; }
+
 /* ── Máquina de escribir del coach (TALK) ───────────────────────────────── */
 .bubble-coach.escribiendo::after {
   content: '▍'; margin-left: 2px; color: var(--accent);
@@ -3265,7 +3285,9 @@ function abrirEdicionDrop(ed, semillas) {
   pr.classList.add('hidden');
   pr.classList.remove('flex');
 
-  animateIn(ses.querySelectorAll('.dp-head, .dp-audiobar, .dp-passage, .dp-sect, #drop-practicar'), { y: 18, duration: 0.7 });
+  // OJO: #drop-practicar NO va aquí — su entrada es por CSS keyframes. Si
+  // gsap le pusiera opacity:0 y el tween no corriera, el CTA desaparecería.
+  animateIn(ses.querySelectorAll('.dp-head, .dp-audiobar, .dp-passage, .dp-sect'), { y: 18, duration: 0.7 });
 }
 
 // Etapa 2: revelar la práctica con motion y llevar la vista hasta ella.
