@@ -1151,6 +1151,126 @@ body.rd-lectura .luminous-line { opacity: 0; }
 }
 @keyframes rd-caret { 50% { opacity: 0; } }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   ROLEPLAY · teatro jugable — estilos (prefijo .rp-)
+   Estética RODEO + toque teatral: telón/spotlight en las tarjetas. Entradas
+   por CSS keyframes con animation-fill-mode: both (nunca GSAP para visibilidad).
+   ══════════════════════════════════════════════════════════════════════════ */
+.rd-ill--rp-hero { top: -4px; right: -2px; width: 104px; height: 104px; opacity: 0.85; }
+
+/* Tarjeta de escena. Superficie oscura + halo spotlight arriba-derecha + borde
+   sutil = "escenario". El canónico va más cálido (tinte lima). */
+.rp-card {
+  position: relative; overflow: hidden;
+  width: 100%; text-align: left; cursor: pointer;
+  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  border-radius: 22px; padding: 20px 20px 18px;
+  background:
+    radial-gradient(120% 90% at 88% -10%, oklch(87% 0.21 128 / 0.10), transparent 60%),
+    var(--bg-surface);
+  color: var(--text-primary);
+  transition: border-color .25s ease, transform .2s ease, box-shadow .25s ease;
+  animation: rp-rise 0.55s cubic-bezier(0.32,0.72,0,1) both;
+  animation-delay: calc(var(--i, 0) * 0.06s);
+}
+.rp-card:hover, .rp-card:focus-visible {
+  border-color: oklch(87% 0.21 128 / 0.55);
+  box-shadow: 0 10px 30px oklch(0% 0 0 / 0.32);
+}
+.rp-card:active { transform: scale(0.985); }
+.rp-card--canon {
+  border-color: oklch(87% 0.21 128 / 0.4);
+  background:
+    radial-gradient(120% 100% at 90% -20%, oklch(87% 0.21 128 / 0.18), transparent 62%),
+    linear-gradient(158deg, oklch(87% 0.21 128 / 0.08), oklch(16% 0.015 265 / 0.5));
+}
+.rp-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.rp-card-emoji {
+  font-size: 1.5rem; line-height: 1; flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px oklch(0% 0 0 / 0.4));
+}
+.rp-card-tag {
+  font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent);
+}
+.rp-card-title {
+  font-family: 'Archivo', sans-serif; font-weight: 800;
+  font-size: clamp(1.5rem, 6.5vw, 1.95rem); line-height: 1; letter-spacing: -0.02em;
+  margin-bottom: 12px; color: var(--text-primary);
+}
+.rp-card-title .rp-mask { color: var(--accent); }
+.rp-line { display: flex; gap: 9px; font-size: 0.86rem; line-height: 1.45; margin-top: 7px; }
+.rp-line-k {
+  flex-shrink: 0; width: 62px;
+  font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+  padding-top: 2px;
+}
+.rp-line-v { color: var(--text-secondary); min-width: 0; }
+.rp-line--obst .rp-line-v { color: oklch(80% 0.13 40); }   /* la tensión, en durazno cálido */
+.rp-card-go {
+  margin-top: 14px; display: inline-flex; align-items: center; gap: 7px;
+  font-family: 'Space Mono', monospace; font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent);
+}
+.rp-refresh {
+  background: none; border: none; color: var(--text-muted);
+  font-family: 'Space Mono', monospace; font-size: 0.66rem; letter-spacing: 0.04em;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px;
+  flex-shrink: 0;
+}
+.rp-refresh:hover, .rp-refresh:focus-visible { color: var(--text-secondary); }
+.rp-refresh:disabled { opacity: 0.4; cursor: default; }
+
+/* Skeleton de carga de escenas */
+.rp-skel {
+  height: 118px; border-radius: 22px;
+  background: linear-gradient(100deg, var(--bg-surface) 30%, oklch(22% 0.02 265) 50%, var(--bg-surface) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Ficha de misión: primera cosa en la sesión — rol / objetivo / obstáculo */
+.rp-mission {
+  border: 1px solid oklch(87% 0.21 128 / 0.32);
+  border-radius: 16px; padding: 14px 16px;
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.09), oklch(16% 0.015 265 / 0.4));
+  animation: rp-rise 0.5s cubic-bezier(0.32,0.72,0,1) both;
+}
+.rp-mission-tag {
+  display: inline-flex; align-items: center; gap: 7px; margin-bottom: 8px;
+  font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent);
+}
+
+/* Acotación teatral: el CONSEJO en español, "dirección desde bastidores".
+   Visualmente separado del diálogo — borde lima punteado a la izquierda. */
+.rp-consejo {
+  margin-right: auto; max-width: 88%;
+  border-left: 2px dashed oklch(87% 0.21 128 / 0.5);
+  background: oklch(87% 0.21 128 / 0.06);
+  border-radius: 0 12px 12px 0;
+  padding: 10px 14px; font-size: 0.86rem; line-height: 1.55;
+  color: var(--text-secondary);
+  animation: rp-rise 0.45s cubic-bezier(0.32,0.72,0,1) both;
+}
+.rp-consejo-tag {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+  font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+}
+.rp-consejo b, .rp-consejo strong { color: var(--text-primary); font-weight: 700; }
+
+/* Burbuja de narración: como la del coach pero con marca de "narrador" (barra
+   lima a la izquierda) para distinguir la voz que pinta la escena. */
+.rp-narr { border-left: 3px solid oklch(87% 0.21 128 / 0.55); }
+
+@keyframes rp-rise { from { opacity: 0; transform: translateY(16px); } }
+@media (prefers-reduced-motion: reduce) {
+  .rp-card, .rp-mission, .rp-consejo { animation: none; }
+  .rp-skel { animation: none; }
+}
+
 </style>
 </head>
 <body class="grain ambient-glow">
@@ -1522,6 +1642,75 @@ body.rd-lectura .luminous-line { opacity: 0; }
     </div>
   </section>
 
+  <!-- ══════════════════════ VISTA: ROLEPLAY ══════════════════════ -->
+  <!-- Teatro narrativo jugable. El modelo es NARRADOR + PERSONAJES; Gus actúa un
+       rol con objetivo y obstáculo. Home con tarjetas de escenario (creative) +
+       el canónico. Sesión: narración/diálogo en vivo (chat stream) con glosas
+       ⟦||⟧ y una acotación teatral (CONSEJO en español) separada. -->
+  <section id="view-roleplay" class="view">
+
+    <!-- ── Portada ── -->
+    <div id="roleplay-home" class="scroll-area flex flex-col gap-6" style="flex:1;">
+
+      <div class="rd-hero rd-hero--roleplay">
+        <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Roleplay · teatro jugable</p>
+        <p class="font-display rd-hero-title">ACTÚA.<br>NO SOLO <span style="color: var(--accent);">HABLES.</span></p>
+        <p class="rd-hero-sub">Entras a una escena con un rol, un objetivo y alguien que se te opone. Tu única salida es lo que produzcas en inglés.</p>
+        <!-- ILUSTRACIÓN: telón + máscara — motivo teatral line-art lima -->
+        <div class="rd-ill rd-ill--rp-hero" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 12 H86"/><path d="M22 12 C22 40 18 58 30 58 C40 58 36 34 36 12"/><path d="M50 12 C50 44 44 66 60 66 C72 66 66 40 66 12"/><path d="M78 12 C78 40 82 58 70 58"/><path d="M40 78 C40 62 44 56 52 56 C60 56 64 62 64 78 Q52 88 40 78 Z"/><path d="M47 68 L47 68" stroke-width="6"/><path d="M57 68 L57 68" stroke-width="6"/></svg></div>
+      </div>
+
+      <!-- Escenario canónico del dueño — siempre disponible, destacado -->
+      <p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>El clásico de la casa</p>
+      <div id="rp-canonico"></div>
+
+      <!-- 3 escenas generadas por modo creative (moldeadas por tus intereses) -->
+      <div class="flex items-center justify-between">
+        <p class="rd-eyebrow rd-eyebrow--accent" style="margin-bottom:0;"><span class="rd-eyebrow-rule"></span>Escenas frescas para ti</p>
+        <button id="rp-refresh" class="rp-refresh" type="button" aria-label="Generar otras escenas">otras escenas</button>
+      </div>
+      <div id="rp-cards" class="flex flex-col gap-4"></div>
+
+      <div class="flex justify-center pb-6">
+        <button id="rp-sorprende" class="btn-accent">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"></rect><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"></circle><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"></circle><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"></circle><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"></circle><circle cx="12" cy="12" r="1.2" fill="currentColor"></circle></svg>
+          SORPRÉNDEME
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Sesión activa ── -->
+    <div id="roleplay-session" class="hidden flex-col" style="flex:1; min-height:0;">
+      <div class="rd-session-bar flex items-center justify-between pb-3 shrink-0">
+        <div class="flex items-center gap-2">
+          <button id="rp-back" class="icon-btn" aria-label="Volver a los escenarios" style="width:36px;height:36px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+          <span id="rp-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
+        </div>
+        <div class="flex gap-2 items-center">
+          <button id="rp-replay" class="icon-btn" aria-label="Reproducir la última línea" style="width:40px;height:40px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+          </button>
+          <button id="rp-tts" class="icon-btn" aria-label="Activar o desactivar voz" style="width:40px;height:40px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          </button>
+          <button id="rp-end" class="btn-ghost" style="min-height:40px; padding: 8px 16px; font-size: 0.78rem;">Terminar</button>
+        </div>
+      </div>
+      <div id="rp-scroll" class="scroll-area flex flex-col gap-3" style="flex:1; min-height:0; padding-bottom: 8px;"></div>
+      <div class="rd-input-dock flex items-center gap-2 pt-3 shrink-0">
+        <button id="rp-mic" class="icon-btn" aria-label="Hablar por micrófono">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+        </button>
+        <input type="text" id="rp-input" placeholder="Tu línea en inglés o toca el mic..." autocomplete="off" aria-label="Tu línea en inglés">
+        <button id="rp-send" class="icon-btn" aria-label="Enviar línea" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ══════════════════════ VISTA: LADDER (SUBE) ══════════════════════ -->
   <section id="view-ladder" class="view">
     <div id="ladder-home" class="scroll-area flex flex-col gap-5" style="flex:1;">
@@ -1628,6 +1817,10 @@ body.rd-lectura .luminous-line { opacity: 0; }
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
     STORY
   </button>
+  <button class="tab-item" data-view="roleplay" aria-label="Roleplay — teatro jugable">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v6a8 8 0 0 1-16 0V4z"></path><path d="M9 9h.01"></path><path d="M15 9h.01"></path><path d="M9 13c1.2 1.2 4.8 1.2 6 0"></path></svg>
+    ROLEPLAY
+  </button>
   <button class="tab-item" data-view="slang" aria-label="Slang — expresiones">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
     SLANG
@@ -1672,6 +1865,7 @@ const store = {
 const state = {
   view: 'talk',
   session: null,          // { scenario, title, messages:[{role,content}], displayLog:[] }
+  roleplay: null,         // sesión de ROLEPLAY: { scenario, messages:[...] }
   slangMode: 'calle',
   ttsOn: store.get('rodeo_tts', true),
   busy: false,
@@ -2186,6 +2380,7 @@ function switchView(v) {
   if (v === 'dna') renderDNA();
   if (v === 'story') renderStoryHome();
   if (v === 'ladder') renderLadder();
+  if (v === 'roleplay') renderRoleplayHome();
   if (v === 'talk') refrescarRompehielos();   // rompehielos fresco al volver a TALK
   animateIn(section.children, { y: 18, duration: 0.7 });
 }
@@ -2212,6 +2407,7 @@ function actualizarCromo() {
   // detalle el navbar se quedaba escondido mirando el home del thriller.
   const enSesion =
     (activa('view-talk') && visible('talk-session')) ||
+    (activa('view-roleplay') && visible('roleplay-session')) ||
     (activa('view-story') && visible('story-run')) ||
     (activa('view-story') && visible('drop-pane') && visible('drop-session'));
   document.body.classList.toggle('rd-sesion', enSesion);
@@ -2220,7 +2416,7 @@ function actualizarCromo() {
 }
 {
   const obs = new MutationObserver(actualizarCromo);
-  ['view-talk', 'view-story', 'talk-session', 'story-run', 'drop-pane', 'drop-session'].forEach((id) => {
+  ['view-talk', 'view-roleplay', 'view-story', 'talk-session', 'roleplay-session', 'story-run', 'drop-pane', 'drop-session'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
   });
@@ -5151,6 +5347,396 @@ function ladderSummary() {
     <div style="display:flex; justify-content:center; margin-top:20px;">
       <button class="btn-accent" style="min-height:48px; padding:13px 32px;" onclick="closeSheet(); document.getElementById('ladder-runarea').innerHTML='';">LISTO</button>
     </div>`);
+}
+
+/* ═══════════════════ ROLEPLAY · teatro jugable ═══════════════════ */
+// El modelo es NARRADOR + PERSONAJES; Gus actúa un rol con objetivo y obstáculo.
+// Portada: el escenario canónico del dueño (siempre) + 3 escenas de modo creative
+// moldeadas por rodeo_intereses + "sorpréndeme". La sesión corre en modo chat
+// (haiku) por velocidad, reutilizando el stream + el parser de glosas ⟦||⟧ y el
+// render .gloss de TALK/DROP. El CONSEJO en español es la acotación teatral.
+
+const RP_CANONICO = {
+  id: 'princesa',
+  title: 'La princesa y el azafrán',
+  emoji: '👑',
+  role_es: 'Eres una princesa que llega sola al mercado de tu ciudad.',
+  goal_es: 'Comprar azafrán a un precio justo, sin que te tomen el pelo.',
+  obstacle_es: 'El vendedor sabe que tienes plata de sobra y, como el azafrán escasea, quiere inflarte el precio.',
+  canonico: true,
+};
+
+const RP_MAX_TOKENS = 2200;
+const RP_MAX_TOKENS_RETRY = 5000;
+const RP_OPENING = `(Open the scene now. In 2-4 vivid sentences set the place, the mood, and drop me into my role, then have the character speak their FIRST line straight to me — pointed enough that I have to answer. Do NOT act or speak for me. Keep it tight, and remember the exact JSON shape.)`;
+
+let rpCards = [];          // caché en memoria de las 3 escenas generadas
+let rpGenBusy = false;     // reentrancy de la GENERACIÓN de escenas (home)
+let rpBusy = false;        // reentrancy de los TURNOS de la sesión — flag aparte:
+                           // generar cartas (creative, lento) NO debe bloquear
+                           // abrir/jugar una escena, y viceversa.
+let rpLastDebrief = [];    // aprendizajes del último cierre, para guardar a DNA
+
+// El proveedor a veces devuelve su JSON de rate-limit crudo como mensaje de
+// error; en la portada eso se lee como "roto". Lo traducimos a algo humano.
+function rpErrMsg(err) {
+  const m = String((err && err.message) || err || '');
+  if (/rate.?limit/i.test(m)) return 'El modelo creativo está saturado ahora mismo — dale a reintentar en un momento';
+  return m || 'Algo salió mal';
+}
+
+function rpSystemPrompt(sc) {
+  return `You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside RODEO, a personal English trainer. The player is Gus: Venezuelan, lives in Medellín, level B2+ working toward C1, works in crypto/tech. This is playable narrative theatre — you run the world and everyone in it EXCEPT Gus, who acts out a role IN ENGLISH.
+
+THE SCENE
+- Title: ${sc.title}
+- Gus's role: ${sc.role_es}
+- Gus's goal: ${sc.goal_es}
+- The obstacle / the tension: ${sc.obstacle_es}${interesesBriefTalk()}
+
+HOW YOU PLAY
+- Paint vivid, sensory scenes in 2-4 sentences, then let a character speak. Voice each character as a real person with self-interest, mood and pushback — never make the goal easy, never fold at the first polite request.
+- React to what Gus actually says and let it move the story. If he plays it well, the character softens or the plot opens; if he fumbles, the tension rises — but never break the fiction to lecture him.
+- Contemporary, natural English (C1 collocations, phrasal verbs, real idioms). Put spoken lines in quotes. NEVER narrate Gus's own words or actions for him — leave him room to act.
+
+OUTPUT — STRICT JSON, your very first character must be '{':
+{
+  "reply": "the scene + the character's spoken line, in natural English. To underline a genuinely useful phrase, wrap it INLINE with these EXACT markers: ⟦english chunk||explicación corta y cercana en español⟧ — only phrases that help Gus negotiate, persuade or sound natural, AT MOST 1-2 per turn, often zero.",
+  "glosses": [ up to 3 items {"term","es"} chosen FROM your own reply — phrasal verbs, idioms or collocations a B2 won't fully catch. "term" MUST be an exact substring of reply (same case, same words). "es" explains like a bilingual friend, never grammar-speak (no 'subjuntivo', no tense names). [] if none, or if you already underlined them inline. ],
+  "consejo": "OPTIONAL theatrical aside in SPANISH — a director whispering from the wings. When it helps, hand Gus 1-2 concrete English phrases he could USE right now to negotiate, stand his ground or apply strategic courtesy, e.g. Para no ceder de una: \"That's a bit steep — what's your best price?\". Empty string on most turns; include it ONLY when it truly helps him take the next move."
+}
+The ⟦||⟧ markers are the ONLY place Spanish may appear inside "reply". NEVER leave a ⟦ or a ⟧ unmatched, and never repeat a phrase both inline with ⟦||⟧ and again in the glosses array.`;
+}
+
+// ── Portada ────────────────────────────────────────────────────────────────
+function renderRoleplayHome() {
+  if (state.roleplay) return;   // hay sesión viva: no repintar la portada debajo
+  const cbox = $('#rp-canonico');
+  if (cbox) { cbox.innerHTML = ''; cbox.appendChild(rpCardEl(RP_CANONICO, true)); }
+  if (rpCards.length) renderRpCards();
+  else generarEscenas();
+}
+
+function renderRpCards() {
+  const box = $('#rp-cards');
+  if (!box) return;
+  box.innerHTML = '';
+  rpCards.forEach((sc, i) => {
+    const el = rpCardEl(sc, false);
+    el.style.setProperty('--i', i);
+    box.appendChild(el);
+  });
+}
+
+function rpCardEl(sc, canon) {
+  const el = document.createElement('button');
+  el.type = 'button';
+  el.className = 'rp-card' + (canon ? ' rp-card--canon' : '');
+  el.innerHTML = `
+    <div class="rp-card-top">
+      <span class="rp-card-emoji" aria-hidden="true">${esc(sc.emoji || '🎭')}</span>
+      <span class="rp-card-tag">${canon ? 'El clásico · siempre disponible' : 'Escena'}</span>
+    </div>
+    <div class="rp-card-title">${esc(sc.title)}</div>
+    <div class="rp-line"><span class="rp-line-k">Tu rol</span><span class="rp-line-v">${esc(sc.role_es)}</span></div>
+    <div class="rp-line"><span class="rp-line-k">Objetivo</span><span class="rp-line-v">${esc(sc.goal_es)}</span></div>
+    <div class="rp-line rp-line--obst"><span class="rp-line-k">La tensión</span><span class="rp-line-v">${esc(sc.obstacle_es)}</span></div>
+    <span class="rp-card-go">Entrar a escena &rarr;</span>`;
+  el.addEventListener('click', () => startRoleplay(sc));
+  return el;
+}
+
+async function generarEscenas() {
+  if (rpGenBusy || state.busy) return;
+  rpGenBusy = true;
+  const box = $('#rp-cards');
+  const rf = $('#rp-refresh');
+  if (rf) rf.disabled = true;
+  if (box) {
+    box.innerHTML = '';
+    for (let i = 0; i < 3; i++) { const s = document.createElement('div'); s.className = 'rp-skel'; box.appendChild(s); }
+  }
+  try {
+    const avoid = rpCards.map((c) => c.title).concat(RP_CANONICO.title).join(', ') || 'none';
+    const { parsed } = await callJSON('creative', [
+      { role: 'system', content: 'You design vivid, playable roleplay THEATRE scenarios for an English learner. Respond with STRICT JSON only.' },
+      { role: 'user', content: `Design exactly 3 fresh, dramatic roleplay scenes for Gus (B2+ heading to C1, works in crypto/tech, lives in Medellín). In each, he plays a ROLE with a clear GOAL and a real OBSTACLE — someone or something pushing back, with genuine stakes and friction. Like the canonical example: a princess at the market haggling for scarce saffron against a vendor who smells her money.
+Not everyday small talk — negotiation, persuasion, standing your ground, charm or nerve under pressure. Make them varied and a little surprising.${interesesLineaDrop()}
+Avoid repeating these titles: ${avoid}.
+Return a STRICT JSON array of exactly 3 objects, each with keys:
+{"title":"título corto y evocador en español (máx 5 palabras)","emoji":"un emoji que encaje","role_es":"quién es Gus en la escena, 1 frase","goal_es":"qué quiere lograr, 1 frase","obstacle_es":"el obstáculo o la tensión: quién se le opone y por qué, 1 frase"}
+Emit the JSON array as your very first character, nothing before it.` },
+    ], 2600);
+    const valid = (Array.isArray(parsed) ? parsed : []).filter((c) => c && c.title && c.role_es && c.goal_es && c.obstacle_es).slice(0, 3);
+    if (!valid.length) throw new Error('No pude armar las escenas, dale otra vez');
+    rpCards = valid;
+    renderRpCards();
+  } catch (err) {
+    if (box) {
+      box.innerHTML = `<p style="color:var(--text-muted); font-size:0.88rem; line-height:1.5;">${esc(rpErrMsg(err))} · <button id="rp-retry" class="rp-refresh">reintentar</button></p>`;
+      const rt = $('#rp-retry'); if (rt) rt.addEventListener('click', generarEscenas);
+    }
+  } finally {
+    rpGenBusy = false;
+    const rf2 = $('#rp-refresh'); if (rf2) rf2.disabled = false;
+  }
+}
+
+async function rpSorprende() {
+  if (rpGenBusy || state.busy) return;
+  rpGenBusy = true;
+  const btn = $('#rp-sorprende'); if (btn) btn.disabled = true;
+  toast('Inventando una escena...', 3000);
+  try {
+    const avoid = rpCards.map((c) => c.title).concat(RP_CANONICO.title).join(', ') || 'none';
+    const { parsed } = await callJSON('creative', [
+      { role: 'system', content: 'You invent one vivid, surprising roleplay THEATRE scenario for an English learner. Respond with STRICT JSON only.' },
+      { role: 'user', content: `Invent ONE unexpected, dramatic roleplay scene for Gus (B2+ heading to C1, crypto/tech, Medellín) where he plays a role with a clear goal and a real obstacle pushing back — stakes and friction, not small talk. Surprise him; go somewhere unusual.${interesesLineaDrop()}
+Avoid these titles: ${avoid}.
+Return a STRICT JSON object: {"title":"título corto en español","emoji":"un emoji","role_es":"quién es Gus, 1 frase","goal_es":"qué quiere, 1 frase","obstacle_es":"el obstáculo, 1 frase"}
+Emit the JSON object as your very first character.` },
+    ], 1800);
+    const sc = (parsed && !Array.isArray(parsed) && parsed.title) ? parsed : (Array.isArray(parsed) ? parsed[0] : null);
+    if (!sc || !sc.title || !sc.role_es || !sc.goal_es || !sc.obstacle_es) throw new Error('No salió — intenta de nuevo');
+    rpGenBusy = false;
+    startRoleplay(sc);
+  } catch (err) {
+    toast('Error: ' + rpErrMsg(err), 5000);
+    rpGenBusy = false;
+  } finally {
+    const b = $('#rp-sorprende'); if (b) b.disabled = false;
+  }
+}
+
+// ── Sesión ───────────────────────────────────────────────────────────────
+function startRoleplay(sc) {
+  if (state.busy) return;
+  stopSpeaking();
+  state.roleplay = { scenario: sc, messages: [{ role: 'system', content: rpSystemPrompt(sc) }] };
+  $('#roleplay-home').classList.add('hidden');
+  $('#roleplay-session').classList.remove('hidden');
+  $('#roleplay-session').classList.add('flex');
+  $('#rp-title').textContent = sc.title;
+  $('#rp-scroll').innerHTML = '';
+  const rb = $('#rp-replay'); if (rb) rb.disabled = true;
+  rpSyncTTS();
+  rpAddMission(sc);
+  rpTurn(null, true);   // el narrador abre la escena
+}
+
+function rpAddMission(sc) {
+  const el = document.createElement('div');
+  el.className = 'rp-mission';
+  el.innerHTML = `
+    <div class="rp-mission-tag">🎭 tu papel en esta escena</div>
+    <div class="rp-line"><span class="rp-line-k">Rol</span><span class="rp-line-v">${esc(sc.role_es)}</span></div>
+    <div class="rp-line"><span class="rp-line-k">Objetivo</span><span class="rp-line-v">${esc(sc.goal_es)}</span></div>
+    <div class="rp-line rp-line--obst"><span class="rp-line-k">Obstáculo</span><span class="rp-line-v">${esc(sc.obstacle_es)}</span></div>`;
+  $('#rp-scroll').appendChild(el);
+}
+
+function rpAddBubble(html, cls) {
+  const el = document.createElement('div');
+  el.className = cls;
+  el.innerHTML = html;
+  $('#rp-scroll').appendChild(el);
+  animateIn(el, { y: 14, duration: 0.55, stagger: 0 });
+  requestAnimationFrame(() => { const c = $('#rp-scroll'); if (c) c.scrollTop = c.scrollHeight; });
+  return el;
+}
+
+// Acotación teatral: el CONSEJO en español, separado del diálogo. Realza las
+// frases inglesas entre comillas para que salten como "lo que puedes decir".
+function rpAddConsejo(text) {
+  const el = document.createElement('div');
+  el.className = 'rp-consejo';
+  const body = esc(text).replace(/[“"]([^”"]+)[”"]/g, '<b>“$1”</b>');
+  el.innerHTML = `<div class="rp-consejo-tag">🎭 dirección · entre bastidores</div>${body}`;
+  $('#rp-scroll').appendChild(el);
+  // Entrada SOLO por CSS keyframe (.rp-consejo → rp-rise, fill-mode both). NO
+  // animateIn aquí: gsap.from capturaba el opacity:0 del keyframe como destino y
+  // dejaba el consejo atrapado invisible (regla de oro). El keyframe basta.
+  requestAnimationFrame(() => { const c = $('#rp-scroll'); if (c) c.scrollTop = c.scrollHeight; });
+}
+
+function rpInputEnabled(on) {
+  const s = $('#rp-send'), i = $('#rp-input'), m = $('#rp-mic');
+  if (s) s.disabled = !on;
+  if (i) i.disabled = !on;
+  if (m) m.style.opacity = on ? '1' : '0.4';
+}
+
+function rpSyncTTS() { const b = $('#rp-tts'); if (b) b.classList.toggle('on', state.ttsOn); }
+
+async function rpTurn(userText, isOpening) {
+  if (rpBusy || !state.roleplay) return;
+  rpBusy = true;
+  state.busy = true;
+  rpInputEnabled(false);
+
+  if (userText) {
+    state.roleplay.messages.push({ role: 'user', content: userText });
+    rpAddBubble(esc(userText), 'bubble-user');
+  } else {
+    state.roleplay.messages.push({ role: 'user', content: RP_OPENING });
+  }
+
+  const typing = rpAddBubble('<div class="typing-dots"><span></span><span></span><span></span></div>', 'bubble-coach rp-narr');
+  let liveBubble = null;
+  try {
+    let content, finish;
+    try {
+      ({ content, finish } = await callStream('chat', state.roleplay.messages, RP_MAX_TOKENS, (acc) => {
+        if (!state.roleplay) return;
+        const partial = extractPartialReply(acc);
+        if (!partial) return;
+        if (!liveBubble) { typing.remove(); liveBubble = rpAddBubble('', 'bubble-coach rp-narr'); }
+        liveBubble.textContent = stripChunksLive(partial);
+        const c = $('#rp-scroll'); if (c) c.scrollTop = c.scrollHeight;
+      }));
+    } catch (streamErr) {
+      if (liveBubble) { liveBubble.remove(); liveBubble = null; }
+      ({ content, finish } = await callAPI('chat', state.roleplay.messages, RP_MAX_TOKENS));
+    }
+
+    if (!state.roleplay) return;   // el usuario salió mientras el turno volaba
+
+    if ((!content || !content.trim()) && finish === 'length') {
+      if (liveBubble) { liveBubble.remove(); liveBubble = null; }
+      ({ content, finish } = await callAPI('chat', state.roleplay.messages, RP_MAX_TOKENS_RETRY));
+    }
+
+    const parsed = parseJSON(content);
+    let reply, glosses, consejo;
+    if (parsed && parsed.reply) {
+      reply = parsed.reply;
+      glosses = Array.isArray(parsed.glosses) ? parsed.glosses : [];
+      consejo = typeof parsed.consejo === 'string' ? parsed.consejo : '';
+      state.roleplay.messages.push({ role: 'assistant', content: JSON.stringify(parsed) });
+    } else if (finish === 'stop' && content && !content.trim().startsWith('{')) {
+      reply = content; glosses = []; consejo = '';
+      state.roleplay.messages.push({ role: 'assistant', content });
+    } else {
+      throw new Error('El narrador se enredó — repite tu línea');
+    }
+
+    typing.remove();
+    if (!liveBubble) liveBubble = rpAddBubble('', 'bubble-coach rp-narr');
+    liveBubble.innerHTML = renderReply(reply, glosses);
+    if (consejo && consejo.trim()) rpAddConsejo(consejo);
+
+    ultimoHablado = String(reply);
+    const rb = $('#rp-replay'); if (rb) rb.disabled = false;
+    if (state.ttsOn) speak(reply);
+  } catch (err) {
+    typing.remove();
+    if (liveBubble) liveBubble.remove();
+    if (state.roleplay) {
+      toast('Error: ' + rpErrMsg(err), 5000);
+      state.roleplay.messages.pop();
+      if (userText) { const inp = $('#rp-input'); if (inp) inp.value = userText; }
+    }
+  } finally {
+    rpBusy = false;
+    state.busy = false;
+    rpInputEnabled(true);
+  }
+}
+
+function closeRoleplay() {
+  state.roleplay = null;
+  stopSpeaking();
+  const inp = $('#rp-input'); if (inp) inp.value = '';
+  $('#rp-scroll').innerHTML = '';
+  $('#roleplay-session').classList.add('hidden');
+  $('#roleplay-session').classList.remove('flex');
+  $('#roleplay-home').classList.remove('hidden');
+}
+
+// ── Cierre con debrief "cómo te fue" ───────────────────────────────────────
+async function rpDebrief() {
+  if (!state.roleplay || state.busy) return;
+  const turns = state.roleplay.messages.filter((m) => m.role === 'user').length;
+  // La instrucción de apertura cuenta como turno de usuario: exige ≥1 réplica real.
+  if (turns < 2) { closeRoleplay(); return; }
+
+  state.busy = true;
+  toast('Cerrando la escena...', 4000);
+  try {
+    const transcript = state.roleplay.messages
+      .filter((m) => m.role !== 'system')
+      .map((m) => (m.role === 'user' ? 'GUS: ' : 'ESCENA: ') + m.content.slice(0, 600))
+      .join('\n');
+
+    const { parsed: d } = await callJSON('creative', [
+      { role: 'system', content: 'You are an English coach reviewing a roleplay theatre session. Respond with STRICT JSON only.' },
+      { role: 'user', content: `Gus (B2+ heading to C1) just acted out this scene in English. Pull out 2-3 things genuinely worth keeping — natural English phrases he could have used, or used well, to negotiate / persuade / stand firm / sound native in THIS situation. Return JSON:
+{"aprendizajes":[{"en":"the English phrase or chunk","es":"para qué sirve y cuándo usarla, en español, una línea"}],"closing":"2 honest sentences in Spanish about how he handled the scene"}
+Max 3 aprendizajes. TRANSCRIPT:\n${transcript}` },
+    ], 2600);
+
+    if (!d) throw new Error('no pude analizar la escena');
+    const items = Array.isArray(d.aprendizajes) ? d.aprendizajes.filter((x) => x && x.en) : [];
+    rpLastDebrief = items;
+
+    openSheet(`
+      <p class="font-display" style="font-size:2.3rem; line-height:0.95;">CÓMO TE<br>FUE<span style="color:var(--accent);">.</span></p>
+      ${items.length ? `<p style="font-size:0.7rem; letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); margin:18px 0 10px;">Vale la pena que te lo lleves</p>` : ''}
+      ${items.map((it) => `
+        <div class="dna-item" style="margin-bottom:8px;">
+          <div style="font-size:0.98rem; color:var(--text-primary); font-weight:700;">${esc(it.en)}</div>
+          <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:4px;">${esc(it.es || '')}</div>
+        </div>`).join('')}
+      <p style="font-size:0.95rem; font-style:italic; color:var(--text-secondary); margin-top:16px; line-height:1.6;">${esc(d.closing || '')}</p>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:22px;">
+        ${items.length ? `<button class="btn-accent" onclick="rpGuardarDebrief()" style="min-height:48px;">GUARDAR ${items.length} A MI DNA</button>` : ''}
+        <button class="btn-ghost" onclick="rpCerrarDebrief()" style="min-height:44px;">${items.length ? 'Ahora no' : 'LISTO'}</button>
+      </div>`);
+  } catch (err) {
+    toast('Error en el cierre: ' + rpErrMsg(err));
+    closeRoleplay();
+  } finally {
+    state.busy = false;
+  }
+}
+
+window.rpGuardarDebrief = function () {
+  const n = (rpLastDebrief || []).length;
+  (rpLastDebrief || []).forEach((it) => saveDNA({ type: 'slang', term: it.en, meaning: it.es || '', example: '' }));
+  rpLastDebrief = [];
+  closeSheet();
+  closeRoleplay();
+  if (n) toast(`${n} ${n === 1 ? 'frase guardada' : 'frases guardadas'} en tu DNA`);
+};
+window.rpCerrarDebrief = function () { rpLastDebrief = []; closeSheet(); closeRoleplay(); };
+
+// ── Cableado ───────────────────────────────────────────────────────────────
+{
+  const send = () => {
+    const inp = $('#rp-input');
+    const t = inp.value.trim();
+    if (!t) return;
+    inp.value = '';
+    rpTurn(t, false);
+  };
+  const sb = $('#rp-send'); if (sb) sb.addEventListener('click', send);
+  const ip = $('#rp-input'); if (ip) ip.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+  const bk = $('#rp-back'); if (bk) bk.addEventListener('click', () => {
+    state.busy = false; rpBusy = false; rpInputEnabled(true); closeRoleplay();
+  });
+  const en = $('#rp-end'); if (en) en.addEventListener('click', rpDebrief);
+  const rf = $('#rp-refresh'); if (rf) rf.addEventListener('click', generarEscenas);
+  const sp = $('#rp-sorprende'); if (sp) sp.addEventListener('click', rpSorprende);
+  const rp = $('#rp-replay'); if (rp) rp.addEventListener('click', () => { if (ultimoHablado) speak(ultimoHablado); });
+  const tt = $('#rp-tts'); if (tt) tt.addEventListener('click', () => {
+    state.ttsOn = !state.ttsOn;
+    store.set('rodeo_tts', state.ttsOn);
+    if (!state.ttsOn) stopSpeaking();
+    rpSyncTTS();
+    syncTTSButton();
+    toast(state.ttsOn ? 'Voz: ON' : 'Voz: OFF', 1500);
+  });
+  wireMic($('#rp-mic'), $('#rp-input'), (t) => rpTurn(t, false));
 }
 
 /* ═══════════════════ INIT ═══════════════════ */
