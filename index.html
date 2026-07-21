@@ -294,6 +294,31 @@ body {
   50%     { box-shadow: 0 0 0 12px oklch(66% 0.20 27 / 0); }
 }
 
+/* Chip ES/EN del mic bilingüe: fija el idioma en que el dictado escucha.
+   Va pegado a cada botón de micrófono; el idioma persiste por contexto. */
+.mic-lang-chip {
+  flex: 0 0 auto;
+  min-width: 34px; height: 34px;
+  padding: 0 9px;
+  align-self: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 100px;
+  border: 1px solid oklch(87% 0.21 128 / 0.4);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background .2s ease, transform .15s ease;
+}
+.mic-lang-chip[data-lang="es"] {
+  color: oklch(80% 0.14 55);
+  border-color: oklch(80% 0.14 55 / 0.4);
+  background: oklch(80% 0.14 55 / 0.12);
+}
+.mic-lang-chip:hover, .mic-lang-chip:focus-visible { transform: translateY(-1px); }
+.mic-lang-chip:active { transform: scale(0.94); }
+
 /* mode-tab (SLANG: CALLE/TRABAJO/PAISA) — pill; activa = relleno lima ink oscuro */
 .mode-tab {
   padding: 10px 18px; min-height: 44px;
@@ -1862,6 +1887,66 @@ const store = {
   },
 };
 
+/* ═══════════════════ MIC BILINGÜE (ES/EN por contexto) ═══════════════════
+   Gus habla espanglish, pero SpeechRecognition escucha en UN idioma por toma.
+   Cada contexto de mic recuerda su idioma (clave localStorage separada) y muestra
+   un chip ES/EN pegado al botón para cambiarlo. La instancia de reconocimiento
+   lee micLangCode(ctx) justo antes de arrancar, así el toggle aplica en la
+   siguiente toma sin recrear nada. Capa 2 (reparación por LLM): NOTA_STT_BILINGUE
+   se inyecta en los system prompts que reciben el habla de Gus. */
+const MIC_LANGS = { es: 'es-419', en: 'en-US' };
+const MIC_LANG_DEFAULTS = {
+  talk: 'es',    // TALK: puede preguntar "cómo digo X" en español
+  rp: 'es',      // ROLEPLAY: puede salirse de personaje para preguntar
+  story: 'en',   // STORY: actúa en inglés dentro de la ficción
+  ladder: 'en',  // SUBE: produce su versión C1 en inglés
+  drop: 'en',    // DROP: responde la lectura en inglés
+};
+function micLang(ctx) {
+  const v = store.get('rodeo_miclang_' + ctx, null);
+  return (v === 'es' || v === 'en') ? v : (MIC_LANG_DEFAULTS[ctx] || 'en');
+}
+function micLangCode(ctx) { return MIC_LANGS[micLang(ctx)]; }
+
+// Inserta un chip ES/EN justo antes del botón de mic y lo mantiene en sync.
+// onChange(codigo) recibe el nuevo lang BCP-47 para actualizar la instancia viva.
+function wireMicToggle(btn, ctx, onChange) {
+  if (!btn) return null;
+  const prev = btn.previousElementSibling;
+  if (prev && prev.classList && prev.classList.contains('mic-lang-chip')) return prev;
+  const chip = document.createElement('button');
+  chip.type = 'button';
+  chip.className = 'mic-lang-chip';
+  chip.dataset.ctx = ctx;
+  const pintar = () => {
+    const l = micLang(ctx);
+    chip.textContent = l.toUpperCase();
+    chip.dataset.lang = l;
+    chip.setAttribute('aria-label', 'Idioma del micrófono: ' + (l === 'es' ? 'español' : 'inglés') + '. Tocar para cambiar');
+    chip.setAttribute('title', 'Dictado en ' + (l === 'es' ? 'español' : 'inglés') + ' — tocar para cambiar');
+  };
+  pintar();
+  chip.addEventListener('click', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const next = micLang(ctx) === 'es' ? 'en' : 'es';
+    store.set('rodeo_miclang_' + ctx, next);
+    // Repinta TODOS los chips de este contexto (el DROP puede tener varias
+    // tarjetas abiertas a la vez, cada una con su chip 'drop').
+    document.querySelectorAll('.mic-lang-chip[data-ctx="' + ctx + '"]').forEach((c) => {
+      c.textContent = next.toUpperCase();
+      c.dataset.lang = next;
+      c.setAttribute('aria-label', 'Idioma del micrófono: ' + (next === 'es' ? 'español' : 'inglés') + '. Tocar para cambiar');
+      c.setAttribute('title', 'Dictado en ' + (next === 'es' ? 'español' : 'inglés') + ' — tocar para cambiar');
+    });
+    if (onChange) onChange(MIC_LANGS[next]);
+  });
+  if (btn.parentNode) btn.parentNode.insertBefore(chip, btn);
+  return chip;
+}
+
+// Reparación por LLM: se añade al system de cada flujo que recibe el habla de Gus.
+const NOTA_STT_BILINGUE = 'Note: his message may come from voice dictation, and Gus is bilingual (Spanish/English) — he often mixes both languages mid-sentence, so words from either language can arrive mis-transcribed or garbled. Read his intent charitably: infer what he meant instead of taking an odd transcription literally, and never flag a likely mis-hearing as a mistake.';
+
 const state = {
   view: 'talk',
   session: null,          // { scenario, title, messages:[{role,content}], displayLog:[] }
@@ -2549,7 +2634,8 @@ HOW TO TALK:
 - CRITICAL: do NOT end every turn with a question. Vary it — react, tell a piece of your own story, disagree, make a remark and let it sit. Ask a real question maybe one turn in three. You are having a conversation, not conducting an interview.
 - Be specific. Names, places, numbers, small concrete details. Vague friendliness is exactly what makes you sound like a bot.
 - Let the conversation drift the way real ones do. Do not keep steering back to the same two topics.
-- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).${avoid}${dnaBrief()}${interesesBriefTalk()}
+- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).
+- ${NOTA_STT_BILINGUE}${avoid}${dnaBrief()}${interesesBriefTalk()}
 
 CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
 - Gus sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a gringo would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
@@ -2963,7 +3049,7 @@ function initRecognition() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const r = new SR();
-  r.lang = 'en-US';
+  r.lang = micLangCode('talk');
   r.interimResults = true;
   r.continuous = false;
   r.onresult = (e) => {
@@ -2995,9 +3081,11 @@ $('#mic-btn').addEventListener('click', () => {
   if (recognizing) { recognition.stop(); return; }
   stopSpeaking();
   recognition._finalText = '';
+  recognition.lang = micLangCode('talk');   // idioma vigente al arrancar la toma
   try { recognition.start(); recognizing = true; $('#mic-btn').classList.add('recording'); }
   catch { /* start() doble */ }
 });
+wireMicToggle($('#mic-btn'), 'talk', (code) => { if (recognition) recognition.lang = code; });
 
 function stopMic() { if (recognition && recognizing) try { recognition.abort(); } catch {} }
 
@@ -4217,7 +4305,7 @@ async function pedirPistaDrop(pregunta, ta, fb, btn) {
   fb.textContent = 'el coach está pensando…';
   try {
     const { parsed } = await callJSON('chat', [
-      { role: 'system', content: 'You are a supportive English coach. The learner is DRAFTING an answer and wants guidance BEFORE submitting — do NOT grade. STRICT JSON only: {"veredicto_es":"1 línea en español: si el borrador va bien o qué le falta (si está vacío, anímalo y oriéntalo)","opciones":["two different natural English ways to say it or to start"]}. No grammar jargon.' },
+      { role: 'system', content: 'You are a supportive English coach. The learner is DRAFTING an answer and wants guidance BEFORE submitting — do NOT grade. STRICT JSON only: {"veredicto_es":"1 línea en español: si el borrador va bien o qué le falta (si está vacío, anímalo y oriéntalo)","opciones":["two different natural English ways to say it or to start"]}. No grammar jargon. ' + NOTA_STT_BILINGUE },
       { role: 'user', content: 'QUESTION: ' + pregunta + '\n\nDRAFT (may be empty): ' + ta.value.trim() },
     ], 900);
     if (!parsed) throw new Error('se enredó, dale otra vez');
@@ -4243,8 +4331,9 @@ async function pedirPistaDrop(pregunta, ta, fb, btn) {
 const MIC_ICON_NOTA = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>';
 const STOP_ICON_NOTA = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="6" width="12" height="12" rx="2.5"></rect></svg>';
 
-function wireMicNota(btn, ta) {
+function wireMicNota(btn, ta, ctx = 'drop') {
   let rec = null, activo = false;
+  wireMicToggle(btn, ctx, (code) => { if (rec) rec.lang = code; });
   const pintar = () => {
     btn.classList.toggle('recording', activo);
     btn.innerHTML = activo ? STOP_ICON_NOTA : MIC_ICON_NOTA;
@@ -4259,7 +4348,7 @@ function wireMicNota(btn, ta) {
     // Lo ya escrito (a mano o de una toma anterior) se conserva y se acumula.
     let base = ta.value.trim() ? ta.value.trim() + ' ' : '';
     rec = new SR();
-    rec.lang = 'en-US';
+    rec.lang = micLangCode(ctx);
     rec.interimResults = true;
     rec.continuous = true;
     rec.onresult = (e) => {
@@ -4301,7 +4390,7 @@ async function enviarAbiertaDrop(tipo, pregunta, ta, fb, btn) {
       ? 'You are an English coach for a B2+ learner pushing C1. Evaluate his short production. STRICT JSON only: {"feedback_es":"1-2 líneas en español, directas y amables","correccion":{"quote":"exact wrong words","fix":"native phrasing","why":"por qué, en español, 1 línea"}|null,"upgrade":{"b2":"something he wrote that was fine but basic","c1":"the C1 phrasing","note":"en español, 1 línea"}|null}. No grammar jargon anywhere.'
       : 'You are an English coach checking reading comprehension for a B2+ learner. STRICT JSON only: {"ok":true|false,"feedback_es":"1-2 líneas en español: si entendió y qué se le escapó","correccion":{"quote":"exact wrong words","fix":"native phrasing","why":"por qué, en español, 1 línea"}|null}. "ok" judges COMPREHENSION, not grammar. Correct only the single most valuable English error, null if clean. No grammar jargon.';
     const { parsed } = await callJSON('chat', [
-      { role: 'system', content: sys },
+      { role: 'system', content: sys + ' ' + NOTA_STT_BILINGUE },
       { role: 'user', content: 'PASSAGE:\n' + ((state.dropEdicion && state.dropEdicion.passage) || '') + '\n\nQUESTION: ' + pregunta + '\n\nHIS ANSWER: ' + texto },
     ], 1400);
     if (!parsed) throw new Error('el coach se enredó, intenta de nuevo');
@@ -4688,15 +4777,16 @@ window.cerrarShadow = function () {
 
 /* ═══════════════════ MIC GENÉRICO (Story + Ladder) ═══════════════════ */
 // Cada llamada crea su propia instancia; solo una activa a la vez por el guard.
-function wireMic(btn, input, onFinal) {
+function wireMic(btn, input, onFinal, ctx = 'talk') {
   if (!btn || !input) return;
   let rec = null, active = false;
+  wireMicToggle(btn, ctx, (code) => { if (rec) rec.lang = code; });
   btn.addEventListener('click', () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { toast('Tu navegador no soporta voz — usa Chrome'); return; }
     if (active) { try { rec.stop(); } catch {} return; }
     if (!rec) {
-      rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false;
+      rec = new SR(); rec.lang = micLangCode(ctx); rec.interimResults = true; rec.continuous = false;
       rec.onresult = (e) => {
         let f = '', it = '';
         for (const r of e.results) (r.isFinal ? f += r[0].transcript : it += r[0].transcript);
@@ -4708,6 +4798,7 @@ function wireMic(btn, input, onFinal) {
     }
     stopSpeaking();
     rec._final = '';
+    rec.lang = micLangCode(ctx);   // idioma vigente al arrancar la toma
     try { rec.start(); active = true; btn.classList.add('recording'); } catch {}
   });
 }
@@ -4933,7 +5024,7 @@ async function submitStoryLine(text) {
 
   try {
     const { parsed: j } = await callJSON('chat', [
-      { role: 'system', content: `STORY ENGINE — judge & plot for RODEO. Judge the line A–D and be GENEROUS: A/B if it fulfills the mission's FUNCTION even if imperfect (register/intent matter as much as grammar). leverage_delta and heat_delta are integers clamped -12..+12. Extract ONLY real errors as corrections (quote/fix/why, why in Spanish one line). The NPC REACTS in English, branching the plot. If rank D or the core function is missed: beat_advance="retry". At beat 5: beat_advance="cliffhanger". STRICT JSON only.\nEPISODE BIBLE:\n${bibleStr()}` },
+      { role: 'system', content: `STORY ENGINE — judge & plot for RODEO. Judge the line A–D and be GENEROUS: A/B if it fulfills the mission's FUNCTION even if imperfect (register/intent matter as much as grammar). leverage_delta and heat_delta are integers clamped -12..+12. Extract ONLY real errors as corrections (quote/fix/why, why in Spanish one line). The NPC REACTS in English, branching the plot. If rank D or the core function is missed: beat_advance="retry". At beat 5: beat_advance="cliffhanger". STRICT JSON only.\n${NOTA_STT_BILINGUE}\nEPISODE BIBLE:\n${bibleStr()}` },
       { role: 'user', content: `Beat rubric: ${JSON.stringify(state.story.currentBeat.rubric || [])}. Gus's line: "${line}". State: ${storyStateStr()}.\nReturn STRICT JSON keys: rank, verdict_es, highlight, corrections (array {quote,fix,why}), upgrade ({b2,c1}), npc_reaction_en, leverage_delta, heat_delta, drop_intel, beat_advance ("next"|"retry"|"cliffhanger").\nInclude this FILLED EXAMPLE — never reuse its content:\n${JUDGE_EXAMPLE}` },
     ], 5000);
     typing.remove();
@@ -5109,7 +5200,7 @@ $('#story-send').addEventListener('click', () => submitStoryLine());
 $('#story-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitStoryLine(); });
 $('#story-quit').addEventListener('click', quitStory);
 $('#story-panic').addEventListener('click', panicStory);
-wireMic($('#story-mic'), $('#story-input'), (t) => submitStoryLine(t));
+wireMic($('#story-mic'), $('#story-input'), (t) => submitStoryLine(t), 'story');
 
 /* ═══════════════════ LEVEL UP (SUBE) ═══════════════════ */
 
@@ -5246,7 +5337,7 @@ function openRungInput(r, theme, rot) {
   $('#rung-send').addEventListener('click', () => revealRung(r, theme, rot, $('#rung-input').value.trim()));
   $('#rung-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') revealRung(r, theme, rot, $('#rung-input').value.trim()); });
   $('#rung-skip').addEventListener('click', () => revealRung(r, theme, rot, ''));
-  wireMic($('#rung-mic'), $('#rung-input'), (t) => revealRung(r, theme, rot, t));
+  wireMic($('#rung-mic'), $('#rung-input'), (t) => revealRung(r, theme, rot, t), 'ladder');
 }
 
 async function revealRung(r, theme, rot, attempt) {
@@ -5258,7 +5349,7 @@ async function revealRung(r, theme, rot, attempt) {
     if (card) card.style.opacity = '0.6';
     try {
       const { parsed } = await callJSON('chat', [
-        { role: 'system', content: 'You judge whether a B2 learner reached C1 with their upgrade attempt. Accept valid synonyms — there is no single right answer. STRICT JSON only.' },
+        { role: 'system', content: 'You judge whether a B2 learner reached C1 with their upgrade attempt. Accept valid synonyms — there is no single right answer. STRICT JSON only. ' + NOTA_STT_BILINGUE },
         { role: 'user', content: `B2: "${r.b2}". Ideal C1: "${r.c1}". Gus wrote: "${attempt}". Return STRICT JSON {"verdict":"nailed|close|off","one_liner_es":"","better":""}. Example: {"verdict":"close","one_liner_es":"Subiste el registro, pero 'has potential' suena a informe; 'has real legs' es más natural.","better":"I'm sold on it — it's got real legs."}` },
       ], 1500);
       judge = parsed;
@@ -5398,6 +5489,7 @@ HOW YOU PLAY
 - Paint vivid, sensory scenes in 2-4 sentences, then let a character speak. Voice each character as a real person with self-interest, mood and pushback — never make the goal easy, never fold at the first polite request.
 - React to what Gus actually says and let it move the story. If he plays it well, the character softens or the plot opens; if he fumbles, the tension rises — but never break the fiction to lecture him.
 - Contemporary, natural English (C1 collocations, phrasal verbs, real idioms). Put spoken lines in quotes. NEVER narrate Gus's own words or actions for him — leave him room to act.
+- ${NOTA_STT_BILINGUE}
 
 OUTPUT — STRICT JSON, your very first character must be '{':
 {
@@ -5736,7 +5828,7 @@ window.rpCerrarDebrief = function () { rpLastDebrief = []; closeSheet(); closeRo
     syncTTSButton();
     toast(state.ttsOn ? 'Voz: ON' : 'Voz: OFF', 1500);
   });
-  wireMic($('#rp-mic'), $('#rp-input'), (t) => rpTurn(t, false));
+  wireMic($('#rp-mic'), $('#rp-input'), (t) => rpTurn(t, false), 'rp');
 }
 
 /* ═══════════════════ INIT ═══════════════════ */
