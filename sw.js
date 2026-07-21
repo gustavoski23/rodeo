@@ -18,7 +18,7 @@
    ══════════════════════════════════════════════════════════════════════ */
 
 // Sube este número en cada release donde quieras invalidar cache viejo.
-const VERSION = 'rodeo-v1';
+const VERSION = 'rodeo-v2';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
@@ -34,14 +34,32 @@ const CDN_CACHE    = `${VERSION}-cdn`;      // Tailwind + Google Fonts (SWR)
 // son críticos para arrancar.
 const SHELL_URLS = ['/', '/index.html'];
 
+// Assets de CDN CRÍTICOS para el render (Tailwind, GSAP, CSS de fuentes). Se
+// precalientan en install: sin esto, en la primera instalación estos recursos
+// se piden ANTES de que el SW controle la página, no entran al cache, y un
+// offline posterior (o tras expirar el cache HTTP de Tailwind, ~4h) dejaba la
+// app SIN estilos — el #overlay con .hidden (clase de Tailwind) tapaba todo
+// (revisión adversarial). Deben coincidir EXACTO con los <link>/<script> del
+// <head> de index.html.
+const CDN_WARM = [
+  'https://cdn.tailwindcss.com',
+  'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
+  'https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap',
+];
+
 // CDNs que la app necesita para VERSE bien offline (estilos y fuentes).
-// Estrategia stale-while-revalidate: sirve del cache al instante y refresca
-// en segundo plano.
+// Estrategia NETWORK-FIRST (no stale-while-revalidate): online SIEMPRE se
+// sirve la respuesta fresca de la red, y el cache es solo el paracaídas
+// offline. Con SWR, una respuesta opaque mala del CDN (un 500/challenge con
+// cuerpo de error sobre TLS válido, indistinguible de un 200 porque opaque
+// tiene status 0) quedaba cacheada y se servía PRIMERO a usuarios online en
+// cada carga, envenenando Tailwind/GSAP hasta la siguiente navegación
+// (revisión adversarial). Network-first elimina ese envenenamiento persistente.
 const CDN_HOSTS = new Set([
   'cdn.tailwindcss.com',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
-  'cdnjs.cloudflare.com', // por si se añade GSAP u otra lib desde cdnjs
+  'cdnjs.cloudflare.com',
 ]);
 
 // Clave de cache para el último drop leído (lectura offline opcional, ver
@@ -58,11 +76,12 @@ const DROP_CACHE = `${VERSION}-drop`;
    install falla y se reintenta luego — el SW viejo (o ninguno) sigue sirviendo.
 */
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE)
-      .then((cache) => cache.addAll(SHELL_URLS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.addAll(SHELL_URLS);   // crítico: si falla, install falla (recuperable)
+    await warmCDN();                   // best-effort: nunca lanza, ver abajo
+    await self.skipWaiting();
+  })());
 });
 
 /* ── ACTIVATE ────────────────────────────────────────────────────────────
@@ -108,9 +127,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3) CDNs conocidas (Tailwind, Google Fonts) → stale-while-revalidate.
+  // 3) CDNs conocidas (Tailwind, GSAP, Google Fonts) → NETWORK-FIRST.
+  //    Online siempre trae la copia fresca del CDN (no se sirve una copia
+  //    cacheada envenenada); el cache es solo el paracaídas offline.
   if (CDN_HOSTS.has(url.hostname)) {
-    event.respondWith(staleWhileRevalidate(req, CDN_CACHE));
+    event.respondWith(networkFirstCDN(req, CDN_CACHE));
     return;
   }
 
@@ -124,7 +145,39 @@ self.addEventListener('fetch', (event) => {
   // (no respondWith)
 });
 
+/* ── Precalentado de CDN (install) ───────────────────────────────────────
+   Mete Tailwind/GSAP/CSS-de-fuentes en el cache ANTES de que la app los
+   necesite offline. Best-effort: allSettled + try/catch para que un CDN caído
+   JAMÁS haga fallar el install (el shell ya está a salvo). no-cors porque son
+   cross-origin sin CORS → respuestas opaque, cacheables igual. */
+async function warmCDN() {
+  try {
+    const cache = await caches.open(CDN_CACHE);
+    await Promise.allSettled(CDN_WARM.map(async (u) => {
+      const res = await fetch(u, { mode: 'no-cors' });
+      if (res) await cache.put(u, res);   // opaque (status 0) o ok: guardar
+    }));
+  } catch (_e) { /* best-effort: nunca rompe el install */ }
+}
+
 /* ── Estrategias ─────────────────────────────────────────────────────── */
+
+// Network-first para CDNs: online SIEMPRE devuelve la respuesta fresca de la
+// red (y actualiza el cache); si la red falla (offline), cae a la copia
+// cacheada. A diferencia de SWR, nunca sirve una copia vieja/envenenada primero.
+async function networkFirstCDN(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const fresh = await fetch(req);
+    if (fresh && (fresh.ok || fresh.type === 'opaque')) {
+      cache.put(req, fresh.clone());   // refresca el paracaídas offline
+    }
+    return fresh;   // lo que dé la red, igual que sin SW: cero envenenamiento
+  } catch (_e) {
+    const hit = await cache.match(req);
+    return hit || Response.error();    // offline: la copia cacheada
+  }
+}
 
 // Network-first para el shell: intenta red, si sirve (y es ok) actualiza cache
 // y responde; si la red falla (offline), cae al index cacheado.
@@ -171,28 +224,6 @@ async function cacheFirst(req, cacheName) {
     // Si es opaque/no hay red y no había copia, devolvemos error de red normal.
     return hit || Response.error();
   }
-}
-
-// Stale-while-revalidate: responde del cache al instante (si hay) y en paralelo
-// pide a la red para refrescar la copia. Ideal para CSS/fuentes de CDN.
-// OJO opaque: las fuentes de fonts.gstatic.com llegan con CORS (el <link> usa
-// crossorigin) → respuesta legible y cacheable. Pero por robustez cacheamos
-// también respuestas 'opaque' (status 0): sirven para pintar offline aunque no
-// podamos inspeccionarlas. Cuentan doble en la cuota de almacenamiento, es el
-// precio conocido de cachear cross-origin sin CORS.
-async function staleWhileRevalidate(req, cacheName) {
-  const cache = await caches.open(cacheName);
-  const hit = await cache.match(req);
-  const networkPromise = fetch(req)
-    .then((res) => {
-      if (res && (res.ok || res.type === 'opaque')) {
-        cache.put(req, res.clone());
-      }
-      return res;
-    })
-    .catch(() => null); // offline: no rompemos, dependemos del hit
-  // Si hay copia, la devolvemos ya y refrescamos en segundo plano.
-  return hit || (await networkPromise) || Response.error();
 }
 
 /* ── MENSAJES (control desde el frontend) ────────────────────────────────

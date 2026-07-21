@@ -1702,7 +1702,7 @@ function animateIn(els, opts = {}) {
 
 /* ═══════════════════ API ═══════════════════ */
 
-async function callAPI(mode, messages, maxTokens = 3200) {
+async function callAPI(mode, messages, maxTokens = 3200, opts = {}) {
   // La API es una ruta relativa (/api/chat) y necesita un servidor. Si la app
   // se abrió como archivo (file://), fetch no puede resolver la URL: avisamos claro.
   if (location.protocol === 'file:') {
@@ -1720,8 +1720,12 @@ async function callAPI(mode, messages, maxTokens = 3200) {
   });
 
   if (res.status === 401) {
+    // Modo silencioso (prefetch en background): NUNCA abrir el prompt del PIN —
+    // sería un modal bloqueante que el usuario no pidió. Se lanza y el llamante
+    // lo traga; el PIN se pedirá cuando Gus abra un drop a propósito.
+    if (opts.silent) throw new Error('pin_required');
     const pin = prompt('PIN de acceso a RODEO:');
-    if (pin) { store.set('rodeo_pass', pin); return callAPI(mode, messages, maxTokens); }
+    if (pin) { store.set('rodeo_pass', pin); return callAPI(mode, messages, maxTokens, opts); }
     throw new Error('Sin PIN no hay rodeo.');
   }
   const data = await res.json().catch(() => ({}));
@@ -3200,12 +3204,12 @@ function renderPortadaDrop() {
   } else {
     badge.classList.add('hidden');
   }
-  // Prefetch: promover el de mañana si ya es hoy, y cocinar el de mañana en
-  // background. Un solo punto de enganche — cubre el toggle a DROP y el cierre
-  // de sesión, que también llaman renderPortadaDrop. El diferido no le roba
-  // CPU/red a la animación de entrada de la portada.
+  // Promover el prefetch de mañana si ya es hoy (instantáneo, sin red). El
+  // DISPARO del prefetch NO va aquí: renderPortadaDrop corre al ENTRAR a la
+  // portada, justo cuando Gus va a tocar "DROP DEL DÍA" — cocinar ahí competía
+  // con ese clic. El prefetch se dispara al CERRAR un drop (drop-close), cuando
+  // ya terminó de leer y no está por generar otro (revisión adversarial).
   promoverPrefetchSiToca();
-  setTimeout(prefetchDropManana, 1200);
 }
 
 $$('.dp-tema').forEach((ch) => ch.addEventListener('click', () => {
@@ -3233,14 +3237,23 @@ function fechaDropManana() {
 }
 let prefetchEnVuelo = false;
 async function prefetchDropManana() {
-  if (dropBusy || prefetchEnVuelo) return;   // no competir con lo que Gus espera
+  // No competir con una generación que Gus ESTÁ esperando (dropBusy), ni con
+  // otro prefetch (prefetchEnVuelo). Este disparo solo ocurre al CERRAR un drop
+  // — nunca al entrar a la portada — así que no compite con el clic de "DROP
+  // DEL DÍA" (carrera cazada en revisión adversarial).
+  if (dropBusy || prefetchEnVuelo) return;
   const manana = fechaDropManana();
   const ya = store.get('rodeo_drop_manana', null);
   if (ya && ya.fecha === manana && ya.edicion) return;   // ya cocinado, no rehacer
   prefetchEnVuelo = true;
   try {
     const semillas = elegirSemillasDrop(3);
-    const ed = await pedirEdicion('sorpréndeme', semillas.map((s) => s.term));
+    // silent=true: si la API pide PIN (401), NO abrir el prompt bloqueante en
+    // background — se lanza 'pin_required' y se traga. El PIN se pedirá cuando
+    // Gus abra un drop a propósito (revisión adversarial).
+    const ed = await pedirEdicion('sorpréndeme', semillas.map((s) => s.term), true);
+    // store.set traga QuotaExceeded con un toast; en background no queremos ese
+    // toast ni reintentar en bucle. Verificamos que quedó guardado.
     store.set('rodeo_drop_manana', { fecha: manana, edicion: ed, semillas });
   } catch (e) {
     console.warn('[drop] prefetch de mañana falló (se regenerará en vivo):', e && e.message || e);
@@ -3256,7 +3269,13 @@ function promoverPrefetchSiToca() {
   const man = store.get('rodeo_drop_manana', null);
   if (man && man.fecha === hoy && man.edicion) {
     store.set('rodeo_drop_hoy', { fecha: hoy, edicion: man.edicion, semillas: man.semillas || [] });
-    store.set('rodeo_drop_manana', null);
+    // Solo borrar el de mañana si el de hoy quedó GUARDADO de verdad: con el
+    // storage lleno, store.set falla en silencio y borrar el de mañana perdería
+    // la edición pre-cocinada (revisión adversarial).
+    const confirm = store.get('rodeo_drop_hoy', null);
+    if (confirm && confirm.fecha === hoy && confirm.edicion) {
+      store.set('rodeo_drop_manana', null);
+    }
     return true;
   }
   return false;
@@ -3322,7 +3341,7 @@ async function generarDrop(fuerza) {
 // el techo (JSON null); el proveedor a veces da 502/429 o 200 con content
 // vacío. Backoff 4s, máximo 3 intentos. NO usar prefill de assistant "{":
 // probado — Fireworks corrompe los tokens en la frontera.
-async function pedirEdicion(tema, terms) {
+async function pedirEdicion(tema, terms, silent) {
   let motivo = 'sin respuesta';
   for (let i = 0; i < 3; i++) {
     if (i) await new Promise((r) => setTimeout(r, 4000));
@@ -3330,12 +3349,15 @@ async function pedirEdicion(tema, terms) {
       const { content } = await callAPI('creative', [
         { role: 'system', content: DROP_SYSTEM },
         { role: 'user', content: dropUserPrompt(tema, terms) },
-      ], 5000);
+      ], 5000, { silent: !!silent });
       if (!content || !content.trim()) { motivo = 'respuesta vacía'; continue; }
       const ed = normalizarEdicion(parsearEdicion(content));
       if (ed) return ed;
       motivo = 'JSON inválido';
-    } catch (e) { motivo = String(e && e.message || e).slice(0, 90); }
+    } catch (e) {
+      motivo = String(e && e.message || e).slice(0, 90);
+      if (motivo === 'pin_required') throw e;   // silencioso: no reintentar, abortar
+    }
   }
   throw new Error(motivo);
 }
@@ -3724,6 +3746,9 @@ $('#drop-close').addEventListener('click', () => {
   ses.classList.add('hidden'); ses.classList.remove('flex');
   $('#drop-home').classList.remove('hidden');
   renderPortadaDrop();
+  // Ya terminó de leer el drop de hoy: buen momento para cocinar el de mañana
+  // en background, sin competir con ningún clic de "DROP DEL DÍA".
+  setTimeout(prefetchDropManana, 800);
 });
 
 /* ═══════════════════ DROP · SHADOWING — "tu voz vs. Helena" ═══════════════════
