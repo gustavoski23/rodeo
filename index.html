@@ -601,6 +601,24 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 /* ─────────────────────────────────────────────────────────────────────────
    11. TOAST / OVERLAY / SHEET
    ───────────────────────────────────────────────────────────────────────── */
+/* Glosas: expresiones con traducción al pasar el cursor. */
+.gloss {
+  border-bottom: 1.5px dotted var(--accent);
+  cursor: help; text-underline-offset: 3px;
+}
+.gloss:hover, .gloss:focus { color: var(--accent); outline: none; }
+#gloss-tip {
+  position: fixed; z-index: 300; display: none;
+  padding: 9px 12px; border-radius: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid oklch(80% 0.14 128 / 0.35);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif;
+  font-size: 0.82rem; line-height: 1.4;
+  box-shadow: 0 12px 34px oklch(0% 0 0 / 0.55);
+  pointer-events: none;
+}
+
 .toast {
   position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
   z-index: 200;
@@ -1181,6 +1199,92 @@ function esc(s) {
   return d.innerHTML;
 }
 
+// esc() no escapa comillas, y esto va dentro de un atributo HTML.
+function escAttr(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Envuelve en la respuesta del coach las expresiones glosadas por el modelo
+// (phrasal verbs, slang, idioms) en <span.gloss> con su explicación en español.
+// Se trabaja sobre posiciones del texto PLANO para no romper el HTML ni glosar
+// dos veces lo mismo; luego se escapa cada tramo.
+function glossHTML(reply, glosses) {
+  const text = String(reply ?? '');
+  if (!glosses || !glosses.length) return esc(text);
+
+  const lower = text.toLowerCase();
+  const ocupado = new Array(text.length).fill(false);
+  const spans = [];
+
+  glosses.forEach((g) => {
+    if (!g || !g.term || !g.es) return;
+    const term = String(g.term).trim();
+    if (!term) return;
+    let from = 0, idx;
+    while ((idx = lower.indexOf(term.toLowerCase(), from)) !== -1) {
+      let libre = true;
+      for (let i = idx; i < idx + term.length; i++) if (ocupado[i]) { libre = false; break; }
+      if (libre) {
+        for (let i = idx; i < idx + term.length; i++) ocupado[i] = true;
+        spans.push({ start: idx, end: idx + term.length, es: String(g.es) });
+        break;
+      }
+      from = idx + 1;   // esa aparición ya estaba glosada; probar la siguiente
+    }
+  });
+
+  if (!spans.length) return esc(text);
+  spans.sort((a, b) => a.start - b.start);
+
+  let html = '', pos = 0;
+  for (const s of spans) {
+    html += esc(text.slice(pos, s.start));
+    html += `<span class="gloss" data-es="${escAttr(s.es)}" tabindex="0" role="button" aria-label="Ver significado">${esc(text.slice(s.start, s.end))}</span>`;
+    pos = s.end;
+  }
+  html += esc(text.slice(pos));
+  return html;
+}
+
+// Tooltip flotante único (posicionado con JS para no recortarse dentro del
+// scroll del chat). Hover lo muestra; clic lo fija (útil en táctil).
+const glossTip = document.createElement('div');
+glossTip.id = 'gloss-tip';
+document.body.appendChild(glossTip);
+let glossFijado = null;
+
+function posicionarTip(el) {
+  const r = el.getBoundingClientRect();
+  const w = Math.min(300, window.innerWidth - 24);
+  glossTip.style.maxWidth = w + 'px';
+  glossTip.style.display = 'block';
+  const th = glossTip.offsetHeight;
+  let left = r.left + r.width / 2 - w / 2;
+  left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
+  let top = r.top - th - 8;
+  if (top < 8) top = r.bottom + 8;     // sin espacio arriba → abajo
+  glossTip.style.left = left + 'px';
+  glossTip.style.top = top + 'px';
+}
+function abrirTip(el) { glossTip.textContent = el.getAttribute('data-es') || ''; posicionarTip(el); }
+function cerrarTip() { glossTip.style.display = 'none'; glossFijado = null; }
+
+document.addEventListener('mouseover', (e) => {
+  const g = e.target.closest && e.target.closest('.gloss');
+  if (g && !glossFijado) abrirTip(g);
+});
+document.addEventListener('mouseout', (e) => {
+  const g = e.target.closest && e.target.closest('.gloss');
+  if (g && !glossFijado) cerrarTip();
+});
+document.addEventListener('click', (e) => {
+  const g = e.target.closest && e.target.closest('.gloss');
+  if (g) { if (glossFijado === g) cerrarTip(); else { glossFijado = g; abrirTip(g); } }
+  else if (glossFijado) cerrarTip();
+});
+
 function animateIn(els, opts = {}) {
   if (REDUCED || !window.gsap || !els || (els.length !== undefined && !els.length)) return;
   gsap.from(els, { y: 24, opacity: 0, duration: 0.9, ease: 'expo.out', stagger: 0.07, ...opts });
@@ -1489,8 +1593,9 @@ solving a problem. (Medido: sin esto Kimi gasta ~1400 tokens razonando y el turn
 pasa de ~8s a 10-19s, con la misma calidad de respuesta.)
 
 OUTPUT — STRICT JSON only, nothing outside it, exactly this shape:
-{"reply":"your in-character reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}]}
+{"reply":"your in-character reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}],"glosses":[{"term":"the exact phrase as it appears in your reply","es":"qué significa y por qué se dice así, natural"}]}
 - "corrections": only REAL errors or clearly unnatural phrasing from HIS LAST message. Maximum 3, the most valuable. If his message was clean, return []. Typos don't count.
+- "glosses": pick 2-4 phrases FROM YOUR OWN reply that a B2 learner likely won't fully get — phrasal verbs, slang, idioms, natural collocations (e.g. "wound up", "blowout", "shoot the breeze"). For each, "term" must be the EXACT substring as written in reply (same case, same words), and "es" explains in Spanish what it MEANS and why a native uses it there — conversational, like a friend explaining, NEVER grammar-speak (no "subjuntivo", no "phrasal verb", no tense names). One or two lines. If the reply has no such phrases, return [].
 - Never correct him inside "reply" — that must flow as pure conversation.`;
 }
 
@@ -1619,10 +1724,13 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
     }
 
     typing.remove();
+    // Glosas: expresiones de la respuesta con explicación al pasar el cursor.
+    const glosses = (parsed && Array.isArray(parsed.glosses)) ? parsed.glosses : [];
+    const htmlCoach = glossHTML(reply, glosses);
     if (liveBubble) {
-      liveBubble.textContent = reply;   // texto definitivo ya parseado
+      liveBubble.innerHTML = htmlCoach;   // reemplaza el texto plano del stream
     } else {
-      addBubble(esc(reply), 'bubble-coach');
+      addBubble(htmlCoach, 'bubble-coach');
     }
 
     // Memoria anti-repetición: guardamos las últimas 8 aperturas y se las
@@ -1879,8 +1987,10 @@ const VOCES = {
   'aura-2-helena-en': 'Helena',   // US, femenina, cálida
   'aura-2-draco-en':  'Draco',    // UK, masculino, barítono
 };
-let vozActual = store.get('rodeo_voz', 'aura-2-helena-en');
-if (!VOCES[vozActual]) vozActual = 'aura-2-helena-en';
+// Helena es SIEMPRE el punto de partida al cargar. Draco es un cambio por
+// sesión (no se persiste), para que "predeterminada = Helena" se cumpla en
+// cada visita y el botón no se quede pegado en Draco tras una prueba.
+let vozActual = 'aura-2-helena-en';
 
 // Pide el audio al proxy /api/tts (Deepgram). Devuelve un ArrayBuffer MP3.
 async function pedirTTS(text) {
@@ -1955,15 +2065,14 @@ $('#replay-btn').addEventListener('click', () => {
 });
 syncReplayButton();
 
-// Botón de voz: alterna Helena ⇄ Draco, persiste, y si hay algo dicho lo
-// vuelve a leer en la voz nueva para oír el cambio al instante.
+// Botón de voz: alterna Helena ⇄ Draco por la sesión (sin persistir) y, si hay
+// algo dicho, lo vuelve a leer en la voz nueva para oír el cambio al instante.
 function syncVoiceButton() {
   const b = $('#voice-btn');
   if (b) b.textContent = VOCES[vozActual] || 'Voz';
 }
 $('#voice-btn').addEventListener('click', () => {
   vozActual = vozActual === 'aura-2-helena-en' ? 'aura-2-draco-en' : 'aura-2-helena-en';
-  store.set('rodeo_voz', vozActual);
   syncVoiceButton();
   toast('Voz: ' + VOCES[vozActual], 1500);
   if (ultimoHablado) speak(ultimoHablado);   // muestra el cambio de una vez
