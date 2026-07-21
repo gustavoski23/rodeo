@@ -1020,25 +1020,34 @@ body.rd-sesion .dp-modebar { display: none; }
 }
 @keyframes dp-spin { to { transform: rotate(360deg); } }
 
-/* ── CTA de práctica fijado ───────────────────────────────────────────────
-   "¿QUIERES PRACTICAR?" quedaba debajo del fold tras 5 tarjetas de léxico y
-   nadie lo encontraba (pregunta real de Gus). Fijado abajo mientras dura la
-   etapa de lectura — el hueco del navbar (oculto en sesión) es suyo. Centrado
-   con left/right+margin, NUNCA con translateX: gsap pisa el transform al
-   animarlo y lo descentraría. */
+/* ── CTA de práctica ──────────────────────────────────────────────────────
+   En flujo, quieto, justo después de la última tarjeta del léxico — botón
+   normal, no flotante (el flotante tapaba las tarjetas y se veía a nav bar).
+   La entrada sigue por CSS keyframes con fill-mode both: si el motion no
+   corre, el botón SE VE igual — la regla de oro del repo ya nos mordió. */
 #drop-practicar {
-  position: fixed; left: 20px; right: 20px; bottom: 18px;
-  margin: 0 auto; max-width: 720px;
-  z-index: 90;
-  box-shadow: 0 14px 40px oklch(0% 0 0 / 0.6), 0 4px 18px oklch(87% 0.21 128 / 0.35);
-  /* Entrada por CSS, NO por gsap (regla de oro del repo): si el motion decide
-     la visibilidad y no corre, el CTA queda en opacity 0 — pasó de verdad. */
+  margin-top: 4px;
   animation: dp-cta-in 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.25s both;
 }
 @keyframes dp-cta-in { from { opacity: 0; transform: translateY(26px); } }
 @media (prefers-reduced-motion: reduce) { #drop-practicar { animation: none; } }
-/* aire extra al final del scroll para que la última tarjeta no quede tapada */
-#drop-session > .scroll-area { padding-bottom: 96px !important; }
+
+/* ── Header que se recoge al leer ─────────────────────────────────────────
+   Con scroll dentro de la lectura del drop, la barra de RODEO se pliega para
+   despejar la pantalla; al volver arriba, reaparece. */
+.rd-header {
+  max-height: 110px; overflow: hidden;
+  transition: max-height .38s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity .28s ease,
+              padding .38s cubic-bezier(0.32, 0.72, 0, 1);
+}
+body.rd-lectura .rd-header {
+  max-height: 0; opacity: 0;
+  padding-top: 0; padding-bottom: 0;
+  pointer-events: none;
+}
+.luminous-line { transition: opacity .28s ease; }
+body.rd-lectura .luminous-line { opacity: 0; }
 
 /* ── Máquina de escribir del coach (TALK) ───────────────────────────────── */
 .bubble-coach.escribiendo::after {
@@ -1883,21 +1892,43 @@ $$('.tab-item').forEach((tab) => {
 // su sección, donde el nav reaparece. Un MutationObserver sobre las clases
 // evita tener que cazar cada punto del código que muestra/oculta una sesión.
 function actualizarCromo() {
-  const pares = [['view-talk', 'talk-session'], ['view-story', 'story-run'], ['view-story', 'drop-session']];
-  const enSesion = pares.some(([v, s]) => {
-    const vista = document.getElementById(v);
-    const sesion = document.getElementById(s);
-    return vista && sesion && vista.classList.contains('active') && !sesion.classList.contains('hidden');
-  });
+  const visible = (id) => {
+    const el = document.getElementById(id);
+    return el && !el.classList.contains('hidden');
+  };
+  const activa = (id) => {
+    const el = document.getElementById(id);
+    return el && el.classList.contains('active');
+  };
+  // La sesión de drop cuelga de #drop-pane: si el pane está oculto (toggle a
+  // HISTORIA), la sesión NO cuenta aunque conserve sus clases — sin este
+  // detalle el navbar se quedaba escondido mirando el home del thriller.
+  const enSesion =
+    (activa('view-talk') && visible('talk-session')) ||
+    (activa('view-story') && visible('story-run')) ||
+    (activa('view-story') && visible('drop-pane') && visible('drop-session'));
   document.body.classList.toggle('rd-sesion', enSesion);
+  // Al salir de la sesión, el header recogido por la lectura vuelve siempre.
+  if (!enSesion) document.body.classList.remove('rd-lectura');
 }
 {
   const obs = new MutationObserver(actualizarCromo);
-  ['view-talk', 'view-story', 'talk-session', 'story-run', 'drop-session'].forEach((id) => {
+  ['view-talk', 'view-story', 'talk-session', 'story-run', 'drop-pane', 'drop-session'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
   });
   actualizarCromo();
+}
+
+// El header de RODEO se recoge al hacer scroll en la lectura del drop y
+// reaparece al volver arriba. Umbrales separados (60/20) para que no parpadee
+// oscilando justo en el borde.
+{
+  const sc = document.querySelector('#drop-session > .scroll-area');
+  if (sc) sc.addEventListener('scroll', () => {
+    if (sc.scrollTop > 60) document.body.classList.add('rd-lectura');
+    else if (sc.scrollTop < 20) document.body.classList.remove('rd-lectura');
+  }, { passive: true });
 }
 
 /* ═══════════════════ TALK ═══════════════════ */
