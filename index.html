@@ -2166,6 +2166,21 @@ function parseChunks(reply) {
     last = re.lastIndex;
   }
   clean += src.slice(last);
+  // Saneo final: barre cualquier ⟦ o ⟧ residual (marcador sin ||, corchete
+  // colgante, ⟧ suelto, anidados) que sobrevivió a la regex, reajustando las
+  // coords de `marks` para que jamás quede un corchete crudo a la vista.
+  if (clean.indexOf('⟦') !== -1 || clean.indexOf('⟧') !== -1) {
+    let cleaned = '';
+    const map = new Array(clean.length + 1);   // viejo índice → nuevo índice
+    for (let i = 0; i < clean.length; i++) {
+      map[i] = cleaned.length;
+      const ch = clean[i];
+      if (ch !== '⟦' && ch !== '⟧') cleaned += ch;
+    }
+    map[clean.length] = cleaned.length;
+    for (const mk of marks) { mk.start = map[mk.start]; mk.end = map[mk.end]; }
+    clean = cleaned;
+  }
   return { clean, marks };
 }
 
@@ -2198,7 +2213,7 @@ function stripChunksLive(s) {
     const sep = rest.indexOf('||');
     out = out.slice(0, open) + (sep !== -1 ? rest.slice(0, sep) : rest);
   }
-  return out;
+  return out.replace(/[⟦⟧]/g, '');   // barre corchetes residuales (⟧ suelto, sin ||, anidados)
 }
 
 // ¿Ya está esta expresión guardada como slang en el DNA? (para el botón del tip)
