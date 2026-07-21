@@ -14,6 +14,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Iconos del episodio ilustrado (Story Mode): mute, ojo de traducción, repetir -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
 /* ══════════════════════════════════════════════════════════════════════
@@ -1867,6 +1869,10 @@ body.rd-lectura .luminous-line { opacity: 0; }
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<!-- Story Mode (episodio ilustrado inmersivo). Cargan ANTES del script principal:
+     definen window.STORY_EPISODES y window.openStoryImmersion / closeStoryImmersion. -->
+<script src="js/story-episodes.js"></script>
+<script src="js/story-mode.js"></script>
 <script>
 'use strict';
 
@@ -3183,13 +3189,13 @@ const VOCES = {
 let vozActual = 'aura-2-helena-en';
 
 // Pide el audio al proxy /api/tts (Deepgram). Devuelve un ArrayBuffer MP3.
-async function pedirTTS(text) {
+async function pedirTTS(text, modelOverride) {
   const headers = { 'Content-Type': 'application/json' };
   const pass = store.get('rodeo_pass', null);
   if (pass) headers['x-rodeo-pass'] = pass;
   const r = await fetch('/api/tts', {
     method: 'POST', headers,
-    body: JSON.stringify({ text: String(text).slice(0, 2000), model: vozActual }),
+    body: JSON.stringify({ text: String(text).slice(0, 2000), model: modelOverride || vozActual }),
   });
   if (!r.ok) {
     const d = await r.json().catch(() => ({}));
@@ -3198,7 +3204,7 @@ async function pedirTTS(text) {
   return r.arrayBuffer();
 }
 
-async function speak(text) {
+async function speak(text, modelOverride) {
   // La voz habla SOLO el texto limpio: parseChunks descarta los marcadores
   // ⟦en||es⟧ (traducción en español + separador) que la glosa embebida usa para
   // pintar los tips. Sin esto, Deepgram pronunciaba "ponerse al día" y los "||"
@@ -3210,8 +3216,10 @@ async function speak(text) {
   stopSpeaking();                  // corta lo anterior e invalida su token
   const token = speakToken;
 
+  // modelOverride: el episodio ilustrado pide una voz concreta por personaje
+  // (Helena / Draco) sin tocar la voz global del coach. Undefined = voz actual.
   let ab;
-  try { ab = await pedirTTS(text); }
+  try { ab = await pedirTTS(text, modelOverride); }
   catch (e) { return caerASistema(text, 'falló la voz Deepgram', e); }
   if (token !== speakToken) return;             // otra respuesta la reemplazó
 
@@ -3277,6 +3285,41 @@ $('#voice-btn').addEventListener('click', () => {
   if (ultimoHablado) speak(ultimoHablado);   // muestra el cambio de una vez
 });
 syncVoiceButton();
+
+/* ── Puentes del EPISODIO ILUSTRADO (Story Mode) ───────────────────────────
+   js/story-mode.js es autocontenido y agnóstico de RODEO: se comunica con la app
+   SOLO por estos puentes globales. Reusan callAPI, speak y el guardado de léxico
+   del DNA — el motor no conoce los internals de RODEO.                          */
+
+// IA: evalúa la respuesta del jugador. Devuelve el TEXTO CRUDO del modelo (un
+// JSON de veredicto strong/weak/incorrect que story-mode.js ya sabe parsear).
+window.rodeoStoryEval = async (systemPrompt, userText) => {
+  try {
+    const { content } = await callAPI('chat', [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userText },
+    ], 700);
+    return content || '';
+  } catch (e) {
+    const m = String((e && e.message) || e || '');
+    // 401/PIN u otros: degradar con un mensaje amable, nunca crashear.
+    if (/pin/i.test(m)) throw new Error('Necesito el PIN de RODEO para evaluar tu respuesta. Reintenta e ingrésalo.');
+    throw new Error('No pude conectar con la IA (' + (m || 'error') + ').');
+  }
+};
+
+// Voz por personaje: kind 'draco' = mercader/sospechoso; resto = Helena. Reusa
+// speak() con override de modelo, sin tocar la voz global del coach.
+window.rodeoStorySpeak = (text, kind) =>
+  speak(text, kind === 'draco' ? 'aura-2-draco-en' : 'aura-2-helena-en');
+
+// Corte de voz: reusa el stopSpeaking global de RODEO.
+window.rodeoStoryStopSpeak = () => stopSpeaking();
+
+// story-mode.js usa showToast(msg, type, ms); RODEO expone toast(msg, ms).
+if (typeof window.showToast !== 'function') {
+  window.showToast = (msg, _type, ms) => toast(msg, ms || 2600);
+}
 
 /* ═══════════════════ SLANG ═══════════════════ */
 
@@ -5554,7 +5597,15 @@ function rpCardEl(sc, canon) {
     <div class="rp-line"><span class="rp-line-k">Objetivo</span><span class="rp-line-v">${esc(sc.goal_es)}</span></div>
     <div class="rp-line rp-line--obst"><span class="rp-line-k">La tensión</span><span class="rp-line-v">${esc(sc.obstacle_es)}</span></div>
     <span class="rp-card-go">Entrar a escena &rarr;</span>`;
-  el.addEventListener('click', () => startRoleplay(sc));
+  el.addEventListener('click', () => {
+    // La tarjeta CANÓNICA ("La princesa y el azafrán") abre el EPISODIO ILUSTRADO
+    // inmersivo. Las demás (generadas / sorpréndeme) siguen con el flujo generativo.
+    if (canon && typeof window.openStoryImmersion === 'function') {
+      window.openStoryImmersion('princess_001');
+    } else {
+      startRoleplay(sc);
+    }
+  });
   return el;
 }
 
