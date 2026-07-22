@@ -54,7 +54,12 @@
     bubbleDelay: 0,
     bubbleStack: [],
     transitioning: false,
-    timers: []        // timeouts de la orquestación de transición (cancelables)
+    timers: [],       // timeouts de la orquestación de transición (cancelables)
+    // runId: token de sesión. Sube en cada open/close para que evaluaciones
+    // en vuelo (storyEvaluate → Puter/local, 10-30s) que llegan DESPUÉS de
+    // cerrar el episodio no pinten un panel obsoleto ni dejen SM.busy=true.
+    runId: 0,
+    dnaSaved: false
   };
 
   // Timers de transición cancelables (para no dejar callbacks colgando al cerrar)
@@ -254,8 +259,19 @@
       '@keyframes siWave{0%,100%{height:4px}50%{height:13px}}',
       '@keyframes siBgIn{from{opacity:0}to{opacity:1}}',
       // Responsive
+      // Stack de burbujas: los bloques anteriores se atenúan y se apagan los
+      // botones internos (siguiente / traducción). Sin estas reglas, hasta 4
+      // burbujas quedaban apiladas OPACAS con sus botones vivos, y el usuario
+      // podía disparar acciones sobre una línea que ya no es la actual.
+      '.si-bubble-block{transition:opacity .3s ease}',
+      '.si-bubble-block.dimmed{opacity:.35;pointer-events:none}',
+      '.si-bubble-block.dimmed .si-next,.si-bubble-block.dimmed .si-eye{display:none}',
+      '.si-bubble-block.leaving{opacity:0;transition:opacity .4s ease;pointer-events:none}',
+      // Móvil: el popup de vocabulario tenía top:auto+bottom:auto → caía sobre
+      // la topbar (X, mute, progreso). Ahora ancla arriba bajo la topbar (~68px)
+      // o abajo sobre la zona de diálogo, según qué media query aplique.
       '@media(max-width:680px){.si-bubble{font-size:21px}.si-actors{gap:14vw;bottom:200px}',
-      '  .si-actor{width:120px}.si-vocab-popup{top:auto;bottom:auto;right:12px;left:12px;width:auto}}',
+      '  .si-actor{width:120px}.si-vocab-popup{top:72px;right:12px;left:12px;width:auto;max-width:none}}',
       // Reduced motion
       '@media(prefers-reduced-motion:reduce){.story-imm .si-bgimg[class*="story-anim--kb-"],.story-imm .si-bg-layer.story-anim--shake,.story-imm .si-wave i{animation:none!important;transform:none!important}.story-imm .si-bgimg.in{animation-duration:200ms!important}.story-imm .si-bubble,.story-imm .si-sub.reveal{animation:siBgIn 200ms ease both!important}}'
     ].join('\n');
@@ -304,21 +320,61 @@
     SM.bubbleDelay = 0;
     SM.bubbleStack = [];
     SM.transitioning = false;
+    SM.busy = false;              // reset por si un run anterior murió con evaluación en vuelo
+    SM.lastUserText = '';         // sin esto el textarea aparece prellenado con la respuesta del run anterior
+    SM.runId++;                   // cualquier callback pendiente del run viejo se descarta al chequear runId
     clearTimers();
     var ov = ensureOverlay();
     ov.classList.add('show');
     document.body.style.overflow = 'hidden';
+    // Precarga best-effort: el cross-fade entre escenas puede terminar antes
+    // de que el JPG (180-310 KB) exista, dejando un flash en blanco. Sin
+    // await ni onerror: si falla, el <img> normal reintenta al pintar.
+    (ep.scenes || []).forEach(function (s) {
+      var p = s && s.background_illustration;
+      if (typeof p === 'string' && p.indexOf('/') >= 0) { var im = new Image(); im.src = p; }
+    });
+    // Android back = cerrar episodio, no cerrar la PWA entera. Marcamos la
+    // entrada con un flag para saber que fue empujada por nosotros y no
+    // recursar al llamar history.back() en el close manual.
+    try { history.pushState({ storyImm: true }, ''); } catch (e) {}
     gotoScene(ep.start_scene || (ep.scenes[0] && ep.scenes[0].scene_id));
   }
 
   function closeStoryImmersion() {
     var ov = document.getElementById('storyImmersionOverlay');
+    var estaba = !!(ov && ov.classList.contains('show'));
     if (ov) ov.classList.remove('show');
     document.body.style.overflow = '';
     clearPopupTimer();
     clearTimers();
     stopSpeaking();
+    SM.runId++;                   // invalida callbacks pendientes de este run
+    SM.busy = false;
+    SM.lastUserText = '';
+    // Consumimos la entrada del history que empujamos al abrir, SOLO si el
+    // cierre no vino del popstate (allí el navegador ya se la comió).
+    if (estaba && history.state && history.state.storyImm) {
+      try { history.back(); } catch (e) {}
+    }
   }
+
+  // Botón "atrás" de Android: pop de la entrada storyImm → cerrar el
+  // episodio en vez de tumbar la PWA entera.
+  window.addEventListener('popstate', function () {
+    var ov = document.getElementById('storyImmersionOverlay');
+    if (ov && ov.classList.contains('show')) {
+      // El navegador ya consumió la entrada; cerramos sin re-hacer history.back
+      SM.runId++;
+      ov.classList.remove('show');
+      document.body.style.overflow = '';
+      clearPopupTimer();
+      clearTimers();
+      stopSpeaking();
+      SM.busy = false;
+      SM.lastUserText = '';
+    }
+  });
 
   // ---------------------------------------------------------
   // Navegacion de escenas
@@ -1186,10 +1242,13 @@
     if (ta) ta.disabled = true;
 
     var scene = SM.scenesById[SM.sceneId];
+    var run = SM.runId;
     storyEvaluate(scene, text).then(function (out) {
+      if (run !== SM.runId) return;  // cerrado o reabierto mientras evaluaba
       SM.busy = false;
       renderCorrection(scene, out.json, out.source);
     }).catch(function (err) {
+      if (run !== SM.runId) return;
       SM.busy = false;
       renderAIError(scene, err);
     });
@@ -1525,11 +1584,17 @@
     // episodio completo igual que 'replay_episode'.
     if (opt.action === 'replay_episode' || opt.action === 'replay_last_scene') {
       SM.results = []; SM.vocab = [];
+      SM.lastUserText = '';   // sin reset, el próximo submit-vacío no lo detecta
       gotoScene(SM.episode.start_scene || (SM.episode.scenes[0] && SM.episode.scenes[0].scene_id), true);
       return;
     }
     if (opt.action === 'save_and_exit') {
-      if (typeof srsOnCorrectAnswer === 'function') { try { srsOnCorrectAnswer(); } catch (e) {} }
+      // srsOnCorrectAnswer no existe en el codebase (mote muerto). Puente al
+      // sistema real de RODEO: contar la sesión de STORY y actualizar la
+      // racha, igual que hace un debrief de TALK/ROLEPLAY.
+      if (typeof window.rodeoStoryProgress === 'function') {
+        try { window.rodeoStoryProgress(); } catch (e) {}
+      }
       if (typeof showToast === 'function') showToast('Progreso guardado. ¡Buen trabajo!', 'success');
       closeStoryImmersion();
       return;

@@ -20,7 +20,7 @@
 // Sube este número en cada release donde quieras invalidar cache viejo.
 // ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
 // a esos archivos NO llega a los usuarios hasta subir esta versión.
-const VERSION = 'rodeo-v3';
+const VERSION = 'rodeo-v4';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
@@ -48,6 +48,24 @@ const CDN_WARM = [
   'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap',
+];
+
+// Assets same-origin adicionales para que el EPISODIO ILUSTRADO funcione
+// offline (js del engine + fuente Inter que usa el player + las 6 escenas
+// de "La princesa y el azafrán"). Se precachean en install best-effort:
+// si un archivo no existe o el hosting responde 404, el install sigue.
+const APP_WARM = [
+  '/js/story-episodes.js',
+  '/js/story-mode.js',
+  '/js/supabase-sync.js',
+  '/fonts/Inter-Variable.ttf',
+  '/fonts/Inter-Italic-Variable.ttf',
+  '/episodios/princess/1.jpg',
+  '/episodios/princess/2.jpg',
+  '/episodios/princess/3.jpg',
+  '/episodios/princess/4.jpg',
+  '/episodios/princess/5.jpg',
+  '/episodios/princess/6.jpg',
 ];
 
 // CDNs que la app necesita para VERSE bien offline (estilos y fuentes).
@@ -84,6 +102,7 @@ self.addEventListener('install', (event) => {
     const cache = await caches.open(SHELL_CACHE);
     await cache.addAll(SHELL_URLS);   // crítico: si falla, install falla (recuperable)
     await warmCDN();                   // best-effort: nunca lanza, ver abajo
+    await warmApp();                   // best-effort: episodio ilustrado offline
     await self.skipWaiting();
   })());
 });
@@ -162,6 +181,21 @@ async function warmCDN() {
       if (res) await cache.put(u, res);   // opaque (status 0) o ok: guardar
     }));
   } catch (_e) { /* best-effort: nunca rompe el install */ }
+}
+
+// Assets same-origin (episodio ilustrado). Cache-first en runtime ya los
+// atrapa la primera vez que se ven, pero eso obliga a Gus a abrir el
+// episodio con red. Precalentar en install = jugable offline desde el vuelo.
+async function warmApp() {
+  try {
+    const cache = await caches.open(STATIC_CACHE);
+    await Promise.allSettled(APP_WARM.map(async (u) => {
+      try {
+        const res = await fetch(u);
+        if (res && res.ok) await cache.put(u, res);
+      } catch (_e) { /* recurso ausente o red caída: seguimos */ }
+    }));
+  } catch (_e) { /* best-effort */ }
 }
 
 /* ── Estrategias ─────────────────────────────────────────────────────── */

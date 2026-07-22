@@ -3233,7 +3233,10 @@ async function speak(text, modelOverride) {
   // (Helena / Draco) sin tocar la voz global del coach. Undefined = voz actual.
   let ab;
   try { ab = await pedirTTS(text, modelOverride); }
-  catch (e) { return caerASistema(text, 'falló la voz Deepgram', e); }
+  catch (e) {
+    if (token !== speakToken) return;           // salió a otra vista mientras pedíamos Deepgram
+    return caerASistema(text, 'falló la voz Deepgram', e);
+  }
   if (token !== speakToken) return;             // otra respuesta la reemplazó
 
   try {
@@ -5295,6 +5298,15 @@ function updateStreak() {
   store.set('rodeo_streak', s);
 }
 
+// Puente para el episodio inmersivo (js/story-mode.js). "Guardar y salir"
+// llamaba a srsOnCorrectAnswer, un mote muerto que jamás existió — el
+// contador de historias y la racha nunca se acreditaban. Con esto sí lo hacen.
+window.rodeoStoryProgress = function () {
+  state.stories = (state.stories || 0) + 1;
+  store.set('rodeo_stories', state.stories);
+  updateStreak();
+};
+
 function updateBar() {
   $('#ladder-bar').style.width = state.ladderXP.pct + '%';
   $('#ladder-streak').textContent = 'racha ' + state.streak.days + (state.streak.days ? ' 🔥' : '');
@@ -5551,6 +5563,12 @@ let rpLastDebrief = [];    // aprendizajes del último cierre, para guardar a DN
 // error; en la portada eso se lee como "roto". Lo traducimos a algo humano.
 function rpErrMsg(err) {
   const m = String((err && err.message) || err || '');
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'Sin conexión — tu escena sigue aquí, reintenta cuando vuelva el internet';
+  }
+  if (/failed to fetch|networkerror|load failed/i.test(m)) {
+    return 'Se cayó la conexión — reintenta en un momento';
+  }
   if (/rate.?limit/i.test(m)) return 'El modelo creativo está saturado ahora mismo — dale a reintentar en un momento';
   return m || 'Algo salió mal';
 }
@@ -5678,7 +5696,15 @@ Emit the JSON object as your very first character.` },
     const sc = (parsed && !Array.isArray(parsed) && parsed.title) ? parsed : (Array.isArray(parsed) ? parsed[0] : null);
     if (!sc || !sc.title || !sc.role_es || !sc.goal_es || !sc.obstacle_es) throw new Error('No salió — intenta de nuevo');
     rpGenBusy = false;
-    startRoleplay(sc);
+    // Si abrieron otra escena mientras se generaba la sorpresa, no la pisamos:
+    // la sumamos a la portada para que Gus la encuentre al volver.
+    if (state.roleplay) {
+      rpCards = [sc, ...rpCards].slice(0, 3);
+      renderRpCards();
+      toast('Tu escena sorpresa te espera en la portada', 3000);
+    } else {
+      startRoleplay(sc);
+    }
   } catch (err) {
     toast('Error: ' + rpErrMsg(err), 5000);
     rpGenBusy = false;
@@ -5689,7 +5715,7 @@ Emit the JSON object as your very first character.` },
 
 // ── Sesión ───────────────────────────────────────────────────────────────
 function startRoleplay(sc) {
-  if (state.busy) return;
+  if (state.busy || state.roleplay) return;
   stopSpeaking();
   state.roleplay = { scenario: sc, messages: [{ role: 'system', content: rpSystemPrompt(sc) }] };
   $('#roleplay-home').classList.add('hidden');
@@ -5726,10 +5752,14 @@ function rpAddBubble(html, cls) {
 
 // Acotación teatral: el CONSEJO en español, separado del diálogo. Realza las
 // frases inglesas entre comillas para que salten como "lo que puedes decir".
+// parseChunks primero: si el modelo cuela ⟦en||es⟧ dentro del consejo (pasa),
+// deja el inglés a la vista y descarta el corchete/traducción — idempotente
+// sobre texto sin marcadores, así que no cuesta nada en el caso normal.
 function rpAddConsejo(text) {
   const el = document.createElement('div');
   el.className = 'rp-consejo';
-  const body = esc(text).replace(/[“"]([^”"]+)[”"]/g, '<b>“$1”</b>');
+  const limpio = parseChunks(text).clean;
+  const body = esc(limpio).replace(/[“"]([^”"]+)[”"]/g, '<b>“$1”</b>');
   el.innerHTML = `<div class="rp-consejo-tag">🎭 dirección · entre bastidores</div>${body}`;
   $('#rp-scroll').appendChild(el);
   // Entrada SOLO por CSS keyframe (.rp-consejo → rp-rise, fill-mode both). NO
@@ -5742,22 +5772,32 @@ function rpInputEnabled(on) {
   const s = $('#rp-send'), i = $('#rp-input'), m = $('#rp-mic');
   if (s) s.disabled = !on;
   if (i) i.disabled = !on;
-  if (m) m.style.opacity = on ? '1' : '0.4';
+  // OJO: solo bajar la opacidad NO impide clic. En mic-first, Gus toca el
+  // mic mientras el narrador vuela → onend limpia el input y llama a rpTurn,
+  // que retorna en el guard de rpBusy y descarta la línea en silencio.
+  if (m) { m.disabled = !on; m.style.opacity = on ? '1' : '0.4'; }
 }
 
 function rpSyncTTS() { const b = $('#rp-tts'); if (b) b.classList.toggle('on', state.ttsOn); }
 
 async function rpTurn(userText, isOpening) {
   if (rpBusy || !state.roleplay) return;
+  // Captura la identidad de la sesión: TODOS los guards del turno miden
+  // `state.roleplay === ses`, no truthiness. Si Gus sale a mitad de stream
+  // (rp-back / cerrar sesión) y abre otra escena, startRoleplay crea una
+  // sesión NUEVA truthy — con truthiness los guards pasan y este turno
+  // viejo pinta burbujas en el DOM de la nueva, hace push del assistant en
+  // sus messages y corrompe el historial que va al LLM y al debrief.
+  const ses = state.roleplay;
   rpBusy = true;
   state.busy = true;
   rpInputEnabled(false);
 
   if (userText) {
-    state.roleplay.messages.push({ role: 'user', content: userText });
+    ses.messages.push({ role: 'user', content: userText });
     rpAddBubble(esc(userText), 'bubble-user');
   } else {
-    state.roleplay.messages.push({ role: 'user', content: RP_OPENING });
+    ses.messages.push({ role: 'user', content: RP_OPENING });
   }
 
   const typing = rpAddBubble('<div class="typing-dots"><span></span><span></span><span></span></div>', 'bubble-coach rp-narr');
@@ -5765,8 +5805,8 @@ async function rpTurn(userText, isOpening) {
   try {
     let content, finish;
     try {
-      ({ content, finish } = await callStream('chat', state.roleplay.messages, RP_MAX_TOKENS, (acc) => {
-        if (!state.roleplay) return;
+      ({ content, finish } = await callStream('chat', ses.messages, RP_MAX_TOKENS, (acc) => {
+        if (state.roleplay !== ses) return;
         const partial = extractPartialReply(acc);
         if (!partial) return;
         if (!liveBubble) { typing.remove(); liveBubble = rpAddBubble('', 'bubble-coach rp-narr'); }
@@ -5775,28 +5815,33 @@ async function rpTurn(userText, isOpening) {
       }));
     } catch (streamErr) {
       if (liveBubble) { liveBubble.remove(); liveBubble = null; }
-      ({ content, finish } = await callAPI('chat', state.roleplay.messages, RP_MAX_TOKENS));
+      ({ content, finish } = await callAPI('chat', ses.messages, RP_MAX_TOKENS));
     }
 
-    if (!state.roleplay) return;   // el usuario salió mientras el turno volaba
+    if (state.roleplay !== ses) return;   // el usuario salió o abrió otra escena
 
-    if ((!content || !content.trim()) && finish === 'length') {
+    // Reintento con techo alto: el caso común no es content vacío sino JSON
+    // truncado con finish='length' — parsearlo primero y solo reintentar si
+    // no salió parseable (cubre a la vez vacío y truncado).
+    let parsed = parseJSON(content);
+    if (!parsed && finish === 'length') {
       if (liveBubble) { liveBubble.remove(); liveBubble = null; }
-      ({ content, finish } = await callAPI('chat', state.roleplay.messages, RP_MAX_TOKENS_RETRY));
+      ({ content, finish } = await callAPI('chat', ses.messages, RP_MAX_TOKENS_RETRY));
+      if (state.roleplay !== ses) return;
+      parsed = parseJSON(content);
     }
 
-    const parsed = parseJSON(content);
     let reply, glosses, consejo;
     if (parsed && parsed.reply) {
       reply = parsed.reply;
       glosses = Array.isArray(parsed.glosses) ? parsed.glosses : [];
       consejo = typeof parsed.consejo === 'string' ? parsed.consejo : '';
-      state.roleplay.messages.push({ role: 'assistant', content: JSON.stringify(parsed) });
+      ses.messages.push({ role: 'assistant', content: JSON.stringify(parsed) });
     } else if (finish === 'stop' && content && !content.trim().startsWith('{')) {
       reply = content; glosses = []; consejo = '';
-      state.roleplay.messages.push({ role: 'assistant', content });
+      ses.messages.push({ role: 'assistant', content });
     } else {
-      throw new Error('El narrador se enredó — repite tu línea');
+      throw new Error(isOpening ? 'No pude abrir la escena — reintenta' : 'El narrador se enredó — repite tu línea');
     }
 
     typing.remove();
@@ -5810,15 +5855,20 @@ async function rpTurn(userText, isOpening) {
   } catch (err) {
     typing.remove();
     if (liveBubble) liveBubble.remove();
-    if (state.roleplay) {
+    if (state.roleplay === ses) {
       toast('Error: ' + rpErrMsg(err), 5000);
-      state.roleplay.messages.pop();
+      ses.messages.pop();
       if (userText) { const inp = $('#rp-input'); if (inp) inp.value = userText; }
     }
   } finally {
-    rpBusy = false;
-    state.busy = false;
-    rpInputEnabled(true);
+    // Solo tocamos el estado global si esta sesión sigue siendo la activa:
+    // otro turno de la sesión NUEVA no debe recibir rpBusy=false a media
+    // vuelo por el finally del turno huérfano.
+    if (state.roleplay === ses) {
+      rpBusy = false;
+      state.busy = false;
+      rpInputEnabled(true);
+    }
   }
 }
 
@@ -5833,19 +5883,34 @@ function closeRoleplay() {
 }
 
 // ── Cierre con debrief "cómo te fue" ───────────────────────────────────────
+let rpDebriefBusy = false;   // flag propio: no compartimos state.busy con los turnos
 async function rpDebrief() {
-  if (!state.roleplay || state.busy) return;
-  const turns = state.roleplay.messages.filter((m) => m.role === 'user').length;
+  if (!state.roleplay || rpDebriefBusy || state.busy) return;
+  const ses = state.roleplay;
+  const turns = ses.messages.filter((m) => m.role === 'user').length;
   // La instrucción de apertura cuenta como turno de usuario: exige ≥1 réplica real.
   if (turns < 2) { closeRoleplay(); return; }
 
-  state.busy = true;
-  toast('Cerrando la escena...', 4000);
+  rpDebriefBusy = true;
+  rpInputEnabled(false);
+  const endBtn = $('#rp-end'); if (endBtn) endBtn.disabled = true;
+  // Indicador persistente (no un toast de 4s para una espera de 15-25s).
+  const cerrando = rpAddBubble(
+    '<div class="typing-dots"><span></span><span></span><span></span></div>' +
+    '<div style="font-size:0.78rem; color:var(--text-secondary); margin-top:6px;">cerrando la escena…</div>',
+    'bubble-coach rp-narr'
+  );
   try {
-    const transcript = state.roleplay.messages
+    // Transcript: preservamos el FINAL (donde está el clímax de la escena).
+    // El backend recorta a 8000 chars por mensaje: si mandamos 30 turnos
+    // juntos superamos ese techo y se pierden los últimos. Tomamos los
+    // últimos ~14 mensajes (7 pares aprox.) y truncamos por seguridad.
+    const clean = ses.messages
       .filter((m) => m.role !== 'system')
+      .slice(-14)
       .map((m) => (m.role === 'user' ? 'GUS: ' : 'ESCENA: ') + m.content.slice(0, 600))
       .join('\n');
+    const transcript = clean.length > 7000 ? '…\n' + clean.slice(-7000) : clean;
 
     const { parsed: d } = await callJSON('creative', [
       { role: 'system', content: 'You are an English coach reviewing a roleplay theatre session. Respond with STRICT JSON only.' },
@@ -5854,9 +5919,16 @@ async function rpDebrief() {
 Max 3 aprendizajes. TRANSCRIPT:\n${transcript}` },
     ], 2600);
 
+    if (state.roleplay !== ses) { cerrando.remove(); return; }   // salió a mitad
     if (!d) throw new Error('no pude analizar la escena');
+    cerrando.remove();
     const items = Array.isArray(d.aprendizajes) ? d.aprendizajes.filter((x) => x && x.en) : [];
     rpLastDebrief = items;
+    // Contadores: ROLEPLAY también es una sesión — la racha y el conteo del
+    // perfil dejarían de crecer si Gus practica solo por aquí.
+    state.sessions += 1;
+    store.set('rodeo_sessions', state.sessions);
+    if (typeof updateStreak === 'function') updateStreak();
 
     openSheet(`
       <p class="font-display" style="font-size:2.3rem; line-height:0.95;">CÓMO TE<br>FUE<span style="color:var(--accent);">.</span></p>
@@ -5872,10 +5944,21 @@ Max 3 aprendizajes. TRANSCRIPT:\n${transcript}` },
         <button class="btn-ghost" onclick="rpCerrarDebrief()" style="min-height:44px;">${items.length ? 'Ahora no' : 'LISTO'}</button>
       </div>`);
   } catch (err) {
-    toast('Error en el cierre: ' + rpErrMsg(err));
-    closeRoleplay();
+    cerrando.remove();
+    if (state.roleplay === ses) {
+      // NO destruimos la sesión: ofrecemos reintentar cierre o salir explícito.
+      openSheet(`
+        <p class="font-display" style="font-size:1.9rem; line-height:1;">NO SALIÓ<br>EL CIERRE<span style="color:var(--accent);">.</span></p>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin:14px 0 20px; line-height:1.5;">${esc(rpErrMsg(err))}</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button class="btn-accent" onclick="closeSheet(); setTimeout(rpDebrief, 100);" style="min-height:48px;">REINTENTAR CIERRE</button>
+          <button class="btn-ghost" onclick="closeSheet(); closeRoleplay();" style="min-height:44px;">Salir sin análisis</button>
+        </div>`);
+    }
   } finally {
-    state.busy = false;
+    rpDebriefBusy = false;
+    if (endBtn) endBtn.disabled = false;
+    if (state.roleplay === ses) rpInputEnabled(true);
   }
 }
 
@@ -5901,7 +5984,13 @@ window.rpCerrarDebrief = function () { rpLastDebrief = []; closeSheet(); closeRo
   const sb = $('#rp-send'); if (sb) sb.addEventListener('click', send);
   const ip = $('#rp-input'); if (ip) ip.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
   const bk = $('#rp-back'); if (bk) bk.addEventListener('click', () => {
-    state.busy = false; rpBusy = false; rpInputEnabled(true); closeRoleplay();
+    // NO reseteamos rpBusy/state.busy a mano: el turno en vuelo tiene su
+    // propio finally que solo dispara si sigue siendo la sesión activa.
+    // Sí queremos permitir abrir OTRA escena aunque haya turno vivo: como
+    // el finally del turno huérfano ya no toca el estado global, dejamos
+    // aquí el reset — pero después de nullear la sesión (closeRoleplay).
+    closeRoleplay();
+    rpBusy = false; state.busy = false; rpInputEnabled(true);
   });
   const en = $('#rp-end'); if (en) en.addEventListener('click', rpDebrief);
   const rf = $('#rp-refresh'); if (rf) rf.addEventListener('click', generarEscenas);

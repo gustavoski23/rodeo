@@ -56,8 +56,15 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'missing_messages' }));
   }
 
-  // Límites duros para que un bug del frontend no queme crédito
-  const safeMessages = messages.slice(-40).map((m) => ({
+  // Límites duros para que un bug del frontend no queme crédito.
+  // OJO: preservar el SYSTEM (mensaje 0) al recortar — es el contrato del
+  // flujo (esquema JSON estricto, marcadores ⟦en||es⟧, reglas del rol). Sin
+  // esto, tras ~20 turnos de ROLEPLAY/TALK cae fuera de la ventana y el
+  // modelo empieza a devolver texto plano en vez de JSON.
+  const hasSystem = messages[0] && messages[0].role === 'system';
+  const head = hasSystem ? [messages[0]] : [];
+  const tail = messages.slice(hasSystem ? 1 : 0).slice(-(40 - head.length));
+  const safeMessages = [...head, ...tail].map((m) => ({
     role: m.role === 'assistant' || m.role === 'system' ? m.role : 'user',
     content: String(m.content).slice(0, 8000),
   }));
