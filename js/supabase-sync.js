@@ -28,7 +28,7 @@
    (o la nueva "publishable"). Mientras esté vacía, la sección Cuenta del
    perfil muestra cómo activarla y todo lo demás sigue igual. */
 const SB_URL = 'https://cablhejzsxqgwdvyzqei.supabase.co';
-const SB_ANON_KEY = '';
+const SB_ANON_KEY = 'sb_publishable_jNRFSwU8ar-DZ0UY2_mQfg_Nz7LKXYI';
 
 // Claves de localStorage que disparan push cuando el app las escribe.
 const SB_SYNC_KEYS = new Set([
