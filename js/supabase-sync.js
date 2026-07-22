@@ -54,16 +54,21 @@ function sbInit() {
     sbClient = window.supabase.createClient(SB_URL, SB_ANON_KEY);
   } catch (_e) { sbClient = null; return; }
 
-  // Estado inicial + cambios de sesión. SIGNED_IN llega tanto al volver del
-  // redirect de Google como al restaurar sesión guardada — en ambos: pull.
+  // Estado inicial + cambios de sesión. INITIAL_SESSION llega al restaurar
+  // sesión guardada; SIGNED_IN al volver del redirect de Google — en ambos:
+  // pull. El setTimeout es OBLIGATORIO: el dispatcher de onAuthStateChange
+  // retiene el lock de auth, y llamar otros métodos del cliente dentro del
+  // callback puede deadlockear (gotcha documentado de supabase-js v2).
   sbClient.auth.onAuthStateChange((evento, sesion) => {
     const antes = !!sbUsuario;
     sbUsuario = (sesion && sesion.user) || null;
     if (sbUsuario && !antes) {
-      sbPull();
-      if (evento === 'SIGNED_IN' && typeof toast === 'function') {
-        toast('Cuenta conectada — sincronizando tu DNA');
-      }
+      setTimeout(() => {
+        sbPull();
+        if (evento === 'SIGNED_IN' && typeof toast === 'function') {
+          toast('Cuenta conectada — sincronizando tu DNA');
+        }
+      }, 0);
     }
   });
 
