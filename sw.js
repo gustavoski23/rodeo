@@ -51,15 +51,14 @@ const CDN_WARM = [
 ];
 
 // Assets same-origin adicionales para que el EPISODIO ILUSTRADO funcione
-// offline (js del engine + fuente Inter que usa el player + las 6 escenas
-// de "La princesa y el azafrán"). Se precachean en install best-effort:
-// si un archivo no existe o el hosting responde 404, el install sigue.
+// offline (js del engine + las 6 escenas de "La princesa y el azafrán"). Se
+// precachean en install best-effort: si un archivo no existe o el hosting
+// responde 404, el install sigue. Las fuentes del player son las de RODEO
+// (Archivo/Familjen/Space Mono, ya en CDN_WARM) — Inter salió del retheme.
 const APP_WARM = [
   '/js/story-episodes.js',
   '/js/story-mode.js',
   '/js/supabase-sync.js',
-  '/fonts/Inter-Variable.ttf',
-  '/fonts/Inter-Italic-Variable.ttf',
   '/episodios/princess/1.jpg',
   '/episodios/princess/2.jpg',
   '/episodios/princess/3.jpg',

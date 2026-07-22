@@ -1243,8 +1243,10 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rp-refresh {
   background: none; border: none; color: var(--text-muted);
   font-family: 'Space Mono', monospace; font-size: 0.66rem; letter-spacing: 0.04em;
-  cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
   flex-shrink: 0;
+  min-height: 44px; padding: 4px 6px;            /* target táctil ≥44px (brief §6.7) */
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .rp-refresh:hover, .rp-refresh:focus-visible { color: var(--text-secondary); }
 .rp-refresh:disabled { opacity: 0.4; cursor: default; }
@@ -1710,19 +1712,19 @@ body.rd-lectura .luminous-line { opacity: 0; }
     <div id="roleplay-session" class="hidden flex-col" style="flex:1; min-height:0;">
       <div class="rd-session-bar flex items-center justify-between pb-3 shrink-0">
         <div class="flex items-center gap-2">
-          <button id="rp-back" class="icon-btn" aria-label="Volver a los escenarios" style="width:36px;height:36px;">
+          <button id="rp-back" class="icon-btn" aria-label="Volver a los escenarios">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
           </button>
           <span id="rp-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
         </div>
         <div class="flex gap-2 items-center">
-          <button id="rp-replay" class="icon-btn" aria-label="Reproducir la última línea" style="width:40px;height:40px;">
+          <button id="rp-replay" class="icon-btn" aria-label="Reproducir la última línea">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
           </button>
-          <button id="rp-tts" class="icon-btn" aria-label="Activar o desactivar voz" style="width:40px;height:40px;">
+          <button id="rp-tts" class="icon-btn" aria-label="Activar o desactivar voz">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
           </button>
-          <button id="rp-end" class="btn-ghost" style="min-height:40px; padding: 8px 16px; font-size: 0.78rem;">Terminar</button>
+          <button id="rp-end" class="btn-ghost" style="min-height:44px; padding: 10px 16px; font-size: 0.78rem;">Terminar</button>
         </div>
       </div>
       <div id="rp-scroll" class="scroll-area flex flex-col gap-3" style="flex:1; min-height:0; padding-bottom: 8px;"></div>
@@ -3217,15 +3219,21 @@ async function pedirTTS(text, modelOverride) {
   return r.arrayBuffer();
 }
 
-async function speak(text, modelOverride) {
+async function speak(text, modelOverride, opts) {
   // La voz habla SOLO el texto limpio: parseChunks descarta los marcadores
   // ⟦en||es⟧ (traducción en español + separador) que la glosa embebida usa para
   // pintar los tips. Sin esto, Deepgram pronunciaba "ponerse al día" y los "||"
   // dentro de una voz en inglés. Idempotente: sobre texto ya limpio no cambia nada.
   text = parseChunks(text).clean;
   if (!text) return;
-  ultimoHablado = String(text);
-  syncReplayButton();
+  // trackReplay:false lo usa el EPISODIO ILUSTRADO: sus líneas (princesa/mercader)
+  // NO deben contaminar el botón "repetir" del coach de TALK — antes, tras cerrar
+  // el episodio, "repetir" releía el diálogo de la princesa. Por defecto (coach)
+  // SÍ registra, así que ningún llamador existente cambia de comportamiento.
+  if (!opts || opts.trackReplay !== false) {
+    ultimoHablado = String(text);
+    syncReplayButton();
+  }
   stopSpeaking();                  // corta lo anterior e invalida su token
   const token = speakToken;
 
@@ -3326,11 +3334,30 @@ window.rodeoStoryEval = async (systemPrompt, userText) => {
 
 // Voz por personaje: kind 'draco' = mercader/sospechoso; resto = Helena. Reusa
 // speak() con override de modelo, sin tocar la voz global del coach.
+// trackReplay:false → las líneas del episodio NO pisan el "repetir" de TALK.
 window.rodeoStorySpeak = (text, kind) =>
-  speak(text, kind === 'draco' ? 'aura-2-draco-en' : 'aura-2-helena-en');
+  speak(text, kind === 'draco' ? 'aura-2-draco-en' : 'aura-2-helena-en', { trackReplay: false });
 
 // Corte de voz: reusa el stopSpeaking global de RODEO.
 window.rodeoStoryStopSpeak = () => stopSpeaking();
+
+// Correcciones gramaticales del juez del episodio → DNA. MISMO shape que TALK
+// (error/quote/fix/why, saveDNA le pone ts): así caen en "MIS FALLOS" y el quiz
+// las cobra igual que un error de conversación. Antes se mostraban y se tiraban.
+window.rodeoStorySaveErrors = (errs) => {
+  if (!Array.isArray(errs)) return;
+  errs.forEach((g) => {
+    if (g && g.corrected) {
+      saveDNA({ type: 'error', quote: g.original || '', fix: g.corrected, why: g.explanation_in_spanish || '' });
+    }
+  });
+};
+
+// Micrófono del episodio: reusa wireMic con contexto 'story' (idioma EN por
+// defecto, con su chip ES/EN). Devuelve un handle { abort } para que el player
+// corte la toma al cerrar/cambiar de escena y NO llegue un resultado tardío
+// sobre un input ya desmontado.
+window.rodeoStoryMic = (btn, input, onFinal) => wireMic(btn, input, onFinal, 'story');
 
 // story-mode.js usa showToast(msg, type, ms); RODEO expone toast(msg, ms).
 if (typeof window.showToast !== 'function') {
@@ -3597,8 +3624,8 @@ function renderDNA() {
     } else {
       el.innerHTML = `
         <div style="min-width:0;">
-          <div style="font-size: 0.92rem; font-weight: 700;">${esc(d.term)} <span style="font-weight: 400; color: var(--text-secondary);">— ${esc(d.meaning)}</span></div>
-          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; font-style: italic;">"${esc(d.example || '')}"</div>
+          <div style="font-size: 0.92rem; font-weight: 700;">${esc(d.term)}${d.meaning ? ` <span style="font-weight: 400; color: var(--text-secondary);">— ${esc(d.meaning)}</span>` : ''}</div>
+          ${d.example ? `<div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; font-style: italic;">"${esc(d.example)}"</div>` : ''}
         </div>
         <button class="dna-del" data-idx="${idx}" aria-label="Borrar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -3700,14 +3727,44 @@ function runQuiz(quiz) {
 
 /* ═══════════════════ SHEET / OVERLAY ═══════════════════ */
 
+// #overlay es un modal (aria-modal): gestión de foco. Al abrir guardamos quién
+// tenía el foco y lo movemos al panel; al cerrar lo devolvemos. Escape cierra y
+// Tab queda atrapado dentro. Antes el foco se quedaba en el contenido de fondo
+// y Escape no hacía nada — el sheet solo se cerraba tocando el backdrop/LISTO.
+let sheetFocusPrev = null;
 function openSheet(html) {
-  $('#sheet-content').innerHTML = html;
+  sheetFocusPrev = document.activeElement;
+  const sc = $('#sheet-content');
+  sc.innerHTML = html;
   $('#overlay').classList.remove('hidden');
+  sc.setAttribute('tabindex', '-1');
+  try { sc.focus({ preventScroll: true }); } catch { try { sc.focus(); } catch {} }
   if (!REDUCED && window.gsap) gsap.from('#sheet-content', { y: 80, opacity: 0, duration: 0.7, ease: 'expo.out' });
 }
-function closeSheet() { $('#overlay').classList.add('hidden'); }
+function closeSheet() {
+  $('#overlay').classList.add('hidden');
+  const prev = sheetFocusPrev;
+  sheetFocusPrev = null;
+  if (prev && document.contains(prev) && typeof prev.focus === 'function') {
+    try { prev.focus({ preventScroll: true }); } catch { try { prev.focus(); } catch {} }
+  }
+}
 window.closeSheet = closeSheet;
 $('#overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeSheet(); });
+// Escape cierra la hoja; Tab circula solo entre los focusables del panel (trap simple).
+document.addEventListener('keydown', (e) => {
+  const ov = $('#overlay');
+  if (!ov || ov.classList.contains('hidden')) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeSheet(); return; }
+  if (e.key !== 'Tab') return;
+  const sc = $('#sheet-content');
+  if (!sc) return;
+  const foc = sc.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])');
+  if (!foc.length) return;
+  const first = foc[0], last = foc[foc.length - 1], a = document.activeElement;
+  if (e.shiftKey) { if (a === first || a === sc || !sc.contains(a)) { e.preventDefault(); last.focus(); } }
+  else if (a === last) { e.preventDefault(); first.focus(); }
+});
 
 // Perfil: hogar de lo que salió del tab bar (DNA, SUBE) + racha y stats.
 // Navega a las vistas que ya existen vía switchView y cierra la hoja.
@@ -4883,6 +4940,20 @@ function wireMic(btn, input, onFinal, ctx = 'talk') {
     rec.lang = micLangCode(ctx);   // idioma vigente al arrancar la toma
     try { rec.start(); active = true; btn.classList.add('recording'); } catch {}
   });
+  // Handle de aborto para llamadores que montan/desmontan el mic (el EPISODIO
+  // ILUSTRADO): corta la toma y DESARMA los callbacks para que un onend/onresult
+  // tardío no dispare onFinal sobre un input que ya no existe.
+  return {
+    abort() {
+      if (rec) {
+        rec.onresult = rec.onend = rec.onerror = null;
+        rec._final = '';
+        try { rec.abort(); } catch {}
+      }
+      active = false;
+      btn.classList.remove('recording');
+    },
+  };
 }
 
 /* ═══════════════════ STORY MODE ═══════════════════ */
@@ -5566,6 +5637,7 @@ let rpGenBusy = false;     // reentrancy de la GENERACIÓN de escenas (home)
 let rpBusy = false;        // reentrancy de los TURNOS de la sesión — flag aparte:
                            // generar cartas (creative, lento) NO debe bloquear
                            // abrir/jugar una escena, y viceversa.
+let rpGenRetryTimer = null; // poller que reintenta generar escenas al liberarse state.busy
 let rpLastDebrief = [];    // aprendizajes del último cierre, para guardar a DNA
 
 // El proveedor a veces devuelve su JSON de rate-limit crudo como mensaje de
@@ -5652,8 +5724,52 @@ function rpCardEl(sc, canon) {
   return el;
 }
 
-async function generarEscenas() {
-  if (rpGenBusy || state.busy) return;
+// Estado "ocupado" de la portada: si Gus entra a ROLEPLAY mientras OTRO módulo
+// tiene el modelo tomado (state.busy), generarEscenas no arrancaba y "Escenas
+// frescas" quedaba VACÍA y muda. Ahora pintamos skeletons + un botón para cargar
+// a mano, y un poller reintenta solo en cuanto se libera.
+function renderRpBusyState() {
+  const box = $('#rp-cards');
+  if (!box) return;
+  box.innerHTML = '';
+  for (let i = 0; i < 3; i++) { const s = document.createElement('div'); s.className = 'rp-skel'; box.appendChild(s); }
+  const note = document.createElement('p');
+  note.style.cssText = 'color:var(--text-muted); font-size:0.82rem; line-height:1.5; margin-top:2px;';
+  note.innerHTML = 'Estoy terminando otra cosa — tus escenas cargan solas en cuanto acabe · <button id="rp-loadnow" class="rp-refresh" type="button">cargar ya</button>';
+  box.appendChild(note);
+  const b = $('#rp-loadnow');
+  if (b) b.addEventListener('click', () => generarEscenas(true));
+}
+
+function scheduleRpGenRetry() {
+  if (rpGenRetryTimer) return;
+  let tries = 0;
+  rpGenRetryTimer = setInterval(() => {
+    tries++;
+    const box = $('#rp-cards');
+    // Abortamos si ya no aplica: salió de ROLEPLAY, abrió una escena, ya hay
+    // cartas, o pasó demasiado tiempo (evita un poller inmortal).
+    const homeVigente = state.view === 'roleplay' && !state.roleplay && !!box;
+    if (!homeVigente || rpCards.length || tries > 40) {
+      clearInterval(rpGenRetryTimer); rpGenRetryTimer = null; return;
+    }
+    if (!state.busy && !rpGenBusy) {
+      clearInterval(rpGenRetryTimer); rpGenRetryTimer = null;
+      generarEscenas();
+    }
+  }, 700);
+}
+
+// fromTap=true en clics explícitos (otras escenas / cargar ya / reintentar): así
+// un tap bloqueado avisa con toast, pero la carga automática de la portada no.
+async function generarEscenas(fromTap) {
+  if (rpGenBusy) { if (fromTap) toast('Ya estoy armando tus escenas…', 1800); return; }
+  if (state.busy) {
+    renderRpBusyState();
+    scheduleRpGenRetry();
+    if (fromTap) toast('Estoy terminando otra cosa — cargan solas en cuanto acabe', 2800);
+    return;
+  }
   rpGenBusy = true;
   const box = $('#rp-cards');
   const rf = $('#rp-refresh');
@@ -5680,7 +5796,7 @@ Emit the JSON array as your very first character, nothing before it.` },
   } catch (err) {
     if (box) {
       box.innerHTML = `<p style="color:var(--text-muted); font-size:0.88rem; line-height:1.5;">${esc(rpErrMsg(err))} · <button id="rp-retry" class="rp-refresh">reintentar</button></p>`;
-      const rt = $('#rp-retry'); if (rt) rt.addEventListener('click', generarEscenas);
+      const rt = $('#rp-retry'); if (rt) rt.addEventListener('click', () => generarEscenas(true));
     }
   } finally {
     rpGenBusy = false;
@@ -5689,7 +5805,7 @@ Emit the JSON array as your very first character, nothing before it.` },
 }
 
 async function rpSorprende() {
-  if (rpGenBusy || state.busy) return;
+  if (rpGenBusy || state.busy) { toast('Espera a que termine lo que está corriendo', 2200); return; }
   rpGenBusy = true;
   const btn = $('#rp-sorprende'); if (btn) btn.disabled = true;
   toast('Inventando una escena...', 3000);
@@ -6007,7 +6123,7 @@ window.rpCerrarDebrief = function () { rpLastDebrief = []; closeSheet(); closeRo
     rpBusy = false; state.busy = false; rpInputEnabled(true);
   });
   const en = $('#rp-end'); if (en) en.addEventListener('click', rpDebrief);
-  const rf = $('#rp-refresh'); if (rf) rf.addEventListener('click', generarEscenas);
+  const rf = $('#rp-refresh'); if (rf) rf.addEventListener('click', () => generarEscenas(true));
   const sp = $('#rp-sorprende'); if (sp) sp.addEventListener('click', rpSorprende);
   const rp = $('#rp-replay'); if (rp) rp.addEventListener('click', () => { if (ultimoHablado) speak(ultimoHablado); });
   const tt = $('#rp-tts'); if (tt) tt.addEventListener('click', () => {
