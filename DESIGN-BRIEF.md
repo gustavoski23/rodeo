@@ -230,6 +230,15 @@ Todo con prefijo `rodeo_*`. `store.get/set` está envuelto en try/catch.
 | `rodeo_seen_ladder` | `string[]` | anti-repetición para LEVEL UP |
 | `rodeo_streak` | `{days, last}` | racha diaria de LEVEL UP |
 | `rodeo_pass` | `string` | PIN de la app |
+| `rodeo_intereses` | `string[]` | intereses elegidos en el onboarding (chips). La clave EXISTE ⇒ no se re-muestra el onboarding; `[]` = saltó / sin elegir |
+| `rodeo_openers` | `string[]` (últimos 8) | anti-repetición de rompehielos de TALK |
+| `rodeo_miclang_{talk\|rp\|story\|ladder\|drop}` | `'es'` \| `'en'` | idioma del dictado (SpeechRecognition) por contexto de mic. Una clave por contexto; default `es` en talk/rp y `en` en story/ladder/drop |
+| `rodeo_drop_hoy` | `{fecha, edicion, semillas}` \| null | edición cacheada del DROP del día (evita regenerarla al reentrar) |
+| `rodeo_drop_manana` | `{fecha, edicion, semillas}` \| null | prefetch del DROP de mañana; se promueve a `rodeo_drop_hoy` cuando cambia el día |
+| `rodeo_story_resume` | `{episodeId, sceneId, results, vocab, ts}` \| null | avance del EPISODIO ILUSTRADO (Story Mode) para "Continuar donde ibas". 1 solo slot (un episodio nuevo pisa al anterior); caduca a las 24h |
+| `rodeo_sb_email` | `string` (texto plano, NO va por `store`/JSON) | correo de login de Supabase, guardado para prefill/reuso del enlace mágico |
+
+> **sessionStorage** (no localStorage, vive por pestaña): `storyMuted` = `'1'` \| `'0'` — silencia las voces del EPISODIO ILUSTRADO. No persiste entre sesiones (así el mute no se queda pegado entre visitas).
 
 ### Items del DNA (rodeo_dna)
 Deduplicados por `type + '|' + (fix || term)`.
