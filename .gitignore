@@ -15,3 +15,6 @@ node_modules/
 Thumbs.db
 .vercel
 .env*
+
+# Worktrees temporales de agentes (Claude Code) — jamás versionar
+.claude/worktrees/
