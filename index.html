@@ -5082,11 +5082,20 @@ function renderBeat(beat) {
 function storyInputEnabled(on) {
   $('#story-send').disabled = !on;
   $('#story-input').disabled = !on;
-  $('#story-mic').style.opacity = on ? '1' : '0.4';
+  // disabled de verdad (no solo opacidad): igual que el fix del mic de
+  // ROLEPLAY — un dictado durante el turno se tragaba la línea en silencio.
+  const m = $('#story-mic');
+  if (m) { m.disabled = !on; m.style.opacity = on ? '1' : '0.4'; }
 }
 
 async function submitStoryLine(text) {
-  if (state.busy || !state.story || !state.story.currentBeat) return;
+  if (state.busy || !state.story || !state.story.currentBeat) {
+    // Dictado que aterriza justo cuando otro turno arrancó: el mic ya va
+    // deshabilitado, pero una toma EN CURSO termina igual y entrega texto.
+    // Conservarlo en el input en vez de tragarlo.
+    if (text && state.story) { const i = $('#story-input'); if (i && !i.value) i.value = text; }
+    return;
+  }
   const line = (text || $('#story-input').value).trim();
   if (!line) return;
   state.busy = true;
@@ -5781,7 +5790,12 @@ function rpInputEnabled(on) {
 function rpSyncTTS() { const b = $('#rp-tts'); if (b) b.classList.toggle('on', state.ttsOn); }
 
 async function rpTurn(userText, isOpening) {
-  if (rpBusy || !state.roleplay) return;
+  if (rpBusy || !state.roleplay) {
+    // Mismo caso que submitStoryLine: una toma de mic en curso entrega su
+    // texto aunque el botón ya esté deshabilitado — conservar, no tragar.
+    if (userText && state.roleplay) { const i = $('#rp-input'); if (i && !i.value) i.value = userText; }
+    return;
+  }
   // Captura la identidad de la sesión: TODOS los guards del turno miden
   // `state.roleplay === ses`, no truthiness. Si Gus sale a mitad de stream
   // (rp-back / cerrar sesión) y abre otra escena, startRoleplay crea una

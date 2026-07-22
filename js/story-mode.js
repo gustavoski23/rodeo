@@ -337,7 +337,8 @@
     // Android back = cerrar episodio, no cerrar la PWA entera. Marcamos la
     // entrada con un flag para saber que fue empujada por nosotros y no
     // recursar al llamar history.back() en el close manual.
-    try { history.pushState({ storyImm: true }, ''); } catch (e) {}
+    // Guard de doble-open (doble tap en la card): no apilar dos entradas.
+    try { if (!(history.state && history.state.storyImm)) history.pushState({ storyImm: true }, ''); } catch (e) {}
     gotoScene(ep.start_scene || (ep.scenes[0] && ep.scenes[0].scene_id));
   }
 

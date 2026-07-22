@@ -1,89 +1,81 @@
-# SUPABASE — runbook: login con Google + sync entre dispositivos
+# SUPABASE — runbook: login + sync entre dispositivos
 
-El proyecto ya existe: `gustavoski23's Project` →
-`https://cablhejzsxqgwdvyzqei.supabase.co` (región East US, GitHub conectado
-a `gustavoski23/rodeo`). El código del cliente ya está en el repo
-(`js/supabase-sync.js`). Faltan **3 pasos manuales** que solo se hacen una vez.
+Proyecto: `gustavoski23's Project` → `https://cablhejzsxqgwdvyzqei.supabase.co`
+(región East US, GitHub conectado a `gustavoski23/rodeo`).
 
----
+> **Estado (22 jul 2026):**
+> - ✅ Paso 1 — key `sb_publishable_*` pegada en `js/supabase-sync.js`
+> - ✅ Paso 2 — tabla `public.rodeo_state` creada con RLS owner-only (vía MCP)
+> - ⏳ Paso 3 — configurar 2 URLs (2 min) → **activa el login por correo**
+> - ▫️ Paso 4 — Google OAuth (15 min, OPCIONAL — solo si quieres el botón de Google)
 
-> **Estado actual (22 jul 2026):** Pasos 1 y 2 ya hechos vía MCP de Claude
-> — key `sb_publishable_*` en el repo, tabla `public.rodeo_state` viva con RLS
-> owner-only. Solo falta el **Paso 3** (Google OAuth) para que el botón del
-> perfil entre a login.
-
-## Paso 1 — Pegar la key del proyecto (2 min) — HECHO
-
-1. Dashboard → **Project Settings** (engranaje) → **API Keys**.
-2. Copia la key **`anon` `public`** (o la nueva **`publishable`** si te la
-   muestra — cualquiera de las dos sirve). **NUNCA la `service_role`.**
-3. Pégala en `js/supabase-sync.js`, línea `const SB_ANON_KEY = '';`
-
-> Esta key es pública por diseño (va en el navegador de todos modos); los
-> datos los protege el RLS de la tabla. Es seguro subirla a git.
->
-> Atajo: pásamela por el chat y yo la pego y hago el commit.
+La app ya trae DOS formas de entrar (perfil → Cuenta & sync):
+**correo con enlace mágico/código** (solo necesita el Paso 3) y
+**Google** (necesita el Paso 4).
 
 ---
 
-## Paso 2 — Crear la tabla (1 min) — HECHO
+## Paso 3 — Activar el login por correo (2 min, sin Google Cloud)
 
-Opción A (ya mismo): Dashboard → **SQL Editor** → pega el contenido completo
-de `supabase/migrations/20260722000000_rodeo_state.sql` → **Run**.
+1. Dashboard → **Authentication** (icono de candado) → **URL Configuration**.
+2. **Site URL**: `https://rodeo-gustavoski23s-projects.vercel.app`
+3. **Redirect URLs** → Add URL (las dos):
+   - `https://rodeo-gustavoski23s-projects.vercel.app`
+   - `http://localhost:4870`
+4. Save. **Ya está** — el botón "MÁNDAME EL ENLACE" del perfil funciona.
 
-Opción B (automática): al mergear esta rama a `main`, la integración GitHub
-de Supabase aplica la migración sola. (La opción A no estorba: la migración
-es idempotente — `if not exists` / `drop policy if exists`.)
+**Opcional recomendado (+30 s), para poder entrar pegando un código sin salir
+de la app** (mejor aún dentro del TWA): Authentication → **Emails** (o Email
+Templates) → plantilla **Magic Link** → añade esta línea debajo del enlace y
+guarda:
+
+```html
+<p>O pega este código en la app: {{ .Token }}</p>
+```
+
+> Nota: el remitente default de Supabase solo envía correos a miembros del
+> proyecto (tú) y con límite bajo por hora — perfecto para RODEO personal.
+> La sesión persiste meses por dispositivo: entras UNA vez por aparato.
 
 ---
 
-## Paso 3 — Activar el provider de Google (10-15 min, Google Cloud)
+## Paso 4 — Google OAuth (15 min, OPCIONAL)
 
-Supabase necesita credenciales OAuth propias de Google:
+Solo si quieres el botón "con Google" además del correo:
 
-### 3a. Google Cloud Console
-1. Ve a https://console.cloud.google.com → crea proyecto (nombre: `rodeo`).
-2. **APIs & Services → OAuth consent screen**:
-   - User type: **External** → Create.
-   - App name `RODEO`, support email tu Gmail, developer email tu Gmail.
-   - Scopes: los default (email, profile, openid). Guardar.
-   - Publishing status: puedes dejarla en **Testing** y añadirte como test
-     user (tu Gmail) — suficiente mientras el único usuario eres tú.
-3. **APIs & Services → Credentials → + Create credentials → OAuth client ID**:
-   - Application type: **Web application**, nombre `rodeo-web`.
+### 4a. Google Cloud Console
+1. https://console.cloud.google.com → crea proyecto (`rodeo`).
+2. **APIs & Services → OAuth consent screen**: External → app `RODEO`, tu
+   Gmail en support y developer email → Save. En Testing añádete como test user.
+3. **Credentials → + Create credentials → OAuth client ID**:
+   - Type: **Web application**, nombre `rodeo-web`.
    - **Authorized JavaScript origins**:
-     - `https://rodeo-sigma.vercel.app`
+     - `https://rodeo-gustavoski23s-projects.vercel.app`
      - `http://localhost:4870`
-   - **Authorized redirect URIs** (exacto, este es el importante):
+   - **Authorized redirect URIs** (el importante, exacto):
      - `https://cablhejzsxqgwdvyzqei.supabase.co/auth/v1/callback`
    - Create → copia **Client ID** y **Client secret**.
 
-### 3b. Supabase Dashboard
-1. **Authentication → Sign In / Up → Auth Providers → Google** → Enable.
-2. Pega Client ID y Client secret → Save.
-3. **Authentication → URL Configuration**:
-   - **Site URL**: `https://rodeo-sigma.vercel.app`
-   - **Redirect URLs** (añade las dos):
-     - `https://rodeo-sigma.vercel.app`
-     - `http://localhost:4870`
+### 4b. Supabase
+**Authentication → Sign In / Up → Auth Providers → Google** → Enable →
+pega Client ID + secret → Save. (Las Redirect URLs ya quedaron del Paso 3.)
 
 ---
 
 ## Probar
 
-1. Abre la app → icono de perfil → sección **Cuenta & sync** → **ENTRAR CON
-   GOOGLE** → autoriza → vuelve a la app con toast "Cuenta conectada".
-2. En Supabase: **Table Editor → rodeo_state** → debe aparecer tu fila con
-   el `dna` en JSON.
-3. Abre la app en el otro dispositivo → entra con la misma cuenta → tu DNA
-   aparece fusionado (nada se pisa: es unión, no reemplazo).
+1. App → icono de perfil → **Cuenta & sync** → escribe tu Gmail → **MÁNDAME
+   EL ENLACE** → abre el correo → toca el enlace (o pega el código de 6
+   dígitos) → toast "Cuenta conectada".
+2. Supabase → **Table Editor → rodeo_state** → aparece tu fila con el DNA.
+3. Repite en el otro dispositivo con el mismo correo → DNA fusionado
+   (unión, nunca se pisa nada).
 
 ## Cómo funciona el sync (referencia)
 
-- **Pull** al abrir la app con sesión (y al volver a la pestaña tras >5 min):
+- **Pull** al abrir con sesión (y al volver a la pestaña tras >5 min):
   fusiona nube+local — DNA por unión (clave `type|fix|b2`, `dominado` gana,
   cap 300), contadores por máximo, racha la más reciente, intereses solo
   llenan un aparato vacío.
 - **Push** con debounce de 2.5 s tras cada cambio local (hook en `store.set`).
-- Sin key configurada / sin sesión / CDN caído → la app funciona 100% local,
-  igual que siempre.
+- Sin sesión / sin red → la app funciona 100% local, igual que siempre.

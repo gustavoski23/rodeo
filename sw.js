@@ -158,13 +158,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4) Estáticos same-origin (iconos, manifest, etc.) → cache-first.
+  // 4) js/*.js same-origin → NETWORK-FIRST. Son los únicos estáticos que
+  //    cambian de contenido bajo la misma URL entre releases; con cache-first
+  //    una edición quedaba congelada hasta subir VERSION (footgun real: pasó
+  //    con el episodio ilustrado). Online = siempre fresco, igual que el
+  //    shell; offline = paracaídas del cache (precalentado en warmApp).
+  if (url.origin === self.location.origin && url.pathname.startsWith('/js/')) {
+    event.respondWith(networkFirstCDN(req, STATIC_CACHE));
+    return;
+  }
+
+  // 5) Demás estáticos same-origin (iconos, manifest, imágenes, fuentes) →
+  //    cache-first: no cambian bajo la misma URL.
   if (url.origin === self.location.origin) {
     event.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }
 
-  // 5) Cualquier otro cross-origin no listado → red directa (sin tocar cache).
+  // 6) Cualquier otro cross-origin no listado (Supabase incluido) → red
+  //    directa (sin tocar cache). Auth/REST jamás deben cachearse.
   // (no respondWith)
 });
 

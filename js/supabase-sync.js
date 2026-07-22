@@ -92,8 +92,99 @@ async function sbLogin() {
     });
     if (error) throw error;
   } catch (e) {
-    if (typeof toast === 'function') toast('No pude abrir el login de Google: ' + (e.message || e));
+    const msg = String((e && e.message) || e);
+    if (typeof toast === 'function') {
+      toast(/not enabled|unsupported provider/i.test(msg)
+        ? 'Google aún no está activado en Supabase — usa el correo, o mira SUPABASE-runbook.md §4'
+        : 'No pude abrir el login de Google: ' + msg, 5000);
+    }
+    const b = document.getElementById('sb-login'); if (b) b.disabled = false;
   }
+}
+
+/* ── Login por correo (enlace mágico / código) ──────────────────────────
+   Funciona SIN Google Cloud: signInWithOtp manda un correo con un enlace
+   (template default) y, si el template incluye {{ .Token }}, también un
+   código de 6 dígitos que se pega aquí mismo (verifyOtp) sin redirects —
+   ideal dentro del TWA. El enlace requiere tener la Site URL / allowlist
+   configuradas (paso de 2 min en el dashboard, ver runbook §3). */
+async function sbLoginEmail() {
+  if (!sbClient) return;
+  const inp = document.getElementById('sb-email');
+  const email = String((inp && inp.value) || '').trim().toLowerCase();
+  if (!email || email.indexOf('@') < 1) {
+    if (typeof toast === 'function') toast('Escribe tu correo primero');
+    return;
+  }
+  const btn = document.getElementById('sb-email-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'ENVIANDO…'; }
+  try {
+    const { error } = await sbClient.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true },
+    });
+    if (error) throw error;
+    try { localStorage.setItem('rodeo_sb_email', email); } catch (_e) {}
+    sbPintarEsperaCorreo(email);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'MÁNDAME EL ENLACE'; }
+    if (typeof toast === 'function') toast('No pude enviar el correo: ' + ((e && e.message) || e), 5000);
+  }
+}
+
+// Tras enviar: instrucciones + campo de código (por si el template lo trae).
+function sbPintarEsperaCorreo(email) {
+  const zona = document.getElementById('sb-zona');
+  if (!zona) return;
+  const E = (s) => (typeof esc === 'function' ? esc(s) : String(s).replace(/[<>&"]/g, ''));
+  zona.innerHTML = `
+    <p style="color:var(--text-secondary);font-size:0.88rem;line-height:1.55;margin-bottom:12px;">
+      📬 Te mandé un correo a <b style="color:var(--text-primary);">${E(email)}</b>.<br>
+      Toca el enlace y vuelves aquí con la sesión abierta.</p>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="text" id="sb-otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+        placeholder="——————"
+        style="flex:1;min-width:0;padding:12px 14px;background:var(--bg-surface);border:1px solid oklch(32% 0.012 265);border-radius:12px;color:var(--text-primary);font-family:'Space Mono',monospace;font-size:1.05rem;letter-spacing:0.35em;text-align:center;">
+      <button id="sb-otp-btn" class="btn-accent" style="min-height:48px;padding:0 18px;">ENTRAR</button>
+    </div>
+    <p class="rd-eyebrow rd-eyebrow--muted" style="text-transform:none;letter-spacing:normal;margin-bottom:12px;">
+      ¿El correo trae un código de 6 dígitos? Pégalo arriba — sin salir de la app.</p>
+    <button id="sb-email-again" class="btn-ghost" style="width:100%;min-height:40px;font-size:0.8rem;">enviar de nuevo</button>`;
+  const ok = document.getElementById('sb-otp-btn');
+  if (ok) ok.addEventListener('click', sbVerifyCode);
+  const otp = document.getElementById('sb-otp');
+  if (otp) otp.addEventListener('keydown', (e) => { if (e.key === 'Enter') sbVerifyCode(); });
+  const again = document.getElementById('sb-email-again');
+  if (again) again.addEventListener('click', () => { sbPintarZonaLogin(); });
+}
+
+async function sbVerifyCode() {
+  if (!sbClient) return;
+  const code = String(((document.getElementById('sb-otp') || {}).value) || '').trim();
+  let email = '';
+  try { email = String(localStorage.getItem('rodeo_sb_email') || '').trim(); } catch (_e) {}
+  if (!/^\d{6}$/.test(code)) {
+    if (typeof toast === 'function') toast('El código son los 6 dígitos del correo');
+    return;
+  }
+  const btn = document.getElementById('sb-otp-btn');
+  if (btn) btn.disabled = true;
+  try {
+    const { error } = await sbClient.auth.verifyOtp({ email, token: code, type: 'email' });
+    if (error) throw error;
+    // SIGNED_IN dispara sbPull + toast vía onAuthStateChange. Cerramos la
+    // hoja: al reabrir el perfil ya pinta el estado conectado.
+    if (typeof closeSheet === 'function') closeSheet();
+  } catch (e) {
+    if (btn) btn.disabled = false;
+    if (typeof toast === 'function') toast('Código no válido o vencido — pide otro', 4000);
+  }
+}
+
+// Re-render de la zona de login (estado inicial sin sesión).
+function sbPintarZonaLogin() {
+  const zona = document.getElementById('sb-zona');
+  if (zona) { zona.outerHTML = sbZonaLoginHTML(); sbWireCuenta(); }
 }
 
 async function sbLogout() {
@@ -247,6 +338,28 @@ async function sbFlush() {
 }
 
 /* ── UI: bloque "Cuenta & sync" del perfil ─────────────────────────────── */
+// Zona de login (sin sesión): correo primero — funciona sin Google Cloud.
+function sbZonaLoginHTML() {
+  let prefill = '';
+  try { prefill = String(localStorage.getItem('rodeo_sb_email') || ''); } catch (_e) {}
+  const E = (s) => (typeof esc === 'function' ? esc(s) : String(s).replace(/[<>&"]/g, ''));
+  return `
+    <div id="sb-zona">
+      <p style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5;margin-bottom:14px;">
+        Tu DNA vive solo en este aparato. Entra y tu progreso te sigue —
+        mismo DNA en el cel y en el PC.</p>
+      <input type="email" id="sb-email" placeholder="tu@gmail.com" autocomplete="email" value="${E(prefill)}"
+        style="width:100%;padding:13px 14px;background:var(--bg-surface);border:1px solid oklch(32% 0.012 265);border-radius:12px;color:var(--text-primary);font-size:0.95rem;margin-bottom:8px;">
+      <button id="sb-email-btn" class="btn-accent" style="width:100%;min-height:50px;">MÁNDAME EL ENLACE</button>
+      <p class="rd-eyebrow rd-eyebrow--muted" style="text-transform:none;letter-spacing:normal;margin:8px 0 14px;">
+        Te llega un correo: tocas el enlace (o pegas el código) y listo — sin claves.</p>
+      <button id="sb-login" class="btn-ghost" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:10px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.35 11.1H12v2.9h5.35c-.5 2.5-2.6 3.9-5.35 3.9a6 6 0 1 1 0-12c1.5 0 2.9.55 3.95 1.45l2.2-2.2A9 9 0 1 0 12 21c5.2 0 8.65-3.65 8.65-8.8 0-.37-.03-.74-.1-1.1z"/></svg>
+        o con Google
+      </button>
+    </div>`;
+}
+
 function sbCuentaHTML() {
   const E = (s) => (typeof esc === 'function' ? esc(s) : String(s));
   let cuerpo;
@@ -259,14 +372,7 @@ function sbCuentaHTML() {
     cuerpo = `<p class="rd-eyebrow rd-eyebrow--muted" style="text-transform:none;letter-spacing:normal;">
       Sync no disponible ahora (sin conexión con Supabase). Tu progreso sigue guardado aquí.</p>`;
   } else if (!sbUsuario) {
-    cuerpo = `
-      <p style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5;margin-bottom:14px;">
-        Tu DNA vive solo en este aparato. Entra con Google y tu progreso te sigue
-        — mismo DNA en el cel y en el PC.</p>
-      <button id="sb-login" class="btn-accent" style="width:100%;min-height:52px;display:flex;align-items:center;justify-content:center;gap:10px;">
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.35 11.1H12v2.9h5.35c-.5 2.5-2.6 3.9-5.35 3.9a6 6 0 1 1 0-12c1.5 0 2.9.55 3.95 1.45l2.2-2.2A9 9 0 1 0 12 21c5.2 0 8.65-3.65 8.65-8.8 0-.37-.03-.74-.1-1.1z"/></svg>
-        ENTRAR CON GOOGLE
-      </button>`;
+    cuerpo = sbZonaLoginHTML();
   } else {
     const hace = sbUltimoSync
       ? (Math.round((Date.now() - sbUltimoSync) / 60000) < 1 ? 'hace un momento'
@@ -290,6 +396,10 @@ function sbWireCuenta() {
   if (login) login.addEventListener('click', () => { login.disabled = true; sbLogin(); });
   const logout = document.getElementById('sb-logout');
   if (logout) logout.addEventListener('click', () => { logout.disabled = true; sbLogout(); });
+  const mail = document.getElementById('sb-email-btn');
+  if (mail) mail.addEventListener('click', sbLoginEmail);
+  const inp = document.getElementById('sb-email');
+  if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') sbLoginEmail(); });
 }
 
 /* ── API pública (index.html llama estas) ──────────────────────────────── */
