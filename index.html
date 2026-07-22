@@ -1875,6 +1875,11 @@ body.rd-lectura .luminous-line { opacity: 0; }
      si el CDN falla o no hay key configurada, la app funciona igual que antes. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-sync.js"></script>
+<!-- Premium (gates + paywall + activación de licencia). Mejora progresiva:
+     con el kill-switch apagado (PREMIUM_ENFORCE=false) es invisible y la app
+     queda idéntica. Carga ANTES del script principal: define window.esPremium,
+     window.premiumGate, window.premiumPerfilHTML, window.premiumInit. -->
+<script src="js/premium.js"></script>
 <!-- Story Mode (episodio ilustrado inmersivo). Cargan ANTES del script principal:
      definen window.STORY_EPISODES y window.openStoryImmersion / closeStoryImmersion. -->
 <script src="js/story-episodes.js"></script>
@@ -2692,6 +2697,8 @@ OUTPUT — STRICT JSON only, nothing outside it, exactly this shape:
 }
 
 function startSession(key) {
+  // Premium: cada charla nueva cuenta contra la cuota diaria (gate 'talk').
+  if (window.premiumGate && !premiumGate('talk')) return;
   const sc = SCENARIOS[key];
   const sit = buildSituation();
   const avoidOpeners = store.get('rodeo_openers', []);
@@ -2768,6 +2775,8 @@ function refrescarRompehielos() {
 // directo, sin gastar una llamada a la API en la apertura.
 function startLibre() {
   if (state.busy) return;
+  // Premium: el dibujo libre es otra charla más (gate 'talk').
+  if (window.premiumGate && !premiumGate('talk')) return;
   const el = $('#libre-ice');
   const ice = ((el && el.textContent) || '').trim() || elegirRompehielos();
   const sit = buildSituation();
@@ -3797,6 +3806,7 @@ function openPerfil() {
       <p class="rd-eyebrow rd-eyebrow--muted" style="margin:8px 0 14px;text-transform:none;letter-spacing:normal;">Tócalos para activar — moldean tus charlas, lecturas y slang.</p>
       ${renderInteresGrupos('perf-chips')}
     </div>
+    ${window.premiumPerfilHTML ? window.premiumPerfilHTML() : ''}
     ${window.sbCuentaHTML ? window.sbCuentaHTML() : ''}
   `);
 
@@ -5055,6 +5065,10 @@ function setMeters() {
 
 async function openStory(seriesId, opts = {}) {
   if (state.busy) return;
+  // Premium: solo el ARRANQUE de un episodio nuevo cuenta (gate 'story').
+  // Reanudar (CONTINUAR) SIEMPRE se permite, para no dejar a Gus atrapado a
+  // mitad de un episodio ya empezado por haberse topado con la cuota del día.
+  if (!opts.resume && window.premiumGate && !premiumGate('story')) return;
   const cached = store.get('rodeo_story', null);
   if (opts.resume && cached && cached.seriesId === seriesId && cached.bible) {
     state.story = { ...cached, ranks: cached.ranks || [], currentBeat: null };
@@ -5841,6 +5855,9 @@ Emit the JSON object as your very first character.` },
 // ── Sesión ───────────────────────────────────────────────────────────────
 function startRoleplay(sc) {
   if (state.busy || state.roleplay) return;
+  // Premium: cada escena de roleplay cuenta (gate 'roleplay'). El episodio
+  // ilustrado canónico NO pasa por aquí (abre openStoryImmersion) — sigue gratis.
+  if (window.premiumGate && !premiumGate('roleplay')) return;
   stopSpeaking();
   state.roleplay = { scenario: sc, messages: [{ role: 'system', content: rpSystemPrompt(sc) }] };
   $('#roleplay-home').classList.add('hidden');
@@ -6160,6 +6177,9 @@ if (location.protocol === 'file:') {
   refrescarRompehielos();   // el coach ya tiene su rompehielos al abrir TALK
   // Cuenta + sync entre dispositivos (mejora progresiva; no-op sin config).
   if (window.sbInit) window.sbInit();
+  // Premium: revalida en background si la licencia lleva >7 días sin chequear
+  // (no-op si no hay licencia o el kill-switch está apagado).
+  if (window.premiumInit) window.premiumInit();
   animateIn($('#view-talk').children, { y: 26, duration: 1 });
   // Onboarding de intereses: SOLO la primera vez. Si la clave rodeo_intereses
   // no existe todavía (ni respondió ni saltó) se muestra el selector; al elegir
