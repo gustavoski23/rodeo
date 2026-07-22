@@ -7,7 +7,12 @@ a `gustavoski23/rodeo`). El código del cliente ya está en el repo
 
 ---
 
-## Paso 1 — Pegar la key del proyecto (2 min)
+> **Estado actual (22 jul 2026):** Pasos 1 y 2 ya hechos vía MCP de Claude
+> — key `sb_publishable_*` en el repo, tabla `public.rodeo_state` viva con RLS
+> owner-only. Solo falta el **Paso 3** (Google OAuth) para que el botón del
+> perfil entre a login.
+
+## Paso 1 — Pegar la key del proyecto (2 min) — HECHO
 
 1. Dashboard → **Project Settings** (engranaje) → **API Keys**.
 2. Copia la key **`anon` `public`** (o la nueva **`publishable`** si te la
@@ -21,7 +26,7 @@ a `gustavoski23/rodeo`). El código del cliente ya está en el repo
 
 ---
 
-## Paso 2 — Crear la tabla (1 min)
+## Paso 2 — Crear la tabla (1 min) — HECHO
 
 Opción A (ya mismo): Dashboard → **SQL Editor** → pega el contenido completo
 de `supabase/migrations/20260722000000_rodeo_state.sql` → **Run**.
