@@ -11,12 +11,18 @@ App personal para llevar mi inglés de **B2+ a C1** practicando conversación, h
 | Módulo | Qué es |
 |--------|--------|
 | **TALK** | Roleplay hablado/escrito en 9 escenarios (bar, entrevista, etc.) con corrección + voz (Web Speech) + debrief. |
+| **ROLEPLAY** | Teatro narrativo jugable: escenas con rol, meta y obstáculo real + episodio ilustrado inmersivo. |
 | **STORY** | Thriller jugable por beats: decides con tu inglés, medidores LEVERAGE/HEAT, 3 sagas (leak / ghost / pitch). |
 | **SLANG** | Drop de 5 tarjetas estilo Instagram + traducción paisa → gringo. |
 | **SUBE** | Juego B2→C1: subís tu inglés "cook → simmer", flip cards con swap, combo y racha. |
 | **DNA** | Todos tus errores, slang y upgrades guardados en localStorage + quiz. |
 
-Todo alimenta un solo **DNA** compartido.
+Todo alimenta un solo **DNA** compartido — y el DNA **se reinyecta** en TALK:
+tus palabras débiles (no dominadas) vuelven a la conversación hasta que las clavas.
+
+**Cuenta & sync (opcional):** login con Google (Supabase) desde el perfil —
+tu DNA y progreso se sincronizan entre el cel y el PC. Setup en
+[SUPABASE-runbook.md](SUPABASE-runbook.md). Sin cuenta, todo sigue 100% local.
 
 ---
 

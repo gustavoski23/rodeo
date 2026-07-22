@@ -18,7 +18,9 @@
    ══════════════════════════════════════════════════════════════════════ */
 
 // Sube este número en cada release donde quieras invalidar cache viejo.
-const VERSION = 'rodeo-v2';
+// ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
+// a esos archivos NO llega a los usuarios hasta subir esta versión.
+const VERSION = 'rodeo-v3';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
@@ -44,6 +46,7 @@ const SHELL_URLS = ['/', '/index.html'];
 const CDN_WARM = [
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap',
 ];
 
@@ -60,6 +63,7 @@ const CDN_HOSTS = new Set([
   'fonts.googleapis.com',
   'fonts.gstatic.com',
   'cdnjs.cloudflare.com',
+  'cdn.jsdelivr.net',           // supabase-js (cuenta + sync)
 ]);
 
 // Clave de cache para el último drop leído (lectura offline opcional, ver

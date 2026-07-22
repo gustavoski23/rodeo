@@ -1,0 +1,3 @@
+# Config mínima para que la integración GitHub de Supabase reconozca el
+# directorio supabase/ y aplique las migraciones al mergear a main.
+project_id = "cablhejzsxqgwdvyzqei"

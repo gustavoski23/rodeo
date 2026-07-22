@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RODEO — Política de privacidad / Privacy Policy</title>
+<meta name="robots" content="index, follow">
+<style>
+  :root {
+    --bg: oklch(9% 0.008 265);
+    --surface: oklch(17% 0.015 265);
+    --text: oklch(93% 0.008 265);
+    --muted: oklch(68% 0.010 265);
+    --accent: oklch(87% 0.21 128);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.65; padding: 48px 20px 80px;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  .eyebrow {
+    font-family: ui-monospace, 'Space Mono', monospace; font-size: 0.66rem;
+    font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  h1 { font-size: 2rem; line-height: 1.05; margin-bottom: 6px; }
+  h1 span { color: var(--accent); }
+  .updated { color: var(--muted); font-size: 0.82rem; margin-bottom: 36px; }
+  h2 { font-size: 1.1rem; margin: 32px 0 10px; }
+  p, li { color: var(--muted); font-size: 0.95rem; }
+  ul { padding-left: 22px; margin: 8px 0; }
+  strong { color: var(--text); font-weight: 600; }
+  a { color: var(--accent); }
+  .card {
+    background: var(--surface); border-radius: 14px; padding: 18px 20px;
+    margin: 24px 0;
+  }
+  hr { border: none; border-top: 1px solid oklch(30% 0.01 265); margin: 44px 0; }
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">RODEO · privacidad</p>
+  <h1>POLÍTICA DE PRIVACIDAD<span>.</span></h1>
+  <p class="updated">Última actualización: 22 de julio de 2026 · English summary below</p>
+
+  <div class="card">
+    <p><strong>En corto:</strong> RODEO es un entrenador personal de inglés.
+    Tu progreso vive en tu dispositivo. Si decides iniciar sesión con Google,
+    guardamos tu progreso en tu cuenta para sincronizarlo entre tus
+    dispositivos. No vendemos datos, no hay anuncios, no hay rastreadores de
+    terceros.</p>
+  </div>
+
+  <h2>Qué datos maneja la app</h2>
+  <ul>
+    <li><strong>Progreso de aprendizaje</strong> (errores guardados, vocabulario,
+      rachas, intereses elegidos): se guarda localmente en tu dispositivo
+      (localStorage). Si inicias sesión, también se guarda cifrado en tránsito
+      en nuestra base de datos (Supabase) asociado a tu cuenta, solo para
+      sincronizar entre tus dispositivos.</li>
+    <li><strong>Cuenta</strong> (opcional): si entras con Google recibimos tu
+      correo y tu identificador de Google. No pedimos contactos, fotos ni nada
+      más. Puedes usar la app completa sin cuenta.</li>
+    <li><strong>Texto y voz que escribes o dictas</strong>: se envía a nuestro
+      backend únicamente para generar la respuesta del coach de inglés en ese
+      momento. El dictado por voz usa el reconocimiento de voz de tu propio
+      navegador/dispositivo.</li>
+  </ul>
+
+  <h2>Qué NO hacemos</h2>
+  <ul>
+    <li>No vendemos ni compartimos tus datos con terceros con fines comerciales.</li>
+    <li>No mostramos anuncios ni usamos rastreadores publicitarios.</li>
+    <li>No pedimos permisos innecesarios (el micrófono solo se usa cuando tú
+      tocas el botón de dictar).</li>
+  </ul>
+
+  <h2>Servicios que usa la app</h2>
+  <ul>
+    <li><strong>Vercel</strong> — hosting y backend de la app.</li>
+    <li><strong>Supabase</strong> — autenticación (Google) y base de datos de
+      sincronización, protegida por aislamiento por usuario (RLS).</li>
+    <li><strong>Proveedores de modelos de lenguaje</strong> — procesan el texto
+      de la conversación para generar las respuestas del coach.</li>
+  </ul>
+
+  <h2>Tus derechos</h2>
+  <p>Puedes borrar tus datos locales limpiando los datos del sitio en tu
+  navegador. Si tienes cuenta y quieres eliminarla junto con tus datos
+  sincronizados, escríbenos y la borramos: al eliminar tu cuenta, la fila con
+  tu progreso se elimina automáticamente.</p>
+
+  <h2>Contacto</h2>
+  <p>Pangea Labs — <a href="mailto:pangealabssas@gmail.com">pangealabssas@gmail.com</a></p>
+
+  <hr>
+
+  <p class="eyebrow">English summary</p>
+  <h2>Privacy Policy — Summary</h2>
+  <p>RODEO is a personal English trainer. Your learning progress is stored on
+  your device. If you optionally sign in with Google, your progress is also
+  stored in your account (Supabase) solely to sync it across your devices —
+  we receive only your email and Google ID. Text you type or dictate is sent
+  to our backend only to generate the coach's reply. We do not sell your
+  data, show ads, or use third-party ad trackers. To delete your account and
+  synced data, contact
+  <a href="mailto:pangealabssas@gmail.com">pangealabssas@gmail.com</a>.</p>
+</main>
+</body>
+</html>
