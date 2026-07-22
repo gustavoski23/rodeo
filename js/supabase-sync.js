@@ -43,6 +43,13 @@ let sbPushTimer = null;
 let sbPushEnVuelo = false;
 let sbPushPendiente = false;  // llegó otro cambio mientras volaba un push
 let sbUltimoSync = 0;         // epoch ms del último pull/push OK
+// Mapa de providers OAuth REALMENTE habilitados en el server (de /auth/v1/settings):
+// { google: bool, email: bool, github: bool, … }. null = aún no llegó / falló el
+// fetch → lo tratamos como "Google apagado" y NO pintamos su botón. Lo llena
+// sbCargarProviders() desde sbInit. Es la clave del fix: signInWithOAuth no valida
+// el provider en el cliente (redirige a /authorize de una), así que sin este dato
+// Gus aterrizaba en el JSON crudo "provider is not enabled".
+let sbExternal = null;
 
 function sbConfigured() { return !!(SB_URL && SB_ANON_KEY); }
 function sbListo() { return !!(sbClient && sbUsuario); }
@@ -53,6 +60,12 @@ function sbInit() {
   try {
     sbClient = window.supabase.createClient(SB_URL, SB_ANON_KEY);
   } catch (_e) { sbClient = null; return; }
+
+  // Pregunta al server qué providers OAuth están REALMENTE habilitados, para no
+  // pintar el botón de Google a ciegas (ver comentario de sbExternal arriba y
+  // sbCargarProviders abajo). Es async pero NO bloquea el init: si tarda, el
+  // botón simplemente no aparece hasta la próxima apertura del perfil.
+  sbCargarProviders();
 
   // Estado inicial + cambios de sesión. INITIAL_SESSION llega al restaurar
   // sesión guardada; SIGNED_IN al volver del redirect de Google — en ambos:
@@ -80,17 +93,58 @@ function sbInit() {
   });
 }
 
+/* ── Providers habilitados en el server ─────────────────────────────────────
+   GET /auth/v1/settings es público (solo pide el apikey anon) y devuelve
+   { external: { google, email, github, … : bool }, … }. Cacheamos ese mapa en
+   sbExternal para decidir si pintar el botón de Google SIN redirigir a ciegas.
+   Falla suave: offline / 403 / JSON raro → sbExternal se queda null → no se pinta
+   Google (el correo, que no depende de esto, sigue siendo el camino principal).
+   A propósito NO forzamos re-render en vivo: sbZonaLoginHTML lee sbExternal en
+   CADA render, así que la próxima apertura del perfil ya pinta el botón si Google
+   quedó activo — y evitamos borrar la pantalla de "revisa tu correo" que comparte
+   el contenedor #sb-zona. */
+async function sbCargarProviders() {
+  try {
+    const r = await fetch(SB_URL + '/auth/v1/settings', {
+      headers: { apikey: SB_ANON_KEY },
+    });
+    if (!r.ok) return;                    // 403 / 5xx → sbExternal se queda null
+    const j = await r.json();
+    sbExternal = (j && j.external) || null;
+  } catch (_e) {
+    // Sin red / CORS / JSON inválido: sin datos → null → no se pinta Google.
+    sbExternal = null;
+  }
+}
+
 /* ── Login / logout ────────────────────────────────────────────────────── */
 async function sbLogin() {
   if (!sbClient) return;
+  // Doble cinturón. El botón de Google solo se pinta si sbExternal.google===true,
+  // pero el provider podría apagarse entre el render y el clic — así que lo
+  // re-verificamos aquí. Si no está habilitado, avisamos y NO salimos: nunca
+  // mandamos el navegador a /authorize a ciegas (ahí es donde Gus caía en el
+  // JSON crudo "provider is not enabled").
+  if (!(sbExternal && sbExternal.google === true)) {
+    if (typeof toast === 'function') {
+      toast('Google aún no está activado en Supabase — usa el correo, o mira SUPABASE-runbook.md §4', 5000);
+    }
+    const b0 = document.getElementById('sb-login'); if (b0) b0.disabled = false;
+    return;
+  }
   try {
-    const { error } = await sbClient.auth.signInWithOAuth({
+    // skipBrowserRedirect: por defecto signInWithOAuth arma la URL y redirige
+    // SOLA, sin validar el provider en el cliente. Con esto nos devuelve la URL
+    // en data.url y navegamos NOSOTROS con location.assign — controlando el salto
+    // y habiendo confirmado antes (arriba) que Google sí está habilitado.
+    const { data, error } = await sbClient.auth.signInWithOAuth({
       provider: 'google',
       // Vuelve exactamente a esta página (prod o localhost). Ambas URLs
       // deben estar en la allowlist de Supabase (ver SUPABASE-runbook.md).
-      options: { redirectTo: location.origin + location.pathname },
+      options: { redirectTo: location.origin + location.pathname, skipBrowserRedirect: true },
     });
     if (error) throw error;
+    if (data && data.url) location.assign(data.url);
   } catch (e) {
     const msg = String((e && e.message) || e);
     if (typeof toast === 'function') {
@@ -343,6 +397,18 @@ function sbZonaLoginHTML() {
   let prefill = '';
   try { prefill = String(localStorage.getItem('rodeo_sb_email') || ''); } catch (_e) {}
   const E = (s) => (typeof esc === 'function' ? esc(s) : String(s).replace(/[<>&"]/g, ''));
+  // El botón "o con Google" SOLO si el server confirma que el provider está
+  // habilitado (sbExternal.google===true). Mientras sbExternal sea null (no llegó
+  // el fetch, offline o 403) o google=false → no se pinta, y así nadie aterriza en
+  // el JSON crudo "provider is not enabled". El correo es el camino principal y no
+  // depende de esto. Se re-evalúa en cada render: la próxima apertura del perfil
+  // recoge el estado más nuevo (por eso no hace falta re-render en vivo). El botón
+  // aparecerá solo cuando Gus haga el Paso 4 (Google OAuth) del SUPABASE-runbook.
+  const googleBtn = (sbExternal && sbExternal.google === true) ? `
+      <button id="sb-login" class="btn-ghost" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:10px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.35 11.1H12v2.9h5.35c-.5 2.5-2.6 3.9-5.35 3.9a6 6 0 1 1 0-12c1.5 0 2.9.55 3.95 1.45l2.2-2.2A9 9 0 1 0 12 21c5.2 0 8.65-3.65 8.65-8.8 0-.37-.03-.74-.1-1.1z"/></svg>
+        o con Google
+      </button>` : '';
   return `
     <div id="sb-zona">
       <p style="color:var(--text-secondary);font-size:0.88rem;line-height:1.5;margin-bottom:14px;">
@@ -352,11 +418,7 @@ function sbZonaLoginHTML() {
         style="width:100%;padding:13px 14px;background:var(--bg-surface);border:1px solid oklch(32% 0.012 265);border-radius:12px;color:var(--text-primary);font-size:0.95rem;margin-bottom:8px;">
       <button id="sb-email-btn" class="btn-accent" style="width:100%;min-height:50px;">MÁNDAME EL ENLACE</button>
       <p class="rd-eyebrow rd-eyebrow--muted" style="text-transform:none;letter-spacing:normal;margin:8px 0 14px;">
-        Te llega un correo: tocas el enlace (o pegas el código) y listo — sin claves.</p>
-      <button id="sb-login" class="btn-ghost" style="width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:10px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.35 11.1H12v2.9h5.35c-.5 2.5-2.6 3.9-5.35 3.9a6 6 0 1 1 0-12c1.5 0 2.9.55 3.95 1.45l2.2-2.2A9 9 0 1 0 12 21c5.2 0 8.65-3.65 8.65-8.8 0-.37-.03-.74-.1-1.1z"/></svg>
-        o con Google
-      </button>
+        Te llega un correo: tocas el enlace (o pegas el código) y listo — sin claves.</p>${googleBtn}
     </div>`;
 }
 
