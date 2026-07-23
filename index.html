@@ -1384,6 +1384,16 @@ body.rd-lectura .luminous-line { opacity: 0; }
         </div>
       </div>
 
+      <!-- RÉTAME: mazo rápido de micro-tarjetas (js/cards-mode.js). Para quien no
+           quiere elegir tema: 10 retos breves — contraste léxico, calcos del
+           español, chunks con fonética y quiz. Mezcla pack curado + tu DNA. -->
+      <button class="cm-launch" id="retame-btn" type="button" aria-label="Rétame — mazo rápido de tarjetas">
+        <span class="cm-launch-eyebrow">Rétame · 10 tarjetas</span>
+        <span class="cm-launch-title font-display">RETOS RAPIDITOS<span style="color: var(--accent);">.</span></span>
+        <span class="cm-launch-sub">Sin elegir tema. Frases reales, fonética a lo criollo, un toque retador.</span>
+        <span class="cm-launch-cartas" aria-hidden="true"></span>
+      </button>
+
       <!-- Sección TRABAJO -->
       <div class="rd-sect">
         <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Trabajo</p>
@@ -1820,6 +1830,8 @@ body.rd-lectura .luminous-line { opacity: 0; }
 
       <div class="flex gap-3">
         <button id="quiz-btn" class="btn-accent" style="padding: 13px 28px; min-height: 48px; font-size: 0.88rem;">REPASO RÁPIDO</button>
+        <!-- Rétame también vive aquí: el DNA es su mejor materia prima -->
+        <button id="retame-btn-dna" class="btn-ghost" style="padding: 13px 22px; min-height: 48px; font-size: 0.85rem;">RÉTAME 🃏</button>
       </div>
 
       <!-- Zona de quiz (la llena JS) -->
@@ -1884,6 +1896,11 @@ body.rd-lectura .luminous-line { opacity: 0; }
      definen window.STORY_EPISODES y window.openStoryImmersion / closeStoryImmersion. -->
 <script src="js/story-episodes.js"></script>
 <script src="js/story-mode.js"></script>
+<!-- Rétame (mazo de micro-tarjetas). Cargan ANTES del script principal: definen
+     window.CARDS_PACKS (pack curado) y window.openRetame. Mejora progresiva:
+     sin pack ni bridge, el botón solo muestra un toast. -->
+<script src="js/cards-pack-001.js"></script>
+<script src="js/cards-mode.js"></script>
 <script>
 'use strict';
 
@@ -5399,6 +5416,17 @@ window.rodeoStoryProgress = function () {
   state.stories = (state.stories || 0) + 1;
   store.set('rodeo_stories', state.stories);
   updateStreak();
+};
+
+// Puente para RÉTAME (js/cards-mode.js): las tarjetas usan la voz, el DNA y la
+// racha de la app sin acoplarse a este scope. trackReplay:false — la voz de una
+// tarjeta no debe contaminar el botón "repetir" del coach de TALK.
+window.rodeoCardsBridge = {
+  speak: (t) => speak(t, null, { trackReplay: false }),
+  toast: (m) => toast(m),
+  saveDNA: (item) => saveDNA(item),
+  updateStreak: () => { updateStreak(); updateBar(); },
+  getDNA: () => state.dna,
 };
 
 function updateBar() {
