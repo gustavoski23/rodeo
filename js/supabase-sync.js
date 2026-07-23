@@ -34,7 +34,7 @@ const SB_ANON_KEY = 'sb_publishable_jNRFSwU8ar-DZ0UY2_mQfg_Nz7LKXYI';
 const SB_SYNC_KEYS = new Set([
   'rodeo_dna', 'rodeo_intereses', 'rodeo_cost', 'rodeo_sessions',
   'rodeo_stories', 'rodeo_ladder_xp', 'rodeo_streak',
-  'rodeo_seen_slang', 'rodeo_seen_ladder',
+  'rodeo_seen_slang', 'rodeo_seen_ladder', 'rodeo_nombre',
 ]);
 
 let sbClient = null;
@@ -285,6 +285,8 @@ function sbProgresoLocal() {
     streak: state.streak || { days: 0, last: '' },
     seenSlang: Array.isArray(state.seenSlang) ? state.seenSlang : [],
     seenLadder: Array.isArray(state.seenLadder) ? state.seenLadder : [],
+    // El nombre viaja dentro del blob progress: cero migración de tabla.
+    nombre: (typeof nombreUsuario === 'function' ? nombreUsuario() : ''),
   };
 }
 
@@ -314,6 +316,12 @@ function sbMergeProgreso(p) {
   const union = (a, b) => [...new Set([...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])])];
   state.seenSlang = union(state.seenSlang, p.seenSlang);
   state.seenLadder = union(state.seenLadder, p.seenLadder);
+
+  // Nombre: la nube solo llena un aparato VACÍO (nunca pisa lo escrito aquí).
+  const nomLocal = String(store.get('rodeo_nombre', '') || '').trim();
+  if (!nomLocal && typeof p.nombre === 'string' && p.nombre.trim()) {
+    store.set('rodeo_nombre', p.nombre.trim().slice(0, 24));
+  }
 
   store.set('rodeo_cost', state.cost);
   store.set('rodeo_sessions', state.sessions);

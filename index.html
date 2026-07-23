@@ -381,6 +381,16 @@ body {
   font-size: 0.98rem; line-height: 1.45;
   animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.08s both;
 }
+/* Campo de nombre (opcional): el coach saluda por tu nombre en cada charla */
+.ob-nombre {
+  width: 100%; max-width: 340px; margin: 0 0 26px;
+  background: var(--bg-surface); border: 1px solid var(--glass-border);
+  border-radius: 14px; padding: 13px 16px; color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif; font-size: 1rem;
+  animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.1s both;
+}
+.ob-nombre:focus { outline: none; border-color: var(--accent); }
+.ob-nombre::placeholder { color: var(--text-muted); }
 .ob-group { margin-bottom: 26px; }
 .ob-group > .rd-eyebrow { margin-bottom: 12px; }
 .ob-chips, .perf-chips { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -2017,6 +2027,8 @@ const INTERESES_GRUPOS = [
 ];
 
 function interesesArr() { return Array.isArray(state.intereses) ? state.intereses : []; }
+// Nombre del usuario (onboarding/perfil). '' si nunca lo dio — los prompts caen a 'Gus'.
+function nombreUsuario() { return String(store.get('rodeo_nombre', '') || '').trim(); }
 function guardarIntereses(arr) {
   const limpio = Array.isArray(arr) ? arr.filter((x) => typeof x === 'string') : [];
   state.intereses = limpio;
@@ -2062,6 +2074,8 @@ function mostrarOnboarding() {
       <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>RODEO · a tu medida</p>
       <p class="font-display ob-title">¿DE QUÉ VA<br>TU <span style="color:var(--accent);">MUNDO?</span></p>
       <p class="ob-sub">Elige lo tuyo — armo todo a tu medida.</p>
+      <input type="text" id="ob-nombre" class="ob-nombre" maxlength="24"
+             placeholder="¿Cómo te llamas? (opcional)" autocomplete="given-name" aria-label="Tu nombre">
       ${renderInteresGrupos('ob-chips')}
       <div class="ob-actions">
         <button id="ob-done" class="btn-accent" style="min-height:52px;padding:14px 32px;" disabled>LISTO</button>
@@ -2080,13 +2094,21 @@ function mostrarOnboarding() {
       sync();
     });
   });
+  // El nombre es opcional y se guarda salgas por donde salgas (LISTO o saltar)
+  const guardarNombre = () => {
+    const n = ($('#ob-nombre') && $('#ob-nombre').value || '').trim();
+    if (n) store.set('rodeo_nombre', n);
+  };
   done.addEventListener('click', () => {
     if (seleccion.size < 1) return;
+    guardarNombre();
     guardarIntereses([...seleccion]);
     cerrarOnboarding();
-    toast('Listo — RODEO ya va contigo');
+    const nom = nombreUsuario();
+    toast(nom ? `Listo, ${nom} — RODEO ya va contigo` : 'Listo — RODEO ya va contigo');
   });
   $('#ob-skip').addEventListener('click', () => {
+    guardarNombre();
     guardarIntereses([]);   // registra el salto: la clave existe ⇒ no vuelve
     cerrarOnboarding();
   });
@@ -2676,8 +2698,9 @@ function talkSystemPrompt(scenarioPrompt, sit, avoidOpeners) {
   const avoid = avoidOpeners && avoidOpeners.length
     ? `\nDO NOT open anything like these — you have already used them:\n${avoidOpeners.map((o) => `- "${o}"`).join('\n')}`
     : '';
+  const nom = nombreUsuario() || 'Gus';
 
-  return `You are Gus's conversation partner inside RODEO, a personal English trainer. Gus is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life.
+  return `You are ${nom}'s conversation partner inside RODEO, a personal English trainer. ${nom} is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life. Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
 
 SCENARIO: Role-play ${scenarioPrompt}
 
@@ -2696,7 +2719,7 @@ HOW TO TALK:
 - ${NOTA_STT_BILINGUE}${avoid}${dnaBrief()}${interesesBriefTalk()}
 
 CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
-- Gus sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a gringo would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
+- ${nom} sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a gringo would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
 - To underline the tricky part, wrap it INSIDE "reply" with these EXACT markers: ⟦english chunk||explicación corta y cercana, en español⟧. The explanation is contextual and buddy-style, the way a bilingual friend riffs — NEVER a grammar book. GOOD: ⟦three times in a row||así dicen los gringos eso de "X veces seguidas" — sirve para intentos, días, victorias, lo que sea⟧. BAD: "estructura adverbial de frecuencia".
 - Use the SAME ⟦english||español⟧ markers when you fold a correction into your reply, or when you drop an idiom / phrasal verb he probably won't fully catch. AT MOST 1-2 marked chunks per reply, and ONLY when it truly helps — most casual turns have zero.
 - The markers are the ONLY place Spanish may appear inside "reply"; everything else stays natural English. NEVER leave a ⟦ or a ⟧ unmatched, and never mark the same phrase both inline with ⟦||⟧ and again in the glosses array.
@@ -2750,23 +2773,30 @@ const ROMPEHIELOS_BASE = [
   "What's the most overrated thing everyone seems to love?",
   "If you had a free afternoon and zero guilt, where would you go?",
   "What's a skill you wish you'd picked up ten years ago?",
+  // Preguntas "describibles": concretas, personales, con primera respuesta obvia
+  "What's one app on your phone you'd never delete — and why?",
+  "Describe the last photo you took. What's the story?",
+  "What did you have for breakfast — and was it any good?",
+  "What's one thing on your desk right now that says something about you?",
+  "Tell me about the last thing you bought that was worth every peso.",
+  "What's a place in your city you always take visitors to?",
 ];
 // Claves = items EXACTOS de INTERESES_GRUPOS. Sin match: cae al pool base.
 const ROMPEHIELOS_POR_INTERES = {
-  'Cripto/Web3':      ["Be real — are we still early, or is the hype fully cooked?", "What would actually get your mom to use crypto?"],
-  'Developer':        ["What's the one bug that still haunts you?", "AI pair-programming: game changer or overhyped autocomplete?"],
-  'Founder/Startup':  ["What's the hardest 'no' you've had to give this year?", "If you had to kill one feature today, which one goes?"],
-  'Marketing & Ads':  ["What's an ad that actually stuck with you lately?", "Sell me a pen. No, seriously — go."],
-  'Ventas':           ["What's your move when a deal goes quiet on you?", "Best cold opener you've ever gotten hit with?"],
-  'Diseño':           ["What's a piece of design you can't stop thinking about?", "Ugly-but-works or gorgeous-but-clunky — pick one."],
-  'Oficina/Corporate':["What meeting could've been an email this week?", "What's the office snack you'd riot over if they cut it?"],
-  'Deportes':         ["Give me your take: who's the GOAT, and don't hedge.", "What game had you screaming at the screen recently?"],
-  'Cine & Series':    ["What's the last thing you binged in one sitting?", "A movie everyone loves that you just don't get?"],
-  'Música':           ["What's on repeat for you right now?", "Concert you'd fly across the world to catch?"],
-  'Gaming':           ["What's the game that ate way too much of your life?", "Controller or keyboard — and defend it."],
-  'Viajes':           ["Best meal you ever had abroad — where was it?", "One place that totally wasn't what you expected?"],
-  'Fitness':          ["What's your workout you'd never skip?", "Early gym or late gym — and why are you wrong?"],
-  'Comida':           ["What's the dish you'd cook to impress someone?", "Pineapple on pizza — defend or destroy."],
+  'Cripto/Web3':      ["Be real — are we still early, or is the hype fully cooked?", "What would actually get your mom to use crypto?", "Walk me through the last trade or mint you actually made."],
+  'Developer':        ["What's the one bug that still haunts you?", "AI pair-programming: game changer or overhyped autocomplete?", "Describe your dev setup — what would you upgrade first?"],
+  'Founder/Startup':  ["What's the hardest 'no' you've had to give this year?", "If you had to kill one feature today, which one goes?", "Describe your very first customer — how did you land them?"],
+  'Marketing & Ads':  ["What's an ad that actually stuck with you lately?", "Sell me a pen. No, seriously — go.", "Describe the last thing an ad actually got you to buy."],
+  'Ventas':           ["What's your move when a deal goes quiet on you?", "Best cold opener you've ever gotten hit with?", "Walk me through the last deal you closed, step by step."],
+  'Diseño':           ["What's a piece of design you can't stop thinking about?", "Ugly-but-works or gorgeous-but-clunky — pick one.", "Describe the app icon on your phone you'd redesign first."],
+  'Oficina/Corporate':["What meeting could've been an email this week?", "What's the office snack you'd riot over if they cut it?", "Describe your desk right now — what's on it?"],
+  'Deportes':         ["Give me your take: who's the GOAT, and don't hedge.", "What game had you screaming at the screen recently?", "Describe the last match you watched — best moment?"],
+  'Cine & Series':    ["What's the last thing you binged in one sitting?", "A movie everyone loves that you just don't get?", "Describe the last scene that actually made you pause the show."],
+  'Música':           ["What's on repeat for you right now?", "Concert you'd fly across the world to catch?", "Describe the last concert you went to — smells and all."],
+  'Gaming':           ["What's the game that ate way too much of your life?", "Controller or keyboard — and defend it.", "Describe your gaming setup — what's the weakest link?"],
+  'Viajes':           ["Best meal you ever had abroad — where was it?", "One place that totally wasn't what you expected?", "Describe what's in your backpack when you travel light."],
+  'Fitness':          ["What's your workout you'd never skip?", "Early gym or late gym — and why are you wrong?", "Walk me through your last workout, set by set."],
+  'Comida':           ["What's the dish you'd cook to impress someone?", "Pineapple on pizza — defend or destroy.", "Describe the best thing you cooked this month."],
 };
 
 function rompehielosPool() {
@@ -2795,7 +2825,14 @@ function startLibre() {
   // Premium: el dibujo libre es otra charla más (gate 'talk').
   if (window.premiumGate && !premiumGate('talk')) return;
   const el = $('#libre-ice');
-  const ice = ((el && el.textContent) || '').trim() || elegirRompehielos();
+  let ice = ((el && el.textContent) || '').trim() || elegirRompehielos();
+  // El coach abre saludando por tu nombre — pequeño, pero mata el "Hello user".
+  // Solo baja la mayúscula si la palabra es normal (no siglas tipo "AI ...").
+  const nom = nombreUsuario();
+  if (nom) {
+    const low = /^[A-Z][a-z]/.test(ice) ? ice.charAt(0).toLowerCase() + ice.slice(1) : ice;
+    ice = `Hey ${nom} — ${low}`;
+  }
   const sit = buildSituation();
   const avoidOpeners = store.get('rodeo_openers', []);
   state.session = {
@@ -2869,6 +2906,8 @@ async function sendTurn(userText) {
     // Ahora la apertura nace del estado del personaje, no de un saludo genérico.
     state.session.isOpening = true;
     state.session.messages.push({ role: 'user', content: `(Start the conversation. Open from where your head actually is right now — your mood and what just happened to you — not with a generic greeting. Do NOT open by asking if I'm new here or what brings me here.
+
+If you ask something, make it ONE concrete personal question with an obvious first answer — the kind of "Can you describe a gadget you own and why it's useful?" — never abstract ("what do you think about life").
 
 LENGTH — hard limit, this matters more than anything else here: AT MOST TWO short sentences, and under 150 characters total. Never three sentences. ONE vivid detail, not three. Do not explain or wrap up the story — drop me in mid-thought and stop. Leave me room to answer.)` });
   }
@@ -3819,6 +3858,11 @@ function openPerfil() {
     </button>
 
     <div style="margin-top:24px;">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Tu nombre</p>
+      <input type="text" id="perf-nombre" class="ob-nombre" maxlength="24" style="margin:10px 0 4px;animation:none;"
+             placeholder="¿Cómo te llamo?" value="${escAttr(nombreUsuario())}" aria-label="Tu nombre">
+    </div>
+    <div style="margin-top:20px;">
       <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Tus intereses</p>
       <p class="rd-eyebrow rd-eyebrow--muted" style="margin:8px 0 14px;text-transform:none;letter-spacing:normal;">Tócalos — moldean tus charlas, lecturas y slang.</p>
       ${renderInteresGrupos('perf-chips')}
@@ -3836,6 +3880,11 @@ function openPerfil() {
       chip.classList.toggle('selected');
       guardarIntereses([...cur]);
     });
+  });
+  // Nombre: se guarda al salir del campo (o al borrar, queda '').
+  const inNom = $('#perf-nombre');
+  if (inNom) inNom.addEventListener('change', () => {
+    store.set('rodeo_nombre', inNom.value.trim());
   });
   // Botones de cuenta (login Google / salir) del bloque de supabase-sync.js.
   if (window.sbWireCuenta) window.sbWireCuenta();
