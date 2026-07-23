@@ -296,6 +296,72 @@ body {
   50%     { box-shadow: 0 0 0 12px oklch(66% 0.20 27 / 0); }
 }
 
+/* ── Dock de voz de TALK: el mic es el protagonista (voz-primero) ──────────
+   Grid [teclado 46 | mic centrado | idea 46]. #mic-btn conserva .icon-btn:
+   el JS que togglea .recording y su pulso coral siguen intactos. La barra de
+   texto (#talk-typebar) vive oculta; el botón de teclado la despliega. */
+.rd-voice-dock {
+  display: grid; grid-template-columns: 46px 1fr 46px;
+  align-items: center; gap: 8px;
+}
+.rd-mic-hero-wrap {
+  grid-column: 2;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 10px;
+}
+.icon-btn.mic-hero {
+  width: 72px; height: 72px;
+  background: var(--accent); border-color: transparent;
+  color: var(--accent-ink);
+}
+.icon-btn.mic-hero svg { width: 28px; height: 28px; }
+.icon-btn.mic-hero:hover { color: var(--accent-ink); }
+.mic-hero-label {
+  width: 100%; text-align: center;
+  font-family: 'Space Mono', monospace; font-size: 0.66rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted);
+}
+.mic-hero-label .mh-rec { display: none; }
+.rd-mic-hero-wrap:has(#mic-btn.recording) .mh-idle { display: none; }
+.rd-mic-hero-wrap:has(#mic-btn.recording) .mh-rec { display: inline; color: oklch(74% 0.20 27); }
+/* Enviar solo aparece cuando hay texto escrito */
+#talk-typebar #send-btn { display: none; }
+#talk-typebar.has-text #send-btn { display: inline-flex; }
+/* Botón Idea: pide un ejemplo de respuesta (burbuja lavanda) */
+.icon-btn.idea-btn { border-color: oklch(80% 0.10 290 / 0.45); }
+.icon-btn.idea-btn.on { background: oklch(80% 0.10 290 / 0.18); border-color: var(--card-lavender); }
+.bubble-idea {
+  align-self: flex-start; max-width: 88%;
+  background: var(--card-lavender); color: var(--card-ink);
+  border-radius: 18px; padding: 12px 16px; font-size: 0.92rem; line-height: 1.5;
+}
+.bubble-idea .idea-tag {
+  font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--card-ink-soft);
+  display: block; margin-bottom: 4px;
+}
+
+/* Tip de primera vez: píldora lavanda fija abajo, sobre CUALQUIER overlay
+   (990 > Rétame 880 > story 900 — sí, también sobre el episodio) */
+.rd-tip {
+  position: fixed; left: 50%; bottom: calc(120px + env(safe-area-inset-bottom));
+  transform: translateX(-50%); z-index: 990;
+  display: flex; align-items: center; gap: 10px;
+  max-width: min(92vw, 420px);
+  padding: 11px 14px 11px 16px;
+  background: var(--card-lavender); color: var(--card-ink);
+  border-radius: 100px;
+  font-family: 'Familjen Grotesk', sans-serif; font-size: 0.85rem; font-weight: 600;
+  box-shadow: 0 12px 32px oklch(0% 0 0 / 0.45);
+  animation: tipIn 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.rd-tip button {
+  background: none; border: 0; color: var(--card-ink-soft);
+  font-size: 0.95rem; line-height: 1; cursor: pointer; padding: 4px;
+}
+@keyframes tipIn { from { opacity: 0; transform: translateX(-50%) translateY(16px); } }
+@media (prefers-reduced-motion: reduce) { .rd-tip { animation: none; } }
+
 /* Chip ES/EN del mic bilingüe: fija el idioma en que el dictado escucha.
    Va pegado a cada botón de micrófono; el idioma persiste por contexto. */
 .mic-lang-chip {
@@ -1453,11 +1519,26 @@ body.rd-lectura .luminous-line { opacity: 0; }
         </div>
       </div>
       <div id="chat-scroll" class="scroll-area flex flex-col gap-3" style="flex:1; min-height:0; padding-bottom: 8px;"></div>
-      <div class="rd-input-dock flex items-center gap-2 pt-3 shrink-0">
-        <button id="mic-btn" class="icon-btn" aria-label="Hablar por micrófono">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+      <!-- Dock de voz: mic protagonista. El teclado despliega la barra de texto;
+           la bombilla pide una respuesta-ejemplo (burbuja lavanda). El chip ES/EN
+           lo inserta wireMicToggle junto al mic, dentro del wrap. -->
+      <div class="rd-voice-dock shrink-0 pt-3" id="talk-dock">
+        <button id="kbd-btn" class="icon-btn" aria-label="Escribir con teclado">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><path d="M6 10h.01"></path><path d="M10 10h.01"></path><path d="M14 10h.01"></path><path d="M18 10h.01"></path><path d="M7 14h10"></path></svg>
         </button>
-        <input type="text" id="chat-input" placeholder="Escribe en inglés o toca el mic..." autocomplete="off" aria-label="Mensaje en inglés">
+        <div class="rd-mic-hero-wrap">
+          <button id="mic-btn" class="icon-btn mic-hero" aria-label="Presiona y habla">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+          </button>
+          <span class="mic-hero-label" aria-hidden="true"><span class="mh-idle">Presiona y habla</span><span class="mh-rec">Escuchando… toca para enviar</span></span>
+        </div>
+        <button id="idea-btn" class="icon-btn idea-btn" aria-label="Dame una idea de respuesta">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2z"></path></svg>
+        </button>
+      </div>
+      <!-- Barra de texto: oculta por defecto (voz-primero); la abre #kbd-btn -->
+      <div class="rd-input-dock hidden items-center gap-2 pt-2 shrink-0" id="talk-typebar">
+        <input type="text" id="chat-input" placeholder="Escribe en inglés..." autocomplete="off" aria-label="Mensaje en inglés">
         <button id="send-btn" class="icon-btn" aria-label="Enviar mensaje" style="background: var(--accent); color: var(--accent-ink, oklch(24% 0.05 128)); border-color: transparent;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
@@ -2128,6 +2209,28 @@ function toast(msg, ms = 2600) {
   t._h = setTimeout(() => t.classList.remove('show'), ms);
 }
 
+// ── Tip de primera vez ─────────────────────────────────────────────────────
+// Una línea, UNA sola vez por flujo (flags en rodeo_tips). Mini-banner propio:
+// el toast (z-200) quedaría enterrado bajo el overlay de Rétame (z-880) y se
+// usa para errores. Autocierre 8 s o con la ✕.
+function tipPrimeraVez(key, texto) {
+  const vistos = store.get('rodeo_tips', {});
+  if (vistos && vistos[key]) return;
+  store.set('rodeo_tips', { ...(vistos || {}), [key]: 1 });
+  let tip = $('#rd-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'rd-tip';
+    tip.className = 'rd-tip';
+    document.body.appendChild(tip);
+  }
+  tip.innerHTML = `<span>${esc(texto)}</span><button type="button" aria-label="Cerrar el tip">✕</button>`;
+  tip.querySelector('button').addEventListener('click', () => tip.remove());
+  clearTimeout(tip._h);
+  tip._h = setTimeout(() => tip.remove(), 8000);
+}
+window.tipPrimeraVez = tipPrimeraVez;   // lo usa js/cards-mode.js vía bridge
+
 function updateCostTicker() {
   // La pastilla de costo se retiró del header; el costo se sigue acumulando en
   // state.cost. Sin esta guarda, callAPI() reventaría con TypeError en cada
@@ -2754,6 +2857,7 @@ function startSession(key) {
   $('#session-title').textContent = sc.title;
   $('#chat-scroll').innerHTML = '';
   syncTTSButton();
+  tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
   // El coach abre la conversación
   sendTurn(null);
 }
@@ -2850,6 +2954,7 @@ function startLibre() {
   $('#session-title').textContent = 'Dibujo libre';
   $('#chat-scroll').innerHTML = '';
   syncTTSButton();
+  tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
   addBubble(esc(ice), 'bubble-coach');   // la apertura del coach (sin API)
   ultimoHablado = parseChunks(ice).clean;   // sin marcadores ⟦⟧, para el botón repetir
   syncReplayButton();
@@ -3133,6 +3238,11 @@ function closeSession() {
   $('#talk-session').classList.add('hidden');
   $('#talk-session').classList.remove('flex');
   $('#talk-empty').classList.remove('hidden');
+  // La próxima sesión abre voz-primero: barra de texto recogida y limpia
+  const tb = $('#talk-typebar');
+  if (tb) { tb.classList.add('hidden'); tb.classList.remove('flex', 'has-text'); }
+  const ci = $('#chat-input');
+  if (ci) ci.value = '';
   refrescarRompehielos();   // deja listo un rompehielos nuevo para la próxima
 }
 
@@ -3187,6 +3297,49 @@ $('#mic-btn').addEventListener('click', () => {
   catch { /* start() doble */ }
 });
 wireMicToggle($('#mic-btn'), 'talk', (code) => { if (recognition) recognition.lang = code; });
+
+// Teclado secundario: despliega/esconde la barra de texto (voz-primero)
+$('#kbd-btn').addEventListener('click', () => {
+  const tb = $('#talk-typebar');
+  const abrir = tb.classList.contains('hidden');
+  tb.classList.toggle('hidden', !abrir);
+  tb.classList.toggle('flex', abrir);
+  if (abrir) $('#chat-input').focus();
+});
+// Enviar aparece solo cuando hay algo escrito
+$('#chat-input').addEventListener('input', () => {
+  $('#talk-typebar').classList.toggle('has-text', !!$('#chat-input').value.trim());
+});
+
+// 💡 Idea: UNA respuesta-ejemplo que podrías decir ahora. Es meta-ayuda:
+// NO entra a state.session.messages ni usa state.busy (puedes hablar mientras).
+let ideaBusy = false;
+$('#idea-btn').addEventListener('click', async () => {
+  if (!state.session || ideaBusy) return;
+  ideaBusy = true;
+  $('#idea-btn').classList.add('on');
+  try {
+    const lastCoach = [...state.session.messages].reverse().find((m) => m.role === 'assistant');
+    let contexto = '(conversation start)';
+    if (lastCoach) {
+      // El turno assistant viene como JSON {"reply":...}: sacar solo el reply
+      try { contexto = (JSON.parse(lastCoach.content).reply || '').slice(0, 500); }
+      catch { contexto = String(lastCoach.content).slice(0, 500); }
+    }
+    const { parsed } = await callJSON('chat', [
+      { role: 'system', content: 'You coach a B2+ English learner. Respond STRICT JSON only, first character = JSON.' },
+      { role: 'user', content: `The coach just said: ${contexto}\nGive ONE short example answer the LEARNER could say next — natural, first person, max 15 words. JSON: {"idea":"..."}` },
+    ], 400);
+    if (!parsed || !parsed.idea) throw new Error('no salió — dale otra vez');
+    if (!state.session) return;   // cerró la sesión mientras volaba la llamada
+    addBubble(`<span class="idea-tag">💡 podrías decir</span>${esc(String(parsed.idea))}`, 'bubble-idea');
+  } catch (err) {
+    toast('Idea: ' + err.message);
+  } finally {
+    ideaBusy = false;
+    $('#idea-btn').classList.remove('on');
+  }
+});
 
 function stopMic() { if (recognition && recognizing) try { recognition.abort(); } catch {} }
 
@@ -4281,6 +4434,7 @@ function abrirEdicionDrop(ed, semillas) {
   $('#drop-home').classList.add('hidden');
   const ses = $('#drop-session');
   ses.classList.remove('hidden'); ses.classList.add('flex');
+  tipPrimeraVez('drop', 'Toca lo subrayado — te lo explico');
 
   $('#drop-headline').textContent = ed.headline || '';
   $('#drop-meta').textContent = (ed.topic || 'DROP') + ' · B2+ → C1 · ~2 min';
@@ -5476,6 +5630,7 @@ window.rodeoCardsBridge = {
   saveDNA: (item) => saveDNA(item),
   updateStreak: () => { updateStreak(); updateBar(); },
   getDNA: () => state.dna,
+  tipPrimeraVez: (k, t) => tipPrimeraVez(k, t),
 };
 
 function updateBar() {
@@ -5944,6 +6099,7 @@ function startRoleplay(sc) {
   $('#rp-scroll').innerHTML = '';
   const rb = $('#rp-replay'); if (rb) rb.disabled = true;
   rpSyncTTS();
+  tipPrimeraVez('roleplay', 'Actúa tu rol — yo narro el resto');
   rpAddMission(sc);
   rpTurn(null, true);   // el narrador abre la escena
 }

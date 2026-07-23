@@ -544,6 +544,8 @@
     CM.open = true;
     CM.runId += 1;
     ov.classList.add('show');
+    var b = bridge();
+    if (b.tipPrimeraVez) b.tipPrimeraVez('retame', 'Desliza → me la sé · ← repasar');
     // Botón atrás de Android: cierra el mazo, no la PWA (patrón de story-mode)
     if (!history.state || !history.state.retame) {
       try { history.pushState({ retame: true }, ''); CM.pushed = true; } catch (e) { CM.pushed = false; }
