@@ -110,7 +110,7 @@
   }
   window.a1TtsDisponible = a1TtsDisponible;
 
-  function a1Speak(text) {
+  function a1Speak(text, rate) {
     if (!text || !('speechSynthesis' in window)) return;
     if (a1Store.get(K_TTS, true) === false) return;   // el usuario lo apagó
     try {
@@ -119,7 +119,9 @@
       var utter = new SpeechSynthesisUtterance(String(text));
       if (a1VoiceEN) utter.voice = a1VoiceEN;
       utter.lang = (a1VoiceEN && a1VoiceEN.lang) || 'en-US';
-      utter.rate = 0.85;   // lento a propósito (shadowing del A1)
+      // Lento a propósito (shadowing del A1). El botón "más despacio" del PASO 5
+      // pasa un rate aún menor; sin argumento se queda en 0.85 (compat Capa 1).
+      utter.rate = (typeof rate === 'number' && rate > 0) ? rate : 0.85;
       // Motor TTS LOCAL del navegador (offline). Se invoca por índice para dejar
       // claro, incluso a un grep, que NO es el TTS online de Deepgram (prohibido):
       // esto es speechSynthesis del sistema, sin red.
@@ -291,9 +293,12 @@
     buildIndex();
     var home = el('a1-home');
     if (!home) return;
-    // Al volver al home, la escena inmersiva queda oculta (Capa 2 la usa).
+    // Al volver al home, la escena inmersiva queda oculta y limpia; el home
+    // reaparece (el loop de la Capa 2 lo ocultó al entrar). Al soltar #a1-escena
+    // el MutationObserver de actualizarCromo devuelve la tab bar.
     var escena = el('a1-escena');
-    if (escena) escena.classList.add('hidden');
+    if (escena) { escena.classList.add('hidden'); escena.classList.remove('flex'); escena.innerHTML = ''; }
+    home.classList.remove('hidden');
 
     if (!a1Store.get(K_ONBOARDED, false)) { renderOnboarding(0); return; }
 
@@ -305,19 +310,18 @@
   }
   window.renderA1Home = renderA1Home;
 
-  // Capa 1: abrir una unidad delega en el loop si ya existe (Capa 2); si no,
-  // avisa suave (nunca un tap muerto). El 🆘 cubre la supervivencia desde ya.
+  // Abrir una unidad: reanuda la primera escena que todavía no terminaste (si ya
+  // están todas hechas, la primera para repasar). El loop de 6 pasos vive en
+  // openA1Escena (más abajo, misma clausura → hoisting). El 🆘 cubre la
+  // supervivencia aparte, desde el día 1.
   function a1AbrirUnidad(unitId) {
     var A = data();
     if (!A || !A.units) return;
     var u = A.units.filter(function (x) { return x.id === unitId; })[0];
-    if (!u) return;
-    if (typeof window.openA1Escena === 'function') {
-      var first = (u.scenes && u.scenes[0]) ? u.scenes[0].id : null;
-      window.openA1Escena(unitId, first);
-    } else if (window.toast) {
-      window.toast('Ya casi, parce — esta parte arranca en un momentico.');
-    }
+    if (!u || !u.scenes || !u.scenes.length) return;
+    var doneS = getProgress().doneScenes || [];
+    var target = u.scenes.filter(function (s) { return doneS.indexOf(s.id) === -1; })[0] || u.scenes[0];
+    openA1Escena(unitId, target.id);
   }
   window.a1AbrirUnidad = a1AbrirUnidad;
 
@@ -362,6 +366,343 @@
     }
   }
   window.openA1Panic = openA1Panic;
+
+  /* ═══════════════════ ESCENA INMERSIVA · loop de 6 pasos (SPEC §4.1) ═══════════
+     Un "beat" = enseñar UN chunk; un tap avanza (segmentación de Mayer). Los 6
+     pasos: (1) ESCENA — Pipe monta la situación, cero inglés · (2) ANTICIPACIÓN —
+     el silencio, intención en español · (3) REVEAL + AUDIO — la ÚNICA frase EN
+     grande de la pantalla · (4) EL PORQUÉ — why_es + molde/swaps + a quién · (5)
+     SHADOWING — la producís, replay lento opcional · (6) AUTOEVAL — Clavado/Casi/
+     Todavía no (neutro, jamás coral). Progreso por-chunk en rodeo_a1_progress
+     (sobrevive recargar). La autoeval SOLO avanza y persiste posición; llama a
+     a1SrsGrade (stub) — el motor Leitner real llega en la Capa 3. */
+
+  var K_PROGRESS = 'rodeo_a1_progress';
+
+  // Reacciones genéricas de Pipe a la autoeval (voz de §1.2). "Todavía no" es
+  // NEUTRO y reconfortante: modela el error, jamás regaña ni pone nota.
+  var EVAL_REACT = {
+    clavado: '¡Eso! Ni mandado a hacer. Esa ya es tuya.',
+    casi: 'Casi, casi. Escuchala una vez más y la repetís conmigo. Vas bien.',
+    todavia: 'Tranquilo, esa se enreda al principio. Te la repasamos pronto pa\' que no se te vaya. Nadie nace sabiendo.',
+  };
+
+  // ── Estado del progreso (claves rodeo_a1_*, aisladas del DNA de Gus) ──
+  function getProgress() {
+    var p = a1Store.get(K_PROGRESS, null);
+    if (!p || typeof p !== 'object') p = {};
+    if (!Array.isArray(p.doneScenes)) p.doneScenes = [];
+    if (!Array.isArray(p.doneUnits)) p.doneUnits = [];
+    if (!Array.isArray(p.unlockedUnits)) p.unlockedUnits = [];
+    return p;
+  }
+  function saveProgress(patch) {
+    var p = getProgress();
+    if (patch) { for (var k in patch) { if (Object.prototype.hasOwnProperty.call(patch, k)) p[k] = patch[k]; } }
+    p.ts = Date.now();
+    a1Store.set(K_PROGRESS, p);
+    return p;
+  }
+  function markSceneDone(sceneId) {
+    var p = getProgress();
+    if (sceneId && p.doneScenes.indexOf(sceneId) === -1) p.doneScenes.push(sceneId);
+    a1Store.set(K_PROGRESS, p);
+  }
+
+  // Resuelve los chunks de una escena: inline o ChunkRef ({ref:'id'}) contra el
+  // índice plano. Filtra lo inválido (nunca un beat vacío).
+  function resolveChunks(scene) {
+    if (!scene || !scene.chunks) return [];
+    if (!Object.keys(A1_INDEX).length) buildIndex();
+    return scene.chunks.map(function (c) {
+      if (c && c.ref) return A1_INDEX[c.ref] || null;
+      return c || null;
+    }).filter(function (c) { return c && c.id && c.en; });
+  }
+
+  // Mostrar la escena inmersiva (oculta el home). Mismo patrón hidden/flex que
+  // STORY (#story-run); al hacerse visible, actualizarCromo esconde la tab bar.
+  function showEscenaPanel() {
+    var home = el('a1-home'); var escena = el('a1-escena');
+    if (home) home.classList.add('hidden');
+    if (escena) { escena.classList.remove('hidden'); escena.classList.add('flex'); }
+  }
+
+  // Avatar de Pipe + una o varias burbujas apiladas del mismo turno (≤2 c/u).
+  function pipeBlock(texts) {
+    var arr = (Array.isArray(texts) ? texts : [texts]).filter(Boolean);
+    var bubbles = arr.map(bubbleOnly).join('');
+    return '<div class="rd-a1-line">' + pipeAvatar(30) + '<div class="rd-a1-bubbles">' + bubbles + '</div></div>';
+  }
+
+  var run = null;   // estado del recorrido en curso
+
+  function openA1Escena(unitId, sceneId, opts) {
+    opts = opts || {};
+    var A = data(); if (!A || !A.units) return;
+    var unit = A.units.filter(function (x) { return x.id === unitId; })[0];
+    if (!unit) return;
+    var scenes = unit.scenes || [];
+    var scene = sceneId ? scenes.filter(function (x) { return x.id === sceneId; })[0] : scenes[0];
+    if (!scene) scene = scenes[0];
+    if (!scene) return;
+    var chunks = resolveChunks(scene);
+    if (!chunks.length) {
+      if (window.toast) window.toast('Esta escena todavía no tiene frases, parce.');
+      return;
+    }
+
+    // Punto de arranque: reanuda el chunk guardado SOLO si es la misma escena
+    // (recargar en mitad de una escena vuelve a ese chunk, no al principio).
+    var start = 0;
+    var p = getProgress();
+    if (typeof opts.chunkIdx === 'number') {
+      start = opts.chunkIdx;
+    } else if (p && p.unitId === unitId && p.sceneId === scene.id &&
+               typeof p.chunkIdx === 'number' && p.chunkIdx >= 0 && p.chunkIdx < chunks.length) {
+      start = p.chunkIdx;
+    }
+    if (start < 0 || start >= chunks.length) start = 0;
+
+    run = { unitId: unitId, sceneId: scene.id, unit: unit, scene: scene, chunks: chunks, i: start, step: 1, phase: 'beat', lastGrade: null };
+
+    var escena = el('a1-escena');
+    if (!escena) return;
+    showEscenaPanel();
+    // Shell constante: ← volver · dots (posición por chunk) · mini avatar de Pipe.
+    escena.innerHTML =
+      '<div class="rd-a1-escena-head shrink-0">' +
+        '<button type="button" class="icon-btn rd-a1-esc-back" aria-label="Volver al inicio">' +
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>' +
+        '</button>' +
+        '<div class="rd-a1-dots" id="a1-esc-dots" role="presentation" aria-hidden="true"></div>' +
+        pipeAvatar(34) +
+      '</div>' +
+      '<div class="scroll-area rd-a1-beat" id="a1-beat" style="flex:1; min-height:0;"></div>' +
+      '<div class="rd-a1-beat-foot shrink-0" id="a1-foot"></div>';
+
+    var back = escena.querySelector('.rd-a1-esc-back');
+    if (back) back.addEventListener('click', function () { renderA1Home(); });
+
+    enterChunk(start);
+  }
+  window.openA1Escena = openA1Escena;
+
+  // Entrar a un chunk = arrancar su beat en el PASO 1 y persistir la posición
+  // por-chunk (esto es lo que hace que recargar reanude donde ibas).
+  function enterChunk(i) {
+    if (!run) return;
+    run.i = i; run.step = 1; run.phase = 'beat'; run.lastGrade = null;
+    saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: i });
+    paintBeat();
+  }
+  function goStep(step) { if (!run) return; run.step = step; run.phase = 'beat'; paintBeat(); }
+
+  function updateDots() {
+    var d = el('a1-esc-dots');
+    if (d && run) d.innerHTML = dotsHTML(Math.min(run.i, run.chunks.length - 1), run.chunks.length);
+  }
+  function setBeat(html) { var b = el('a1-beat'); if (b) { b.innerHTML = html; b.scrollTop = 0; } return el('a1-beat'); }
+  function setFoot(html) { var f = el('a1-foot'); if (f) f.innerHTML = html; return f; }
+  function primaryBtn(label, cls) {
+    return '<button type="button" class="' + (cls || 'btn-accent') + ' rd-a1-next" style="width:100%;">' + esc(label) + '</button>';
+  }
+  function wireNext(fn) {
+    var f = el('a1-foot'); if (!f) return;
+    var b = f.querySelector('.rd-a1-next');
+    if (b) b.addEventListener('click', fn);
+  }
+  // Replay del audio: cualquier control con data-say suena a rate normal; con
+  // data-slow, más despacio. Desacoplado de la clase para no chocar estilos.
+  function wireSay() {
+    var b = el('a1-beat'); if (!b) return;
+    b.querySelectorAll('[data-say]').forEach(function (btn) {
+      btn.addEventListener('click', function () { a1Speak(btn.getAttribute('data-say')); });
+    });
+    b.querySelectorAll('[data-slow]').forEach(function (btn) {
+      btn.addEventListener('click', function () { a1Speak(btn.getAttribute('data-slow'), 0.6); });
+    });
+  }
+  function animateBeat() {
+    if (A1_REDUCED || !window.animateIn) return;
+    var b = el('a1-beat');
+    if (b) window.animateIn(b.children, { y: 12, duration: 0.45 });
+  }
+
+  function chunkFrameHTML(c) {
+    if (!c.frame) return '';
+    var chips = (c.swaps || []).map(function (s) {
+      return '<span class="gloss-chip rd-a1-swap">' + esc(s) + '</span>';
+    }).join('');
+    return '<div class="rd-a1-molde">' +
+        '<span class="label-mini">El molde</span>' +
+        '<span class="rd-a1-frame">' + esc(c.frame) + '</span>' +
+        (chips ? '<div class="rd-a1-chips">' + chips + '</div>' : '') +
+      '</div>';
+  }
+
+  // Tarjeta del chunk (reusa .slang-card). Es la ÚNICA frase EN grande (.term).
+  function revealCardHTML(c, withTop, tts) {
+    var top = '';
+    if (withTop) {
+      var say = tts ? ('<button type="button" class="icon-btn rd-a1-say" data-say="' + escAttr(c.en) + '" aria-label="Escuchar la frase"><span aria-hidden="true">🔊</span></button>') : '';
+      top = '<div class="rd-a1-reveal-top"><span class="label-mini">Así se dice</span>' + say + '</div>';
+    }
+    return '<div class="slang-card rd-a1-reveal" style="background:var(--card-paper);" aria-live="polite">' +
+        top +
+        '<p class="term">' + esc(c.en) + '</p>' +
+        (withTop ? '<p class="ex-es">' + esc(c.es) + '</p>' : '') +
+        '<p class="rd-a1-snd">suena: ' + esc(c.sounds_es) + '</p>' +
+      '</div>';
+  }
+
+  function paintBeat() {
+    if (!run) return;
+    if (run.phase === 'react') { paintReaction(); return; }
+    if (run.phase === 'done') { paintDone(); return; }
+    updateDots();
+    var c = run.chunks[run.i];
+    var tts = a1TtsDisponible();
+
+    if (run.step === 1) {
+      // PASO 1 · ESCENA — Pipe monta la situación. CERO inglés.
+      var body = '<p class="rd-a1-scene-lead">' + esc(run.scene.scene_es) + '</p>';
+      if (run.i === 0) {
+        var lines = (run.scene.setup_es || []).slice();
+        if (run.scene.analogy_es) lines.push(run.scene.analogy_es);
+        body += pipeBlock(lines);
+      } else {
+        body += pipeBlock(['Seguimos en la misma. Va otra que te sirve un montón.']);
+      }
+      setBeat(body);
+      setFoot(primaryBtn('Dale ↓', 'btn-ghost'));
+      wireNext(function () { goStep(2); });
+      animateBeat();
+
+    } else if (run.step === 2) {
+      // PASO 2 · ANTICIPACIÓN — el silencio. Intención en español, cero inglés.
+      setBeat(pipeBlock([
+        'A ver… querés decir «' + c.es + '». ¿Cómo suena en inglés?',
+        'Probá en voz alta, como te salga. Nadie te oye — ese es el punto.',
+      ]));
+      setFoot(primaryBtn('👁 Ver la frase', 'btn-accent'));
+      wireNext(function () { goStep(3); });
+      animateBeat();
+
+    } else if (run.step === 3) {
+      // PASO 3 · REVEAL + AUDIO — la ÚNICA frase EN grande de la pantalla.
+      var cover = tts ? '' : pipeBlock(['Acá tu celu no la dice en voz alta, pero léela como está en «suena». Igual funciona, tranquilo.']);
+      setBeat(revealCardHTML(c, true, tts) + cover);
+      setFoot(primaryBtn('Seguir ↓', 'btn-ghost'));
+      wireSay();
+      wireNext(function () { goStep(4); });
+      animateBeat();
+      // Suena 1 vez al revelar: el tap de "Ver la frase" ya desbloqueó el TTS móvil.
+      if (tts) a1Speak(c.en);
+
+    } else if (run.step === 4) {
+      // PASO 4 · EL PORQUÉ — why_es (obligatorio) + molde/swaps + a quién. Sin
+      // frase EN grande (los swaps van en chips chicos, es el molde).
+      var body4 = pipeBlock([c.why_es]);
+      body4 += chunkFrameHTML(c);
+      if (c.who_es) body4 += '<span class="rd-a1-who"><span aria-hidden="true">👤</span>' + esc(c.who_es) + '</span>';
+      setBeat(body4);
+      setFoot(primaryBtn('Ya, repito ↓', 'btn-ghost'));
+      wireNext(function () { goStep(5); });
+      animateBeat();
+
+    } else if (run.step === 5) {
+      // PASO 5 · SHADOWING — la producís. Replay normal / más despacio (o la
+      // muleta sounds_es si no hay voz). Sin micrófono, sin nota.
+      var replay = '';
+      if (tts) {
+        replay = '<div class="rd-a1-replay">' +
+            '<button type="button" class="btn-ghost" data-say="' + escAttr(c.en) + '">🔊 otra vez</button>' +
+            '<button type="button" class="btn-ghost" data-slow="' + escAttr(c.en) + '">más despacio</button>' +
+          '</div>';
+      }
+      setBeat(pipeBlock(['Ahora vos. Repetila en voz alta, como suena. Nadie te oye, dale sin pena.']) +
+        revealCardHTML(c, false, tts) + replay);
+      setFoot(primaryBtn('Listo, la dije', 'btn-accent'));
+      wireSay();
+      wireNext(function () { goStep(6); });
+      animateBeat();
+
+    } else if (run.step === 6) {
+      // PASO 6 · AUTOEVAL — cero castigo. "Todavía no" NEUTRO (jamás coral).
+      setBeat(
+        pipeBlock(['¿Y qué tal? ¿Te salió?']) +
+        '<div class="rd-a1-eval">' +
+          '<button type="button" class="rd-a1-eval-btn rd-a1-eval-btn--clavado" data-grade="clavado">Clavado <span aria-hidden="true">✓</span></button>' +
+          '<button type="button" class="rd-a1-eval-btn rd-a1-eval-btn--casi" data-grade="casi">Casi <span aria-hidden="true">~</span></button>' +
+          '<button type="button" class="rd-a1-eval-btn rd-a1-eval-btn--todavia" data-grade="todavia">Todavía no <span aria-hidden="true">↺</span></button>' +
+        '</div>'
+      );
+      setFoot('');
+      var beat = el('a1-beat');
+      if (beat) beat.querySelectorAll('.rd-a1-eval-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () { onGrade(c, btn.getAttribute('data-grade')); });
+      });
+      animateBeat();
+    }
+  }
+
+  function onGrade(c, grade) {
+    // Autoeval → alimenta el SRS. La llamada queda cableada; el cálculo Leitner
+    // real (cajas/intervalos) llega en la Capa 3 dentro de a1SrsGrade (stub).
+    try { a1SrsGrade(c.id, grade); } catch (e) { /* stub no debe romper el loop */ }
+    run.phase = 'react';
+    run.lastGrade = grade;
+    paintReaction();
+  }
+
+  function paintReaction() {
+    if (!run) return;
+    var last = run.i >= run.chunks.length - 1;
+    var msg = EVAL_REACT[run.lastGrade] || EVAL_REACT.clavado;
+    setBeat(pipeBlock([msg]));
+    setFoot(primaryBtn(last ? 'Cerrar la escena ✓' : 'Siguiente frase →', 'btn-accent'));
+    wireNext(function () {
+      if (last) { sceneComplete(); }
+      else { enterChunk(run.i + 1); }
+    });
+    animateBeat();
+  }
+
+  function sceneComplete() {
+    if (!run) return;
+    markSceneDone(run.sceneId);
+    // Escena terminada: al reabrirla arranca de cero (chunkIdx fuera de rango).
+    saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: run.chunks.length });
+    run.phase = 'done';
+    paintDone();
+  }
+
+  function paintDone() {
+    if (!run) return;
+    updateDots();
+    // Cierre honesto y cálido (sin confeti de caricatura: la celebración adulta
+    // y la micro-tarea TBLT completas llegan en la Capa 4).
+    setBeat(pipeBlock([
+      'Listo, esa escena la sacaste. Eso hace un rato no lo tenías.',
+      'Volvé cuando querás y seguimos con la próxima, sin afán.',
+    ]));
+    setFoot(primaryBtn('Volver al inicio', 'btn-accent'));
+    wireNext(function () { renderA1Home(); });
+    animateBeat();
+  }
+
+  /* ── SRS (stub de Capa 2) ─────────────────────────────────────────────────
+     El motor Leitner real (cajas 1..5, intervalos [1,3,7,14,30], transiciones
+     Clavado/Casi/Todavía no, escritura de rodeo_a1_srs) se implementa en la
+     Capa 3. Acá sólo dejamos la llamada cableada y estable para que la autoeval
+     del loop la invoque sin acoplarse a la implementación futura. */
+  function a1SrsGrade(chunkId, grade) {
+    // Capa 2: no-op intencional — la autoeval sólo avanza y persiste posición
+    // (rodeo_a1_progress). La Capa 3 rellena esta función.
+    return;
+  }
+  window.a1SrsGrade = a1SrsGrade;
 
   // Índice listo al cargar (el contenido carga ANTES que este archivo).
   buildIndex();

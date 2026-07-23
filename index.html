@@ -1401,6 +1401,40 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-surv-snd { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--card-ink-soft); margin-top: 5px; letter-spacing: 0.02em; }
 .rd-a1-surv-note { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 12px; font-style: italic; }
 
+/* ── Escena inmersiva · loop de 6 pasos (Capa 2) ──
+   Chrome constante (← · dots · mini Pipe) + un beat por pantalla. Reusa
+   .slang-card / .bubble-coach / .gloss-chip / .btn-*. Sin coral-como-castigo. */
+.rd-a1-escena-head { display: flex; align-items: center; gap: 12px; padding: 2px 0 12px; }
+.rd-a1-escena-head .rd-a1-dots { flex: 1; justify-content: center; }
+.rd-a1-beat { display: flex; flex-direction: column; gap: 13px; padding: 6px 2px 16px; }
+.rd-a1-bubbles { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.rd-a1-beat-foot { padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-scene-lead { font-family: 'Familjen Grotesk', sans-serif; font-style: italic; font-size: 0.92rem; color: var(--text-secondary); line-height: 1.5; padding: 2px; }
+/* Reveal — la ÚNICA frase EN grande de la pantalla */
+.rd-a1-reveal { text-align: left; }
+.rd-a1-reveal-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.rd-a1-reveal .term { margin: 0; }
+.rd-a1-reveal .ex-es { margin-top: 12px; }
+.rd-a1-say { width: 44px; height: 44px; flex-shrink: 0; background: transparent; border-color: oklch(20% 0.03 265 / 0.22); color: var(--card-ink); }
+.rd-a1-say:hover { border-color: oklch(20% 0.03 265 / 0.45); color: var(--card-ink); }
+.rd-a1-snd { font-family: 'Space Mono', monospace; font-size: 0.76rem; color: var(--card-ink-soft); margin-top: 10px; letter-spacing: 0.02em; }
+.rd-a1-replay { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Molde + swaps (PASO 4) */
+.rd-a1-molde { display: flex; flex-direction: column; gap: 9px; padding: 4px 2px; }
+.rd-a1-frame { font-family: 'Space Mono', monospace; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.01em; }
+.rd-a1-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rd-a1-who { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); background: var(--bg-elevated); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 100px; }
+/* Autoeval (PASO 6) — "Todavía no" NEUTRO, jamás coral/--danger */
+.rd-a1-eval { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.rd-a1-eval-btn { min-height: 56px; padding: 8px 6px; border-radius: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; text-align: center; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.82rem; line-height: 1.12; border: 1px solid transparent; transition: transform .18s ease, background .2s ease, border-color .2s ease, filter .2s ease; }
+.rd-a1-eval-btn:active { transform: scale(0.96); }
+.rd-a1-eval-btn--clavado { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px oklch(87% 0.21 128 / 0.22); }
+.rd-a1-eval-btn--clavado:hover { filter: brightness(1.03); }
+.rd-a1-eval-btn--casi { background: transparent; border-color: var(--warn); color: var(--text-primary); }
+.rd-a1-eval-btn--casi:hover { background: oklch(84% 0.16 92 / 0.08); }
+.rd-a1-eval-btn--todavia { background: var(--bg-elevated); border-color: var(--text-muted); color: var(--text-secondary); }
+.rd-a1-eval-btn--todavia:hover { border-color: var(--text-secondary); }
+
 </style>
 </head>
 <body class="grain ambient-glow">
