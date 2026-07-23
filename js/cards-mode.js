@@ -78,6 +78,9 @@
 
       // Overlay
       '#retameOverlay{position:fixed;inset:0;z-index:880;display:none;background:var(--bg-void)}',
+      // Sin retardo/zoom por doble-tap en los controles táctiles (touch-action
+      // no se hereda: hay que declararlo en cada blanco de tap — auditoría UX)
+      '#retameOverlay button,#retameOverlay .cm-tap-en{touch-action:manipulation}',
       '#retameOverlay.show{display:flex;flex-direction:column}',
       '.cm-top{display:flex;align-items:center;justify-content:space-between;',
       '  padding:calc(14px + env(safe-area-inset-top)) 18px 10px}',
@@ -231,7 +234,10 @@
     var TAM = 10;
     var delDNA = cartasDelDNA(3);
     var delPack = cartasDelPack(TAM - delDNA.length);
-    var mazo = delPack.concat(delDNA);
+    // CLONAR cada carta: el mazo escribe estado efímero (_reenc) y las cartas
+    // del pack son objetos compartidos de window.CARDS_PACKS — mutarlos
+    // quemaría el re-encolado de esa carta para toda la sesión (auditoría).
+    var mazo = delPack.concat(delDNA).map(function (c) { return Object.assign({}, c); });
     // Barajar (Fisher-Yates)
     for (var i = mazo.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
@@ -371,10 +377,12 @@
     if (esQuiz) wireQuiz(top, c);
     else wireSwipe(top);
 
-    // TTS: chip de audio + tap sobre el texto EN
+    // TTS: chip de audio + tap sobre el texto EN. Si el "tap" fue en realidad
+    // el final de un arrastre (drag empieza sobre el texto), no debe sonar.
     top.querySelectorAll('[data-tts]').forEach(function (el) {
       el.addEventListener('click', function (ev) {
         ev.stopPropagation();
+        if (CM.dragEndTs && Date.now() - CM.dragEndTs < 400) return;
         decir(textoTTS(c));
       });
     });
@@ -470,7 +478,10 @@
 
     el.addEventListener('pointerdown', function (e) {
       if (CM.resolved) return;
-      if (e.target.closest('.cm-audio,[data-tts],button')) return;   // tap de audio no arrastra
+      // Solo los BOTONES quedan fuera del gesto. El texto EN (data-tts) sí deja
+      // arrancar el arrastre — es donde el dedo agarra la carta por instinto —
+      // y su tap se distingue del drag por el umbral de 12px (auditoría UX).
+      if (e.target.closest('.cm-audio,button')) return;
       activo = true; capturado = false;
       startX = e.clientX; startY = e.clientY; dx = 0;
     });
@@ -495,6 +506,9 @@
       activo = false;
       el.classList.remove('cm-dragging');
       if (!capturado) return;
+      // Hubo arrastre real: silenciar el click que el navegador dispara tras el
+      // pointerup, para que soltar la carta sobre el texto EN no lance el TTS.
+      CM.dragEndTs = Date.now();
       if (Math.abs(dx) > 90) {
         el.classList.add(dx > 0 ? 'cm-fly-r' : 'cm-fly-l');
         resolver(dx > 0, 'swipe-done');
