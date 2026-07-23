@@ -20,7 +20,7 @@
 // Sube este número en cada release donde quieras invalidar cache viejo.
 // ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
 // a esos archivos NO llega a los usuarios hasta subir esta versión.
-const VERSION = 'rodeo-v5';
+const VERSION = 'rodeo-v6';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
