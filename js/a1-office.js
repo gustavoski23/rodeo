@@ -1,5 +1,5 @@
 // ============================================================
-// OFICINA · A1 laboral offline — MOTOR (Capas 1–3: plomería · loop · SRS Leitner)
+// OFICINA · A1 laboral offline — MOTOR (Capas 1–4: plomería · loop · SRS · rungs)
 // ============================================================
 // Contrato con el dashboard (igual que los demás módulos del engine): define
 // window.* y se EJECUTA en runtime (al clic). Este archivo carga ANTES del script
@@ -19,6 +19,10 @@
 //   window.a1SrsDue()         -> lista de vencidos ordenada por fragilidad (Capa 3)
 //   window.a1UpdateStreak()   -> racha propia, NO punitiva (clon, nunca la de Gus)
 //   window.a1Metrics()        -> métricas honestas (caja>=4 "ya te salen solas")
+//   window.a1Guardar(item)    -> "Mis frases" (rodeo_a1_saved), JAMÁS saveDNA (Capa 4)
+//   window.openA1Saved()      -> hoja "Mis frases" (Capa 4)
+//   window.openA1ChunkDetail(id) -> sheet de detalle de un chunk (§5.6, Capa 4)
+//   window.openA1Task(unit)   -> micro-tarea TBLT + logro de unidad (Capa 4)
 //
 // Este módulo NO toca la red ni el cerebro de Gus (SPEC §6.1/§6.5): nada de APIs
 // de chat, nada del TTS online de Deepgram, nada de micrófono ni voz-a-texto,
@@ -388,12 +392,17 @@
     var newAvail = pickNewChunks(1).length > 0;
     var rt = resumeTarget();
     var list = units.map(unitCardHTML).join('');
+    var svCount = a1SavedGet().length;
     return heroHTML() +
       metricHTML() +
       greetingHTML() +
       ctaHTML(dueCount, newAvail, rt) +
       '<p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>Elegí por dónde arrancar</p>' +
       '<div class="rd-a1-units">' + list + '</div>' +
+      // Capa 4: "Mis frases" (las guardadas con ★) + botón de pánico permanente.
+      '<button type="button" class="rd-a1-saved-link" data-a1-saved aria-label="Mis frases guardadas">' +
+        '<span aria-hidden="true">★</span> Mis frases' + (svCount ? ' · ' + svCount : '') +
+      '</button>' +
       '<button type="button" class="rd-a1-panic" data-a1-panic aria-label="Frases de emergencia">' +
         '<span aria-hidden="true">🆘</span> No entiendo — las frases que me salvan' +
       '</button>';
@@ -405,6 +414,8 @@
     });
     var panic = home.querySelector('[data-a1-panic]');
     if (panic) panic.addEventListener('click', openA1Panic);
+    var saved = home.querySelector('[data-a1-saved]');
+    if (saved) saved.addEventListener('click', openA1Saved);
     var rep = home.querySelector('[data-a1-repaso]');
     if (rep) rep.addEventListener('click', function () { openA1Repaso(); });
     var seg = home.querySelector('[data-a1-seguir]');
@@ -448,6 +459,9 @@
       if (window.toast) window.toast('Esa se abre cuando termines la de antes, parce. Sin afán.');
       return;
     }
+    // Capa 4: si ya completó las escenas pero le falta la micro-tarea, va derecho a
+    // ella (ruta de recuperación si en su momento salió antes de cerrarla).
+    if (unitScenesDone(u) && u.task && !isTaskDone(u.task.id)) { openA1Task(u); return; }
     var doneS = getProgress().doneScenes || [];
     var target = u.scenes.filter(function (s) { return doneS.indexOf(s.id) === -1; })[0] || u.scenes[0];
     openA1Escena(unitId, target.id);
@@ -523,6 +537,7 @@
     if (!Array.isArray(p.doneScenes)) p.doneScenes = [];
     if (!Array.isArray(p.doneUnits)) p.doneUnits = [];
     if (!Array.isArray(p.unlockedUnits)) p.unlockedUnits = [];
+    if (!Array.isArray(p.doneTasks)) p.doneTasks = [];   // Capa 4: micro-tareas cerradas
     return p;
   }
   function saveProgress(patch) {
@@ -578,12 +593,16 @@
           '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>' +
         '</button>' +
         '<div class="rd-a1-dots" id="a1-esc-dots" role="presentation" aria-hidden="true"></div>' +
+        // 🆘 dentro de la escena (§5.7): las 5 de supervivencia SIEMPRE a un tap.
+        '<button type="button" class="icon-btn rd-a1-esc-panic" aria-label="Frases de emergencia"><span aria-hidden="true">🆘</span></button>' +
         pipeAvatar(34) +
       '</div>' +
       '<div class="scroll-area rd-a1-beat" id="a1-beat" style="flex:1; min-height:0;"></div>' +
       '<div class="rd-a1-beat-foot shrink-0" id="a1-foot"></div>';
     var back = escena.querySelector('.rd-a1-esc-back');
     if (back) back.addEventListener('click', function () { renderA1Home(); });
+    var panic = escena.querySelector('.rd-a1-esc-panic');
+    if (panic) panic.addEventListener('click', openA1Panic);
     return escena;
   }
 
@@ -661,6 +680,12 @@
   function enterChunk(i) {
     if (!run) return;
     run.i = i; run.step = 1; run.phase = 'beat'; run.lastGrade = null;
+    // Capa 4: la caja Leitner decide el reto del PASO 2 (rung). Estado de la
+    // interacción (MCQ/cloze) reseteado por chunk pa' no arrastrarlo entre beats.
+    var c = run.chunks[i];
+    var m = (run.meta && run.meta[i]) || {};
+    run.rung = rungForChunk(c, m);
+    run.answered = false; run.mcq = null; run.cloze = null;
     // Solo la escena lineal persiste posición (el "seguir" del home). El repaso es
     // efímero: no debe pisar ese puntero (sus chunks vienen de varias escenas).
     if (run.mode === 'scene') saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: i });
@@ -716,7 +741,15 @@
     var top = '';
     if (withTop) {
       var say = tts ? ('<button type="button" class="icon-btn rd-a1-say" data-say="' + escAttr(c.en) + '" aria-label="Escuchar la frase"><span aria-hidden="true">🔊</span></button>') : '';
-      top = '<div class="rd-a1-reveal-top"><span class="label-mini">Así se dice</span>' + say + '</div>';
+      // ★ Guardar en "Mis frases" (Capa 4). Estrella llena/hueca según estado; el
+      // guardado va a rodeo_a1_saved vía a1Guardar (JAMÁS saveDNA).
+      var saved = a1IsSaved(c.id);
+      var star = '<button type="button" class="icon-btn rd-a1-star' + (saved ? ' rd-a1-star--on' : '') +
+        '" data-star="' + escAttr(c.id) + '" aria-pressed="' + (saved ? 'true' : 'false') +
+        '" aria-label="' + (saved ? 'Quitar de mis frases' : 'Guardar en mis frases') +
+        '"><span aria-hidden="true">' + (saved ? '★' : '☆') + '</span></button>';
+      top = '<div class="rd-a1-reveal-top"><span class="label-mini">Así se dice</span>' +
+        '<span class="rd-a1-reveal-actions">' + star + say + '</span></div>';
     }
     return '<div class="slang-card rd-a1-reveal" style="background:var(--card-paper);" aria-live="polite">' +
         top +
@@ -766,14 +799,10 @@
       animateBeat();
 
     } else if (run.step === 2) {
-      // PASO 2 · ANTICIPACIÓN — el silencio. Intención en español, cero inglés.
-      setBeat(pipeBlock([
-        'A ver… querés decir «' + c.es + '». ¿Cómo suena en inglés?',
-        'Probá en voz alta, como te salga. Nadie te oye — ese es el punto.',
-      ]));
-      setFoot(primaryBtn('👁 Ver la frase', 'btn-accent'));
-      wireNext(function () { goStep(3); });
-      animateBeat();
+      // PASO 2 · ANTICIPACIÓN — su forma la decide el RUNG (Capa 4): MCQ (caja 1),
+      // cloze (caja 2 con frame), producir de memoria (caja 3) o swap (caja 4-5 con
+      // frame). Nuevos y escena: "así se dice". El dispatcher vive en la Capa 4.
+      paintStep2(c);
 
     } else if (run.step === 3) {
       // PASO 3 · REVEAL + AUDIO — la ÚNICA frase EN grande de la pantalla.
@@ -781,6 +810,7 @@
       setBeat(revealCardHTML(c, true, tts) + cover);
       setFoot(primaryBtn('Seguir ↓', 'btn-ghost'));
       wireSay();
+      wireStar();          // ★ guardar en "Mis frases" (Capa 4)
       wireNext(function () { goStep(4); });
       animateBeat();
       // Suena 1 vez al revelar: el tap de "Ver la frase" ya desbloqueó el TTS móvil.
@@ -859,7 +889,13 @@
     var last = run.i >= run.chunks.length - 1;
     var repaso = run.mode === 'repaso';
     var msg = EVAL_REACT[run.lastGrade] || EVAL_REACT.clavado;
-    setBeat(pipeBlock([msg]));
+    var clavado = run.lastGrade === 'clavado';
+    // Celebración ADULTA del Clavado (§5.8): una insignia lima discreta arriba de
+    // la reacción; el micro-pop lo hace GSAP (abajo), siempre detrás de REDUCED.
+    setBeat(
+      (clavado ? '<div class="rd-a1-celebrate"><span class="rd-a1-celebrate-badge" id="a1-celebrate" aria-hidden="true">✓</span></div>' : '') +
+      pipeBlock([msg])
+    );
     var label = last
       ? (repaso ? 'Cerrar el repaso ✓' : 'Cerrar la escena ✓')
       : 'Siguiente frase →';
@@ -869,6 +905,14 @@
       else { enterChunk(run.i + 1); }
     });
     animateBeat();
+    // Micro-pop lima (escala 1→1.04→1), adulto, sin confeti. Solo si hay GSAP y NO
+    // prefers-reduced-motion; si REDUCED, la insignia queda estática (cero motion).
+    if (clavado && !A1_REDUCED && window.gsap) {
+      try {
+        var badge = el('a1-celebrate');
+        if (badge) window.gsap.fromTo(badge, { scale: 0.9 }, { scale: 1.04, duration: 0.22, yoyo: true, repeat: 1, ease: 'power2.out' });
+      } catch (e) { /* la celebración es cosmética: jamás romper el loop */ }
+    }
   }
 
   // Cierre de la sesión según el modo. En ambos sube la racha (no punitiva, §4.3).
@@ -884,6 +928,13 @@
     // Escena terminada: al reabrirla arranca de cero (chunkIdx fuera de rango).
     saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: run.chunks.length });
     a1UpdateStreak();          // la racha sube al completar la sesión (clon propio)
+    // Capa 4: si con esta escena la unidad quedó COMPLETA y su micro-tarea aún no
+    // se hizo, cierra con la tarea TBLT (§4.1/§5.4) en vez del cierre simple.
+    var unit = run.unit;
+    if (unit && unitScenesDone(unit) && unit.task && !isTaskDone(unit.task.id)) {
+      openA1Task(unit);
+      return;
+    }
     run.phase = 'done';
     paintDone();
   }
@@ -1139,6 +1190,451 @@
     news.forEach(function (c) { queue.push({ chunk: c, kind: 'new' }); });
     rest.forEach(function (d) { queue.push({ chunk: d.chunk, kind: 'due' }); });
     return { queue: queue, dueCount: dueCount, newCount: news.length };
+  }
+
+  /* ═══════════════════ CAPA 4 · RUNGS + MICRO-TAREAS + PULIDO (§4.3/§5) ═════════
+     La caja Leitner decide QUÉ TAN DIFÍCIL es el repaso (misma máquina del SRS):
+       caja 1          → Reconocer  · MCQ (distractors_es o hermanos)
+       caja 2 (frame)  → Completar  · cloze con los swaps
+       caja 3          → Producir   · anticipación pura, de memoria
+       caja 4-5(frame) → Swap       · el molde con TU situación
+     Chunks fijos (frame:null) SALTAN cloze y swap → Reconocer(1) → Producir(≥2).
+     Solo aplica al REPASO (kind:'due'); nuevos y escena enseñan completo. Además:
+     micro-tarea TBLT de cierre + logro de unidad, celebración adulta, "Mis frases"
+     + sheet de detalle, y el 🆘 dentro de la escena. TODO offline, cero red, cero
+     claves de Gus (solo rodeo_a1_*), cero saveDNA. */
+
+  var K_SAVED = 'rodeo_a1_saved';   // "Mis frases" (mini-DNA propio, NUNCA rodeo_dna)
+
+  // Normaliza EN pa' comparar (minúsculas, sin puntuación, espacios colapsados).
+  function normEn(s) {
+    return String(s == null ? '' : s).toLowerCase().replace(/[.,?!¡¿]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  // Baraja (Fisher–Yates) sobre una COPIA — nunca muta el arreglo de datos.
+  function a1Shuffle(arr) {
+    var a = (arr || []).slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  // ── El RUNG de un chunk según su caja (§4.3). Solo los due varían; los nuevos y
+  //    la escena enseñan completo ('teach'). Los fijos (frame:null) saltan cloze y
+  //    swap → producir en su lugar (el motor nunca inventa un hueco que no existe).
+  function rungForChunk(c, m) {
+    if (!c || !m || m.kind !== 'due') return 'teach';
+    var e = a1SrsGet()[c.id];
+    var box = (e && e.box) || 1;
+    var hasFrame = !!c.frame;
+    if (box <= 1) return 'mcq';                            // Reconocer
+    // Fijo salta cloze: como producir es "caja ≥3" (§4.3), en caja 2 el fijo sigue
+    // en Reconocer (MCQ); el framed sí hace cloze.
+    if (box === 2) return hasFrame ? 'cloze' : 'mcq';
+    if (box === 3) return 'producir';                      // Producir de memoria
+    return hasFrame ? 'swap' : 'producir';                 // caja 4-5; fijo salta swap
+  }
+
+  /* ── PASO 2 según el rung. El default ('teach'/'producir') es la anticipación de
+     producción original; MCQ/cloze/swap son las variantes de repaso. ── */
+  function paintStep2(c) {
+    var rung = (run && run.rung) || 'teach';
+    if (rung === 'mcq')   return paintStep2Mcq(c);
+    if (rung === 'cloze') return paintStep2Cloze(c);
+    if (rung === 'swap')  return paintStep2Swap(c);
+    var lead = (rung === 'producir')
+      ? ['Esta ya la conocés. ¿Cómo era pa\' decir «' + c.es + '»? De memoria, sin mirar.']
+      : ['A ver… querés decir «' + c.es + '». ¿Cómo suena en inglés?'];
+    lead.push('Probá en voz alta, como te salga. Nadie te oye — ese es el punto.');
+    setBeat(pipeBlock(lead));
+    setFoot(primaryBtn('👁 Ver la frase', 'btn-accent'));
+    wireNext(function () { goStep(3); });
+    animateBeat();
+  }
+
+  // Hermanos (misma escena, luego misma unidad) → respaldo de distractores del MCQ.
+  function siblingEns(c) {
+    var out = []; var seen = {};
+    function add(list) {
+      (list || []).forEach(function (x) {
+        if (x && x.id && x.id !== c.id && x.en && !seen[x.id]) { seen[x.id] = true; out.push(x.en); }
+      });
+    }
+    var scene = sceneOfChunk(c); if (scene) add(resolveChunks(scene));
+    var unit = A1_UNIT_OF[c.id];
+    if (out.length < 3 && unit) (unit.scenes || []).forEach(function (s) { add(resolveChunks(s)); });
+    return out;
+  }
+  // Opciones del MCQ: 1 correcta (c.en) + distractores de distractors_es y, si
+  // faltan, de hermanos. Máx 4, barajadas. La correcta SIEMPRE queda incluida.
+  function mcqOptions(c) {
+    var opts = [{ text: c.en, correct: true }];
+    var used = {}; used[normEn(c.en)] = true;
+    (c.distractors_es || []).forEach(function (d) {
+      if (opts.length >= 4 || !d) return;
+      var k = normEn(d); if (used[k]) return;
+      used[k] = true; opts.push({ text: d, correct: false });
+    });
+    if (opts.length < 3) {
+      var sibs = siblingEns(c);
+      for (var i = 0; i < sibs.length && opts.length < 4; i++) {
+        var k2 = normEn(sibs[i]); if (used[k2]) continue;
+        used[k2] = true; opts.push({ text: sibs[i], correct: false });
+      }
+    }
+    return a1Shuffle(opts);
+  }
+  function paintStep2Mcq(c) {
+    if (!run.mcq) run.mcq = mcqOptions(c);   // fija las opciones del beat (no re-baraja al repintar)
+    var html = pipeBlock(['Esta ya la viste. ¿Cuál era pa\' decir «' + c.es + '»? Sin mirar.']);
+    html += '<div class="rd-a1-mcq">';
+    run.mcq.forEach(function (o, i) {
+      html += '<button type="button" class="rd-a1-mcq-opt" data-mcq="' + i + '" data-ok="' + (o.correct ? '1' : '0') + '">' +
+        '<span class="rd-a1-mcq-en font-display">' + esc(o.text) + '</span></button>';
+    });
+    html += '</div>';
+    setBeat(html);
+    setFoot('');   // no hay "seguir" hasta que responda
+    var beat = el('a1-beat');
+    if (beat) beat.querySelectorAll('.rd-a1-mcq-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () { onMcqPick(c, btn, btn.getAttribute('data-ok') === '1'); });
+    });
+    animateBeat();
+  }
+  function onMcqPick(c, btn, ok) {
+    if (run.answered) return; run.answered = true;
+    var beat = el('a1-beat');
+    if (beat) beat.querySelectorAll('.rd-a1-mcq-opt').forEach(function (b) {
+      b.disabled = true;
+      if (b.getAttribute('data-ok') === '1') b.classList.add('rd-a1-mcq-opt--ok');   // marca SIEMPRE la correcta
+      else if (b === btn && !ok) b.classList.add('rd-a1-mcq-opt--miss');
+    });
+    finishStep2Feedback(ok,
+      ok ? '¡Eso! Esa era. La tenés fresca.' : 'Casi. Era la que quedó marcada — tranquilo, ya te la refresco.',
+      'Ver bien la frase ↓', btn);
+  }
+
+  // Pieza correcta del cloze: la que reconstruye c.en; si ninguna, swaps[0]
+  // (convención de datos: la primera es la pieza propia del chunk).
+  function correctSwap(c) {
+    var swaps = c.swaps || []; if (!swaps.length) return null;
+    var target = normEn(c.en);
+    for (var i = 0; i < swaps.length; i++) {
+      if (normEn(String(c.frame).replace('___', swaps[i])) === target) return swaps[i];
+    }
+    return swaps[0];
+  }
+  function paintStep2Cloze(c) {
+    // Salvaguarda: sin hueco real ni fichas no hay cloze → cae a producir (jamás un
+    // beat sin salida). El contenido garantiza swaps en toda frame≠null, pero por si.
+    if (!c.frame || String(c.frame).indexOf('___') === -1 || !(c.swaps && c.swaps.length)) { run.rung = 'producir'; return paintStep2(c); }
+    var correct = correctSwap(c);
+    if (!run.cloze) run.cloze = a1Shuffle(c.swaps || []);
+    var slot = '<span class="rd-a1-cloze-slot" id="a1-cloze-slot">•••</span>';
+    var frameHTML = esc(c.frame).replace('___', slot);   // frame escapado; el slot es markup de confianza
+    var html = pipeBlock(['Completá el hueco. ¿Cuál ficha va acá?']);
+    html += '<div class="rd-a1-cloze"><span class="rd-a1-cloze-frame font-display">' + frameHTML + '</span></div>';
+    html += '<div class="rd-a1-chips">';
+    run.cloze.forEach(function (s) {
+      html += '<button type="button" class="gloss-chip rd-a1-cloze-chip" data-swap="' + escAttr(s) + '">' + esc(s) + '</button>';
+    });
+    html += '</div>';
+    setBeat(html);
+    setFoot('');
+    var beat = el('a1-beat');
+    if (beat) beat.querySelectorAll('.rd-a1-cloze-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () { onClozePick(c, btn, correct); });
+    });
+    animateBeat();
+  }
+  function onClozePick(c, btn, correct) {
+    if (run.answered) return; run.answered = true;
+    var chosen = btn.getAttribute('data-swap');
+    var ok = normEn(chosen) === normEn(correct);
+    var slot = el('a1-cloze-slot');
+    if (slot) { slot.textContent = chosen; slot.classList.add(ok ? 'rd-a1-cloze-slot--ok' : 'rd-a1-cloze-slot--miss'); }
+    var beat = el('a1-beat');
+    if (beat) beat.querySelectorAll('.rd-a1-cloze-chip').forEach(function (b) {
+      b.disabled = true;
+      if (b.getAttribute('data-swap') === correct) b.classList.add('rd-a1-cloze-chip--ok');
+      else if (b === btn && !ok) b.classList.add('rd-a1-cloze-chip--miss');
+    });
+    finishStep2Feedback(ok,
+      ok ? '¡Eso! Esa pieza va ahí. Así se arma el molde.' : 'Casi. La que iba es «' + correct + '». Fresco, pa\' eso repasamos.',
+      'Ver la frase entera ↓', btn);
+  }
+  // Cierre común del PASO 2 interactivo (MCQ/cloze): reacción de Pipe + micro-pop
+  // del acierto (detrás de REDUCED) + botón pa' seguir al reveal. "Miss" NEUTRO.
+  function finishStep2Feedback(ok, msg, nextLabel, popEl) {
+    var beat = el('a1-beat');
+    if (beat) { var r = document.createElement('div'); r.innerHTML = pipeBlock([msg]); if (r.firstChild) beat.appendChild(r.firstChild); }
+    setFoot(primaryBtn(nextLabel, 'btn-accent'));
+    wireNext(function () { goStep(3); });
+    if (ok && !A1_REDUCED && window.gsap && popEl) {
+      try { window.gsap.fromTo(popEl, { scale: 1 }, { scale: 1.03, duration: 0.16, yoyo: true, repeat: 1, ease: 'power2.out' }); } catch (e) {}
+    }
+  }
+  // Rung swap (caja 4-5, con frame): producir con TU situación. Sin nota; el reveal
+  // del PASO 3 muestra el ejemplo modelo.
+  function paintStep2Swap(c) {
+    if (!c.frame) { run.rung = 'producir'; return paintStep2(c); }
+    var chips = (c.swaps || []).map(function (s) {
+      return '<span class="gloss-chip rd-a1-swap">' + esc(s) + '</span>';
+    }).join('');
+    var html = pipeBlock([
+      'Esta ya te sale. Ahora hacela tuya: cambiá la pieza por lo que sea TU caso.',
+      'Mirá el molde, decilo en voz alta con lo tuyo. Después te muestro el ejemplo.',
+    ]);
+    html += '<div class="rd-a1-molde"><span class="label-mini">Tu molde</span>' +
+      '<span class="rd-a1-frame">' + esc(c.frame) + '</span>' +
+      (chips ? '<div class="rd-a1-chips">' + chips + '</div>' : '') + '</div>';
+    setBeat(html);
+    setFoot(primaryBtn('Ya lo dije, ver ejemplo ↓', 'btn-accent'));
+    wireNext(function () { goStep(3); });
+    animateBeat();
+  }
+
+  /* ── "Mis frases" — a1Guardar / store propio (rodeo_a1_saved). JAMÁS saveDNA
+     ni rodeo_dna. Dedup por id/en. ── */
+  function a1SavedGet() { var s = a1Store.get(K_SAVED, []); return Array.isArray(s) ? s : []; }
+  function a1IsSaved(id) { return a1SavedGet().some(function (x) { return x && x.id === id; }); }
+  function a1Guardar(item) {
+    if (!item || (!item.id && !item.en)) return false;
+    var list = a1SavedGet();
+    var dup = list.some(function (x) {
+      return x && (x.id === item.id || (x.en && item.en && normEn(x.en) === normEn(item.en)));
+    });
+    if (dup) return true;
+    list.push({ id: item.id, en: item.en, es: item.es, why: item.why_es || item.why || '', ts: Date.now() });
+    a1Store.set(K_SAVED, list);
+    return true;
+  }
+  window.a1Guardar = a1Guardar;
+  function a1Unsave(id) {
+    a1Store.set(K_SAVED, a1SavedGet().filter(function (x) { return x && x.id !== id; }));
+  }
+  function a1ToggleSave(chunk) {
+    if (!chunk || !chunk.id) return false;
+    if (a1IsSaved(chunk.id)) { a1Unsave(chunk.id); return false; }
+    a1Guardar(chunk); return true;
+  }
+  // Cablea las ★ del beat (guardar/quitar en caliente, sin salir del loop).
+  function wireStar() {
+    var b = el('a1-beat'); if (!b) return;
+    b.querySelectorAll('[data-star]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-star');
+        var now = a1ToggleSave(A1_INDEX[id]);
+        btn.classList.toggle('rd-a1-star--on', now);
+        btn.setAttribute('aria-pressed', now ? 'true' : 'false');
+        btn.setAttribute('aria-label', now ? 'Quitar de mis frases' : 'Guardar en mis frases');
+        var ic = btn.querySelector('span'); if (ic) ic.textContent = now ? '★' : '☆';
+        if (window.toast) window.toast(now ? 'Guardada en tus frases ★' : 'La quité de tus frases');
+      });
+    });
+  }
+
+  // Hoja "Mis frases" (§5.6): lista lo guardado; cada una abre su detalle.
+  function openA1Saved() {
+    if (typeof window.openSheet !== 'function') {
+      if (window.toast) window.toast('Abrí la app con internet una vez y ya queda offline.');
+      return;
+    }
+    if (!Object.keys(A1_INDEX).length) buildIndex();
+    var list = a1SavedGet();
+    var body;
+    if (!list.length) {
+      body = '<p class="rd-a1-empty">Todavía no guardaste ninguna. Tocá la ★ en las frases que te gusten y acá te quedan a la mano.</p>';
+    } else {
+      body = '<div class="rd-a1-saved-list">' + list.slice().reverse().map(function (it) {
+        return '<button type="button" class="rd-a1-saved-row" data-detail="' + escAttr(it.id) + '">' +
+            '<span class="rd-a1-saved-en font-display">' + esc(it.en) + '</span>' +
+            (it.es ? '<span class="rd-a1-saved-es">' + esc(it.es) + '</span>' : '') +
+          '</button>';
+      }).join('') + '</div>';
+    }
+    window.openSheet(
+      '<p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>★ Mis frases</p>' +
+      '<p class="font-display rd-a1-sheet-title">LAS TUYAS<span style="color:var(--accent);">.</span></p>' +
+      '<p class="rd-a1-sheet-sub">Las que marcaste pa\' tenerlas a la mano. Tocá una pa\' verla completa.</p>' +
+      body +
+      '<button type="button" class="btn-accent rd-a1-sheet-close" style="width:100%;margin-top:16px;">Listo</button>'
+    );
+    var sc = el('sheet-content');
+    if (sc) {
+      sc.querySelectorAll('.rd-a1-saved-row').forEach(function (b) {
+        b.addEventListener('click', function () { openA1ChunkDetail(b.getAttribute('data-detail')); });
+      });
+      var cl = sc.querySelector('.rd-a1-sheet-close');
+      if (cl) cl.addEventListener('click', function () { if (window.closeSheet) window.closeSheet(); });
+    }
+  }
+  window.openA1Saved = openA1Saved;
+
+  // Sheet de detalle de un chunk (§5.6): frase + 🔊 · es · suena · POR QUÉ · EL
+  // MOLDE (swaps como gloss-chip) · ¿A QUIÉN? · ¿CUÁNDO? · [★ Guardada][🔁 Repetir].
+  function openA1ChunkDetail(id) {
+    if (typeof window.openSheet !== 'function') return;
+    if (!Object.keys(A1_INDEX).length) buildIndex();
+    var c = A1_INDEX[id];
+    if (!c) {   // respaldo: si el contenido ya no lo tiene, usa lo guardado (mínimo)
+      var sv = a1SavedGet().filter(function (x) { return x && x.id === id; })[0];
+      if (sv) c = { id: sv.id, en: sv.en, es: sv.es, why_es: sv.why, sounds_es: '', frame: null, swaps: null, who_es: '', sayWhen_es: '' };
+    }
+    if (!c) { if (window.toast) window.toast('Esa frase ya no está, parce.'); return; }
+    var canTts = a1TtsDisponible();
+    var saved = a1IsSaved(c.id);
+    var molde = '';
+    if (c.frame) {
+      var chips = (c.swaps || []).map(function (s) { return '<span class="gloss-chip rd-a1-swap">' + esc(s) + '</span>'; }).join('');
+      molde = '<div class="rd-a1-detail-sect"><span class="label-mini">El molde</span>' +
+        '<div class="rd-a1-frame" style="margin-top:6px;">' + esc(c.frame) + '</div>' +
+        (chips ? '<div class="rd-a1-chips" style="margin-top:8px;">' + chips + '</div>' : '') + '</div>';
+    }
+    window.openSheet(
+      '<div class="rd-a1-detail">' +
+        '<div class="slang-card rd-a1-reveal" style="background:var(--card-paper);">' +
+          '<div class="rd-a1-reveal-top"><span class="label-mini">La frase</span>' +
+            (canTts ? '<button type="button" class="icon-btn rd-a1-say" data-say="' + escAttr(c.en) + '" aria-label="Escuchar la frase"><span aria-hidden="true">🔊</span></button>' : '') +
+          '</div>' +
+          '<p class="term">' + esc(c.en) + '</p>' +
+          (c.es ? '<p class="ex-es">' + esc(c.es) + '</p>' : '') +
+          (c.sounds_es ? '<p class="rd-a1-snd">suena: ' + esc(c.sounds_es) + '</p>' : '') +
+        '</div>' +
+        (c.why_es ? '<div class="rd-a1-detail-sect"><span class="label-mini">Por qué</span><p class="rd-a1-detail-why">' + esc(c.why_es) + '</p></div>' : '') +
+        molde +
+        (c.who_es ? '<div class="rd-a1-detail-sect"><span class="label-mini">¿A quién?</span><p class="rd-a1-detail-txt">' + esc(c.who_es) + '</p></div>' : '') +
+        (c.sayWhen_es ? '<div class="rd-a1-detail-sect"><span class="label-mini">¿Cuándo?</span><p class="rd-a1-detail-txt">' + esc(c.sayWhen_es) + '</p></div>' : '') +
+        '<div class="rd-a1-detail-actions">' +
+          '<button type="button" class="btn-accent rd-a1-detail-save" data-star="' + escAttr(c.id) + '">' + (saved ? '★ Guardada' : '☆ Guardar') + '</button>' +
+          (canTts ? '<button type="button" class="btn-ghost rd-a1-detail-repeat" data-say="' + escAttr(c.en) + '">🔁 Repetir</button>' : '') +
+        '</div>' +
+      '</div>'
+    );
+    var sc = el('sheet-content');
+    if (sc) {
+      sc.querySelectorAll('[data-say]').forEach(function (b) { b.addEventListener('click', function () { a1Speak(b.getAttribute('data-say')); }); });
+      var star = sc.querySelector('.rd-a1-detail-save');
+      if (star) star.addEventListener('click', function () {
+        var now = a1ToggleSave(c);
+        star.textContent = now ? '★ Guardada' : '☆ Guardar';
+        if (window.toast) window.toast(now ? 'Guardada en tus frases ★' : 'La quité de tus frases');
+      });
+    }
+  }
+  window.openA1ChunkDetail = openA1ChunkDetail;
+
+  /* ── Micro-tarea TBLT de cierre (§4.1/§5.4) + logro de unidad (§5.5) ──
+     Pipe plantea la meta POR INTENCIÓN (nunca da la frase EN → fuerza recuperación);
+     el usuario la dice de memoria y se auto-reporta; Pipe reacciona con la línea
+     pre-escrita (reaction_es). Cero IA. Cierre = logro de CAPACIDAD, no puntos. */
+  var taskRun = null;
+  function isTaskDone(taskId) {
+    var p = getProgress();
+    return Array.isArray(p.doneTasks) && p.doneTasks.indexOf(taskId) !== -1;
+  }
+  function markTaskDone(taskId) {
+    var p = getProgress();
+    if (!Array.isArray(p.doneTasks)) p.doneTasks = [];
+    if (taskId && p.doneTasks.indexOf(taskId) === -1) p.doneTasks.push(taskId);
+    a1Store.set(K_PROGRESS, p);
+  }
+  function openA1Task(unit) {
+    var task = unit && unit.task;
+    var steps = ((task && task.steps) || []).filter(function (st) { return st && A1_INDEX[st.answerChunkId]; });
+    if (!task || !steps.length) { unitAchievement(unit); return; }   // sin pasos válidos → directo al logro
+    run = null;                       // salimos del loop de chunks; el shell es compartido
+    taskRun = { unit: unit, task: task, steps: steps, i: 0, phase: 'intro' };
+    if (!paintEscenaShell()) return;
+    paintTaskBeat();
+  }
+  window.openA1Task = openA1Task;
+  function taskDots() {
+    var d = el('a1-esc-dots');
+    if (d && taskRun) d.innerHTML = dotsHTML(Math.min(taskRun.i, taskRun.steps.length - 1), taskRun.steps.length);
+  }
+  function paintTaskBeat() {
+    if (!taskRun) return;
+    taskDots();
+    var task = taskRun.task;
+    if (taskRun.phase === 'intro') {
+      setBeat(
+        '<div class="mission-card rd-a1-mission"><span class="rd-a1-mission-eyebrow">Tu misión</span>' +
+          '<p class="rd-a1-mission-lead">' + esc(task.intro_es) + '</p></div>' +
+        pipeBlock(['Sin mirar nada. Yo te digo la situación y vos soltás la frase, de memoria.'])
+      );
+      setFoot(primaryBtn('Dale, la primera →', 'btn-accent'));
+      wireNext(function () { taskRun.phase = 'goal'; taskRun.i = 0; paintTaskBeat(); });
+      animateBeat();
+      return;
+    }
+    var step = taskRun.steps[taskRun.i];
+    var c = A1_INDEX[step.answerChunkId];
+    var tts = a1TtsDisponible();
+    if (taskRun.phase === 'goal') {
+      // La meta va POR INTENCIÓN en español; JAMÁS la frase EN (fuerza recuperación).
+      setBeat(
+        '<div class="mission-card rd-a1-mission"><span class="rd-a1-mission-eyebrow">Situación ' + (taskRun.i + 1) + '/' + taskRun.steps.length + '</span>' +
+          '<p class="rd-a1-mission-goal">' + esc(step.goal_es) + '</p></div>' +
+        pipeBlock(['¿Cómo se lo decís? Dale, en voz alta — de memoria.'])
+      );
+      setFoot(primaryBtn('Ya lo dije, ver ↓', 'btn-accent'));
+      wireNext(function () { taskRun.phase = 'reveal'; paintTaskBeat(); });
+      animateBeat();
+      return;
+    }
+    // phase 'reveal': muestra la frase modelo + la reacción pre-escrita de Pipe.
+    var last = taskRun.i >= taskRun.steps.length - 1;
+    setBeat(revealCardHTML(c, true, tts) + pipeBlock([step.reaction_es]));
+    setFoot(primaryBtn(last ? 'Cerrar la misión ✓' : 'Siguiente situación →', 'btn-accent'));
+    wireSay(); wireStar();
+    wireNext(function () {
+      if (last) { markTaskDone(task.id); unitAchievement(taskRun.unit); }
+      else { taskRun.i++; taskRun.phase = 'goal'; paintTaskBeat(); }
+    });
+    if (tts) a1Speak(c.en);
+    animateBeat();
+  }
+  // Cierre de unidad con LOGRO (§5.5): capacidad, no puntos. Sheet de celebración
+  // ADULTA (micro-pop lima detrás de REDUCED, sin confeti) + respaldo INLINE en la
+  // escena (robusto si cierran el sheet por el backdrop → nunca callejón sin salida).
+  function unitAchievement(unit) {
+    taskRun = null;
+    var done = (unit && unit.task && unit.task.done_es) || 'Ya sabés más que ayer. ✓';
+    var m = a1Metrics();
+    setBeat(
+      '<div class="rd-a1-achieve">' +
+        '<div class="rd-a1-achieve-emoji" aria-hidden="true">🎉</div>' +
+        '<p class="rd-a1-achieve-title font-display">' + esc(done) + '</p>' +
+      '</div>' +
+      pipeBlock(['Eso ayer no lo tenías, parce. Mañana seguimos y ya vas con ventaja.'])
+    );
+    setFoot(primaryBtn('Seguir mañana', 'btn-accent'));
+    wireNext(function () { renderA1Home(); });
+    animateBeat();
+    if (typeof window.openSheet === 'function') {
+      var total = Object.keys(A1_INDEX).length || 1;
+      var pct = Math.max(0, Math.min(100, Math.round(m.salen / total * 100)));
+      window.openSheet(
+        '<div class="rd-a1-achieve-sheet">' +
+          '<div class="rd-a1-achieve-emoji" id="a1-achieve-pop" aria-hidden="true">🎉</div>' +
+          '<p class="rd-eyebrow rd-eyebrow--accent" style="justify-content:center;"><span class="rd-eyebrow-rule"></span>Misión cumplida</p>' +
+          '<p class="font-display rd-a1-achieve-title">' + esc(done) + '</p>' +
+          '<div class="meter-track" style="margin:14px 0 6px;"><div class="meter-fill" style="width:' + pct + '%;background:var(--accent);"></div></div>' +
+          '<p class="rd-a1-achieve-sub">' + (m.salen > 0 ? ('Ya te salen solas <strong>' + m.salen + '</strong>.') : 'Cada vuelta se te van pegando más.') + ' Eso ayer no lo tenías.</p>' +
+          '<button type="button" class="btn-accent rd-a1-achieve-close" style="width:100%;margin-top:16px;">Seguir mañana</button>' +
+        '</div>'
+      );
+      var sc = el('sheet-content');
+      if (sc) {
+        var cl = sc.querySelector('.rd-a1-achieve-close');
+        if (cl) cl.addEventListener('click', function () { if (window.closeSheet) window.closeSheet(); renderA1Home(); });
+        if (!A1_REDUCED && window.gsap) {
+          try { window.gsap.fromTo('#a1-achieve-pop', { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(1.6)' }); } catch (e) {}
+        }
+      }
+    }
   }
 
   // Índice listo al cargar (el contenido carga ANTES que este archivo).

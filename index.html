@@ -1477,6 +1477,105 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-unit-prog .meter-track { flex: 1; }
 .rd-a1-unit-prog-txt { font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); white-space: nowrap; }
 
+/* ── Capa 4 · Rungs (MCQ/cloze/swap) + micro-tarea + logro + Mis frases ──
+   Aditivo, prefijo rd-a1-. Reusa tokens y .gloss-chip/.slang-card/.mission-card.
+   Cero coral-como-castigo: el "casi/miss" es NEUTRO (borde ámbar tenue), jamás
+   --danger. Touch >=44px en todo control. */
+
+/* 🆘 dentro de la escena (§5.7) — touch >=44px */
+.rd-a1-esc-panic { width: 44px; height: 44px; flex-shrink: 0; font-size: 1.05rem; }
+
+/* Rung 1 · Reconocer (MCQ) */
+.rd-a1-mcq { display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-mcq-opt {
+  display: flex; align-items: center; width: 100%; text-align: left;
+  min-height: 52px; padding: 13px 16px; border-radius: 15px; cursor: pointer;
+  background: var(--card-paper); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.14); box-shadow: var(--sticker-shadow);
+  transition: transform .18s ease, border-color .2s ease, filter .2s ease;
+}
+.rd-a1-mcq-opt:hover { filter: brightness(1.02); }
+.rd-a1-mcq-opt:active { transform: scale(0.98); }
+.rd-a1-mcq-opt:disabled { cursor: default; }
+.rd-a1-mcq-en { font-size: 1.02rem; font-weight: 800; line-height: 1.1; color: var(--card-ink); letter-spacing: -0.01em; }
+.rd-a1-mcq-opt--ok { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 0 22px oklch(87% 0.21 128 / 0.24); }
+.rd-a1-mcq-opt--miss { border-color: var(--warn); opacity: 0.82; }
+
+/* Rung 2 · Completar el hueco (cloze) */
+.rd-a1-cloze { padding: 6px 2px 2px; }
+.rd-a1-cloze-frame { font-size: 1.3rem; font-weight: 800; color: var(--text-primary); line-height: 1.4; letter-spacing: -0.01em; }
+.rd-a1-cloze-slot {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 54px;
+  padding: 1px 12px; margin: 0 3px; border-radius: 100px; vertical-align: baseline;
+  background: var(--accent-dim); border: 1px dashed oklch(87% 0.21 128 / 0.6); color: var(--accent);
+  font-size: 0.9rem; letter-spacing: 0;
+}
+.rd-a1-cloze-slot--ok { background: var(--accent); border-style: solid; border-color: var(--accent); color: var(--accent-ink); }
+.rd-a1-cloze-slot--miss { border-color: var(--warn); color: var(--text-primary); }
+.rd-a1-cloze-chip.rd-a1-cloze-chip--ok { background: var(--accent); border-style: solid; border-color: var(--accent); color: var(--accent-ink); }
+.rd-a1-cloze-chip.rd-a1-cloze-chip--miss { border-color: var(--warn); color: var(--text-secondary); opacity: 0.72; }
+.rd-a1-cloze-chip:disabled { cursor: default; }
+
+/* ★ Guardar en el reveal (estrella llena/hueca; alto contraste sobre pastel) */
+.rd-a1-reveal-actions { display: inline-flex; align-items: center; gap: 8px; }
+.rd-a1-star { width: 44px; height: 44px; flex-shrink: 0; background: transparent; border-color: oklch(20% 0.03 265 / 0.22); color: var(--card-ink); font-size: 1.12rem; }
+.rd-a1-star:hover { border-color: oklch(20% 0.03 265 / 0.45); }
+.rd-a1-star--on { border-color: var(--card-ink); }
+
+/* Micro-tarea TBLT (§5.4) — reusa .mission-card */
+.rd-a1-mission { display: flex; flex-direction: column; gap: 7px; }
+.rd-a1-mission-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.rd-a1-mission-lead { font-family: 'Familjen Grotesk', sans-serif; font-size: 0.96rem; color: var(--text-primary); line-height: 1.45; }
+.rd-a1-mission-goal { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--text-primary); line-height: 1.4; }
+
+/* Logro de unidad (§5.5) — capacidad, no puntos */
+.rd-a1-achieve { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 18px 8px 6px; }
+.rd-a1-achieve-sheet { text-align: center; }
+.rd-a1-achieve-emoji { font-size: 2.6rem; line-height: 1; }
+.rd-a1-achieve-title { font-size: 1.5rem; line-height: 1.12; color: var(--text-primary); letter-spacing: -0.01em; }
+.rd-a1-achieve-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-top: 4px; }
+.rd-a1-achieve-sub strong { color: var(--text-primary); font-weight: 800; }
+
+/* Celebración adulta del Clavado (§5.8) — micro-pop lima, detrás de REDUCED */
+.rd-a1-celebrate { display: flex; justify-content: center; padding: 4px 0 2px; }
+.rd-a1-celebrate-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-weight: 900; font-size: 1.3rem;
+  box-shadow: 0 0 26px oklch(87% 0.21 128 / 0.4);
+}
+
+/* Mis frases — link del home + hoja + detalle (§5.6) */
+.rd-a1-saved-link {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  padding: 12px 16px; min-height: 48px; border-radius: 100px; cursor: pointer;
+  background: transparent; border: 1px solid var(--glass-border); color: var(--text-secondary);
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.86rem;
+  transition: border-color .25s ease, color .2s ease, transform .2s ease;
+}
+.rd-a1-saved-link:hover { border-color: oklch(87% 0.21 128 / 0.5); color: var(--text-primary); }
+.rd-a1-saved-link:active { transform: scale(0.985); }
+.rd-a1-saved-list { display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-saved-row {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--card-paper); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.14); border-radius: 15px; padding: 12px 15px;
+  transition: filter .2s ease, transform .2s ease;
+}
+.rd-a1-saved-row:hover { filter: brightness(1.02); }
+.rd-a1-saved-row:active { transform: scale(0.99); }
+.rd-a1-saved-en { font-size: 1.02rem; font-weight: 800; color: var(--card-ink); line-height: 1.1; letter-spacing: -0.01em; }
+.rd-a1-saved-es { font-size: 0.84rem; color: var(--card-ink-soft); }
+.rd-a1-empty { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; padding: 8px 2px; }
+
+/* Detalle de chunk (§5.6) */
+.rd-a1-detail { display: flex; flex-direction: column; gap: 14px; }
+.rd-a1-detail-sect { display: flex; flex-direction: column; gap: 4px; }
+.rd-a1-detail-why { font-family: 'Familjen Grotesk', sans-serif; font-size: 0.94rem; color: var(--text-primary); line-height: 1.55; }
+.rd-a1-detail-txt { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
+.rd-a1-detail-actions { display: flex; gap: 10px; margin-top: 4px; }
+.rd-a1-detail-actions .btn-accent, .rd-a1-detail-actions .btn-ghost { flex: 1; }
+
 </style>
 </head>
 <body class="grain ambient-glow">
