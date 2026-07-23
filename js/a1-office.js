@@ -1,5 +1,5 @@
 // ============================================================
-// OFICINA · A1 laboral offline — MOTOR (Capa 1: plomería, home, bienvenida)
+// OFICINA · A1 laboral offline — MOTOR (Capas 1–3: plomería · loop · SRS Leitner)
 // ============================================================
 // Contrato con el dashboard (igual que los demás módulos del engine): define
 // window.* y se EJECUTA en runtime (al clic). Este archivo carga ANTES del script
@@ -13,6 +13,12 @@
 //   window.openA1Panic()      -> hoja con las 5 frases de supervivencia (🆘)
 //   window.a1AbrirUnidad(id)  -> abre la unidad (delega en openA1Escena si ya existe)
 //   window.a1Store            -> mini-store propio de claves rodeo_a1_* (aislado)
+//   window.openA1Escena(u,s)  -> loop inmersivo de 6 pasos (Capa 2)
+//   window.openA1Repaso()     -> sesión SRS: warm-up + nuevos + due con tope (Capa 3)
+//   window.a1SrsGrade(id,g)   -> mueve la caja Leitner y recalcula el due (Capa 3)
+//   window.a1SrsDue()         -> lista de vencidos ordenada por fragilidad (Capa 3)
+//   window.a1UpdateStreak()   -> racha propia, NO punitiva (clon, nunca la de Gus)
+//   window.a1Metrics()        -> métricas honestas (caja>=4 "ya te salen solas")
 //
 // Este módulo NO toca la red ni el cerebro de Gus (SPEC §6.1/§6.5): nada de APIs
 // de chat, nada del TTS online de Deepgram, nada de micrófono ni voz-a-texto,
@@ -37,6 +43,8 @@
 
   var K_ONBOARDED = 'rodeo_a1_onboarded';
   var K_TTS = 'rodeo_a1_tts';
+  var K_SRS = 'rodeo_a1_srs';       // cerebro Leitner (Capa 3), AISLADO del DNA de Gus
+  var K_STREAK = 'rodeo_a1_streak'; // racha propia, NO punitiva (nunca rodeo_streak)
 
   var A1_REDUCED = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
@@ -54,17 +62,22 @@
   function el(id) { return document.getElementById(id); }
   function data() { return window.A1_OFFICE || null; }
 
-  // ── Índice plano de chunks + lista de supervivencia (alimenta el 🆘) ─────────
+  // ── Índice plano de chunks + lista de supervivencia (alimenta el 🆘) + mapas
+  //    chunkId → escena/unidad de origen (para el repaso mezclado de la Capa 3). ─
   var A1_INDEX = {};
   var SURVIVAL = [];
+  var A1_SCENE_OF = {};
+  var A1_UNIT_OF = {};
   function buildIndex() {
-    A1_INDEX = {}; SURVIVAL = [];
+    A1_INDEX = {}; SURVIVAL = []; A1_SCENE_OF = {}; A1_UNIT_OF = {};
     var A = data(); if (!A || !A.units) return;
     A.units.forEach(function (u) {
       (u.scenes || []).forEach(function (s) {
         (s.chunks || []).forEach(function (c) {
           if (c && c.id && !c.ref) {
             A1_INDEX[c.id] = c;
+            A1_SCENE_OF[c.id] = s;
+            A1_UNIT_OF[c.id] = u;
             if (c.survival) SURVIVAL.push(c);
           }
         });
@@ -72,6 +85,7 @@
     });
     window.A1_INDEX = A1_INDEX;
   }
+  function sceneOfChunk(c) { return (c && c.id) ? (A1_SCENE_OF[c.id] || null) : null; }
 
   // ── Tokens de card permitidos (mapea cardTheme -> var CSS existente). Se evita
   //    coral (semántica de castigo de Gus). ────────────────────────────────────
@@ -243,39 +257,143 @@
       '</div>';
   }
 
+  // Saludo DINÁMICO por estado (Capa 3): enmarca el "repaso de pasillo" con Pipe.
   function greetingHTML() {
-    // Capa 1 (sin SRS todavía): saludo cálido y fijo. La versión dinámica por
-    // estado llega con las métricas de la Capa 3.
-    var msg = 'Buenas, parce. Arranquemos por lo que te salva: tocá el kit de supervivencia y de una.';
+    var dueCount = a1SrsDue().length;
+    var newAvail = pickNewChunks(1).length > 0;
+    var msg;
+    if (dueCount > 0) {
+      var n = Math.min(dueCount, A1_DUE_CAP);
+      msg = 'Buenas, parce. Hoy toca repaso de pasillo: ' + n + (n === 1 ? ' frase' : ' frases') +
+        ' pa\' refrescar' + (newAvail ? ' y algo nuevo.' : '.') + ' ¿Le entramos?';
+    } else if (newAvail) {
+      msg = 'Todo fresco, parce. Nada que repasar hoy — arranquemos algo nuevo, suave.';
+    } else {
+      msg = 'Vas al día. Cuando querás repasamos lo que ya tenés, sin afán.';
+    }
     return pipeRow(msg);
   }
 
+  // Métrica ESTRELLA del Home (honesta, §4.3): "ya te salen solas" = caja>=4. La
+  // barra llena respecto al total del módulo. Cero XP, cero racha-en-rojo.
+  function metricHTML() {
+    var m = a1Metrics();
+    var total = Object.keys(A1_INDEX).length || 1;
+    var pct = Math.max(0, Math.min(100, Math.round(m.salen / total * 100)));
+    var label = m.salen > 0
+      ? ('Ya te salen solas: <strong>' + m.salen + '</strong>')
+      : 'Apenas arrancás — pronto se te van saliendo solas.';
+    return '<div class="rd-a1-metric">' +
+        '<div class="meter-track"><div class="meter-fill" style="width:' + pct + '%;background:var(--accent);"></div></div>' +
+        '<p class="rd-a1-metric-label">' + label + '</p>' +
+      '</div>';
+  }
+
+  // CTA primaria (§5.2): REPASO si hay due; si no, "todo fresco" + arrancar algo
+  // nuevo (nunca dead-end). Debajo, SEGUIR donde ibas si quedó una escena a medias.
+  function ctaHTML(dueCount, newAvail, rt) {
+    var html = '';
+    if (dueCount > 0) {
+      var n = Math.min(dueCount, A1_DUE_CAP);
+      html += '<button type="button" class="rd-a1-repaso" data-a1-repaso aria-label="Empezar el repaso">' +
+          '<span class="rd-a1-repaso-txt">' +
+            '<span class="rd-a1-repaso-eyebrow">Repaso de pasillo</span>' +
+            '<span class="rd-a1-repaso-main">' + n + (n === 1 ? ' frase lista' : ' frases listas') + ' pa\' refrescar</span>' +
+          '</span>' +
+          '<span class="rd-a1-repaso-go" aria-hidden="true">Repasar →</span>' +
+        '</button>';
+    } else if (newAvail) {
+      html += '<button type="button" class="rd-a1-repaso rd-a1-repaso--fresh" data-a1-repaso aria-label="Arrancar algo nuevo">' +
+          '<span class="rd-a1-repaso-txt">' +
+            '<span class="rd-a1-repaso-eyebrow">Todo fresco</span>' +
+            '<span class="rd-a1-repaso-main">Nada que repasar — arranquemos algo nuevo</span>' +
+          '</span>' +
+          '<span class="rd-a1-repaso-go" aria-hidden="true">Arrancar →</span>' +
+        '</button>';
+    }
+    if (rt) {
+      html += '<button type="button" class="mission-card rd-a1-seguir" data-a1-seguir aria-label="Seguir donde ibas">' +
+          '<span class="rd-a1-seguir-eyebrow">Seguí donde ibas</span>' +
+          '<span class="rd-a1-seguir-main">' + esc(rt.unit.title_es) + ' · escena ' + rt.sceneNum + '/' + rt.sceneTotal + '</span>' +
+        '</button>';
+    }
+    return html;
+  }
+
+  // Punto de "seguir": la última escena tocada que NO quedó terminada (chunkIdx en
+  // rango). Al completar una escena, chunkIdx queda fuera de rango → no reaparece.
+  function resumeTarget() {
+    var p = getProgress();
+    if (!p || !p.unitId || !p.sceneId) return null;
+    var A = data(); if (!A || !A.units) return null;
+    var u = A.units.filter(function (x) { return x.id === p.unitId; })[0];
+    if (!u || !u.scenes) return null;
+    var s = u.scenes.filter(function (x) { return x.id === p.sceneId; })[0];
+    if (!s) return null;
+    var chunks = resolveChunks(s);
+    if (typeof p.chunkIdx !== 'number' || p.chunkIdx < 0 || p.chunkIdx >= chunks.length) return null;
+    var idx = u.scenes.indexOf(s);
+    return { unit: u, scene: s, chunkIdx: p.chunkIdx, sceneNum: idx + 1, sceneTotal: u.scenes.length };
+  }
+
+  // Dominación de una unidad (§4.3): >=80% de sus chunks en caja>=3 → checkmark.
+  function unitMastery(u) {
+    var ids = [];
+    (u.scenes || []).forEach(function (s) {
+      resolveChunks(s).forEach(function (c) { if (ids.indexOf(c.id) === -1) ids.push(c.id); });
+    });
+    var srs = a1SrsGet(); var box3 = 0, touched = 0;
+    ids.forEach(function (id) { var e = srs[id]; if (e) { touched++; if ((e.box || 1) >= 3) box3++; } });
+    return { total: ids.length, box3: box3, touched: touched };
+  }
+  function unitDominated(m) { return m.total > 0 && m.box3 >= Math.ceil(m.total * 0.8); }
+
   function unitCardHTML(u) {
+    var unlocked = isUnlocked(u.id);
+    var m = unitMastery(u);
+    var dominated = unlocked && unitDominated(m);
     var badge = u.survival ? '<span class="rd-a1-badge">🆘 supervivencia</span>' : '';
-    return '<button type="button" class="rd-a1-unit" data-unit="' + escAttr(u.id) + '" style="--rd-a1-theme:' + themeVar(u.cardTheme) + ';">' +
+
+    var right;
+    if (!unlocked) right = '<span class="rd-a1-unit-go rd-a1-unit-lock" aria-label="Se abre más adelante">🔒</span>';
+    else if (dominated) right = '<span class="rd-a1-unit-go rd-a1-unit-done" aria-label="Situación dominada">✓</span>';
+    else right = '<span class="rd-a1-unit-go" aria-hidden="true">→</span>';
+
+    // Progreso honesto solo cuando la unidad está abierta y ya se tocó algo (no
+    // dominada aún): barra de caja>=3 + "n/total ya tuyas".
+    var prog = '';
+    if (unlocked && m.total && m.touched > 0 && !dominated) {
+      var pct = Math.round(m.box3 / m.total * 100);
+      prog = '<span class="rd-a1-unit-prog">' +
+          '<span class="meter-track"><span class="meter-fill" style="width:' + pct + '%;background:var(--accent);"></span></span>' +
+          '<span class="rd-a1-unit-prog-txt">' + m.box3 + '/' + m.total + ' ya tuyas</span>' +
+        '</span>';
+    }
+
+    return '<button type="button" class="rd-a1-unit' + (unlocked ? '' : ' rd-a1-unit--locked') + '" data-unit="' + escAttr(u.id) + '" style="--rd-a1-theme:' + themeVar(u.cardTheme) + ';">' +
         '<span class="rd-a1-unit-ico" aria-hidden="true">' + esc(u.icon || u.emoji || '•') + '</span>' +
         '<span class="rd-a1-unit-txt">' +
           '<span class="rd-a1-unit-title">' + esc(u.title_es) + '</span>' +
           '<span class="rd-a1-unit-sub">' + esc(u.subtitle_es) + '</span>' +
-          badge +
+          badge + prog +
         '</span>' +
-        '<span class="rd-a1-unit-go" aria-hidden="true">→</span>' +
+        right +
       '</button>';
   }
 
   function homeHTML() {
     var A = data();
     var units = (A && A.units) || [];
+    var dueCount = a1SrsDue().length;
+    var newAvail = pickNewChunks(1).length > 0;
+    var rt = resumeTarget();
     var list = units.map(unitCardHTML).join('');
-    // Teaser de lo que falta (U3–U7 llegan en la Capa 5): honesto, no dead-end.
-    var teaser = '<div class="rd-a1-locked" aria-hidden="false">' +
-        '<span class="rd-a1-locked-ico" aria-hidden="true">🔒</span>' +
-        '<span>Y sigue: presentarte, el small talk, la reunión… Se va abriendo esta semana.</span>' +
-      '</div>';
     return heroHTML() +
+      metricHTML() +
       greetingHTML() +
+      ctaHTML(dueCount, newAvail, rt) +
       '<p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>Elegí por dónde arrancar</p>' +
-      '<div class="rd-a1-units">' + list + teaser + '</div>' +
+      '<div class="rd-a1-units">' + list + '</div>' +
       '<button type="button" class="rd-a1-panic" data-a1-panic aria-label="Frases de emergencia">' +
         '<span aria-hidden="true">🆘</span> No entiendo — las frases que me salvan' +
       '</button>';
@@ -287,6 +405,13 @@
     });
     var panic = home.querySelector('[data-a1-panic]');
     if (panic) panic.addEventListener('click', openA1Panic);
+    var rep = home.querySelector('[data-a1-repaso]');
+    if (rep) rep.addEventListener('click', function () { openA1Repaso(); });
+    var seg = home.querySelector('[data-a1-seguir]');
+    if (seg) seg.addEventListener('click', function () {
+      var rt = resumeTarget();
+      if (rt) openA1Escena(rt.unit.id, rt.scene.id);
+    });
   }
 
   function renderA1Home() {
@@ -319,6 +444,10 @@
     if (!A || !A.units) return;
     var u = A.units.filter(function (x) { return x.id === unitId; })[0];
     if (!u || !u.scenes || !u.scenes.length) return;
+    if (!isUnlocked(unitId)) {
+      if (window.toast) window.toast('Esa se abre cuando termines la de antes, parce. Sin afán.');
+      return;
+    }
     var doneS = getProgress().doneScenes || [];
     var target = u.scenes.filter(function (s) { return doneS.indexOf(s.id) === -1; })[0] || u.scenes[0];
     openA1Escena(unitId, target.id);
@@ -435,7 +564,28 @@
     return '<div class="rd-a1-line">' + pipeAvatar(30) + '<div class="rd-a1-bubbles">' + bubbles + '</div></div>';
   }
 
-  var run = null;   // estado del recorrido en curso
+  var run = null;   // estado del recorrido en curso (escena o repaso)
+
+  // Shell constante del loop: ← volver · dots (posición por chunk) · mini Pipe.
+  // Compartido por la escena lineal (Capa 2) y el repaso mezclado (Capa 3).
+  function paintEscenaShell() {
+    var escena = el('a1-escena');
+    if (!escena) return null;
+    showEscenaPanel();
+    escena.innerHTML =
+      '<div class="rd-a1-escena-head shrink-0">' +
+        '<button type="button" class="icon-btn rd-a1-esc-back" aria-label="Volver al inicio">' +
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>' +
+        '</button>' +
+        '<div class="rd-a1-dots" id="a1-esc-dots" role="presentation" aria-hidden="true"></div>' +
+        pipeAvatar(34) +
+      '</div>' +
+      '<div class="scroll-area rd-a1-beat" id="a1-beat" style="flex:1; min-height:0;"></div>' +
+      '<div class="rd-a1-beat-foot shrink-0" id="a1-foot"></div>';
+    var back = escena.querySelector('.rd-a1-esc-back');
+    if (back) back.addEventListener('click', function () { renderA1Home(); });
+    return escena;
+  }
 
   function openA1Escena(unitId, sceneId, opts) {
     opts = opts || {};
@@ -464,36 +614,56 @@
     }
     if (start < 0 || start >= chunks.length) start = 0;
 
-    run = { unitId: unitId, sceneId: scene.id, unit: unit, scene: scene, chunks: chunks, i: start, step: 1, phase: 'beat', lastGrade: null };
-
-    var escena = el('a1-escena');
-    if (!escena) return;
-    showEscenaPanel();
-    // Shell constante: ← volver · dots (posición por chunk) · mini avatar de Pipe.
-    escena.innerHTML =
-      '<div class="rd-a1-escena-head shrink-0">' +
-        '<button type="button" class="icon-btn rd-a1-esc-back" aria-label="Volver al inicio">' +
-          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>' +
-        '</button>' +
-        '<div class="rd-a1-dots" id="a1-esc-dots" role="presentation" aria-hidden="true"></div>' +
-        pipeAvatar(34) +
-      '</div>' +
-      '<div class="scroll-area rd-a1-beat" id="a1-beat" style="flex:1; min-height:0;"></div>' +
-      '<div class="rd-a1-beat-foot shrink-0" id="a1-foot"></div>';
-
-    var back = escena.querySelector('.rd-a1-esc-back');
-    if (back) back.addEventListener('click', function () { renderA1Home(); });
-
+    // Meta por-chunk: en modo escena todos son 'teach' y comparten la escena.
+    var meta = chunks.map(function () { return { kind: 'teach', scene: scene, unit: unit }; });
+    run = {
+      mode: 'scene', unitId: unitId, sceneId: scene.id, unit: unit, scene: scene,
+      chunks: chunks, meta: meta, i: start, step: 1, phase: 'beat', lastGrade: null,
+      requeued: {}, shownSetup: {},
+    };
+    if (!paintEscenaShell()) return;
     enterChunk(start);
   }
   window.openA1Escena = openA1Escena;
+
+  /* ═══════════════════ REPASO · sesión SRS mezclada (SPEC §4.3) ═══════════════
+     "Repaso de pasillo": warm-up (1 due de la caja más alta) + nuevos (según carga)
+     + resto de due (con tope de 8). Cola construida por buildRepasoQueue(). Los due
+     entran con framing de repaso (kind:'due'); los nuevos con enseñanza completa. */
+  function openA1Repaso() {
+    buildIndex();
+    var built = buildRepasoQueue();
+    if (!built.queue.length) {
+      // Nunca dead-end: sin due ni nuevos, no arranca sesión vacía (el home avisa).
+      if (window.toast) window.toast('Hoy no tenés nada pendiente, parce. Vas al día.');
+      return;
+    }
+    var chunks = built.queue.map(function (q) { return q.chunk; });
+    var meta = built.queue.map(function (q) {
+      return {
+        kind: q.kind === 'due' ? 'due' : 'teach',
+        scene: sceneOfChunk(q.chunk),
+        unit: A1_UNIT_OF[q.chunk.id] || null,
+      };
+    });
+    run = {
+      mode: 'repaso', unitId: null, sceneId: null, unit: null, scene: null,
+      chunks: chunks, meta: meta, i: 0, step: 1, phase: 'beat', lastGrade: null,
+      requeued: {}, shownSetup: {},
+    };
+    if (!paintEscenaShell()) return;
+    enterChunk(0);
+  }
+  window.openA1Repaso = openA1Repaso;
 
   // Entrar a un chunk = arrancar su beat en el PASO 1 y persistir la posición
   // por-chunk (esto es lo que hace que recargar reanude donde ibas).
   function enterChunk(i) {
     if (!run) return;
     run.i = i; run.step = 1; run.phase = 'beat'; run.lastGrade = null;
-    saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: i });
+    // Solo la escena lineal persiste posición (el "seguir" del home). El repaso es
+    // efímero: no debe pisar ese puntero (sus chunks vienen de varias escenas).
+    if (run.mode === 'scene') saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: i });
     paintBeat();
   }
   function goStep(step) { if (!run) return; run.step = step; run.phase = 'beat'; paintBeat(); }
@@ -556,25 +726,41 @@
       '</div>';
   }
 
+  // PASO 1 · ESCENA — Pipe monta la situación (cero inglés). Un due de repaso NO se
+  // re-enseña: entra con el encuadre de "repaso de pasillo" y va derecho al recall.
+  function step1HTML() {
+    var m = (run.meta && run.meta[run.i]) || {};
+    var scene = m.scene || run.scene || null;
+    if (run.mode === 'repaso' && m.kind === 'due') {
+      var lines = ['Ojo, esta ya nos la habíamos cruzado. Repaso de pasillo, pues.'];
+      if (scene && scene.title_es) lines.push('La de «' + scene.title_es + '». A ver si todavía te sale, sin mirar.');
+      else lines.push('A ver si todavía te sale, sin mirar.');
+      return pipeBlock(lines);
+    }
+    // Enseñanza (nuevo): monta la escena una sola vez por escena en la sesión.
+    var body = (scene && scene.scene_es) ? ('<p class="rd-a1-scene-lead">' + esc(scene.scene_es) + '</p>') : '';
+    if (scene && !run.shownSetup[scene.id]) {
+      run.shownSetup[scene.id] = true;
+      var setup = (scene.setup_es || []).slice();
+      if (scene.analogy_es) setup.push(scene.analogy_es);
+      body += pipeBlock(setup);
+    } else {
+      body += pipeBlock(['Seguimos en la misma. Va otra que te sirve un montón.']);
+    }
+    return body;
+  }
+
   function paintBeat() {
     if (!run) return;
     if (run.phase === 'react') { paintReaction(); return; }
-    if (run.phase === 'done') { paintDone(); return; }
+    if (run.phase === 'done') { if (run.mode === 'repaso') paintDoneRepaso(); else paintDone(); return; }
     updateDots();
     var c = run.chunks[run.i];
     var tts = a1TtsDisponible();
 
     if (run.step === 1) {
-      // PASO 1 · ESCENA — Pipe monta la situación. CERO inglés.
-      var body = '<p class="rd-a1-scene-lead">' + esc(run.scene.scene_es) + '</p>';
-      if (run.i === 0) {
-        var lines = (run.scene.setup_es || []).slice();
-        if (run.scene.analogy_es) lines.push(run.scene.analogy_es);
-        body += pipeBlock(lines);
-      } else {
-        body += pipeBlock(['Seguimos en la misma. Va otra que te sirve un montón.']);
-      }
-      setBeat(body);
+      // PASO 1 · ESCENA — Pipe monta la situación (o el repaso de pasillo).
+      setBeat(step1HTML());
       setFoot(primaryBtn('Dale ↓', 'btn-ghost'));
       wireNext(function () { goStep(2); });
       animateBeat();
@@ -648,9 +834,21 @@
   }
 
   function onGrade(c, grade) {
-    // Autoeval → alimenta el SRS. La llamada queda cableada; el cálculo Leitner
-    // real (cajas/intervalos) llega en la Capa 3 dentro de a1SrsGrade (stub).
-    try { a1SrsGrade(c.id, grade); } catch (e) { /* stub no debe romper el loop */ }
+    // Autoeval → MOTOR LEITNER (Capa 3): mueve la caja del chunk y recalcula el due.
+    try { a1SrsGrade(c.id, grade); } catch (e) { /* nunca romper el loop */ }
+    // "Todavía no" → se re-encola UNA vez más en esta sesión (§4.3): no queda
+    // callejón sin salida. Al crecer run.chunks, el chunk reaparece al final.
+    if (grade === 'todavia' && run && !run.requeued[c.id]) {
+      run.requeued[c.id] = true;
+      run.chunks.push(c);
+      if (run.meta) run.meta.push(run.meta[run.i]);
+    }
+    // Repaso: si con esta nota ya quedaron TODOS los chunks de su escena en el SRS,
+    // marca la escena hecha → destraba la unidad aun para quien solo repasa.
+    if (run && run.mode === 'repaso') {
+      var m = run.meta && run.meta[run.i];
+      if (m && m.scene) maybeMarkSceneDoneBySrs(m.scene);
+    }
     run.phase = 'react';
     run.lastGrade = grade;
     paintReaction();
@@ -659,14 +857,25 @@
   function paintReaction() {
     if (!run) return;
     var last = run.i >= run.chunks.length - 1;
+    var repaso = run.mode === 'repaso';
     var msg = EVAL_REACT[run.lastGrade] || EVAL_REACT.clavado;
     setBeat(pipeBlock([msg]));
-    setFoot(primaryBtn(last ? 'Cerrar la escena ✓' : 'Siguiente frase →', 'btn-accent'));
+    var label = last
+      ? (repaso ? 'Cerrar el repaso ✓' : 'Cerrar la escena ✓')
+      : 'Siguiente frase →';
+    setFoot(primaryBtn(label, 'btn-accent'));
     wireNext(function () {
-      if (last) { sceneComplete(); }
+      if (last) { finishRun(); }
       else { enterChunk(run.i + 1); }
     });
     animateBeat();
+  }
+
+  // Cierre de la sesión según el modo. En ambos sube la racha (no punitiva, §4.3).
+  function finishRun() {
+    if (!run) return;
+    if (run.mode === 'repaso') repasoComplete();
+    else sceneComplete();
   }
 
   function sceneComplete() {
@@ -674,8 +883,28 @@
     markSceneDone(run.sceneId);
     // Escena terminada: al reabrirla arranca de cero (chunkIdx fuera de rango).
     saveProgress({ unitId: run.unitId, sceneId: run.sceneId, chunkIdx: run.chunks.length });
+    a1UpdateStreak();          // la racha sube al completar la sesión (clon propio)
     run.phase = 'done';
     paintDone();
+  }
+
+  function repasoComplete() {
+    if (!run) return;
+    a1UpdateStreak();
+    run.phase = 'done';
+    paintDoneRepaso();
+  }
+
+  // Marca la escena hecha cuando TODOS sus chunks (inline o {ref}) ya están en el
+  // SRS. Salvaguarda para que el repaso también haga avanzar el desbloqueo.
+  function maybeMarkSceneDoneBySrs(scene) {
+    if (!scene || !scene.chunks || !scene.chunks.length) return;
+    var srs = a1SrsGet();
+    var all = scene.chunks.every(function (entry) {
+      var id = entry && (entry.ref || entry.id);
+      return id ? !!srs[id] : true;
+    });
+    if (all) markSceneDone(scene.id);
   }
 
   function paintDone() {
@@ -692,17 +921,225 @@
     animateBeat();
   }
 
-  /* ── SRS (stub de Capa 2) ─────────────────────────────────────────────────
-     El motor Leitner real (cajas 1..5, intervalos [1,3,7,14,30], transiciones
-     Clavado/Casi/Todavía no, escritura de rodeo_a1_srs) se implementa en la
-     Capa 3. Acá sólo dejamos la llamada cableada y estable para que la autoeval
-     del loop la invoque sin acoplarse a la implementación futura. */
+  function paintDoneRepaso() {
+    if (!run) return;
+    updateDots();
+    // Cierre del repaso: refuerza la CAPACIDAD (competencia, no puntos ni racha).
+    var m = a1Metrics();
+    var lines = ['Listo, ese repaso quedó. Cada vuelta se te pega más, parce.'];
+    if (m.salen > 0) lines.push('Ya llevás ' + m.salen + (m.salen === 1 ? ' frase que te sale sola.' : ' frases que te salen solas.'));
+    else lines.push('Volvé mañana y seguimos; así es como se pegan.');
+    setBeat(pipeBlock(lines));
+    setFoot(primaryBtn('Volver al inicio', 'btn-accent'));
+    wireNext(function () { renderA1Home(); });
+    animateBeat();
+  }
+
+  /* ═══════════════════ MOTOR LEITNER · SRS (SPEC §4.3) ═══════════════════
+     Memoria espaciada 100% en localStorage (clave rodeo_a1_srs, AISLADA del DNA de
+     Gus y FUERA del set de sync). 5 cajas, intervalos [1,3,7,14,30] días.
+     Transiciones al autoevaluar:
+       Clavado  → box = min(box+1, 5); due = hoy + intervalo[box_nuevo]
+       Casi     → caja intacta;        due = hoy + 1
+       Todavía  → box = 1;             due = hoy + 1   (+ se re-encola una vez)
+     Chunk nuevo: entra en box=1, due=hoy al calificar su primer beat. */
+
+  var A1_INTERVALS = [1, 3, 7, 14, 30];   // índice = box-1 (box 1..5)
+  function intervalForBox(box) {
+    var b = Math.max(1, Math.min((box | 0) || 1, 5));
+    return A1_INTERVALS[b - 1];
+  }
+
+  // Fechas 'YYYY-MM-DD' en hora LOCAL: evita el corrimiento de día de
+  // new Date('YYYY-MM-DD') (que parsea en UTC). Comparables lexicográficamente.
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ymd(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function todayStr() { return ymd(new Date()); }
+  function parseYmd(s) {
+    var p = String(s || '').split('-');
+    if (p.length !== 3) return new Date();
+    return new Date(+p[0], (+p[1]) - 1, +p[2]);
+  }
+  function addDays(baseStr, n) { var d = parseYmd(baseStr); d.setDate(d.getDate() + n); return ymd(d); }
+
+  function a1SrsGet() { var s = a1Store.get(K_SRS, {}); return (s && typeof s === 'object') ? s : {}; }
+  function a1SrsSet(srs) { a1Store.set(K_SRS, srs); }
+
+  // Califica un chunk → mueve su caja y recalcula el vencimiento (§4.3). Persiste
+  // SOLO en rodeo_a1_srs. Devuelve el entry actualizado.
   function a1SrsGrade(chunkId, grade) {
-    // Capa 2: no-op intencional — la autoeval sólo avanza y persiste posición
-    // (rodeo_a1_progress). La Capa 3 rellena esta función.
-    return;
+    if (!chunkId) return null;
+    var srs = a1SrsGet();
+    var today = todayStr();
+    var e = srs[chunkId];
+    if (!e || typeof e !== 'object') {
+      // Chunk nuevo: entra en caja 1, due=hoy, y sobre eso se aplica la nota.
+      e = { box: 1, due: today, seen: 0, clavado: 0, casi: 0, no: 0, last: null, firstSeen: today };
+    }
+    if (!e.box) e.box = 1;
+    if (!e.firstSeen) e.firstSeen = today;
+    e.seen = (e.seen || 0) + 1;
+    e.last = today;
+
+    if (grade === 'clavado') {
+      e.clavado = (e.clavado || 0) + 1;
+      e.box = Math.min(e.box + 1, 5);
+      e.due = addDays(today, intervalForBox(e.box));
+    } else if (grade === 'casi') {
+      e.casi = (e.casi || 0) + 1;
+      // La caja NO cambia (ni sube ni baja); se la vuelve a cobrar mañana.
+      e.due = addDays(today, 1);
+    } else { // 'todavia'
+      e.no = (e.no || 0) + 1;
+      e.box = 1;                 // cae a caja 1 (no a "caja 0": ya la conocía)
+      e.due = addDays(today, 1); // vuelve mañana suavecita (+ re-encola en la sesión)
+    }
+
+    srs[chunkId] = e;
+    a1SrsSet(srs);
+    return e;
   }
   window.a1SrsGrade = a1SrsGrade;
+
+  // Vencidos: chunks con due <= hoy, ordenados por caja más baja y due más viejo
+  // (lo más frágil primero). Solo chunks que aún existen en el contenido.
+  function a1SrsDue() {
+    var srs = a1SrsGet(); var today = todayStr(); var out = [];
+    for (var id in srs) {
+      if (!Object.prototype.hasOwnProperty.call(srs, id)) continue;
+      var e = srs[id];
+      if (!e || !A1_INDEX[id]) continue;
+      if (String(e.due) <= today) out.push({ id: id, entry: e, chunk: A1_INDEX[id] });
+    }
+    out.sort(function (a, b) {
+      var d = (a.entry.box || 1) - (b.entry.box || 1);
+      if (d !== 0) return d;
+      var ad = String(a.entry.due), bd = String(b.entry.due);
+      return ad < bd ? -1 : (ad > bd ? 1 : 0);
+    });
+    return out;
+  }
+  window.a1SrsDue = a1SrsDue;
+
+  // Métricas HONESTAS (§4.3): "ya te salen solas" = caja>=4 (estrella del Home);
+  // "en tu repertorio" = caja>=3; "frescas" = caja 1–2. Solo chunks existentes.
+  function a1Metrics() {
+    var srs = a1SrsGet(); var salen = 0, repertorio = 0, frescas = 0, total = 0;
+    for (var id in srs) {
+      if (!Object.prototype.hasOwnProperty.call(srs, id)) continue;
+      if (!A1_INDEX[id]) continue;
+      var box = srs[id].box || 1; total++;
+      if (box >= 4) salen++;
+      if (box >= 3) repertorio++;
+      if (box <= 2) frescas++;
+    }
+    return { salen: salen, repertorio: repertorio, frescas: frescas, total: total };
+  }
+  window.a1Metrics = a1Metrics;
+
+  // Racha PROPIA, no punitiva (rodeo_a1_streak). Clon: JAMÁS la de Gus (esa escribe
+  // rodeo_streak y SÍ sincroniza). Sube al completar una sesión; un día saltado no
+  // rompe de una — hay un perdón (freezeUsed). Cero "perdiste N días" en rojo.
+  function a1UpdateStreak() {
+    var s = a1Store.get(K_STREAK, null);
+    if (!s || typeof s !== 'object') s = { days: 0, last: null, freezeUsed: false };
+    var today = todayStr();
+    if (s.last === today) return s;         // ya contó hoy
+    var yest = addDays(today, -1);
+    if (s.last == null) {
+      s.days = 1;                           // primer día
+    } else if (s.last === yest) {
+      s.days = (s.days || 0) + 1;           // día consecutivo
+    } else if (!s.freezeUsed) {
+      s.freezeUsed = true;                  // perdón: mantiene viva la racha
+      s.days = (s.days || 0) + 1;
+    } else {
+      s.days = 1; s.freezeUsed = false;     // reinicio SUAVE (sin drama, sin rojo)
+    }
+    s.last = today;
+    a1Store.set(K_STREAK, s);
+    return s;
+  }
+  window.a1UpdateStreak = a1UpdateStreak;
+
+  /* ═══════════════════ SELECCIÓN DE SESIÓN · "Repaso de pasillo" (§4.3) ══════════
+     Cola: (1) calentamiento = 1 due de la caja más alta (arranque con victoria; se
+     salta si no hay due) · (2) nuevos (según carga) · (3) resto de due con TOPE
+     anti-avalancha de 8. Regla de nuevos: due <=4 → +3 · 5–6 → +2 · >=7 → +0. */
+
+  var A1_DUE_CAP = 8;
+
+  function sortedUnits() {
+    var A = data(); if (!A || !A.units) return [];
+    return A.units.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+  }
+  function unitScenesDone(u) {
+    if (!u || !u.scenes || !u.scenes.length) return false;
+    var doneS = getProgress().doneScenes || [];
+    return u.scenes.every(function (s) { return doneS.indexOf(s.id) !== -1; });
+  }
+  // Desbloqueo v1 (nota de simplicidad §4.3): la primera y el kit de supervivencia
+  // abiertos desde el día 1; el resto se abre al completar las escenas de la unidad
+  // anterior. Con survival siempre abierto, "aprendé lo que te salva primero".
+  function isUnlocked(unitId) {
+    var units = sortedUnits(); var idx = -1;
+    for (var i = 0; i < units.length; i++) { if (units[i].id === unitId) { idx = i; break; } }
+    if (idx < 0) return false;
+    if (idx === 0) return true;
+    if (units[idx].survival) return true;
+    return unitScenesDone(units[idx - 1]);
+  }
+
+  // Nuevos: chunks que aún NO están en el SRS, de unidades desbloqueadas, en orden
+  // de currículo (la unidad actual primero). Sin duplicar por refs entre escenas.
+  function pickNewChunks(n) {
+    if (n <= 0) return [];
+    var srs = a1SrsGet(); var out = []; var seen = {};
+    var units = sortedUnits();
+    for (var ui = 0; ui < units.length && out.length < n; ui++) {
+      var u = units[ui];
+      if (!isUnlocked(u.id)) continue;
+      var scenes = (u.scenes || []).slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      for (var si = 0; si < scenes.length && out.length < n; si++) {
+        var chunks = resolveChunks(scenes[si]);
+        for (var ci = 0; ci < chunks.length && out.length < n; ci++) {
+          var c = chunks[ci];
+          if (!c || !c.id || seen[c.id] || srs[c.id]) continue;
+          seen[c.id] = true; out.push(c);
+        }
+      }
+    }
+    return out;
+  }
+
+  function buildRepasoQueue() {
+    if (!Object.keys(A1_INDEX).length) buildIndex();
+    var due = a1SrsDue();                       // ya ordenado: más frágil primero
+    var dueCount = due.length;                  // backlog real (para la regla de nuevos)
+    var nNew = dueCount <= 4 ? 3 : (dueCount <= 6 ? 2 : 0);
+
+    // Calentamiento: 1 due de la caja MÁS ALTA de todo el backlog (el más probable
+    // de clavar → arranque con victoria). Se saca de la cola antes del tope.
+    var rest = due.slice();
+    var warm = null;
+    if (rest.length) {
+      var hi = 0;
+      for (var k = 1; k < rest.length; k++) {
+        if ((rest[k].entry.box || 1) > (rest[hi].entry.box || 1)) hi = k;
+      }
+      warm = rest.splice(hi, 1)[0];
+    }
+    // Tope anti-avalancha: warm + hasta 7 más de los más frágiles = 8 due máximo.
+    rest = rest.slice(0, A1_DUE_CAP - (warm ? 1 : 0));
+
+    var news = pickNewChunks(nNew);
+
+    var queue = [];                             // orden §4.3: warm · nuevos · resto due
+    if (warm) queue.push({ chunk: warm.chunk, kind: 'due' });
+    news.forEach(function (c) { queue.push({ chunk: c, kind: 'new' }); });
+    rest.forEach(function (d) { queue.push({ chunk: d.chunk, kind: 'due' }); });
+    return { queue: queue, dueCount: dueCount, newCount: news.length };
+  }
 
   // Índice listo al cargar (el contenido carga ANTES que este archivo).
   buildIndex();

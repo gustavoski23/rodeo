@@ -1435,6 +1435,48 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-eval-btn--todavia { background: var(--bg-elevated); border-color: var(--text-muted); color: var(--text-secondary); }
 .rd-a1-eval-btn--todavia:hover { border-color: var(--text-secondary); }
 
+/* ── Home · Capa 3: métrica honesta + CTA de repaso/seguir + progreso ──
+   "Ya te salen solas" = caja>=4 (estrella). CTAs reusan pastel + acento; el
+   estado por unidad reusa .meter-track. Cero coral, cero racha-en-rojo. */
+.rd-a1-metric { display: flex; flex-direction: column; gap: 8px; margin: 2px 0; }
+.rd-a1-metric-label { font-family: 'Familjen Grotesk', sans-serif; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.4; }
+.rd-a1-metric-label strong { color: var(--text-primary); font-weight: 800; }
+
+.rd-a1-repaso {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 15px 16px; border-radius: 18px; cursor: pointer;
+  background: var(--card-peach); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.12); box-shadow: var(--sticker-shadow);
+  transition: transform .2s ease, filter .25s ease;
+}
+.rd-a1-repaso:hover { filter: brightness(1.02); }
+.rd-a1-repaso:active { transform: scale(0.985); }
+.rd-a1-repaso--fresh { background: var(--card-blue); }
+.rd-a1-repaso-txt { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.rd-a1-repaso-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-ink-soft); }
+.rd-a1-repaso-main { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.98rem; color: var(--card-ink); line-height: 1.25; }
+.rd-a1-repaso-go {
+  flex-shrink: 0; align-self: center; white-space: nowrap;
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.86rem;
+  color: var(--accent-ink); background: var(--accent);
+  padding: 10px 16px; min-height: 44px; display: inline-flex; align-items: center;
+  border-radius: 100px; box-shadow: 0 3px 14px oklch(87% 0.21 128 / 0.28);
+}
+
+.rd-a1-seguir { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; cursor: pointer; transition: transform .2s ease, border-color .25s ease; }
+.rd-a1-seguir:hover { border-color: oklch(87% 0.21 128 / 0.5); }
+.rd-a1-seguir:active { transform: scale(0.99); }
+.rd-a1-seguir-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.rd-a1-seguir-main { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.94rem; color: var(--text-primary); line-height: 1.25; }
+
+/* Estado por unidad (desbloqueo + dominación + progreso de caja>=3) */
+.rd-a1-unit--locked { opacity: 0.62; }
+.rd-a1-unit-lock { font-size: 0.95rem; }
+.rd-a1-unit-done { color: var(--accent); font-weight: 800; font-size: 1.05rem; }
+.rd-a1-unit-prog { display: flex; align-items: center; gap: 9px; margin-top: 8px; }
+.rd-a1-unit-prog .meter-track { flex: 1; }
+.rd-a1-unit-prog-txt { font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); white-space: nowrap; }
+
 </style>
 </head>
 <body class="grain ambient-glow">
