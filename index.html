@@ -404,6 +404,28 @@ body {
   .ob-title, .ob-sub, .ob-chips .chip { animation: none; }
 }
 
+/* ── Selector de nivel (full-screen, primera vez; reusa el overlay #onboarding).
+   Dos caminos: principiante (A1 → OFICINA con Alfred) o avanzado (flujo de Gus).
+   Entrada por keyframe con fill-mode both; NUNCA GSAP para visibilidad. ── */
+.rd-lvl-choices { display: flex; flex-direction: column; gap: 14px; margin: 10px 0 6px; }
+.rd-lvl {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  padding: 19px 20px; border-radius: 22px;
+  background: var(--bg-surface); border: 1px solid oklch(96% 0.004 265 / 0.14);
+  transition: border-color .25s ease, transform .2s ease, background .25s ease;
+  animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.rd-lvl:nth-child(2) { animation-delay: 0.08s; }
+.rd-lvl:hover, .rd-lvl:focus-visible { border-color: var(--accent); background: var(--bg-elevated); }
+.rd-lvl:active { transform: scale(0.99); }
+.rd-lvl--a1 { border-color: oklch(87% 0.21 128 / 0.32); background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.08), var(--bg-surface)); }
+.rd-lvl-tag { display: block; font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.rd-lvl-title { display: block; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1.1; margin: 8px 0 6px; }
+.rd-lvl-sub { display: block; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.45; }
+.rd-lvl-ex { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 6px; }
+.rd-lvl-ex span { font-size: 0.73rem; color: var(--text-muted); background: var(--bg-void); border: 1px solid oklch(96% 0.004 265 / 0.1); border-radius: 100px; padding: 4px 10px; }
+@media (prefers-reduced-motion: reduce) { .rd-lvl { animation: none; } }
+
 /* ── Dibujo libre (TALK): el coach abre con un rompehielos en la landing ────
    Cliente puro: instantáneo, gratis, offline. El usuario lo sigue o lo ignora
    (elige un escenario). Entrada por keyframe con fill-mode both. */
@@ -1386,6 +1408,21 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-panic:hover { border-color: oklch(96% 0.004 265 / 0.4); background: var(--bg-surface); }
 .rd-a1-panic:active { transform: scale(0.98); }
 
+/* ── Gancho A1: preguntas tentadoras que enrutan a la situación real (el
+   "dibujo libre" de OFICINA a nivel principiante). Chip tocable ≥44px. ── */
+.rd-a1-hooks-wrap { margin: 8px 0 2px; }
+.rd-a1-hooks { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
+.rd-a1-hook {
+  min-height: 44px; padding: 10px 16px; border-radius: 100px; cursor: pointer;
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.10), oklch(16% 0.015 265 / 0.4));
+  border: 1px solid oklch(87% 0.21 128 / 0.28); color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem;
+  transition: border-color .25s ease, transform .2s ease;
+}
+.rd-a1-hook:hover, .rd-a1-hook:focus-visible { border-color: var(--accent); }
+.rd-a1-hook:active { transform: scale(0.97); }
+.rd-a1-hook--locked { opacity: 0.5; background: var(--bg-elevated); border-color: oklch(96% 0.004 265 / 0.16); }
+
 /* ── Hoja de supervivencia (openSheet, frasebook de referencia) ── */
 .rd-a1-sheet-title { font-size: 2rem; line-height: 0.92; margin: 8px 0 6px; }
 .rd-a1-sheet-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 14px; }
@@ -2291,6 +2328,11 @@ const state = {
   // Array plano de strings, listo para sync futuro. La CLAVE existe ⇒ ya
   // respondió o saltó ⇒ el onboarding no vuelve. [] = saltó / sin elegir.
   intereses: store.get('rodeo_intereses', []),
+  // ── Nivel (selector de arranque) ──
+  // null = nunca eligió (primera vez) ⇒ se muestra el selector al abrir.
+  // 'a1' = principiante ⇒ arranca en OFICINA con Alfred. 'avanzado' = flujo
+  // completo de Gus (TALK, historias, slang). Editable desde el perfil.
+  nivel: store.get('rodeo_nivel', null),
 };
 
 // Dos grupos de chips. Fuente única para el onboarding y para la sección
@@ -2335,6 +2377,50 @@ function renderInteresGrupos(chipsClass) {
         ${g.items.map((it, i) => `<button type="button" class="chip int-chip${sel.has(it) ? ' selected' : ''}" data-val="${escAttr(it)}" style="--i:${i}">${esc(it)}</button>`).join('')}
       </div>
     </div>`).join('');
+}
+
+// Selector de nivel al abrir (primera vez). Reusa el overlay #onboarding.
+// A1 → OFICINA con Alfred (se SALTA el onboarding de intereses, tematizado al
+// mundo B2→C1 de Gus). Avanzado → flujo completo; si nunca eligió intereses,
+// enlaza con el onboarding de intereses de siempre.
+function elegirNivel(nivel) {
+  state.nivel = nivel;
+  store.set('rodeo_nivel', nivel);
+  cerrarOnboarding();
+  if (nivel === 'a1') {
+    switchView('a1');
+    toast('¡De una! Alfred te espera en OFICINA 🧳', 3200);
+  } else {
+    if (state.view !== 'talk') switchView('talk');
+    if (store.get('rodeo_intereses', null) === null) mostrarOnboarding();
+  }
+}
+function mostrarSelectorNivel() {
+  const cont = $('#onboarding');
+  if (!cont) return;
+  cont.innerHTML = `
+    <div class="ob-inner">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>RODEO · bienvenido</p>
+      <p class="font-display ob-title">¿CÓMO ANDÁS<br>CON EL <span style="color:var(--accent);">INGLÉS?</span></p>
+      <p class="ob-sub">Pa' arrancar por donde te sirve. Podés cambiarlo cuando querás desde tu perfil.</p>
+      <div class="rd-lvl-choices">
+        <button type="button" class="rd-lvl rd-lvl--a1" id="lvl-a1">
+          <span class="rd-lvl-tag">Estoy empezando</span>
+          <span class="rd-lvl-title">Quiero lo básico pal trabajo</span>
+          <span class="rd-lvl-sub">Frases cortas para la oficina, con Alfred de colega. Sin examen, sin miedo — de a poquito.</span>
+          <span class="rd-lvl-ex"><span>saludar</span><span>pedir la hora</span><span>un descanso</span><span>la reunión</span></span>
+        </button>
+        <button type="button" class="rd-lvl" id="lvl-adv">
+          <span class="rd-lvl-tag">Ya me defiendo</span>
+          <span class="rd-lvl-title">Quiero soltura y subir a C1</span>
+          <span class="rd-lvl-sub">Conversá libre, historias jugables, slang y tu lectura diaria. El RODEO completo.</span>
+          <span class="rd-lvl-ex"><span>charla libre</span><span>historias</span><span>slang</span><span>C1</span></span>
+        </button>
+      </div>
+    </div>`;
+  cont.classList.add('show');
+  $('#lvl-a1').addEventListener('click', () => elegirNivel('a1'));
+  $('#lvl-adv').addEventListener('click', () => elegirNivel('avanzado'));
 }
 
 function mostrarOnboarding() {
@@ -4095,6 +4181,14 @@ function openPerfil() {
       ${stat(fallos, 'en tu DNA')}
       ${stat(pct + '%', 'camino a C1')}
     </div>
+    <div style="margin-bottom:20px;">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Tu nivel</p>
+      <p class="rd-eyebrow rd-eyebrow--muted" style="margin:8px 0 12px;text-transform:none;letter-spacing:normal;">Principiante arranca en OFICINA con Alfred; avanzado abre el RODEO completo.</p>
+      <div style="display:flex;gap:8px;">
+        <button class="chip${state.nivel === 'a1' ? ' selected' : ''}" data-nivel="a1" style="flex:1;justify-content:center;min-height:44px;">🧳 Principiante</button>
+        <button class="chip${state.nivel === 'avanzado' ? ' selected' : ''}" data-nivel="avanzado" style="flex:1;justify-content:center;min-height:44px;">🚀 Avanzado</button>
+      </div>
+    </div>
     <button class="btn-ghost" onclick="irA('dna')" style="width:100%;display:flex;align-items:center;gap:12px;justify-content:flex-start;min-height:56px;padding:0 18px;margin-bottom:10px;text-align:left;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c6.667-6 13.333 0 20-6"></path><path d="M2 9c6.667 6 13.333 0 20 6"></path><path d="M9 6.3c.33 1 .33 2.4 0 3.4"></path><path d="M15 14.3c.33 1 .33 2.4 0 3.4"></path></svg>
       <span><b style="font-weight:700;">Mis fallos — DNA</b><br><span class="rd-eyebrow">tus errores y repaso espaciado</span></span>
@@ -4113,6 +4207,17 @@ function openPerfil() {
     ${window.sbCuentaHTML ? window.sbCuentaHTML() : ''}
   `);
 
+  // Cambiar de nivel desde el perfil: persiste y salta a la vista que toca.
+  $('#sheet-content').querySelectorAll('[data-nivel]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const n = b.dataset.nivel;
+      state.nivel = n;
+      store.set('rodeo_nivel', n);
+      closeSheet();
+      switchView(n === 'a1' ? 'a1' : 'talk');
+      toast(n === 'a1' ? 'Nivel: principiante · OFICINA con Alfred 🧳' : 'Nivel: avanzado · el RODEO completo', 2600);
+    });
+  });
   // Toggle directo en el perfil: se guarda al tocar (sin mínimo — puede vaciar).
   $('#sheet-content').querySelectorAll('.int-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -6483,11 +6588,21 @@ if (location.protocol === 'file:') {
   // Premium: revalida en background si la licencia lleva >7 días sin chequear
   // (no-op si no hay licencia o el kill-switch está apagado).
   if (window.premiumInit) window.premiumInit();
-  animateIn($('#view-talk').children, { y: 26, duration: 1 });
-  // Onboarding de intereses: SOLO la primera vez. Si la clave rodeo_intereses
-  // no existe todavía (ni respondió ni saltó) se muestra el selector; al elegir
-  // o saltar se escribe la clave y no vuelve a aparecer nunca.
-  if (store.get('rodeo_intereses', null) === null) mostrarOnboarding();
+  // Ruteo por nivel: el principiante (A1) arranca directo en OFICINA con Alfred;
+  // el avanzado (o quien todavía no elige) ve TALK como siempre.
+  if (state.nivel === 'a1') {
+    switchView('a1');
+  } else {
+    animateIn($('#view-talk').children, { y: 26, duration: 1 });
+  }
+  // La PRIMERA vez (nivel === null) se pregunta el nivel y el selector enruta al
+  // elegir. Si ya es 'avanzado' y nunca eligió intereses, sigue el onboarding de
+  // intereses de siempre. El A1 se salta ese onboarding (es del mundo de Gus).
+  if (state.nivel === null) {
+    mostrarSelectorNivel();
+  } else if (state.nivel === 'avanzado' && store.get('rodeo_intereses', null) === null) {
+    mostrarOnboarding();
+  }
 }
 
 /* ── PWA: registro del Service Worker (mejora progresiva) ──────────────────

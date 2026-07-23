@@ -385,6 +385,36 @@
       '</button>';
   }
 
+  // Gancho A1 (el "dibujo libre" de OFICINA, a nivel principiante): preguntas
+  // cortas y tentadoras en la voz de Alfred que enrutan a la situación real. Es
+  // el equivalente amable del rompehielos avanzado de TALK, pero sin API y a A1.
+  function hookHTML() {
+    var A = data();
+    if (!A || !A.units) return '';
+    var HOOKS = [
+      { unit: 'u1-llegar',        q: '¿Saludar sin quedar mudo?' },
+      { unit: 'u2-supervivencia', q: '¿Y si no entendés nada?' },
+      { unit: 'u5-ayuda',         q: '¿Pedir un descanso o la hora?' },
+      { unit: 'u3-presentarte',   q: '¿Presentarte al equipo?' },
+      { unit: 'u4-smalltalk',     q: '¿Caer bien en el cafecito?' },
+      { unit: 'u6-reunion',       q: '¿Sobrevivir la reunión?' },
+      { unit: 'u7-tareas',        q: '¿Cerrar bien una tarea?' },
+    ];
+    var chips = HOOKS.filter(function (h) {
+      return A.units.some(function (u) { return u.id === h.unit; });
+    }).map(function (h) {
+      var open = isUnlocked(h.unit);
+      return '<button type="button" class="rd-a1-hook' + (open ? '' : ' rd-a1-hook--locked') +
+        '" data-a1-hook="' + escAttr(h.unit) + '">' + esc(h.q) +
+        (open ? '' : ' <span aria-hidden="true">🔒</span>') + '</button>';
+    }).join('');
+    if (!chips) return '';
+    return '<div class="rd-a1-hooks-wrap">' +
+        '<p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>¿Sabés decir…?</p>' +
+        '<div class="rd-a1-hooks">' + chips + '</div>' +
+      '</div>';
+  }
+
   function homeHTML() {
     var A = data();
     var units = (A && A.units) || [];
@@ -397,6 +427,7 @@
       metricHTML() +
       greetingHTML() +
       ctaHTML(dueCount, newAvail, rt) +
+      hookHTML() +
       '<p class="rd-eyebrow rd-eyebrow--muted"><span class="rd-eyebrow-rule"></span>Elegí por dónde arrancar</p>' +
       '<div class="rd-a1-units">' + list + '</div>' +
       // Capa 4: "Mis frases" (las guardadas con ★) + botón de pánico permanente.
@@ -411,6 +442,9 @@
   function wireHome(home) {
     home.querySelectorAll('.rd-a1-unit').forEach(function (b) {
       b.addEventListener('click', function () { a1AbrirUnidad(b.getAttribute('data-unit')); });
+    });
+    home.querySelectorAll('[data-a1-hook]').forEach(function (b) {
+      b.addEventListener('click', function () { a1AbrirUnidad(b.getAttribute('data-a1-hook')); });
     });
     var panic = home.querySelector('[data-a1-panic]');
     if (panic) panic.addEventListener('click', openA1Panic);
