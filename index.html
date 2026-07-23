@@ -1300,6 +1300,107 @@ body.rd-lectura .luminous-line { opacity: 0; }
   .rp-skel { animation: none; }
 }
 
+/* ═════════════════════════════════════════════════════════════════════════
+   OFICINA · módulo A1 laboral offline — BLOQUE ADITIVO (prefijo rd-a1-)
+   Solo clases nuevas; reusa tokens y clases existentes (.slang-card,
+   .bubble-coach, .npc-avatar, .btn-accent, .rd-hero…). Identidad emocional
+   propia: CERO coral-como-castigo, tinta oscura sobre pastel claro (AA).
+   ═════════════════════════════════════════════════════════════════════════ */
+.rd-a1-avatar { display: inline-flex; }
+.rd-a1-line { display: flex; gap: 10px; align-items: flex-start; }
+.rd-a1-bubble { max-width: 100%; }
+
+/* Dots de progreso (onboarding / escena) */
+.rd-a1-dots { display: flex; gap: 7px; align-items: center; }
+.rd-a1-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: 0.5; transition: width .3s ease, background .3s ease, opacity .3s ease; }
+.rd-a1-dot--on { background: var(--accent); opacity: 1; width: 22px; border-radius: 100px; }
+.rd-a1-dots--onb { justify-content: center; margin-bottom: 4px; }
+
+/* ── Onboarding propio de Pipe (gate rodeo_a1_onboarded) ── */
+.rd-a1-onb { display: flex; flex-direction: column; gap: 16px; padding: 8px 2px 24px; }
+.rd-a1-onb-avatar { display: flex; justify-content: center; }
+.rd-a1-onb-body { display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-onb-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.rd-a1-onb-foot .btn-accent { flex: 1; }
+
+/* Truco de cognados — cards tocables que voltean a español (reveal por clase,
+   robusto ante alturas variables: el falseHook agranda la card de "meeting"). */
+.rd-a1-cog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 9px; }
+.rd-a1-cog {
+  position: relative; min-height: 58px; padding: 10px 8px;
+  border-radius: 16px; border: 1px solid oklch(20% 0.03 265 / 0.15);
+  background: var(--card-paper); color: var(--card-ink);
+  cursor: pointer; text-align: center;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sticker-shadow);
+  transition: transform .18s ease, background .25s ease;
+}
+.rd-a1-cog:active { transform: scale(0.96); }
+.rd-a1-cog-front, .rd-a1-cog-back { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+.rd-a1-cog-back { display: none; }
+.rd-a1-cog.rd-a1-flipped { background: var(--card-blue); }
+.rd-a1-cog.rd-a1-flipped .rd-a1-cog-front { display: none; }
+.rd-a1-cog.rd-a1-flipped .rd-a1-cog-back { display: flex; }
+.rd-a1-cog-en { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.9rem; line-height: 1.05; color: var(--card-ink); letter-spacing: -0.01em; }
+.rd-a1-cog-es { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.92rem; color: var(--card-ink); }
+.rd-a1-cog-warn { position: absolute; top: 5px; right: 7px; font-size: 0.72rem; }
+.rd-a1-cog--hook { grid-column: 1 / -1; min-height: auto; }
+.rd-a1-cog-hook { font-family: 'Familjen Grotesk', sans-serif; font-style: italic; font-size: 0.74rem; line-height: 1.4; color: var(--card-ink-soft); margin-top: 2px; }
+.rd-a1-cog-note { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-top: 2px; }
+
+/* ── Home ── */
+.rd-a1-hero { margin-bottom: 2px; }
+.rd-a1-units { display: flex; flex-direction: column; gap: 11px; }
+.rd-a1-unit {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 15px 16px; border-radius: 18px; cursor: pointer;
+  background: var(--bg-surface); border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--rd-a1-theme, var(--accent));
+  transition: transform .2s ease, border-color .25s ease, background .25s ease;
+}
+.rd-a1-unit:hover { background: var(--bg-elevated); }
+.rd-a1-unit:active { transform: scale(0.985); }
+.rd-a1-unit-ico { font-size: 1.5rem; line-height: 1; flex-shrink: 0; width: 30px; text-align: center; }
+.rd-a1-unit-txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rd-a1-unit-title { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.98rem; color: var(--text-primary); line-height: 1.2; }
+.rd-a1-unit-sub { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.35; }
+.rd-a1-badge { align-self: flex-start; margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--card-ink); background: var(--card-yellow); padding: 3px 8px; border-radius: 100px; }
+.rd-a1-unit-go { flex-shrink: 0; color: var(--text-muted); font-size: 1.1rem; }
+.rd-a1-locked {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px;
+  border: 1px dashed oklch(96% 0.004 265 / 0.14); color: var(--text-muted);
+  font-size: 0.82rem; line-height: 1.4;
+}
+.rd-a1-locked-ico { font-size: 1.05rem; flex-shrink: 0; }
+
+/* Botón de pánico permanente 🆘 — NEUTRO (nunca coral/castigo) */
+.rd-a1-panic {
+  display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%;
+  margin: 4px 0 8px; padding: 14px 18px; min-height: 52px;
+  border-radius: 100px; cursor: pointer;
+  background: var(--bg-elevated); border: 1px solid oklch(96% 0.004 265 / 0.18);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem;
+  transition: border-color .25s ease, transform .2s ease, background .25s ease;
+}
+.rd-a1-panic:hover { border-color: oklch(96% 0.004 265 / 0.4); background: var(--bg-surface); }
+.rd-a1-panic:active { transform: scale(0.98); }
+
+/* ── Hoja de supervivencia (openSheet, frasebook de referencia) ── */
+.rd-a1-sheet-title { font-size: 2rem; line-height: 0.92; margin: 8px 0 6px; }
+.rd-a1-sheet-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 14px; }
+.rd-a1-surv-list { display: flex; flex-direction: column; gap: 11px; }
+.rd-a1-surv {
+  background: var(--card-paper); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.14); border-radius: 16px; padding: 13px 15px;
+}
+.rd-a1-surv-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rd-a1-surv-en { font-size: 1.15rem; font-weight: 800; line-height: 1.05; color: var(--card-ink); letter-spacing: -0.02em; }
+.rd-a1-surv-say { width: 40px; height: 40px; flex-shrink: 0; background: transparent; border-color: oklch(20% 0.03 265 / 0.22); color: var(--card-ink); }
+.rd-a1-surv-es { font-size: 0.88rem; color: var(--card-ink-soft); margin-top: 4px; }
+.rd-a1-surv-snd { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--card-ink-soft); margin-top: 5px; letter-spacing: 0.02em; }
+.rd-a1-surv-note { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 12px; font-style: italic; }
+
 </style>
 </head>
 <body class="grain ambient-glow">
@@ -1831,12 +1932,27 @@ body.rd-lectura .luminous-line { opacity: 0; }
     </div>
   </section>
 
+  <!-- ══════════════════════ VISTA: OFICINA (A1 laboral offline · con Pipe) ══════
+       Quinta pestaña. Dos paneles (patrón STORY): #a1-home (portada/onboarding) y
+       #a1-escena (loop inmersivo, oculto — lo llena la Capa 2). Todo el render lo
+       hace js/a1-office.js en runtime; #a1-escena se registra en actualizarCromo
+       para ocultar el nav dentro del loop. Estilos: bloque rd-a1-* aditivo. -->
+  <section id="view-a1" class="view">
+    <div id="a1-home" class="scroll-area flex flex-col gap-5" style="flex:1;">
+      <!-- Lo llena window.renderA1Home(): onboarding de Pipe o el home. -->
+    </div>
+    <div id="a1-escena" class="hidden flex-col" style="flex:1; min-height:0;">
+      <!-- Loop inmersivo de 6 pasos — Capa 2. Vacío en Capa 1. -->
+    </div>
+  </section>
+
 </main>
 
 <!-- ═══════════════════════════ TAB BAR ═══════════════════════════ -->
-<!-- Nav de 3 pestañas de práctica: talk · story (con DROP dentro) · slang.
+<!-- Nav de 5 pestañas: talk · story (con DROP dentro) · roleplay · slang · oficina.
      SUBE (ladder) y DNA salieron del nav al icono de perfil del header; sus
-     vistas #view-ladder / #view-dna siguen existiendo, se abren desde ahí. -->
+     vistas #view-ladder / #view-dna siguen existiendo, se abren desde ahí.
+     Los tab-item son flex:1 1 0 → los 5 se auto-reparten y caben en 320px. -->
 <nav class="tabbar glass" aria-label="Navegación principal">
   <button class="tab-item active" data-view="talk" aria-label="Talk — conversación">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -1853,6 +1969,10 @@ body.rd-lectura .luminous-line { opacity: 0; }
   <button class="tab-item" data-view="slang" aria-label="Slang — expresiones">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
     SLANG
+  </button>
+  <button class="tab-item" data-view="a1" aria-label="Oficina — inglés de trabajo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+    OFICINA
   </button>
 </nav>
 
@@ -1884,6 +2004,12 @@ body.rd-lectura .luminous-line { opacity: 0; }
      definen window.STORY_EPISODES y window.openStoryImmersion / closeStoryImmersion. -->
 <script src="js/story-episodes.js"></script>
 <script src="js/story-mode.js"></script>
+<!-- OFICINA (módulo A1 laboral offline). Cargan ANTES del script principal:
+     a1-office-content.js define window.A1_OFFICE (datos puros); a1-office.js
+     define window.renderA1Home / a1Speak / openA1Panic. Se ejecutan en runtime
+     (al clic), nunca en tiempo de carga (aún no existen switchView/openSheet). -->
+<script src="js/a1-office-content.js"></script>
+<script src="js/a1-office.js"></script>
 <script>
 'use strict';
 
@@ -2500,6 +2626,7 @@ function switchView(v) {
   if (v === 'story') renderStoryHome();
   if (v === 'ladder') renderLadder();
   if (v === 'roleplay') renderRoleplayHome();
+  if (v === 'a1') window.renderA1Home?.();    // OFICINA (módulo A1 offline, carga externa)
   if (v === 'talk') refrescarRompehielos();   // rompehielos fresco al volver a TALK
   animateIn(section.children, { y: 18, duration: 0.7 });
 }
@@ -2527,6 +2654,7 @@ function actualizarCromo() {
   const enSesion =
     (activa('view-talk') && visible('talk-session')) ||
     (activa('view-roleplay') && visible('roleplay-session')) ||
+    (activa('view-a1') && visible('a1-escena')) ||
     (activa('view-story') && visible('story-run')) ||
     (activa('view-story') && visible('drop-pane') && visible('drop-session'));
   document.body.classList.toggle('rd-sesion', enSesion);
@@ -2535,7 +2663,7 @@ function actualizarCromo() {
 }
 {
   const obs = new MutationObserver(actualizarCromo);
-  ['view-talk', 'view-roleplay', 'view-story', 'talk-session', 'roleplay-session', 'story-run', 'drop-pane', 'drop-session'].forEach((id) => {
+  ['view-talk', 'view-roleplay', 'view-story', 'view-a1', 'talk-session', 'roleplay-session', 'story-run', 'a1-escena', 'drop-pane', 'drop-session'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
   });
