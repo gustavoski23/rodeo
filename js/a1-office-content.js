@@ -10,7 +10,7 @@
 //
 // Contrato de campos: ver SPEC §3. Reglas duras:
 //   · chunk.en  = frase útil COMPLETA, máximo 10 palabras (objetivo 8).
-//   · why_es    = el PORQUÉ con analogía, voz de Pipe, cero metalenguaje (bloquea si falta).
+//   · why_es    = el PORQUÉ con analogía, voz de Alfred, cero metalenguaje (bloquea si falta).
 //   · sounds_es = pronunciación en ortografía española (muleta offline, SIEMPRE presente).
 //   · Estado del SRS NO vive aquí (el contenido es inmutable): vive en rodeo_a1_srs.
 //
@@ -22,17 +22,17 @@ window.A1_OFFICE = window.A1_OFFICE || {};
 window.A1_OFFICE = {
   version: 1,
 
-  // ── Pipe (Felipe): el colega que te adopta la primera semana ──────────────
+  // ── Alfred (Alfredo): el colega que te adopta la primera semana ──────────────
   companion: {
-    id: 'pipe',
-    name: 'Pipe',
-    fullName: 'Felipe',
-    avatarInitial: 'P',
+    id: 'alfred',
+    name: 'Alfred',
+    fullName: 'Alfredo',
+    avatarInitial: 'A',
     cardTheme: 'peach',
     origin_es: 'Paisa, de Medellín. Lleva un año en la empresa; ya se sabe el terreno.',
     tagline_es: 'Tu colega en la oficina nueva.',
     intro_es: [
-      '¡Ey! Vos sos el nuevo, ¿cierto? Yo soy Pipe, llevo un año acá.',
+      '¡Ey! Vos sos el nuevo, ¿cierto? Yo soy Alfred, llevo un año acá.',
       'Tranquilo que yo te acompaño esta semana. A mí nadie me dijo nada y la sufrí.',
       'Acá no hay examen ni nadie te oye. Te equivocás las veces que querás. Ese es el punto.',
       'No vas a aprender inglés de libro. Vas a aprender lo que se dice el lunes a las 8.',
@@ -68,7 +68,7 @@ window.A1_OFFICE = {
       order: 1,
       title_es: 'Tu primer día: llegar y saludar',
       subtitle_es: 'Entrar sin quedar mudo.',
-      arc_es: 'Llegas asustado. Pipe te adopta.',
+      arc_es: 'Llegas asustado. Alfred te adopta.',
       emoji: '😰',
       cardTheme: 'blue',
       icon: '🚶',
@@ -466,7 +466,7 @@ window.A1_OFFICE = {
           id: 'u3-s1-equipo',
           order: 1,
           title_es: 'Te presentan al equipo',
-          scene_es: 'Pipe te lleva donde el equipo. Te van a saludar uno por uno.',
+          scene_es: 'Alfred te lleva donde el equipo. Te van a saludar uno por uno.',
           icon: '🤝',
           setup_es: [
             'Te van a presentar con el equipo, uno por uno. Tranquilo, es rapidito.',
@@ -956,6 +956,84 @@ window.A1_OFFICE = {
             },
           ],
         },
+        {
+          id: 'u5-s3-entender',
+          order: 3,
+          title_es: 'Entender cómo funciona todo',
+          scene_es: 'Todo es nuevo: la impresora, el programa, hasta dónde sentarte.',
+          icon: '🧩',
+          setup_es: [
+            'El primer día no sabés ni prender la impresora, y es normal. Nadie nace sabiendo.',
+            'Estas cuatro son pa\' preguntar sin pena: cómo se usa, que te muestren, dónde te ubicás y a quién le caés.',
+          ],
+          analogy_es: 'Tu primer día es como estrenar celu nuevo: no sabés dónde queda nada. Preguntar no es de perdido — es lo que hace que en dos días ya te muevas solo.',
+          chunks: [
+            {
+              id: 'c-how-does-this-work',
+              en: 'How does this work?',
+              es: '¿Cómo funciona esto?',
+              sounds_es: 'jáu das dis guórk',
+              why_es: 'La que sacás frente a la impresora rara o el programa que nadie te explicó. Preguntar cómo se usa algo el primer día es como pedir el manual: nadie espera que nazcas sabiendo.',
+              sayWhen_es: 'Cuando no sabés usar una máquina o un programa.',
+              who_es: 'con cualquiera (seguro)',
+              frame: null,
+              swaps: null,
+              distractors_es: ['How this works?', 'How does this works?'],
+              cognateHook_es: null,
+              forms: null,
+              audio: null,
+              survival: false,
+            },
+            {
+              id: 'c-can-you-show-me',
+              en: 'Can you show me?',
+              es: '¿Me puedes mostrar?',
+              sounds_es: 'kan iú shóu mi',
+              why_es: 'A veces con que te lo cuenten no basta. "Show me" es pedir que te lo hagan ver — como decir "hacelo vos primero y yo miro". Más claro que mil explicaciones.',
+              sayWhen_es: 'Cuando querés que te enseñen haciéndolo, no contándolo.',
+              who_es: 'con cualquiera (seguro)',
+              frame: null,
+              swaps: null,
+              distractors_es: ['Can you show to me?', 'Can you show me it?'],
+              cognateHook_es: null,
+              forms: null,
+              audio: null,
+              survival: false,
+            },
+            {
+              id: 'c-where-do-i-sit',
+              en: 'Where do I sit?',
+              es: '¿Dónde me siento?',
+              sounds_es: 'güér du ái sit',
+              why_es: 'El primer día es como subirte a un bus lleno: no sabés cuál silla es tuya. "Where do I ___?" pregunta dónde te toca a vos, sin quedar parado como poste.',
+              sayWhen_es: 'Cuando no sabés cuál es tu lugar o puesto.',
+              who_es: 'con cualquiera (seguro)',
+              frame: 'Where do I ___?',
+              swaps: ['sit', 'go', 'sign'],
+              distractors_es: ['Where I sit?', 'Where do I sit it?'],
+              cognateHook_es: null,
+              forms: null,
+              audio: null,
+              survival: false,
+            },
+            {
+              id: 'c-who-should-i-ask',
+              en: 'Who should I ask?',
+              es: '¿A quién le pregunto?',
+              sounds_es: 'jú shud ái ask',
+              why_es: 'Cuando tenés una duda pero no sabés a quién caerle. En vez de tocar diez puertas, con esta preguntás cuál es la puerta correcta. Te ahorra vueltas.',
+              sayWhen_es: 'Cuando tenés una duda y no sabés quién la resuelve.',
+              who_es: 'con cualquiera (seguro)',
+              frame: null,
+              swaps: null,
+              distractors_es: ['Who I should ask?', 'Who should I ask to?'],
+              cognateHook_es: null,
+              forms: null,
+              audio: null,
+              survival: false,
+            },
+          ],
+        },
       ],
       task: {
         id: 'u5-task',
@@ -964,6 +1042,7 @@ window.A1_OFFICE = {
           { goal_es: 'Te estás aguantando las ganas. Preguntá dónde queda el baño.', answerChunkId: 'c-where-is-bathroom', reaction_es: '¡Eso! Esa es la primera que salva a todo el mundo.' },
           { goal_es: 'Te trabaste con algo. Pedí una mano.', answerChunkId: 'c-can-you-help-me', reaction_es: 'Perfecto. El que pregunta llega, ¿si me entendés?' },
           { goal_es: 'Necesitás que te pasen un archivo. Pedí que te lo manden.', answerChunkId: 'c-send-it-to-me', reaction_es: 'De una. Con la flechita del "to" bien puesta.' },
+          { goal_es: 'La impresora no te obedece y nadie te explicó. Preguntá cómo funciona.', answerChunkId: 'c-how-does-this-work', reaction_es: '¡Eso! Preguntar cómo se usa algo es de vivo, no de bruto.' },
         ],
         done_es: 'Ya sabés PEDIR AYUDA Y UBICARTE. ✓',
       },

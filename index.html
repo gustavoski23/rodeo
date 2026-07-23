@@ -1316,7 +1316,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-dot--on { background: var(--accent); opacity: 1; width: 22px; border-radius: 100px; }
 .rd-a1-dots--onb { justify-content: center; margin-bottom: 4px; }
 
-/* ── Onboarding propio de Pipe (gate rodeo_a1_onboarded) ── */
+/* ── Onboarding propio de Alfred (gate rodeo_a1_onboarded) ── */
 .rd-a1-onb { display: flex; flex-direction: column; gap: 16px; padding: 8px 2px 24px; }
 .rd-a1-onb-avatar { display: flex; justify-content: center; }
 .rd-a1-onb-body { display: flex; flex-direction: column; gap: 10px; }
@@ -1402,7 +1402,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-surv-note { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 12px; font-style: italic; }
 
 /* ── Escena inmersiva · loop de 6 pasos (Capa 2) ──
-   Chrome constante (← · dots · mini Pipe) + un beat por pantalla. Reusa
+   Chrome constante (← · dots · mini Alfred) + un beat por pantalla. Reusa
    .slang-card / .bubble-coach / .gloss-chip / .btn-*. Sin coral-como-castigo. */
 .rd-a1-escena-head { display: flex; align-items: center; gap: 12px; padding: 2px 0 12px; }
 .rd-a1-escena-head .rd-a1-dots { flex: 1; justify-content: center; }
@@ -2107,14 +2107,14 @@ body.rd-lectura .luminous-line { opacity: 0; }
     </div>
   </section>
 
-  <!-- ══════════════════════ VISTA: OFICINA (A1 laboral offline · con Pipe) ══════
+  <!-- ══════════════════════ VISTA: OFICINA (A1 laboral offline · con Alfred) ══════
        Quinta pestaña. Dos paneles (patrón STORY): #a1-home (portada/onboarding) y
        #a1-escena (loop inmersivo, oculto — lo llena la Capa 2). Todo el render lo
        hace js/a1-office.js en runtime; #a1-escena se registra en actualizarCromo
        para ocultar el nav dentro del loop. Estilos: bloque rd-a1-* aditivo. -->
   <section id="view-a1" class="view">
     <div id="a1-home" class="scroll-area flex flex-col gap-5" style="flex:1;">
-      <!-- Lo llena window.renderA1Home(): onboarding de Pipe o el home. -->
+      <!-- Lo llena window.renderA1Home(): onboarding de Alfred o el home. -->
     </div>
     <div id="a1-escena" class="hidden flex-col" style="flex:1; min-height:0;">
       <!-- Loop inmersivo de 6 pasos — Capa 2. Vacío en Capa 1. -->

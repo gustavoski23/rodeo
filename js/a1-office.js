@@ -148,11 +148,11 @@
   }
   window.a1Speak = a1Speak;
 
-  /* ═══════════════════ PIEZAS DE UI (voz de Pipe) ═══════════════════ */
-  function pipeAvatar(size) {
+  /* ═══════════════════ PIEZAS DE UI (voz de Alfred) ═══════════════════ */
+  function alfredAvatar(size) {
     var s = size || 34;
     var A = data();
-    var ini = (A && A.companion && A.companion.avatarInitial) || 'P';
+    var ini = (A && A.companion && A.companion.avatarInitial) || 'A';
     return '<span class="npc-avatar rd-a1-avatar" style="width:' + s + 'px;height:' + s +
       'px;font-size:' + Math.round(s * 0.44) + 'px;background:var(--card-peach);" aria-hidden="true">' +
       esc(ini) + '</span>';
@@ -161,8 +161,8 @@
     if (!text) return '';
     return '<div class="bubble-coach rd-a1-bubble">' + esc(text) + '</div>';
   }
-  function pipeRow(text) {
-    return '<div class="rd-a1-line">' + pipeAvatar(30) + bubbleOnly(text) + '</div>';
+  function alfredRow(text) {
+    return '<div class="rd-a1-line">' + alfredAvatar(30) + bubbleOnly(text) + '</div>';
   }
   function dotsHTML(active, total) {
     var out = '';
@@ -173,7 +173,7 @@
   }
 
   /* ═══════════════════ ONBOARDING (gate rodeo_a1_onboarded) ═══════════════════
-     Propio (NO reusa mostrarOnboarding, tematizado a Gus). 4 beats: (1) Pipe se
+     Propio (NO reusa mostrarOnboarding, tematizado a Gus). 4 beats: (1) Alfred se
      presenta; (2) baja el miedo; (3) truco de cognados (flip); (4) encuadra y
      arranca. Al terminar: rodeo_a1_onboarded=true → cae al home. */
   function cognateGridHTML() {
@@ -206,7 +206,7 @@
 
     var body = '';
     if (beat === 0) {
-      body = bubbleOnly(intro[0] || '¡Ey! Vos sos el nuevo, ¿cierto? Yo soy Pipe.') +
+      body = bubbleOnly(intro[0] || '¡Ey! Vos sos el nuevo, ¿cierto? Yo soy Alfred.') +
              (intro[1] ? bubbleOnly(intro[1]) : '');
     } else if (beat === 1) {
       body = bubbleOnly(intro[2] || 'Acá no hay examen ni nadie te oye. Te equivocás las veces que querás.');
@@ -224,7 +224,7 @@
     home.innerHTML =
       '<div class="rd-a1-onb">' +
         '<div class="rd-a1-dots rd-a1-dots--onb" role="presentation" aria-hidden="true">' + dotsHTML(beat, total) + '</div>' +
-        '<div class="rd-a1-onb-avatar">' + pipeAvatar(66) + '</div>' +
+        '<div class="rd-a1-onb-avatar">' + alfredAvatar(66) + '</div>' +
         '<div class="rd-a1-onb-body">' + body + '</div>' +
         '<div class="rd-a1-onb-foot">' +
           (beat > 0 ? '<button type="button" class="btn-ghost rd-a1-onb-back">Atrás</button>' : '<span aria-hidden="true"></span>') +
@@ -255,13 +255,13 @@
   /* ═══════════════════ HOME (#a1-home) ═══════════════════ */
   function heroHTML() {
     return '<div class="rd-hero rd-a1-hero">' +
-        '<p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Oficina · con Pipe</p>' +
+        '<p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Oficina · con Alfred</p>' +
         '<p class="font-display rd-hero-title">TU PRIMERA<br>SEMANA<span style="color:var(--accent);">.</span></p>' +
-        '<p class="rd-hero-sub">Frase por frase. Sin miedo. Pipe te dice qué decir el lunes a las 8.</p>' +
+        '<p class="rd-hero-sub">Frase por frase. Sin miedo. Alfred te dice qué decir el lunes a las 8.</p>' +
       '</div>';
   }
 
-  // Saludo DINÁMICO por estado (Capa 3): enmarca el "repaso de pasillo" con Pipe.
+  // Saludo DINÁMICO por estado (Capa 3): enmarca el "repaso de pasillo" con Alfred.
   function greetingHTML() {
     var dueCount = a1SrsDue().length;
     var newAvail = pickNewChunks(1).length > 0;
@@ -275,7 +275,7 @@
     } else {
       msg = 'Vas al día. Cuando querás repasamos lo que ya tenés, sin afán.';
     }
-    return pipeRow(msg);
+    return alfredRow(msg);
   }
 
   // Métrica ESTRELLA del Home (honesta, §4.3): "ya te salen solas" = caja>=4. La
@@ -512,7 +512,7 @@
 
   /* ═══════════════════ ESCENA INMERSIVA · loop de 6 pasos (SPEC §4.1) ═══════════
      Un "beat" = enseñar UN chunk; un tap avanza (segmentación de Mayer). Los 6
-     pasos: (1) ESCENA — Pipe monta la situación, cero inglés · (2) ANTICIPACIÓN —
+     pasos: (1) ESCENA — Alfred monta la situación, cero inglés · (2) ANTICIPACIÓN —
      el silencio, intención en español · (3) REVEAL + AUDIO — la ÚNICA frase EN
      grande de la pantalla · (4) EL PORQUÉ — why_es + molde/swaps + a quién · (5)
      SHADOWING — la producís, replay lento opcional · (6) AUTOEVAL — Clavado/Casi/
@@ -522,7 +522,7 @@
 
   var K_PROGRESS = 'rodeo_a1_progress';
 
-  // Reacciones genéricas de Pipe a la autoeval (voz de §1.2). "Todavía no" es
+  // Reacciones genéricas de Alfred a la autoeval (voz de §1.2). "Todavía no" es
   // NEUTRO y reconfortante: modela el error, jamás regaña ni pone nota.
   var EVAL_REACT = {
     clavado: '¡Eso! Ni mandado a hacer. Esa ya es tuya.',
@@ -572,16 +572,16 @@
     if (escena) { escena.classList.remove('hidden'); escena.classList.add('flex'); }
   }
 
-  // Avatar de Pipe + una o varias burbujas apiladas del mismo turno (≤2 c/u).
-  function pipeBlock(texts) {
+  // Avatar de Alfred + una o varias burbujas apiladas del mismo turno (≤2 c/u).
+  function alfredBlock(texts) {
     var arr = (Array.isArray(texts) ? texts : [texts]).filter(Boolean);
     var bubbles = arr.map(bubbleOnly).join('');
-    return '<div class="rd-a1-line">' + pipeAvatar(30) + '<div class="rd-a1-bubbles">' + bubbles + '</div></div>';
+    return '<div class="rd-a1-line">' + alfredAvatar(30) + '<div class="rd-a1-bubbles">' + bubbles + '</div></div>';
   }
 
   var run = null;   // estado del recorrido en curso (escena o repaso)
 
-  // Shell constante del loop: ← volver · dots (posición por chunk) · mini Pipe.
+  // Shell constante del loop: ← volver · dots (posición por chunk) · mini Alfred.
   // Compartido por la escena lineal (Capa 2) y el repaso mezclado (Capa 3).
   function paintEscenaShell() {
     var escena = el('a1-escena');
@@ -595,7 +595,7 @@
         '<div class="rd-a1-dots" id="a1-esc-dots" role="presentation" aria-hidden="true"></div>' +
         // 🆘 dentro de la escena (§5.7): las 5 de supervivencia SIEMPRE a un tap.
         '<button type="button" class="icon-btn rd-a1-esc-panic" aria-label="Frases de emergencia"><span aria-hidden="true">🆘</span></button>' +
-        pipeAvatar(34) +
+        alfredAvatar(34) +
       '</div>' +
       '<div class="scroll-area rd-a1-beat" id="a1-beat" style="flex:1; min-height:0;"></div>' +
       '<div class="rd-a1-beat-foot shrink-0" id="a1-foot"></div>';
@@ -759,7 +759,7 @@
       '</div>';
   }
 
-  // PASO 1 · ESCENA — Pipe monta la situación (cero inglés). Un due de repaso NO se
+  // PASO 1 · ESCENA — Alfred monta la situación (cero inglés). Un due de repaso NO se
   // re-enseña: entra con el encuadre de "repaso de pasillo" y va derecho al recall.
   function step1HTML() {
     var m = (run.meta && run.meta[run.i]) || {};
@@ -768,7 +768,7 @@
       var lines = ['Ojo, esta ya nos la habíamos cruzado. Repaso de pasillo, pues.'];
       if (scene && scene.title_es) lines.push('La de «' + scene.title_es + '». A ver si todavía te sale, sin mirar.');
       else lines.push('A ver si todavía te sale, sin mirar.');
-      return pipeBlock(lines);
+      return alfredBlock(lines);
     }
     // Enseñanza (nuevo): monta la escena una sola vez por escena en la sesión.
     var body = (scene && scene.scene_es) ? ('<p class="rd-a1-scene-lead">' + esc(scene.scene_es) + '</p>') : '';
@@ -776,9 +776,9 @@
       run.shownSetup[scene.id] = true;
       var setup = (scene.setup_es || []).slice();
       if (scene.analogy_es) setup.push(scene.analogy_es);
-      body += pipeBlock(setup);
+      body += alfredBlock(setup);
     } else {
-      body += pipeBlock(['Seguimos en la misma. Va otra que te sirve un montón.']);
+      body += alfredBlock(['Seguimos en la misma. Va otra que te sirve un montón.']);
     }
     return body;
   }
@@ -792,7 +792,7 @@
     var tts = a1TtsDisponible();
 
     if (run.step === 1) {
-      // PASO 1 · ESCENA — Pipe monta la situación (o el repaso de pasillo).
+      // PASO 1 · ESCENA — Alfred monta la situación (o el repaso de pasillo).
       setBeat(step1HTML());
       setFoot(primaryBtn('Dale ↓', 'btn-ghost'));
       wireNext(function () { goStep(2); });
@@ -806,7 +806,7 @@
 
     } else if (run.step === 3) {
       // PASO 3 · REVEAL + AUDIO — la ÚNICA frase EN grande de la pantalla.
-      var cover = tts ? '' : pipeBlock(['Acá tu celu no la dice en voz alta, pero léela como está en «suena». Igual funciona, tranquilo.']);
+      var cover = tts ? '' : alfredBlock(['Acá tu celu no la dice en voz alta, pero léela como está en «suena». Igual funciona, tranquilo.']);
       setBeat(revealCardHTML(c, true, tts) + cover);
       setFoot(primaryBtn('Seguir ↓', 'btn-ghost'));
       wireSay();
@@ -819,7 +819,7 @@
     } else if (run.step === 4) {
       // PASO 4 · EL PORQUÉ — why_es (obligatorio) + molde/swaps + a quién. Sin
       // frase EN grande (los swaps van en chips chicos, es el molde).
-      var body4 = pipeBlock([c.why_es]);
+      var body4 = alfredBlock([c.why_es]);
       body4 += chunkFrameHTML(c);
       if (c.who_es) body4 += '<span class="rd-a1-who"><span aria-hidden="true">👤</span>' + esc(c.who_es) + '</span>';
       setBeat(body4);
@@ -837,7 +837,7 @@
             '<button type="button" class="btn-ghost" data-slow="' + escAttr(c.en) + '">más despacio</button>' +
           '</div>';
       }
-      setBeat(pipeBlock(['Ahora vos. Repetila en voz alta, como suena. Nadie te oye, dale sin pena.']) +
+      setBeat(alfredBlock(['Ahora vos. Repetila en voz alta, como suena. Nadie te oye, dale sin pena.']) +
         revealCardHTML(c, false, tts) + replay);
       setFoot(primaryBtn('Listo, la dije', 'btn-accent'));
       wireSay();
@@ -847,7 +847,7 @@
     } else if (run.step === 6) {
       // PASO 6 · AUTOEVAL — cero castigo. "Todavía no" NEUTRO (jamás coral).
       setBeat(
-        pipeBlock(['¿Y qué tal? ¿Te salió?']) +
+        alfredBlock(['¿Y qué tal? ¿Te salió?']) +
         '<div class="rd-a1-eval">' +
           '<button type="button" class="rd-a1-eval-btn rd-a1-eval-btn--clavado" data-grade="clavado">Clavado <span aria-hidden="true">✓</span></button>' +
           '<button type="button" class="rd-a1-eval-btn rd-a1-eval-btn--casi" data-grade="casi">Casi <span aria-hidden="true">~</span></button>' +
@@ -894,7 +894,7 @@
     // la reacción; el micro-pop lo hace GSAP (abajo), siempre detrás de REDUCED.
     setBeat(
       (clavado ? '<div class="rd-a1-celebrate"><span class="rd-a1-celebrate-badge" id="a1-celebrate" aria-hidden="true">✓</span></div>' : '') +
-      pipeBlock([msg])
+      alfredBlock([msg])
     );
     var label = last
       ? (repaso ? 'Cerrar el repaso ✓' : 'Cerrar la escena ✓')
@@ -963,7 +963,7 @@
     updateDots();
     // Cierre honesto y cálido (sin confeti de caricatura: la celebración adulta
     // y la micro-tarea TBLT completas llegan en la Capa 4).
-    setBeat(pipeBlock([
+    setBeat(alfredBlock([
       'Listo, esa escena la sacaste. Eso hace un rato no lo tenías.',
       'Volvé cuando querás y seguimos con la próxima, sin afán.',
     ]));
@@ -980,7 +980,7 @@
     var lines = ['Listo, ese repaso quedó. Cada vuelta se te pega más, parce.'];
     if (m.salen > 0) lines.push('Ya llevás ' + m.salen + (m.salen === 1 ? ' frase que te sale sola.' : ' frases que te salen solas.'));
     else lines.push('Volvé mañana y seguimos; así es como se pegan.');
-    setBeat(pipeBlock(lines));
+    setBeat(alfredBlock(lines));
     setFoot(primaryBtn('Volver al inicio', 'btn-accent'));
     wireNext(function () { renderA1Home(); });
     animateBeat();
@@ -1247,7 +1247,7 @@
       ? ['Esta ya la conocés. ¿Cómo era pa\' decir «' + c.es + '»? De memoria, sin mirar.']
       : ['A ver… querés decir «' + c.es + '». ¿Cómo suena en inglés?'];
     lead.push('Probá en voz alta, como te salga. Nadie te oye — ese es el punto.');
-    setBeat(pipeBlock(lead));
+    setBeat(alfredBlock(lead));
     setFoot(primaryBtn('👁 Ver la frase', 'btn-accent'));
     wireNext(function () { goStep(3); });
     animateBeat();
@@ -1287,7 +1287,7 @@
   }
   function paintStep2Mcq(c) {
     if (!run.mcq) run.mcq = mcqOptions(c);   // fija las opciones del beat (no re-baraja al repintar)
-    var html = pipeBlock(['Esta ya la viste. ¿Cuál era pa\' decir «' + c.es + '»? Sin mirar.']);
+    var html = alfredBlock(['Esta ya la viste. ¿Cuál era pa\' decir «' + c.es + '»? Sin mirar.']);
     html += '<div class="rd-a1-mcq">';
     run.mcq.forEach(function (o, i) {
       html += '<button type="button" class="rd-a1-mcq-opt" data-mcq="' + i + '" data-ok="' + (o.correct ? '1' : '0') + '">' +
@@ -1333,7 +1333,7 @@
     if (!run.cloze) run.cloze = a1Shuffle(c.swaps || []);
     var slot = '<span class="rd-a1-cloze-slot" id="a1-cloze-slot">•••</span>';
     var frameHTML = esc(c.frame).replace('___', slot);   // frame escapado; el slot es markup de confianza
-    var html = pipeBlock(['Completá el hueco. ¿Cuál ficha va acá?']);
+    var html = alfredBlock(['Completá el hueco. ¿Cuál ficha va acá?']);
     html += '<div class="rd-a1-cloze"><span class="rd-a1-cloze-frame font-display">' + frameHTML + '</span></div>';
     html += '<div class="rd-a1-chips">';
     run.cloze.forEach(function (s) {
@@ -1364,11 +1364,11 @@
       ok ? '¡Eso! Esa pieza va ahí. Así se arma el molde.' : 'Casi. La que iba es «' + correct + '». Fresco, pa\' eso repasamos.',
       'Ver la frase entera ↓', btn);
   }
-  // Cierre común del PASO 2 interactivo (MCQ/cloze): reacción de Pipe + micro-pop
+  // Cierre común del PASO 2 interactivo (MCQ/cloze): reacción de Alfred + micro-pop
   // del acierto (detrás de REDUCED) + botón pa' seguir al reveal. "Miss" NEUTRO.
   function finishStep2Feedback(ok, msg, nextLabel, popEl) {
     var beat = el('a1-beat');
-    if (beat) { var r = document.createElement('div'); r.innerHTML = pipeBlock([msg]); if (r.firstChild) beat.appendChild(r.firstChild); }
+    if (beat) { var r = document.createElement('div'); r.innerHTML = alfredBlock([msg]); if (r.firstChild) beat.appendChild(r.firstChild); }
     setFoot(primaryBtn(nextLabel, 'btn-accent'));
     wireNext(function () { goStep(3); });
     if (ok && !A1_REDUCED && window.gsap && popEl) {
@@ -1382,7 +1382,7 @@
     var chips = (c.swaps || []).map(function (s) {
       return '<span class="gloss-chip rd-a1-swap">' + esc(s) + '</span>';
     }).join('');
-    var html = pipeBlock([
+    var html = alfredBlock([
       'Esta ya te sale. Ahora hacela tuya: cambiá la pieza por lo que sea TU caso.',
       'Mirá el molde, decilo en voz alta con lo tuyo. Después te muestro el ejemplo.',
     ]);
@@ -1526,8 +1526,8 @@
   window.openA1ChunkDetail = openA1ChunkDetail;
 
   /* ── Micro-tarea TBLT de cierre (§4.1/§5.4) + logro de unidad (§5.5) ──
-     Pipe plantea la meta POR INTENCIÓN (nunca da la frase EN → fuerza recuperación);
-     el usuario la dice de memoria y se auto-reporta; Pipe reacciona con la línea
+     Alfred plantea la meta POR INTENCIÓN (nunca da la frase EN → fuerza recuperación);
+     el usuario la dice de memoria y se auto-reporta; Alfred reacciona con la línea
      pre-escrita (reaction_es). Cero IA. Cierre = logro de CAPACIDAD, no puntos. */
   var taskRun = null;
   function isTaskDone(taskId) {
@@ -1562,7 +1562,7 @@
       setBeat(
         '<div class="mission-card rd-a1-mission"><span class="rd-a1-mission-eyebrow">Tu misión</span>' +
           '<p class="rd-a1-mission-lead">' + esc(task.intro_es) + '</p></div>' +
-        pipeBlock(['Sin mirar nada. Yo te digo la situación y vos soltás la frase, de memoria.'])
+        alfredBlock(['Sin mirar nada. Yo te digo la situación y vos soltás la frase, de memoria.'])
       );
       setFoot(primaryBtn('Dale, la primera →', 'btn-accent'));
       wireNext(function () { taskRun.phase = 'goal'; taskRun.i = 0; paintTaskBeat(); });
@@ -1577,16 +1577,16 @@
       setBeat(
         '<div class="mission-card rd-a1-mission"><span class="rd-a1-mission-eyebrow">Situación ' + (taskRun.i + 1) + '/' + taskRun.steps.length + '</span>' +
           '<p class="rd-a1-mission-goal">' + esc(step.goal_es) + '</p></div>' +
-        pipeBlock(['¿Cómo se lo decís? Dale, en voz alta — de memoria.'])
+        alfredBlock(['¿Cómo se lo decís? Dale, en voz alta — de memoria.'])
       );
       setFoot(primaryBtn('Ya lo dije, ver ↓', 'btn-accent'));
       wireNext(function () { taskRun.phase = 'reveal'; paintTaskBeat(); });
       animateBeat();
       return;
     }
-    // phase 'reveal': muestra la frase modelo + la reacción pre-escrita de Pipe.
+    // phase 'reveal': muestra la frase modelo + la reacción pre-escrita de Alfred.
     var last = taskRun.i >= taskRun.steps.length - 1;
-    setBeat(revealCardHTML(c, true, tts) + pipeBlock([step.reaction_es]));
+    setBeat(revealCardHTML(c, true, tts) + alfredBlock([step.reaction_es]));
     setFoot(primaryBtn(last ? 'Cerrar la misión ✓' : 'Siguiente situación →', 'btn-accent'));
     wireSay(); wireStar();
     wireNext(function () {
@@ -1608,7 +1608,7 @@
         '<div class="rd-a1-achieve-emoji" aria-hidden="true">🎉</div>' +
         '<p class="rd-a1-achieve-title font-display">' + esc(done) + '</p>' +
       '</div>' +
-      pipeBlock(['Eso ayer no lo tenías, parce. Mañana seguimos y ya vas con ventaja.'])
+      alfredBlock(['Eso ayer no lo tenías, parce. Mañana seguimos y ya vas con ventaja.'])
     );
     setFoot(primaryBtn('Seguir mañana', 'btn-accent'));
     wireNext(function () { renderA1Home(); });
