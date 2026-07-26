@@ -71,6 +71,28 @@
   // ---------------------------------------------------------
   // CSS (scoped bajo .story-imm) — inyectado una sola vez
   // ---------------------------------------------------------
+  // ---------------------------------------------------------
+  // Iconos SVG en línea (antes: fuente Material Symbols Rounded)
+  // ---------------------------------------------------------
+  // La fuente completa pesaba ~200-250 KB y bloqueaba el render de TODA la app
+  // para 6 glifos que solo existen aquí dentro. Peor: Material Symbols pinta
+  // por ligadura, así que mientras la fuente no llegaba el botón mostraba
+  // literalmente el texto "volume_up". Estos SVG son del mismo trazo Feather
+  // que usa el resto de RODEO.
+  var ICONOS = {
+    volume_up: '<path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>',
+    volume_off: '<path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>',
+    visibility: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
+    visibility_off: '<path d="M17.9 17.9A10.7 10.7 0 0 1 12 19c-7 0-11-7-11-7a19.6 19.6 0 0 1 5.1-5.9"/><path d="M9.9 4.2A10 10 0 0 1 12 4c7 0 11 7 11 7a19.5 19.5 0 0 1-2.3 3.3"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><line x1="1" y1="1" x2="23" y2="23"/>',
+    replay: '<polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"/>',
+    mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>'
+  };
+  function icono(nombre) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+         + 'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+         + (ICONOS[nombre] || '') + '</svg>';
+  }
+
   function injectCSS() {
     if (document.getElementById('story-imm-css')) return;
     var css = [
@@ -132,7 +154,7 @@
       '.si-iconbtn:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.06)}',
       '.si-iconbtn[aria-pressed="true"]{color:var(--danger);border-color:oklch(66% 0.20 27 / 0.5)}',
       '.si-iconbtn.recording{color:var(--danger);border-color:var(--danger);background:oklch(66% 0.20 27 / 0.18);animation:siMicPulse 1.4s infinite}',
-      '.si-iconbtn .material-symbols-rounded{font-size:21px}',
+      '.si-iconbtn .material-symbols-rounded svg{width:21px;height:21px;display:block}',
       // Indicador de "hablando" (onda de sonido junto al nombre del personaje)
       '.si-wave{display:none;align-items:flex-end;gap:2px;height:13px;margin-left:9px;vertical-align:middle}',
       '.si-inner.speaking .si-wave{display:inline-flex}',
@@ -160,7 +182,7 @@
       '  border:1px solid oklch(87% 0.21 128 / 0.35);border-radius:99px;padding:6px 14px;',
       '  transition:background .2s,transform .15s,color .2s}',
       '.si-eye:hover{background:oklch(87% 0.21 128 / 0.22);transform:translateY(-1px)}',
-      '.si-eye .material-symbols-rounded{font-size:18px;line-height:1}',
+      '.si-eye .material-symbols-rounded svg{width:18px;height:18px;display:block}',
       '.si-eye.open{color:var(--accent-ink);background:var(--accent)}',
       '.si-sub{font-size:16.5px;line-height:1.5;color:var(--text-secondary);margin:12px 0 0;font-style:italic}',
       '.si-sub.reveal{animation:siFade 320ms ease both}',
@@ -662,7 +684,7 @@
           '<div class="si-progress"><div class="si-progress-fill" id="siProgressFill" style="width:0%"></div></div>' +
           (ttsAvailable()
             ? '<button class="si-iconbtn" id="siMute" aria-label="Silenciar voces" aria-pressed="false" title="Silenciar voces">' +
-                '<span class="material-symbols-rounded" aria-hidden="true">volume_up</span>' +
+                '<span class="material-symbols-rounded" aria-hidden="true">' + icono('volume_up') + '</span>' +
               '</button>'
             : '') +
           '<button class="si-close" aria-label="Cerrar" title="Cerrar" id="siClose">&#x2715;</button>' +
@@ -848,7 +870,7 @@
       (line.text_es
         ? '<button class="si-eye" id="siEye" type="button" aria-expanded="false" ' +
             'aria-controls="siSub" title="Mostrar traducción">' +
-            '<span class="material-symbols-rounded" aria-hidden="true">visibility</span>' +
+            '<span class="material-symbols-rounded" aria-hidden="true">' + icono('visibility') + '</span>' +
             '<span class="si-eye-txt">Ver traducción</span>' +
           '</button>' +
           '<p class="si-sub" id="siSub" hidden>' + esc(line.text_es) + '</p>'
@@ -859,7 +881,7 @@
           : '') +
         (ttsAvailable()
           ? '<button class="si-iconbtn si-repeat" id="siRepeat" aria-label="Repetir audio" title="Repetir audio">' +
-              '<span class="material-symbols-rounded" aria-hidden="true">replay</span>' +
+              '<span class="material-symbols-rounded" aria-hidden="true">' + icono('replay') + '</span>' +
             '</button>'
           : '') +
         '<span class="si-hint-line">Toca para escuchar</span>' +
@@ -915,7 +937,7 @@
       btn.setAttribute('aria-expanded', 'true');
       btn.classList.add('open');
       btn.title = 'Ocultar traducción';
-      if (icon) icon.textContent = 'visibility_off';
+      if (icon) icon.innerHTML = icono('visibility_off');
       if (label) label.textContent = 'Ocultar traducción';
     } else {
       sub.setAttribute('hidden', '');
@@ -923,7 +945,7 @@
       btn.setAttribute('aria-expanded', 'false');
       btn.classList.remove('open');
       btn.title = 'Mostrar traducción';
-      if (icon) icon.textContent = 'visibility';
+      if (icon) icon.innerHTML = icono('visibility');
       if (label) label.textContent = 'Ver traducción';
     }
   }
@@ -1264,7 +1286,7 @@
     if (!btn) return;
     var muted = isMuted();
     var icon = btn.querySelector('.material-symbols-rounded');
-    if (icon) icon.textContent = muted ? 'volume_off' : 'volume_up';
+    if (icon) icon.innerHTML = icono(muted ? 'volume_off' : 'volume_up');
     btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
     btn.title = muted ? 'Activar voces' : 'Silenciar voces';
   }
@@ -1305,7 +1327,7 @@
     // RODEO (wireMic ctx 'story' pinta su propio chip ES/EN). Solo si el puente existe.
     var micHTML = (typeof window.rodeoStoryMic === 'function')
       ? '<button class="si-iconbtn si-mic" id="siMic" type="button" aria-label="Dictar tu respuesta" title="Dictar tu respuesta">' +
-          '<span class="material-symbols-rounded" aria-hidden="true">mic</span>' +
+          '<span class="material-symbols-rounded" aria-hidden="true">' + icono('mic') + '</span>' +
         '</button>'
       : '';
 

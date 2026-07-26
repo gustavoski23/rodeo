@@ -27,7 +27,7 @@ const VERSION = 'rodeo-v8';
 const PREFIX = 'rodeo-';
 const SHELL_CACHE  = `${VERSION}-shell`;   // app shell (index.html)
 const STATIC_CACHE = `${VERSION}-static`;  // iconos, manifest same-origin
-const CDN_CACHE    = `${VERSION}-cdn`;      // GSAP + Google Fonts
+const CDN_CACHE    = `${VERSION}-cdn`;      // Google Fonts + supabase-js
 
 // Shell mínimo a precachear en install. A propósito SOLO el documento raíz:
 // si un recurso del precache diera 404, install fallaría y el SW viejo se
@@ -42,7 +42,6 @@ const SHELL_URLS = ['/', '/index.html'];
 // entera) es imposible por construcción — .hidden ya no depende de la red.
 // Deben coincidir EXACTO con los <link>/<script> del <head> de index.html.
 const CDN_WARM = [
-  'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap',
 ];
@@ -80,7 +79,6 @@ const APP_WARM = [
 const CDN_HOSTS = new Set([
   'fonts.googleapis.com',
   'fonts.gstatic.com',
-  'cdnjs.cloudflare.com',
   'cdn.jsdelivr.net',           // supabase-js (cuenta + sync)
 ]);
 
@@ -150,7 +148,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3) CDNs conocidas (GSAP, supabase-js, Google Fonts) → NETWORK-FIRST.
+  // 3) CDNs conocidas (supabase-js, Google Fonts) → NETWORK-FIRST.
   //    Online siempre trae la copia fresca del CDN (no se sirve una copia
   //    cacheada envenenada); el cache es solo el paracaídas offline.
   if (CDN_HOSTS.has(url.hostname)) {

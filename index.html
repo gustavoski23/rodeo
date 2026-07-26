@@ -14,8 +14,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<!-- Iconos del episodio ilustrado (Story Mode): mute, ojo de traducción, repetir -->
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<!-- Los iconos del episodio ilustrado (mute, ojo de traducción, repetir, mic)
+     eran la fuente Material Symbols Rounded: ~200-250 KB bloqueando el render
+     de TODA la app para 6 glifos de una sola pantalla, y con el bug de la
+     ligadura (mientras la fuente no llega el botón dice "volume_up"). Ahora
+     son SVG en línea dentro de js/story-mode.js. -->
 <!-- Tailwind CDN retirado: era ~400 KB de compilador JIT corriendo en el
      navegador (más un MutationObserver global sobre todo el DOM) para 39
      utilidades y su reset. Ahora ambas cosas viven en el <style> de abajo:
@@ -1367,6 +1370,25 @@ body.nivel-a1 main, html.nivel-a1 main { padding-bottom: 24px; }
   box-shadow: -10px 4px 0 -2px var(--card-blue), -20px 8px 0 -4px var(--card-coral);
 }
 
+/* ── Entradas que antes hacía GSAP (70 KB para seis gsap.from de y+opacity) ──
+   animation-fill-mode: BACKWARDS, no `both`: el estado inicial solo aplica
+   durante el delay y el elemento termina en su estado natural. Como la clase
+   la pone el JS, un elemento que nunca la reciba queda VISIBLE — la regla de
+   oro del repo: la visibilidad jamás depende de que una animación corra.
+   Curvas: expo.out ≈ cubic-bezier(.16,1,.3,1); back.out(1.4) ≈ (.34,1.56,.64,1). */
+@keyframes rd-in       { from { opacity: 0; transform: translateY(24px); } }
+@keyframes rd-in-40    { from { opacity: 0; transform: translateY(40px); } }
+@keyframes rd-in-sheet { from { opacity: 0; transform: translateY(80px); } }
+@keyframes rd-pop      { from { opacity: 0; transform: scale(0.88); } }
+.rd-in       { animation: rd-in 0.9s cubic-bezier(.16,1,.3,1) backwards;
+               animation-delay: calc(var(--i, 0) * 0.07s); }
+.rd-in-40    { animation: rd-in-40 1s cubic-bezier(.16,1,.3,1) backwards; }
+.rd-in-sheet { animation: rd-in-sheet 0.7s cubic-bezier(.16,1,.3,1) backwards; }
+.rd-pop      { animation: rd-pop 0.45s cubic-bezier(.34,1.56,.64,1) backwards; }
+@media (prefers-reduced-motion: reduce) {
+  .rd-in, .rd-in-40, .rd-in-sheet, .rd-pop { animation: none; }
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    UTILIDADES — las 39 clases de Tailwind que el proyecto usa de verdad.
    ──────────────────────────────────────────────────────────────────────────
@@ -2528,7 +2550,8 @@ body.rd-lectura .luminous-line { opacity: 0; }
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<!-- GSAP retirado: eran 70 KB para seis gsap.from({y, opacity}). Las entradas
+     ahora son @keyframes (.rd-in / .rd-in-40 / .rd-in-sheet / .rd-pop). -->
 <!-- Supabase (cuenta Google + sync DNA entre dispositivos). Mejora progresiva:
      si el CDN falla o no hay key configurada, la app funciona igual que antes. -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3082,9 +3105,22 @@ glossTip.addEventListener('click', (e) => {
   toast(`"${btn.dataset.term}" · guardado en tu DNA`);
 });
 
+// Reinicia la animación aunque la clase ya estuviera puesta (volver a una vista).
+function anim(el, cls) {
+  if (REDUCED || !el || !el.classList) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;          // fuerza reflow: sin esto el navegador no relanza
+  el.classList.add(cls);
+}
+// Entrada en cascada. El índice viaja por --i (el stagger que hacía GSAP).
 function animateIn(els, opts = {}) {
-  if (REDUCED || !window.gsap || !els || (els.length !== undefined && !els.length)) return;
-  gsap.from(els, { y: 24, opacity: 0, duration: 0.9, ease: 'expo.out', stagger: 0.07, ...opts });
+  if (REDUCED || !els || (els.length !== undefined && !els.length)) return;
+  const lista = els.length !== undefined ? [...els] : [els];
+  lista.forEach((el, i) => {
+    if (!el || !el.style) return;
+    el.style.setProperty('--i', i);
+    anim(el, 'rd-in');
+  });
 }
 
 /* ═══════════════════ API ═══════════════════ */
@@ -4624,7 +4660,7 @@ function openSheet(html) {
   $('#overlay').classList.remove('hidden');
   sc.setAttribute('tabindex', '-1');
   try { sc.focus({ preventScroll: true }); } catch { try { sc.focus(); } catch {} }
-  if (!REDUCED && window.gsap) gsap.from('#sheet-content', { y: 80, opacity: 0, duration: 0.7, ease: 'expo.out' });
+  anim($('#sheet-content'), 'rd-in-sheet');
 }
 function closeSheet() {
   $('#overlay').classList.add('hidden');
@@ -6174,7 +6210,7 @@ function applyJudge(j, line) {
       <div style="font-weight:700; font-size:0.9rem; margin:4px 0 10px;">${esc(intel.meaning_es || '')}</div>
       <div class="ex">"${esc(intel.use_en || '')}"</div>`;
     scroll.appendChild(card);
-    if (!REDUCED && window.gsap) gsap.from(card, { y: 40, opacity: 0, duration: 1.0, ease: 'expo.out' });
+    anim(card, 'rd-in-40');
   }
 
   if (state.ttsOn && j.npc_reaction_en) speak(j.npc_reaction_en);
@@ -6209,7 +6245,7 @@ function applyJudge(j, line) {
     advance.appendChild(btn);
     scroll.appendChild(advance);
   }
-  if (!REDUCED && window.gsap) gsap.from(block, { y: 20, opacity: 0, duration: 0.7, ease: 'expo.out' });
+  anim(block, 'rd-in');
   requestAnimationFrame(() => { scroll.scrollTop = scroll.scrollHeight; });
 }
 
@@ -6417,7 +6453,7 @@ function showRung() {
         <button id="rung-up" class="btn-accent" style="margin-top:18px;">SÚBELA ↑</button>
       </div>
     </div>`;
-  if (!REDUCED && window.gsap) gsap.from('#rung-card', { y: 30, opacity: 0, duration: 0.8, ease: 'expo.out' });
+  anim($('#rung-card'), 'rd-in');
   $('#rung-up').addEventListener('click', () => openRungInput(r, theme, rot));
 }
 
@@ -6498,7 +6534,7 @@ function flipToBack(r, theme, rot, attempt, judge) {
   flipWrap.innerHTML = backHtml;
   $('#rung-nailed').addEventListener('click', () => selfJudge(r, true));
   $('#rung-casi').addEventListener('click', () => selfJudge(r, false));
-  if (!REDUCED && window.gsap) gsap.fromTo('#rung-card', { scale: 0.88, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.45, ease: 'back.out(1.4)' });
+  anim($('#rung-card'), 'rd-pop');
 }
 
 function selfJudge(r, nailed) {
