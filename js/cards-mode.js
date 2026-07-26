@@ -62,19 +62,10 @@
   function injectCSS() {
     if (document.getElementById('cards-mode-css')) return;
     var css = [
-      // Botón de lanzamiento (vive en el home de TALK, estilo sticker-CTA)
-      '.cm-launch{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;',
-      '  background:var(--bg-surface);border:1px solid var(--glass-border);border-radius:22px;',
-      '  padding:18px 84px 18px 20px;cursor:pointer;color:var(--text-primary);',
-      '  transition:transform 140ms ease;position:relative;overflow:hidden}',
-      '.cm-launch:active{transform:scale(0.97)}',
-      ".cm-launch-eyebrow{font-family:'Space Mono',monospace;font-size:0.62rem;font-weight:700;",
-      '  letter-spacing:0.16em;text-transform:uppercase;color:var(--accent)}',
-      '.cm-launch-title{font-size:1.7rem;line-height:0.94}',
-      '.cm-launch-sub{font-size:0.85rem;color:var(--text-secondary)}',
-      '.cm-launch-cartas{position:absolute;right:14px;top:50%;transform:translateY(-50%) rotate(8deg);',
-      '  width:44px;height:58px;border-radius:9px;background:var(--card-yellow);opacity:0.92;',
-      '  box-shadow:-10px 4px 0 -2px var(--card-blue),-20px 8px 0 -4px var(--card-coral)}',
+      // NOTA: las reglas de .cm-launch* (el botón lanzador que vive en el HTML
+      // de index.html, no en este overlay) se movieron al <style> de index.html.
+      // Razón: este archivo se carga bajo demanda, y el botón tiene que verse
+      // bien ANTES del primer tap. Aquí solo queda lo que es del overlay.
 
       // Overlay
       '#retameOverlay{position:fixed;inset:0;z-index:880;display:none;background:var(--bg-void)}',

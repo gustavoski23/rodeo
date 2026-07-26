@@ -18,3 +18,7 @@ Thumbs.db
 
 # Worktrees temporales de agentes (Claude Code) — jamás versionar
 .claude/worktrees/
+
+# Imágenes sueltas de pruebas en la raíz (se colaron una vez, no vuelven)
+/*.jpeg
+/*.jpg

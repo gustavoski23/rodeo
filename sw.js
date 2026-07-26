@@ -20,14 +20,14 @@
 // Sube este número en cada release donde quieras invalidar cache viejo.
 // ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
 // a esos archivos NO llega a los usuarios hasta subir esta versión.
-const VERSION = 'rodeo-v7';
+const VERSION = 'rodeo-v8';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
 const PREFIX = 'rodeo-';
 const SHELL_CACHE  = `${VERSION}-shell`;   // app shell (index.html)
 const STATIC_CACHE = `${VERSION}-static`;  // iconos, manifest same-origin
-const CDN_CACHE    = `${VERSION}-cdn`;      // Tailwind + Google Fonts (SWR)
+const CDN_CACHE    = `${VERSION}-cdn`;      // GSAP + Google Fonts
 
 // Shell mínimo a precachear en install. A propósito SOLO el documento raíz:
 // si un recurso del precache diera 404, install fallaría y el SW viejo se
@@ -36,15 +36,12 @@ const CDN_CACHE    = `${VERSION}-cdn`;      // Tailwind + Google Fonts (SWR)
 // son críticos para arrancar.
 const SHELL_URLS = ['/', '/index.html'];
 
-// Assets de CDN CRÍTICOS para el render (Tailwind, GSAP, CSS de fuentes). Se
-// precalientan en install: sin esto, en la primera instalación estos recursos
-// se piden ANTES de que el SW controle la página, no entran al cache, y un
-// offline posterior (o tras expirar el cache HTTP de Tailwind, ~4h) dejaba la
-// app SIN estilos — el #overlay con .hidden (clase de Tailwind) tapaba todo
-// (revisión adversarial). Deben coincidir EXACTO con los <link>/<script> del
-// <head> de index.html.
+// Assets de CDN que aún se precalientan en install. Ya NO está Tailwind: sus
+// utilidades y su reset viven inline en el shell, así que el incidente que
+// motivó este bloque (sin Tailwind, el #overlay con .hidden tapaba la app
+// entera) es imposible por construcción — .hidden ya no depende de la red.
+// Deben coincidir EXACTO con los <link>/<script> del <head> de index.html.
 const CDN_WARM = [
-  'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap',
@@ -78,10 +75,9 @@ const APP_WARM = [
 // offline. Con SWR, una respuesta opaque mala del CDN (un 500/challenge con
 // cuerpo de error sobre TLS válido, indistinguible de un 200 porque opaque
 // tiene status 0) quedaba cacheada y se servía PRIMERO a usuarios online en
-// cada carga, envenenando Tailwind/GSAP hasta la siguiente navegación
+// cada carga, envenenando el recurso hasta la siguiente navegación
 // (revisión adversarial). Network-first elimina ese envenenamiento persistente.
 const CDN_HOSTS = new Set([
-  'cdn.tailwindcss.com',
   'fonts.googleapis.com',
   'fonts.gstatic.com',
   'cdnjs.cloudflare.com',
@@ -154,7 +150,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3) CDNs conocidas (Tailwind, GSAP, Google Fonts) → NETWORK-FIRST.
+  // 3) CDNs conocidas (GSAP, supabase-js, Google Fonts) → NETWORK-FIRST.
   //    Online siempre trae la copia fresca del CDN (no se sirve una copia
   //    cacheada envenenada); el cache es solo el paracaídas offline.
   if (CDN_HOSTS.has(url.hostname)) {
