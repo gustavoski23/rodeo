@@ -51,6 +51,19 @@ const GATES = {
   sube: null,  // SUBE / LEVEL UP — gratis
   dna: null,   // DNA y repaso — gratis
   sync: null,  // cuenta y sync — gratis
+
+  // ── DECISIONES EXPLÍCITAS (esto NO es un olvido) ─────────────────────────
+  // retame: GRATIS E ILIMITADO A PROPÓSITO. Es el gancho de retención y cuesta
+  //   CERO en API: el mazo sale del pack estático (js/cards-pack-001.js) más el
+  //   DNA local — no llama a /api/chat ni una vez. Ponerle cuota restaría
+  //   enganche sin ahorrar un peso. Si algún día Rétame genera tarjetas con el
+  //   modelo, ESTA es la línea que hay que cambiar.
+  retame: null,
+  // a1 (OFICINA): GRATIS E ILIMITADO A PROPÓSITO. El módulo entero es offline
+  //   (a1-office-content.js + SRS Leitner en localStorage) — cero API. Es el
+  //   primer contacto del principiante: cobrarle antes de que sienta que avanza
+  //   mata el embudo. Cambiar solo si OFICINA empieza a llamar al modelo.
+  a1: null,
 };
 
 // Nombres humanos por flujo, para el copy del paywall.

@@ -34,7 +34,7 @@ const SB_ANON_KEY = 'sb_publishable_jNRFSwU8ar-DZ0UY2_mQfg_Nz7LKXYI';
 const SB_SYNC_KEYS = new Set([
   'rodeo_dna', 'rodeo_intereses', 'rodeo_cost', 'rodeo_sessions',
   'rodeo_stories', 'rodeo_ladder_xp', 'rodeo_streak',
-  'rodeo_seen_slang', 'rodeo_seen_ladder', 'rodeo_nombre',
+  'rodeo_seen_slang', 'rodeo_seen_ladder', 'rodeo_nombre', 'rodeo_nivel',
 ]);
 
 let sbClient = null;
@@ -285,8 +285,9 @@ function sbProgresoLocal() {
     streak: state.streak || { days: 0, last: '' },
     seenSlang: Array.isArray(state.seenSlang) ? state.seenSlang : [],
     seenLadder: Array.isArray(state.seenLadder) ? state.seenLadder : [],
-    // El nombre viaja dentro del blob progress: cero migración de tabla.
+    // Nombre y nivel viajan dentro del blob progress: cero migración de tabla.
     nombre: (typeof nombreUsuario === 'function' ? nombreUsuario() : ''),
+    nivel: (state && state.nivel) || null,
   };
 }
 
@@ -321,6 +322,13 @@ function sbMergeProgreso(p) {
   const nomLocal = String(store.get('rodeo_nombre', '') || '').trim();
   if (!nomLocal && typeof p.nombre === 'string' && p.nombre.trim()) {
     store.set('rodeo_nombre', p.nombre.trim().slice(0, 24));
+  }
+  // Nivel: igual — solo llena el aparato que todavía no eligió. Sin esto,
+  // entrar con la cuenta en un teléfono nuevo te volvía a preguntar el nivel.
+  if (store.get('rodeo_nivel', null) === null && (p.nivel === 'a1' || p.nivel === 'avanzado')) {
+    state.nivel = p.nivel;
+    store.set('rodeo_nivel', p.nivel);
+    if (typeof aplicarNivel === 'function') aplicarNivel();
   }
 
   store.set('rodeo_cost', state.cost);
