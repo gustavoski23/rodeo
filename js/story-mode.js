@@ -218,9 +218,17 @@
       '.si-input-row{display:flex;align-items:center;gap:12px;margin-top:12px}',
       '.si-input-row .si-spacer{flex:1}',
       ".si-mode{font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)}",
-      // Spinner
+      // Relevo de icono (mute): el viejo se encoge, el nuevo entra con resorte
+      '.si-iconbtn .material-symbols-rounded{transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .16s ease;display:inline-flex}',
+      '.si-iconbtn .material-symbols-rounded.si-morph-out{transform:scale(.5);opacity:0}',
+      // Spinner (queda para usos cortos; las esperas largas usan el lápiz)
       '.si-spinner{width:18px;height:18px;border-radius:50%;border:2.5px solid oklch(96% 0.004 265 / 0.25);',
       '  border-top-color:var(--accent);animation:siSpin .8s linear infinite;display:inline-block;vertical-align:-3px}',
+      // Lápiz de espera: la evaluación tarda 10-30 s y un spinner de 18px dentro
+      // de un botón no comunica que la app sigue viva. El CSS vive en index.html.
+      '.si-pencil-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;',
+      '  padding:14px 0 6px;color:var(--text-secondary)}',
+      ".si-pencil-wrap .si-pencil-txt{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase}",
       // Popup de vocabulario flotante — superficie RODEO
       '.si-vocab-popup{position:absolute;top:84px;right:26px;z-index:8;width:330px;max-width:calc(100vw - 52px);',
       '  background:linear-gradient(180deg,var(--bg-elevated),var(--bg-surface));',
@@ -1286,7 +1294,15 @@
     if (!btn) return;
     var muted = isMuted();
     var icon = btn.querySelector('.material-symbols-rounded');
-    if (icon) icon.innerHTML = icono(muted ? 'volume_off' : 'volume_up');
+    // Relevo con resorte en vez de cambiar el SVG a secas: el icono viejo se
+    // encoge y el nuevo entra. Mismo gesto que las píldoras de la barra de TALK.
+    if (icon) {
+      icon.classList.add('si-morph-out');
+      setTimeout(function () {
+        icon.innerHTML = icono(muted ? 'volume_off' : 'volume_up');
+        icon.classList.remove('si-morph-out');
+      }, 130);
+    }
     btn.setAttribute('aria-pressed', muted ? 'true' : 'false');
     btn.title = muted ? 'Activar voces' : 'Silenciar voces';
   }
@@ -1387,16 +1403,34 @@
     SM.busy = true;
 
     var send = document.getElementById('siSend');
-    if (send) { send.disabled = true; send.innerHTML = '<span class="si-spinner"></span> Evaluando...'; }
+    if (send) { send.disabled = true; send.textContent = 'Evaluando…'; }
     if (ta) ta.disabled = true;
+    // Espera larga (10-30 s): el lápiz sustituye al spinner de 18px que vivía
+    // dentro del botón. Se pinta en el flujo, donde de verdad se ve.
+    var zonaEsp = document.getElementById('siPencil');
+    if (!zonaEsp && send && send.parentNode && send.parentNode.parentNode) {
+      zonaEsp = document.createElement('div');
+      zonaEsp.id = 'siPencil';
+      zonaEsp.className = 'si-pencil-wrap';
+      zonaEsp.innerHTML = (window.rodeoPencilHTML ? window.rodeoPencilHTML() : '')
+        + '<span class="si-pencil-txt">pensando tu respuesta…</span>';
+      send.parentNode.parentNode.appendChild(zonaEsp);
+    }
 
     var scene = SM.scenesById[SM.sceneId];
     var run = SM.runId;
+    // Quita el lápiz pase lo que pase (acierto, error o cierre).
+    function quitarLapiz() {
+      var z = document.getElementById('siPencil');
+      if (z && z.parentNode) z.parentNode.removeChild(z);
+    }
     storyEvaluate(scene, text).then(function (out) {
+      quitarLapiz();
       if (run !== SM.runId) return;  // cerrado o reabierto mientras evaluaba
       SM.busy = false;
       renderCorrection(scene, out.json, out.source);
     }).catch(function (err) {
+      quitarLapiz();
       if (run !== SM.runId) return;
       SM.busy = false;
       renderAIError(scene, err);

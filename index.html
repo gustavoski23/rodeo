@@ -106,6 +106,12 @@ try {
 
   /* Glow de HEAT (STORY) — vira el ambient a coral cuando HEAT>55 */
   --heat-glow-color: oklch(66% 0.20 27 / 0.16);
+
+  /* Píldoras de audio de la barra de sesión (volumen · play · repetir).
+     Token propio para que el tema claro las invierta sin tocar el componente. */
+  --pill-bg:        oklch(100% 0 0 / 0.04);
+  --pill-bg-hover:  oklch(100% 0 0 / 0.07);
+  --pill-border:    oklch(100% 0 0 / 0.09);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1390,6 +1396,198 @@ body.nivel-a1 main, html.nivel-a1 main { padding-bottom: 24px; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   MOVIMIENTO — versiones en CSS de los componentes que el dueño pidió.
+   Los originales eran React + framer-motion + Tailwind + lucide (~200 KB y un
+   build step). Esto son ~3 KB y el mismo efecto. La curva de resorte de
+   framer-motion (stiffness 600 / damping 25) ≈ cubic-bezier(.34,1.56,.64,1).
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Morph de iconos: dos SVG superpuestos que se relevan ───────────────────
+   Contenedor genérico. El que manda es el estado REAL (grabando, silenciado),
+   no :hover — RODEO es móvil y ahí el hover no existe. */
+.rd-morph { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+.rd-morph > svg {
+  grid-area: 1 / 1; position: absolute;
+  transition: opacity .18s ease, transform .32s cubic-bezier(.34,1.56,.64,1);
+}
+.rd-morph > svg.is-off { opacity: 0; transform: scale(0.5); }
+.rd-morph > svg.is-on  { opacity: 1; transform: scale(1); }
+
+/* ── Micrófono: mic ↔ mic tachado según .recording ─────────────────────────
+   Los 5 micros de la app (#mic-btn, #rp-mic, #story-mic, #rung-mic, #siMic)
+   comparten la clase .recording, así que esta regla los cubre todos. */
+.mic-morph { position: relative; display: inline-flex; }
+.mic-morph .mic-idle, .mic-morph .mic-rec {
+  transition: opacity .18s ease, transform .32s cubic-bezier(.34,1.56,.64,1);
+}
+.mic-morph .mic-rec { position: absolute; inset: 0; opacity: 0; transform: scale(0.5); }
+.recording .mic-morph .mic-idle { opacity: 0; transform: scale(0.5); }
+.recording .mic-morph .mic-rec  { opacity: 1; transform: scale(1); }
+
+/* ── Píldoras de audio (volumen · play · repetir) ──────────────────────────
+   La geometría que pidió: 36px de alto, radio 40, fondo translúcido, borde
+   apenas visible. En tema claro los blancos translúcidos se invierten. */
+.pill-btn {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  height: 36px; min-width: 36px; padding: 0 12px; gap: 8px;
+  border-radius: 40px;
+  background: var(--pill-bg); border: 1px solid var(--pill-border);
+  color: var(--text-primary); cursor: pointer;
+  transition: background .15s ease, transform .13s ease, border-color .15s ease;
+}
+.pill-btn:hover { background: var(--pill-bg-hover); }
+.pill-btn:active { transform: scale(0.96); }
+.pill-btn:disabled { opacity: .38; cursor: default; transform: none; }
+.pill-btn .rd-morph, .pill-btn > svg { width: 16px; height: 16px; flex-shrink: 0; }
+.pill-btn .pill-txt {
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 500;
+  font-size: 13px; letter-spacing: -0.01em;
+}
+/* Estado activo (voz encendida): se tiñe de acento sin cambiar de forma */
+.pill-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+/* Repetir: el icono gira media vuelta al tocarlo */
+.pill-btn .rd-spin { transition: transform .45s cubic-bezier(.2,.9,.3,1.1); }
+.pill-btn:active .rd-spin, .pill-btn.girando .rd-spin { transform: rotate(180deg); }
+
+/* ── Menú ☰ ↔ ✕ ────────────────────────────────────────────────────────── */
+.rd-menu-ico, .rd-theme-ico {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+}
+.rd-menu-ico svg, .rd-theme-ico svg {
+  position: absolute; transition: transform .2s ease, opacity .2s ease;
+}
+.rd-menu-close { transform: scale(.75) rotate(-90deg); opacity: 0; }
+.rd-menu-btn[aria-expanded="true"] .rd-menu-open  { transform: scale(.75) rotate(90deg); opacity: 0; }
+.rd-menu-btn[aria-expanded="true"] .rd-menu-close { transform: scale(1) rotate(0); opacity: 1; }
+
+/* ── Botón de tema: sol ↔ luna ─────────────────────────────────────────── */
+.rd-theme-moon { transform: scale(.75) rotate(-90deg); opacity: 0; }
+:root[data-theme="light"] .rd-theme-sun  { transform: scale(.75) rotate(90deg); opacity: 0; }
+:root[data-theme="light"] .rd-theme-moon { transform: scale(1) rotate(0); opacity: 1; }
+
+/* ── Botón arcoíris — SOLO para el CTA del arranque ────────────────────────
+   OJO: .btn-accent son ~48 botones en toda la app; cambiarlo cambiaría el CTA
+   entero de RODEO. Por eso esto es una clase aparte, aplicada al LISTO del
+   onboarding y a las dos tarjetas del selector de nivel. */
+@property --rb-ang { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes rb-girar { to { --rb-ang: 360deg; } }
+.btn-rainbow {
+  position: relative; isolation: isolate;
+  background: var(--bg-elevated); color: var(--text-primary);
+  border: none; border-radius: 100px; cursor: pointer;
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 700;
+  font-size: 0.95rem; letter-spacing: 0.01em;
+  padding: 16px 34px; min-height: 52px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  transition: transform .25s ease, filter .2s ease, opacity .2s ease;
+}
+/* El borde vivo: un conic-gradient que gira detrás, recortado a un anillo */
+.btn-rainbow::before {
+  content: ''; position: absolute; inset: -2px; z-index: -1;
+  border-radius: inherit;
+  background: conic-gradient(from var(--rb-ang),
+    var(--accent), oklch(80% 0.16 200), oklch(78% 0.18 290),
+    oklch(80% 0.17 30), var(--accent));
+  animation: rb-girar 4s linear infinite;
+}
+/* El halo difuso debajo, del mismo gradiente */
+.btn-rainbow::after {
+  content: ''; position: absolute; inset: 0; z-index: -2;
+  border-radius: inherit; filter: blur(14px); opacity: .55;
+  background: conic-gradient(from var(--rb-ang),
+    var(--accent), oklch(80% 0.16 200), oklch(78% 0.18 290),
+    oklch(80% 0.17 30), var(--accent));
+  animation: rb-girar 4s linear infinite;
+}
+.btn-rainbow:active { transform: scale(0.97); }
+.btn-rainbow:disabled { opacity: .4; cursor: default; transform: none; }
+.btn-rainbow:disabled::before, .btn-rainbow:disabled::after { animation-play-state: paused; opacity: .18; }
+@media (prefers-reduced-motion: reduce) {
+  .btn-rainbow::before, .btn-rainbow::after { animation: none; }
+}
+
+/* ── Texto de la IA que entra animado, carácter a carácter ────────────────
+   Reemplaza la máquina de escribir, que escribía textContent y leía
+   scrollHeight cada 28 ms (reflow forzado 36 veces por segundo). Ahora el
+   navegador lo resuelve en el compositor. */
+@keyframes rd-char {
+  from { opacity: 0; transform: translateY(30px) rotate(45deg) scale(0.5); }
+  to   { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+}
+.rd-tw > span {
+  display: inline-block; white-space: pre-wrap;
+  animation: rd-char .4s cubic-bezier(.2,1.4,.4,1) backwards;
+  animation-delay: calc(var(--i, 0) * 0.018s);
+}
+@media (prefers-reduced-motion: reduce) { .rd-tw > span { animation: none; } }
+
+/* ── Lápiz que escribe mientras la IA piensa (de Uiverse, by gustavofusco) ──
+   Prefijado rd-pencil-* para no chocar con nada. Sustituye a los puntitos en
+   las esperas largas — la peor es la del episodio: 10-30 s con un spinner de
+   18 px dentro de un botón. */
+.rd-pencil { display: block; width: 5.2em; height: 5.2em; margin: 2px 0; }
+.rd-pencil__body1, .rd-pencil__body2, .rd-pencil__body3,
+.rd-pencil__eraser, .rd-pencil__eraser-skew, .rd-pencil__point,
+.rd-pencil__rotate, .rd-pencil__stroke {
+  animation-duration: 3s; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+.rd-pencil__body1, .rd-pencil__body2, .rd-pencil__body3 { transform: rotate(-90deg); }
+.rd-pencil__body1 { animation-name: rdPencilBody1; }
+.rd-pencil__body2 { animation-name: rdPencilBody2; }
+.rd-pencil__body3 { animation-name: rdPencilBody3; }
+.rd-pencil__eraser { animation-name: rdPencilEraser; transform: rotate(-90deg) translate(49px,0); }
+.rd-pencil__eraser-skew { animation-name: rdPencilEraserSkew; animation-timing-function: ease-in-out; }
+.rd-pencil__point { animation-name: rdPencilPoint; transform: rotate(-90deg) translate(49px,-30px); }
+.rd-pencil__rotate { animation-name: rdPencilRotate; }
+.rd-pencil__stroke { animation-name: rdPencilStroke; transform: translate(100px,100px) rotate(-113deg); }
+@keyframes rdPencilBody1 {
+  from, to { stroke-dashoffset: 351.86; transform: rotate(-90deg); }
+  50% { stroke-dashoffset: 150.8; transform: rotate(-225deg); }
+}
+@keyframes rdPencilBody2 {
+  from, to { stroke-dashoffset: 406.84; transform: rotate(-90deg); }
+  50% { stroke-dashoffset: 174.36; transform: rotate(-225deg); }
+}
+@keyframes rdPencilBody3 {
+  from, to { stroke-dashoffset: 296.88; transform: rotate(-90deg); }
+  50% { stroke-dashoffset: 127.23; transform: rotate(-225deg); }
+}
+@keyframes rdPencilEraser {
+  from, to { transform: rotate(-45deg) translate(49px,0); }
+  50% { transform: rotate(0deg) translate(49px,0); }
+}
+@keyframes rdPencilEraserSkew {
+  from, 32.5%, 67.5%, to { transform: skewX(0); }
+  35%, 65% { transform: skewX(-4deg); }
+  37.5%, 62.5% { transform: skewX(8deg); }
+  40%, 45%, 50%, 55%, 60% { transform: skewX(-15deg); }
+  42.5%, 47.5%, 52.5%, 57.5% { transform: skewX(15deg); }
+}
+@keyframes rdPencilPoint {
+  from, to { transform: rotate(-90deg) translate(49px,-30px); }
+  50% { transform: rotate(-225deg) translate(49px,-30px); }
+}
+@keyframes rdPencilRotate {
+  from { transform: translate(100px,100px) rotate(0); }
+  to { transform: translate(100px,100px) rotate(720deg); }
+}
+@keyframes rdPencilStroke {
+  from { stroke-dashoffset: 439.82; transform: translate(100px,100px) rotate(-113deg); }
+  50% { stroke-dashoffset: 164.93; transform: translate(100px,100px) rotate(-113deg); }
+  75%, to { stroke-dashoffset: 439.82; transform: translate(100px,100px) rotate(112deg); }
+}
+/* Sin movimiento: el lápiz queda quieto pero visible (nunca invisible) */
+@media (prefers-reduced-motion: reduce) {
+  .rd-pencil__body1, .rd-pencil__body2, .rd-pencil__body3, .rd-pencil__eraser,
+  .rd-pencil__eraser-skew, .rd-pencil__point, .rd-pencil__rotate, .rd-pencil__stroke {
+    animation: none;
+  }
+}
+/* Fila del lápiz + su contador de segundos */
+.rd-pensando { display: flex; align-items: center; gap: 6px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
    UTILIDADES — las 39 clases de Tailwind que el proyecto usa de verdad.
    ──────────────────────────────────────────────────────────────────────────
    Inventario CERRADO: barrido de index.html + js/*.js cubriendo class="…",
@@ -1955,8 +2153,17 @@ body.rd-lectura .luminous-line { opacity: 0; }
 
 <!-- ═══════════════════════════ HEADER GLOBAL ═══════════════════════════ -->
 <header class="rd-header flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
-  <!-- Marca: carita-logo line-art (motivo REF 1) + wordmark Archivo pesado -->
   <div class="flex items-center gap-2.5">
+    <!-- Menú: sustituye al antiguo icono de perfil de la derecha. Abre lo mismo
+         (perfil, nivel, DNA, SUBE, nombre, intereses, premium, cuenta) pero
+         desde donde se busca un menú. De paso saca del entierro a DNA y SUBE,
+         que vivían tras un icono de persona que no los anunciaba. -->
+    <button id="menu-btn" class="icon-btn rd-menu-btn" aria-label="Abrir menú" aria-expanded="false" style="width:42px;height:42px;">
+      <span class="rd-menu-ico" aria-hidden="true">
+        <svg class="rd-menu-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"></line><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="17" x2="20" y2="17"></line></svg>
+        <svg class="rd-menu-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>
+      </span>
+    </button>
     <!-- ILUSTRACIÓN: mascot-mark RODEO (carita line-art lima, círculo + ojos + sonrisa wonky) -->
     <span class="rd-mark" aria-hidden="true">
       <svg width="30" height="30" viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -1971,11 +2178,13 @@ body.rd-lectura .luminous-line { opacity: 0; }
     </div>
   </div>
 
-  <!-- Perfil: agrupa lo secundario (DNA, SUBE, racha) que salió del tab bar,
-       para dejar el nav en 3 pestañas de práctica. El ticker de costo se retiró
-       antes; updateCostTicker() tolera que #cost-ticker no exista. -->
-  <button id="profile-btn" class="icon-btn" aria-label="Tu perfil, racha y repaso" style="width:42px;height:42px;">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"></path></svg>
+  <!-- Tema claro/oscuro. El barrido circular usa la View Transitions API
+       (nativa en Chrome); sin ella el tema cambia igual, solo sin animación. -->
+  <button id="theme-btn" class="icon-btn rd-theme-btn" aria-label="Cambiar entre tema claro y oscuro" style="width:42px;height:42px;">
+    <span class="rd-theme-ico" aria-hidden="true">
+      <svg class="rd-theme-sun" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+      <svg class="rd-theme-moon" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 0 1 11.2 3a7 7 0 1 0 9.8 9.8z"></path></svg>
+    </span>
   </button>
 </header>
 <div class="luminous-line mx-5 shrink-0"></div>
@@ -2068,16 +2277,22 @@ body.rd-lectura .luminous-line { opacity: 0; }
           <span id="session-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
         </div>
         <div class="flex gap-2 items-center">
-          <!-- Voz: alterna entre Helena (US, femenina) y Draco (UK, masculino). -->
-          <button id="voice-btn" class="btn-ghost" aria-label="Cambiar la voz del coach" style="min-height:36px; padding:6px 12px; font-size:0.72rem; font-family:'Space Mono',monospace; letter-spacing:0.04em;">Helena</button>
+          <!-- Volumen: silencia la voz del coach. Morph altavoz ↔ altavoz tachado. -->
+          <button id="tts-toggle" class="pill-btn" aria-label="Activar o desactivar voz del coach">
+            <span class="rd-morph">
+              <svg class="tts-on is-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a10 10 0 0 1 0 14"></path></svg>
+              <svg class="tts-off is-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            </span>
+          </button>
           <!-- Play: lee en voz alta la última respuesta del coach. -->
-          <button id="replay-btn" class="icon-btn" aria-label="Reproducir el audio de la última respuesta" style="width:40px;height:40px;">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+          <button id="replay-btn" class="pill-btn" aria-label="Escuchar la última respuesta">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
           </button>
-          <button id="tts-toggle" class="icon-btn" aria-label="Activar o desactivar voz del coach" style="width:40px;height:40px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          <!-- Repetir: la vuelve a soltar. El icono gira media vuelta al tocarlo. -->
+          <button id="again-btn" class="pill-btn" aria-label="Repetir la última respuesta">
+            <svg class="rd-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"></path></svg>
           </button>
-          <button id="end-session" class="btn-ghost" style="min-height:40px; padding: 8px 16px; font-size: 0.78rem;">Terminar</button>
+          <button id="end-session" class="btn-ghost" style="min-height:36px; padding: 8px 13px; font-size: 0.75rem;">Terminar</button>
         </div>
       </div>
       <div id="chat-scroll" class="scroll-area flex flex-col gap-3" style="flex:1; min-height:0; padding-bottom: 8px;"></div>
@@ -2090,7 +2305,12 @@ body.rd-lectura .luminous-line { opacity: 0; }
         </button>
         <div class="rd-mic-hero-wrap">
           <button id="mic-btn" class="icon-btn mic-hero" aria-label="Presiona y habla">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+            <!-- Morph mic ↔ mic tachado. Lo dispara .recording (el estado real),
+                 no :hover: esto es móvil y ahí el hover no existe. -->
+            <span class="mic-morph" style="width:28px;height:28px;" aria-hidden="true">
+              <svg class="mic-idle" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+              <svg class="mic-rec" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="M9 9v3a3 3 0 0 0 5.1 2.1"></path><path d="M15 9.3V4a3 3 0 0 0-5.9-.7"></path><path d="M19 10v2a7 7 0 0 1-.9 3.4M15.3 18.7A7 7 0 0 1 5 12v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line></svg>
+            </span>
           </button>
           <span class="mic-hero-label" aria-hidden="true"><span class="mh-idle">Presiona y habla</span><span class="mh-rec">Escuchando… toca para enviar</span></span>
         </div>
@@ -2153,11 +2373,17 @@ body.rd-lectura .luminous-line { opacity: 0; }
           <span id="rp-title" class="rd-eyebrow rd-eyebrow--accent rd-session-title"></span>
         </div>
         <div class="flex gap-2 items-center">
-          <button id="rp-replay" class="icon-btn" aria-label="Reproducir la última línea">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+          <button id="rp-tts" class="pill-btn" aria-label="Activar o desactivar voz">
+            <span class="rd-morph">
+              <svg class="tts-on is-on" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a10 10 0 0 1 0 14"></path></svg>
+              <svg class="tts-off is-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+            </span>
           </button>
-          <button id="rp-tts" class="icon-btn" aria-label="Activar o desactivar voz">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+          <button id="rp-replay" class="pill-btn" aria-label="Escuchar la última línea">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+          </button>
+          <button id="rp-again" class="pill-btn" aria-label="Repetir la última línea">
+            <svg class="rd-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"></path></svg>
           </button>
           <button id="rp-end" class="btn-ghost" style="min-height:44px; padding: 10px 16px; font-size: 0.78rem;">Terminar</button>
         </div>
@@ -2818,7 +3044,7 @@ function mostrarOnboarding() {
              placeholder="¿Cómo te llamas? (opcional)" autocomplete="given-name" aria-label="Tu nombre">
       ${renderInteresGrupos('ob-chips')}
       <div class="ob-actions">
-        <button id="ob-done" class="btn-accent" style="min-height:52px;padding:14px 32px;" disabled>LISTO</button>
+        <button id="ob-done" class="btn-rainbow" style="min-height:52px;padding:14px 32px;" disabled>LISTO</button>
         <button id="ob-skip" class="ob-skip" type="button">saltar por ahora</button>
       </div>
     </div>`;
@@ -3674,30 +3900,91 @@ function addBubble(html, cls) {
   return el;
 }
 
+// El lápiz que escribe mientras el modelo piensa (de Uiverse, by gustavofusco).
+// Sustituye a los tres puntitos en las esperas largas: TALK tarda segundos y el
+// episodio hasta 30, y ahí un loader que "hace algo" cambia la percepción.
+function pencilHTML() {
+  return '<div class="rd-pensando">'
+    + '<svg class="rd-pencil" viewBox="0 0 200 200" width="200" height="200" role="img" aria-label="Pensando">'
+    + '<defs>'
+    +   '<clipPath id="rdPencilEraser"><rect rx="5" ry="5" width="30" height="30"></rect></clipPath>'
+    + '</defs>'
+    + '<g stroke-linecap="round" stroke-width="12" stroke="var(--accent)" fill="none" transform="rotate(-113,100,100)">'
+    +   '<circle class="rd-pencil__stroke" r="70" cx="100" cy="100" stroke-dasharray="439.82 439.82" stroke-dashoffset="439.82"></circle>'
+    + '</g>'
+    + '<g class="rd-pencil__rotate" transform="translate(100,100)">'
+    +   '<g fill="none">'
+    +     '<circle class="rd-pencil__body1" r="56" stroke="var(--accent)" stroke-width="10" stroke-dasharray="351.86 351.86" stroke-dashoffset="351.86" transform="rotate(-90)"></circle>'
+    +     '<circle class="rd-pencil__body2" r="64.75" stroke="var(--text-primary)" stroke-width="8" stroke-dasharray="406.84 406.84" stroke-dashoffset="406.84" transform="rotate(-90)"></circle>'
+    +     '<circle class="rd-pencil__body3" r="47.25" stroke="var(--text-primary)" stroke-width="8" stroke-dasharray="296.88 296.88" stroke-dashoffset="296.88" transform="rotate(-90)"></circle>'
+    +   '</g>'
+    +   '<g class="rd-pencil__eraser" transform="rotate(-90) translate(49,0)">'
+    +     '<g class="rd-pencil__eraser-skew">'
+    +       '<rect fill="var(--warn)" rx="5" ry="5" height="30" width="30"></rect>'
+    +       '<rect clip-path="url(#rdPencilEraser)" fill="var(--text-primary)" opacity="0.25" height="30" width="5"></rect>'
+    +       '<rect fill="var(--card-paper)" height="20" width="30" y="-6"></rect>'
+    +       '<rect fill="var(--accent)" height="7" width="30" y="-19"></rect>'
+    +     '</g>'
+    +   '</g>'
+    +   '<g class="rd-pencil__point" transform="rotate(-90) translate(49,-30)">'
+    +     '<polygon fill="var(--card-peach)" points="15 0,30 30,0 30"></polygon>'
+    +     '<polygon fill="var(--card-ink)" points="15 0,6 30,24 30"></polygon>'
+    +     '<polygon fill="var(--text-primary)" points="15 0,20 10,10 10"></polygon>'
+    +   '</g>'
+    + '</g>'
+    + '</svg></div>';
+}
 function addTyping() {
-  return addBubble('<div class="typing-dots"><span></span><span></span><span></span></div>', 'bubble-coach');
+  return addBubble(pencilHTML(), 'bubble-coach');
 }
 
 // Máquina de escribir para la respuesta del coach: haiku contesta tan rápido
 // que el texto aparecía de golpe y se sentía artificial. Continúa desde el
 // prefijo ya mostrado por el streaming (si coincide) para no reiniciar.
+// La respuesta del coach entra animada, pieza a pieza, en vez de teclearse.
+// Sustituye a la máquina de escribir, que escribía textContent y leía
+// scrollHeight cada 28 ms — reflow forzado 36 veces por segundo. Ahora cada
+// trozo es un <span> con su retardo y el navegador lo resuelve en el compositor.
+//
+// Coste acotado: por CARÁCTER hasta 120 (el efecto se aprecia), por PALABRA por
+// encima — 400 spans con resorte propio no los mueve un teléfono con gracia.
+// El texto de esta fase es plano (sin HTML): las glosas llegan después, cuando
+// el llamante reemplaza el innerHTML por la versión glosada.
+const TW_MAX_CHARS = 120;
 function escribirMaquina(el, texto, alTerminar) {
-  if (el._tw) { clearInterval(el._tw); el._tw = null; }
+  if (el._tw) { clearTimeout(el._tw); el._tw = null; }
   texto = String(texto ?? '');
-  if (REDUCED) { el.textContent = texto; if (alTerminar) alTerminar(); return; }
-  let i = (el.textContent && texto.startsWith(el.textContent)) ? el.textContent.length : 0;
-  el.classList.add('escribiendo');
+  if (REDUCED || !texto) {
+    el.textContent = texto;
+    if (alTerminar) alTerminar();
+    return;
+  }
+  const piezas = texto.length <= TW_MAX_CHARS
+    ? [...texto]                       // por carácter (respeta emojis y acentos)
+    : texto.split(/(\s+)/);            // por palabra, conservando los espacios
+  el.textContent = '';
+  el.classList.add('rd-tw');
+  const frag = document.createDocumentFragment();
+  let visibles = 0;
+  piezas.forEach((p) => {
+    const sp = document.createElement('span');
+    sp.textContent = p;
+    // Los espacios no cuentan para el retardo: si no, las pausas se acumulan
+    // y una frase con muchas palabras tarda el doble en asentar.
+    if (p.trim()) sp.style.setProperty('--i', visibles++);
+    else sp.style.setProperty('--i', visibles);
+    frag.appendChild(sp);
+  });
+  el.appendChild(frag);
   const c = $('#chat-scroll');
-  el._tw = setInterval(() => {
-    i = Math.min(texto.length, i + 2);
-    el.textContent = texto.slice(0, i);
-    if (c) c.scrollTop = c.scrollHeight;
-    if (i >= texto.length) {
-      clearInterval(el._tw); el._tw = null;
-      el.classList.remove('escribiendo');
-      if (alTerminar) alTerminar();
-    }
-  }, 28);
+  if (c) c.scrollTop = c.scrollHeight;
+  // Cuando termina la última pieza, el llamante pinta la versión con glosas.
+  const total = 400 + visibles * 18;   // duración + (retardo por pieza)
+  el._tw = setTimeout(() => {
+    el._tw = null;
+    el.classList.remove('rd-tw');
+    if (alTerminar) alTerminar();
+  }, total);
 }
 
 async function sendTurn(userText) {
@@ -4196,7 +4483,20 @@ function stopSpeaking() {
   if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
-function syncTTSButton() { $('#tts-toggle').classList.toggle('on', state.ttsOn); }
+// Morph del icono de volumen: intercambia los dos SVG según el estado real
+// (silenciado o no). Sirve para el de TALK y el de ROLEPLAY.
+function pintarMorphTTS(btn, encendido) {
+  if (!btn) return;
+  const on = btn.querySelector('.tts-on');
+  const off = btn.querySelector('.tts-off');
+  if (on)  { on.classList.toggle('is-on', encendido);  on.classList.toggle('is-off', !encendido); }
+  if (off) { off.classList.toggle('is-on', !encendido); off.classList.toggle('is-off', encendido); }
+  btn.classList.toggle('on', encendido);
+}
+function syncTTSButton() {
+  pintarMorphTTS($('#tts-toggle'), state.ttsOn);
+  pintarMorphTTS($('#rp-tts'), state.ttsOn);
+}
 $('#tts-toggle').addEventListener('click', () => {
   state.ttsOn = !state.ttsOn;
   store.set('rodeo_tts', state.ttsOn);
@@ -4210,7 +4510,18 @@ $('#tts-toggle').addEventListener('click', () => {
 function syncReplayButton() {
   const b = $('#replay-btn');
   if (b) b.disabled = !ultimoHablado;
+  const a = $('#again-btn');
+  if (a) a.disabled = !ultimoHablado;
 }
+// Repetir: misma acción que play, pero con su propio gesto (el icono gira).
+// Play = escúchalo; Repetir = suéltalo otra vez.
+$('#again-btn').addEventListener('click', () => {
+  if (!ultimoHablado) { toast('Aún no hay nada que repetir', 1500); return; }
+  const b = $('#again-btn');
+  b.classList.add('girando');
+  setTimeout(() => b.classList.remove('girando'), 460);
+  speak(ultimoHablado);
+});
 $('#replay-btn').addEventListener('click', () => {
   if (!ultimoHablado) { toast('Aún no hay nada que repetir', 1500); return; }
   speak(ultimoHablado);
@@ -4223,7 +4534,8 @@ function syncVoiceButton() {
   const b = $('#voice-btn');
   if (b) b.textContent = VOCES[vozActual] || 'Voz';
 }
-$('#voice-btn').addEventListener('click', () => {
+document.addEventListener('click', (ev) => {
+  if (!ev.target.closest || !ev.target.closest('#voice-btn')) return;
   vozActual = vozActual === 'aura-2-helena-en' ? 'aura-2-draco-en' : 'aura-2-helena-en';
   syncVoiceButton();
   toast('Voz: ' + VOCES[vozActual], 1500);
@@ -4722,6 +5034,11 @@ function openPerfil() {
     </button>
 
     <div style="margin-top:24px;">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Voz del coach</p>
+      <p class="rd-eyebrow rd-eyebrow--muted" style="margin:8px 0 10px;text-transform:none;letter-spacing:normal;">Helena es de Estados Unidos; Draco, del Reino Unido.</p>
+      <button id="voice-btn" class="chip" aria-label="Cambiar la voz del coach">${esc(VOCES[vozActual] || 'Voz')}</button>
+    </div>
+    <div style="margin-top:20px;">
       <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Tu nombre</p>
       <input type="text" id="perf-nombre" class="ob-nombre" maxlength="24" style="margin:10px 0 4px;animation:none;"
              placeholder="¿Cómo te llamo?" value="${escAttr(nombreUsuario())}" aria-label="Tu nombre">
@@ -4765,7 +5082,27 @@ function openPerfil() {
   // Botones de cuenta (login Google / salir) del bloque de supabase-sync.js.
   if (window.sbWireCuenta) window.sbWireCuenta();
 }
-$('#profile-btn').addEventListener('click', openPerfil);
+// El menú (arriba a la izquierda) abre lo que antes abría el icono de perfil.
+// aria-expanded manda el morph ☰ ↔ ✕; se devuelve a ☰ al cerrar la hoja.
+$('#menu-btn').addEventListener('click', () => {
+  const b = $('#menu-btn');
+  const abierto = b.getAttribute('aria-expanded') === 'true';
+  if (abierto) { closeSheet(); return; }
+  b.setAttribute('aria-expanded', 'true');
+  b.setAttribute('aria-label', 'Cerrar menú');
+  openPerfil();
+});
+// closeSheet() se llama desde muchos sitios (Escape, clic fuera, botones de la
+// hoja): el icono vuelve a ☰ observando el overlay, no parcheando cada salida.
+{
+  const ov = $('#overlay');
+  if (ov) new MutationObserver(() => {
+    if (ov.classList.contains('hidden')) {
+      const b = $('#menu-btn');
+      if (b) { b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-label', 'Abrir menú'); }
+    }
+  }).observe(ov, { attributes: true, attributeFilter: ['class'] });
+}
 
 /* ═══════════════════ DROP · LECTURA DIARIA ═══════════════════
    La edición diaria: un passage de opinión generado a nivel B2+→C1 sobre el
@@ -6029,7 +6366,7 @@ async function openStory(seriesId, opts = {}) {
 async function generateBible() {
   state.busy = true;
   const sg = SAGAS[state.story.seriesId];
-  $('#story-scroll').innerHTML = '<div class="bubble-coach"><div class="typing-dots"><span></span><span></span><span></span></div> montando el episodio...</div>';
+  $('#story-scroll').innerHTML = '<div class="bubble-coach">' + pencilHTML() + ' montando el episodio...</div>';
   try {
     const dnaErrors = state.dna.filter((d) => d.type === 'error').slice(0, 12)
       .map((d) => `Gus dice "${d.quote}" cuando debería ser "${d.fix}"`).join('; ') || 'ninguno aún';
@@ -6053,7 +6390,7 @@ async function runBeat() {
   if (state.busy || !state.story) return;
   state.busy = true;
   storyInputEnabled(false);
-  $('#story-scroll').innerHTML = '<div class="bubble-coach"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  $('#story-scroll').innerHTML = '<div class="bubble-coach">' + pencilHTML() + '</div>';
   try {
     const { parsed: beat } = await callJSON('chat', [
       { role: 'system', content: `You are the STORY ENGINE for RODEO. Present the next beat: an NPC corners Gus, the mission gives the INTENT in Spanish (NEVER the English line to say), plus a 3-criteria measurable rubric in English so the judge is fair. Underline 1-2 C1 collocations from the NPC line as 'gloss'. STRICT JSON only.\nEPISODE BIBLE:\n${bibleStr()}` },
@@ -6137,7 +6474,7 @@ async function submitStoryLine(text) {
   scroll.appendChild(you);
   const typing = document.createElement('div');
   typing.className = 'bubble-coach';
-  typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  typing.innerHTML = pencilHTML();
   scroll.appendChild(typing);
   scroll.scrollTop = scroll.scrollHeight;
 
@@ -6347,6 +6684,10 @@ window.rodeoStoryProgress = function () {
 // Puente para RÉTAME (js/cards-mode.js): las tarjetas usan la voz, el DNA y la
 // racha de la app sin acoplarse a este scope. trackReplay:false — la voz de una
 // tarjeta no debe contaminar el botón "repetir" del coach de TALK.
+// El episodio ilustrado (js/story-mode.js) también usa el lápiz para su espera
+// de 10-30 s. Se expone en vez de duplicar el SVG en el otro archivo.
+window.rodeoPencilHTML = pencilHTML;
+
 window.rodeoCardsBridge = {
   speak: (t) => speak(t, null, { trackReplay: false }),
   toast: (m) => toast(m),
@@ -6877,7 +7218,7 @@ function rpInputEnabled(on) {
   if (m) { m.disabled = !on; m.style.opacity = on ? '1' : '0.4'; }
 }
 
-function rpSyncTTS() { const b = $('#rp-tts'); if (b) b.classList.toggle('on', state.ttsOn); }
+function rpSyncTTS() { pintarMorphTTS($('#rp-tts'), state.ttsOn); }
 
 async function rpTurn(userText, isOpening) {
   if (rpBusy || !state.roleplay) {
@@ -6904,7 +7245,7 @@ async function rpTurn(userText, isOpening) {
     ses.messages.push({ role: 'user', content: RP_OPENING });
   }
 
-  const typing = rpAddBubble('<div class="typing-dots"><span></span><span></span><span></span></div>', 'bubble-coach rp-narr');
+  const typing = rpAddBubble(pencilHTML(), 'bubble-coach rp-narr');
   let liveBubble = null;
   try {
     let content, finish;
@@ -7000,7 +7341,7 @@ async function rpDebrief() {
   const endBtn = $('#rp-end'); if (endBtn) endBtn.disabled = true;
   // Indicador persistente (no un toast de 4s para una espera de 15-25s).
   const cerrando = rpAddBubble(
-    '<div class="typing-dots"><span></span><span></span><span></span></div>' +
+    pencilHTML() +
     '<div style="font-size:0.78rem; color:var(--text-secondary); margin-top:6px;">cerrando la escena…</div>',
     'bubble-coach rp-narr'
   );
