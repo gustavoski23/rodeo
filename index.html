@@ -480,6 +480,28 @@ body {
   .ob-title, .ob-sub, .ob-chips .chip { animation: none; }
 }
 
+/* ── Selector de nivel (full-screen, primera vez; reusa el overlay #onboarding).
+   Dos caminos: principiante (A1 → OFICINA con Alfred) o avanzado (flujo de Gus).
+   Entrada por keyframe con fill-mode both; NUNCA GSAP para visibilidad. ── */
+.rd-lvl-choices { display: flex; flex-direction: column; gap: 14px; margin: 10px 0 6px; }
+.rd-lvl {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  padding: 19px 20px; border-radius: 22px;
+  background: var(--bg-surface); border: 1px solid oklch(96% 0.004 265 / 0.14);
+  transition: border-color .25s ease, transform .2s ease, background .25s ease;
+  animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.rd-lvl:nth-child(2) { animation-delay: 0.08s; }
+.rd-lvl:hover, .rd-lvl:focus-visible { border-color: var(--accent); background: var(--bg-elevated); }
+.rd-lvl:active { transform: scale(0.99); }
+.rd-lvl--a1 { border-color: oklch(87% 0.21 128 / 0.32); background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.08), var(--bg-surface)); }
+.rd-lvl-tag { display: block; font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); }
+.rd-lvl-title { display: block; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1.1; margin: 8px 0 6px; }
+.rd-lvl-sub { display: block; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.45; }
+.rd-lvl-ex { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 6px; }
+.rd-lvl-ex span { font-size: 0.73rem; color: var(--text-muted); background: var(--bg-void); border: 1px solid oklch(96% 0.004 265 / 0.1); border-radius: 100px; padding: 4px 10px; }
+@media (prefers-reduced-motion: reduce) { .rd-lvl { animation: none; } }
+
 /* ── Dibujo libre (TALK): el coach abre con un rompehielos en la landing ────
    Cliente puro: instantáneo, gratis, offline. El usuario lo sigue o lo ignora
    (elige un escenario). Entrada por keyframe con fill-mode both. */
@@ -1217,6 +1239,11 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 body.rd-sesion .tabbar { transform: translateY(130%); opacity: 0; pointer-events: none; }
 body.rd-sesion main { padding-bottom: 24px !important; }
 body.rd-sesion .dp-modebar { display: none; }
+/* Nivel A1: un único destino (OFICINA). Una barra con una sola pestaña no
+   navega a ningún lado — se recoge entera y se recupera su hueco. El icono de
+   perfil del header sigue ahí para cambiar de nivel. */
+body.nivel-a1 .tabbar { display: none; }
+body.nivel-a1 main { padding-bottom: 24px; }
 
 /* ── Columna de lectura centrada ──────────────────────────────────────────
    En desktop todo quedaba pegado a la izquierda; la lectura se centra como
@@ -1394,6 +1421,297 @@ body.rd-lectura .luminous-line { opacity: 0; }
   .rp-card, .rp-mission, .rp-consejo { animation: none; }
   .rp-skel { animation: none; }
 }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   OFICINA · módulo A1 laboral offline — BLOQUE ADITIVO (prefijo rd-a1-)
+   Solo clases nuevas; reusa tokens y clases existentes (.slang-card,
+   .bubble-coach, .npc-avatar, .btn-accent, .rd-hero…). Identidad emocional
+   propia: CERO coral-como-castigo, tinta oscura sobre pastel claro (AA).
+   ═════════════════════════════════════════════════════════════════════════ */
+.rd-a1-avatar { display: inline-flex; }
+.rd-a1-line { display: flex; gap: 10px; align-items: flex-start; }
+.rd-a1-bubble { max-width: 100%; }
+
+/* Dots de progreso (onboarding / escena) */
+.rd-a1-dots { display: flex; gap: 7px; align-items: center; }
+.rd-a1-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); opacity: 0.5; transition: width .3s ease, background .3s ease, opacity .3s ease; }
+.rd-a1-dot--on { background: var(--accent); opacity: 1; width: 22px; border-radius: 100px; }
+.rd-a1-dots--onb { justify-content: center; margin-bottom: 4px; }
+
+/* ── Onboarding propio de Alfred (gate rodeo_a1_onboarded) ── */
+.rd-a1-onb { display: flex; flex-direction: column; gap: 16px; padding: 8px 2px 24px; }
+.rd-a1-onb-avatar { display: flex; justify-content: center; }
+.rd-a1-onb-body { display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-onb-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.rd-a1-onb-foot .btn-accent { flex: 1; }
+
+/* Truco de cognados — cards tocables que voltean a español (reveal por clase,
+   robusto ante alturas variables: el falseHook agranda la card de "meeting"). */
+.rd-a1-cog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 9px; }
+.rd-a1-cog {
+  position: relative; min-height: 58px; padding: 10px 8px;
+  border-radius: 16px; border: 1px solid oklch(20% 0.03 265 / 0.15);
+  background: var(--card-paper); color: var(--card-ink);
+  cursor: pointer; text-align: center;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--sticker-shadow);
+  transition: transform .18s ease, background .25s ease;
+}
+.rd-a1-cog:active { transform: scale(0.96); }
+.rd-a1-cog-front, .rd-a1-cog-back { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+.rd-a1-cog-back { display: none; }
+.rd-a1-cog.rd-a1-flipped { background: var(--card-blue); }
+.rd-a1-cog.rd-a1-flipped .rd-a1-cog-front { display: none; }
+.rd-a1-cog.rd-a1-flipped .rd-a1-cog-back { display: flex; }
+.rd-a1-cog-en { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 0.9rem; line-height: 1.05; color: var(--card-ink); letter-spacing: -0.01em; }
+.rd-a1-cog-es { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.92rem; color: var(--card-ink); }
+.rd-a1-cog-warn { position: absolute; top: 5px; right: 7px; font-size: 0.72rem; }
+.rd-a1-cog--hook { grid-column: 1 / -1; min-height: auto; }
+.rd-a1-cog-hook { font-family: 'Familjen Grotesk', sans-serif; font-style: italic; font-size: 0.74rem; line-height: 1.4; color: var(--card-ink-soft); margin-top: 2px; }
+.rd-a1-cog-note { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5; margin-top: 2px; }
+
+/* ── Home ── */
+.rd-a1-hero { margin-bottom: 2px; }
+.rd-a1-units { display: flex; flex-direction: column; gap: 11px; }
+.rd-a1-unit {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  padding: 15px 16px; border-radius: 18px; cursor: pointer;
+  background: var(--bg-surface); border: 1px solid var(--glass-border);
+  border-left: 4px solid var(--rd-a1-theme, var(--accent));
+  transition: transform .2s ease, border-color .25s ease, background .25s ease;
+}
+.rd-a1-unit:hover { background: var(--bg-elevated); }
+.rd-a1-unit:active { transform: scale(0.985); }
+.rd-a1-unit-ico { font-size: 1.5rem; line-height: 1; flex-shrink: 0; width: 30px; text-align: center; }
+.rd-a1-unit-txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rd-a1-unit-title { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.98rem; color: var(--text-primary); line-height: 1.2; }
+.rd-a1-unit-sub { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.35; }
+.rd-a1-badge { align-self: flex-start; margin-top: 4px; font-family: 'Space Mono', monospace; font-size: 0.56rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--card-ink); background: var(--card-yellow); padding: 3px 8px; border-radius: 100px; }
+.rd-a1-unit-go { flex-shrink: 0; color: var(--text-muted); font-size: 1.1rem; }
+.rd-a1-locked {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px;
+  border: 1px dashed oklch(96% 0.004 265 / 0.14); color: var(--text-muted);
+  font-size: 0.82rem; line-height: 1.4;
+}
+.rd-a1-locked-ico { font-size: 1.05rem; flex-shrink: 0; }
+
+/* Botón de pánico permanente 🆘 — NEUTRO (nunca coral/castigo) */
+.rd-a1-panic {
+  display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%;
+  margin: 4px 0 8px; padding: 14px 18px; min-height: 52px;
+  border-radius: 100px; cursor: pointer;
+  background: var(--bg-elevated); border: 1px solid oklch(96% 0.004 265 / 0.18);
+  color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem;
+  transition: border-color .25s ease, transform .2s ease, background .25s ease;
+}
+.rd-a1-panic:hover { border-color: oklch(96% 0.004 265 / 0.4); background: var(--bg-surface); }
+.rd-a1-panic:active { transform: scale(0.98); }
+
+/* ── Gancho A1: preguntas tentadoras que enrutan a la situación real (el
+   "dibujo libre" de OFICINA a nivel principiante). Chip tocable ≥44px. ── */
+.rd-a1-hooks-wrap { margin: 8px 0 2px; }
+.rd-a1-hooks { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
+.rd-a1-hook {
+  min-height: 44px; padding: 10px 16px; border-radius: 100px; cursor: pointer;
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.10), oklch(16% 0.015 265 / 0.4));
+  border: 1px solid oklch(87% 0.21 128 / 0.28); color: var(--text-primary);
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem;
+  transition: border-color .25s ease, transform .2s ease;
+}
+.rd-a1-hook:hover, .rd-a1-hook:focus-visible { border-color: var(--accent); }
+.rd-a1-hook:active { transform: scale(0.97); }
+.rd-a1-hook--locked { opacity: 0.5; background: var(--bg-elevated); border-color: oklch(96% 0.004 265 / 0.16); }
+
+/* ── Hoja de supervivencia (openSheet, frasebook de referencia) ── */
+.rd-a1-sheet-title { font-size: 2rem; line-height: 0.92; margin: 8px 0 6px; }
+.rd-a1-sheet-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 14px; }
+.rd-a1-surv-list { display: flex; flex-direction: column; gap: 11px; }
+.rd-a1-surv {
+  background: var(--card-paper); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.14); border-radius: 16px; padding: 13px 15px;
+}
+.rd-a1-surv-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rd-a1-surv-en { font-size: 1.15rem; font-weight: 800; line-height: 1.05; color: var(--card-ink); letter-spacing: -0.02em; }
+.rd-a1-surv-say { width: 44px; height: 44px; flex-shrink: 0; background: transparent; border-color: oklch(20% 0.03 265 / 0.22); color: var(--card-ink); }
+.rd-a1-surv-es { font-size: 0.88rem; color: var(--card-ink-soft); margin-top: 4px; }
+.rd-a1-surv-snd { font-family: 'Space Mono', monospace; font-size: 0.72rem; color: var(--card-ink-soft); margin-top: 5px; letter-spacing: 0.02em; }
+.rd-a1-surv-note { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-top: 12px; font-style: italic; }
+
+/* ── Escena inmersiva · loop de 6 pasos (Capa 2) ──
+   Chrome constante (← · dots · mini Alfred) + un beat por pantalla. Reusa
+   .slang-card / .bubble-coach / .gloss-chip / .btn-*. Sin coral-como-castigo. */
+.rd-a1-escena-head { display: flex; align-items: center; gap: 12px; padding: 2px 0 12px; }
+.rd-a1-escena-head .rd-a1-dots { flex: 1; justify-content: center; }
+.rd-a1-beat { display: flex; flex-direction: column; gap: 13px; padding: 6px 2px 16px; }
+.rd-a1-bubbles { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 0; }
+.rd-a1-beat-foot { padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-scene-lead { font-family: 'Familjen Grotesk', sans-serif; font-style: italic; font-size: 0.92rem; color: var(--text-secondary); line-height: 1.5; padding: 2px; }
+/* Reveal — la ÚNICA frase EN grande de la pantalla */
+.rd-a1-reveal { text-align: left; }
+.rd-a1-reveal-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.rd-a1-reveal .term { margin: 0; }
+.rd-a1-reveal .ex-es { margin-top: 12px; }
+.rd-a1-say { width: 44px; height: 44px; flex-shrink: 0; background: transparent; border-color: oklch(20% 0.03 265 / 0.22); color: var(--card-ink); }
+.rd-a1-say:hover { border-color: oklch(20% 0.03 265 / 0.45); color: var(--card-ink); }
+.rd-a1-snd { font-family: 'Space Mono', monospace; font-size: 0.76rem; color: var(--card-ink-soft); margin-top: 10px; letter-spacing: 0.02em; }
+.rd-a1-replay { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Molde + swaps (PASO 4) */
+.rd-a1-molde { display: flex; flex-direction: column; gap: 9px; padding: 4px 2px; }
+.rd-a1-frame { font-family: 'Space Mono', monospace; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.01em; }
+.rd-a1-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rd-a1-who { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-family: 'Space Mono', monospace; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); background: var(--bg-elevated); border: 1px solid var(--glass-border); padding: 6px 12px; border-radius: 100px; }
+/* Autoeval (PASO 6) — "Todavía no" NEUTRO, jamás coral/--danger */
+.rd-a1-eval { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.rd-a1-eval-btn { min-height: 56px; padding: 8px 6px; border-radius: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; text-align: center; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.82rem; line-height: 1.12; border: 1px solid transparent; transition: transform .18s ease, background .2s ease, border-color .2s ease, filter .2s ease; }
+.rd-a1-eval-btn:active { transform: scale(0.96); }
+.rd-a1-eval-btn--clavado { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 24px oklch(87% 0.21 128 / 0.22); }
+.rd-a1-eval-btn--clavado:hover { filter: brightness(1.03); }
+.rd-a1-eval-btn--casi { background: transparent; border-color: var(--warn); color: var(--text-primary); }
+.rd-a1-eval-btn--casi:hover { background: oklch(84% 0.16 92 / 0.08); }
+.rd-a1-eval-btn--todavia { background: var(--bg-elevated); border-color: var(--text-muted); color: var(--text-secondary); }
+.rd-a1-eval-btn--todavia:hover { border-color: var(--text-secondary); }
+
+/* ── Home · Capa 3: métrica honesta + CTA de repaso/seguir + progreso ──
+   "Ya te salen solas" = caja>=4 (estrella). CTAs reusan pastel + acento; el
+   estado por unidad reusa .meter-track. Cero coral, cero racha-en-rojo. */
+.rd-a1-metric { display: flex; flex-direction: column; gap: 8px; margin: 2px 0; }
+.rd-a1-metric-label { font-family: 'Familjen Grotesk', sans-serif; font-size: 0.86rem; color: var(--text-secondary); line-height: 1.4; }
+.rd-a1-metric-label strong { color: var(--text-primary); font-weight: 800; }
+
+.rd-a1-repaso {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 15px 16px; border-radius: 18px; cursor: pointer;
+  background: var(--card-peach); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.12); box-shadow: var(--sticker-shadow);
+  transition: transform .2s ease, filter .25s ease;
+}
+.rd-a1-repaso:hover { filter: brightness(1.02); }
+.rd-a1-repaso:active { transform: scale(0.985); }
+.rd-a1-repaso--fresh { background: var(--card-blue); }
+.rd-a1-repaso-txt { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.rd-a1-repaso-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-ink-soft); }
+.rd-a1-repaso-main { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.98rem; color: var(--card-ink); line-height: 1.25; }
+.rd-a1-repaso-go {
+  flex-shrink: 0; align-self: center; white-space: nowrap;
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.86rem;
+  color: var(--accent-ink); background: var(--accent);
+  padding: 10px 16px; min-height: 44px; display: inline-flex; align-items: center;
+  border-radius: 100px; box-shadow: 0 3px 14px oklch(87% 0.21 128 / 0.28);
+}
+
+.rd-a1-seguir { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; cursor: pointer; transition: transform .2s ease, border-color .25s ease; }
+.rd-a1-seguir:hover { border-color: oklch(87% 0.21 128 / 0.5); }
+.rd-a1-seguir:active { transform: scale(0.99); }
+.rd-a1-seguir-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.rd-a1-seguir-main { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 0.94rem; color: var(--text-primary); line-height: 1.25; }
+
+/* Estado por unidad (desbloqueo + dominación + progreso de caja>=3) */
+.rd-a1-unit--locked { opacity: 0.62; }
+.rd-a1-unit-lock { font-size: 0.95rem; }
+.rd-a1-unit-done { color: var(--accent); font-weight: 800; font-size: 1.05rem; }
+.rd-a1-unit-prog { display: flex; align-items: center; gap: 9px; margin-top: 8px; }
+.rd-a1-unit-prog .meter-track { flex: 1; }
+.rd-a1-unit-prog-txt { font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em; color: var(--text-muted); white-space: nowrap; }
+
+/* ── Capa 4 · Rungs (MCQ/cloze/swap) + micro-tarea + logro + Mis frases ──
+   Aditivo, prefijo rd-a1-. Reusa tokens y .gloss-chip/.slang-card/.mission-card.
+   Cero coral-como-castigo: el "casi/miss" es NEUTRO (borde ámbar tenue), jamás
+   --danger. Touch >=44px en todo control. */
+
+/* 🆘 dentro de la escena (§5.7) — touch >=44px */
+.rd-a1-esc-panic { width: 44px; height: 44px; flex-shrink: 0; font-size: 1.05rem; }
+
+/* Rung 1 · Reconocer (MCQ) */
+.rd-a1-mcq { display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-mcq-opt {
+  display: flex; align-items: center; width: 100%; text-align: left;
+  min-height: 52px; padding: 13px 16px; border-radius: 15px; cursor: pointer;
+  background: var(--card-paper); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.14); box-shadow: var(--sticker-shadow);
+  transition: transform .18s ease, border-color .2s ease, filter .2s ease;
+}
+.rd-a1-mcq-opt:hover { filter: brightness(1.02); }
+.rd-a1-mcq-opt:active { transform: scale(0.98); }
+.rd-a1-mcq-opt:disabled { cursor: default; }
+.rd-a1-mcq-en { font-size: 1.02rem; font-weight: 800; line-height: 1.1; color: var(--card-ink); letter-spacing: -0.01em; }
+.rd-a1-mcq-opt--ok { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent), 0 0 22px oklch(87% 0.21 128 / 0.24); }
+.rd-a1-mcq-opt--miss { border-color: var(--warn); opacity: 0.82; }
+
+/* Rung 2 · Completar el hueco (cloze) */
+.rd-a1-cloze { padding: 6px 2px 2px; }
+.rd-a1-cloze-frame { font-size: 1.3rem; font-weight: 800; color: var(--text-primary); line-height: 1.4; letter-spacing: -0.01em; }
+.rd-a1-cloze-slot {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 54px;
+  padding: 1px 12px; margin: 0 3px; border-radius: 100px; vertical-align: baseline;
+  background: var(--accent-dim); border: 1px dashed oklch(87% 0.21 128 / 0.6); color: var(--accent);
+  font-size: 0.9rem; letter-spacing: 0;
+}
+.rd-a1-cloze-slot--ok { background: var(--accent); border-style: solid; border-color: var(--accent); color: var(--accent-ink); }
+.rd-a1-cloze-slot--miss { border-color: var(--warn); color: var(--text-primary); }
+.rd-a1-cloze-chip.rd-a1-cloze-chip--ok { background: var(--accent); border-style: solid; border-color: var(--accent); color: var(--accent-ink); }
+.rd-a1-cloze-chip.rd-a1-cloze-chip--miss { border-color: var(--warn); color: var(--text-secondary); opacity: 0.72; }
+.rd-a1-cloze-chip:disabled { cursor: default; }
+
+/* ★ Guardar en el reveal (estrella llena/hueca; alto contraste sobre pastel) */
+.rd-a1-reveal-actions { display: inline-flex; align-items: center; gap: 8px; }
+.rd-a1-star { width: 44px; height: 44px; flex-shrink: 0; background: transparent; border-color: oklch(20% 0.03 265 / 0.22); color: var(--card-ink); font-size: 1.12rem; }
+.rd-a1-star:hover { border-color: oklch(20% 0.03 265 / 0.45); }
+.rd-a1-star--on { border-color: var(--card-ink); }
+
+/* Micro-tarea TBLT (§5.4) — reusa .mission-card */
+.rd-a1-mission { display: flex; flex-direction: column; gap: 7px; }
+.rd-a1-mission-eyebrow { font-family: 'Space Mono', monospace; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.rd-a1-mission-lead { font-family: 'Familjen Grotesk', sans-serif; font-size: 0.96rem; color: var(--text-primary); line-height: 1.45; }
+.rd-a1-mission-goal { font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--text-primary); line-height: 1.4; }
+
+/* Logro de unidad (§5.5) — capacidad, no puntos */
+.rd-a1-achieve { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 18px 8px 6px; }
+.rd-a1-achieve-sheet { text-align: center; }
+.rd-a1-achieve-emoji { font-size: 2.6rem; line-height: 1; }
+.rd-a1-achieve-title { font-size: 1.5rem; line-height: 1.12; color: var(--text-primary); letter-spacing: -0.01em; }
+.rd-a1-achieve-sub { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-top: 4px; }
+.rd-a1-achieve-sub strong { color: var(--text-primary); font-weight: 800; }
+
+/* Celebración adulta del Clavado (§5.8) — micro-pop lima, detrás de REDUCED */
+.rd-a1-celebrate { display: flex; justify-content: center; padding: 4px 0 2px; }
+.rd-a1-celebrate-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-weight: 900; font-size: 1.3rem;
+  box-shadow: 0 0 26px oklch(87% 0.21 128 / 0.4);
+}
+
+/* Mis frases — link del home + hoja + detalle (§5.6) */
+.rd-a1-saved-link {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  padding: 12px 16px; min-height: 48px; border-radius: 100px; cursor: pointer;
+  background: transparent; border: 1px solid var(--glass-border); color: var(--text-secondary);
+  font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.86rem;
+  transition: border-color .25s ease, color .2s ease, transform .2s ease;
+}
+.rd-a1-saved-link:hover { border-color: oklch(87% 0.21 128 / 0.5); color: var(--text-primary); }
+.rd-a1-saved-link:active { transform: scale(0.985); }
+.rd-a1-saved-list { display: flex; flex-direction: column; gap: 10px; }
+.rd-a1-saved-row {
+  display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--card-paper); color: var(--card-ink);
+  border: 1px solid oklch(20% 0.03 265 / 0.14); border-radius: 15px; padding: 12px 15px;
+  transition: filter .2s ease, transform .2s ease;
+}
+.rd-a1-saved-row:hover { filter: brightness(1.02); }
+.rd-a1-saved-row:active { transform: scale(0.99); }
+.rd-a1-saved-en { font-size: 1.02rem; font-weight: 800; color: var(--card-ink); line-height: 1.1; letter-spacing: -0.01em; }
+.rd-a1-saved-es { font-size: 0.84rem; color: var(--card-ink-soft); }
+.rd-a1-empty { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.55; padding: 8px 2px; }
+
+/* Detalle de chunk (§5.6) */
+.rd-a1-detail { display: flex; flex-direction: column; gap: 14px; }
+.rd-a1-detail-sect { display: flex; flex-direction: column; gap: 4px; }
+.rd-a1-detail-why { font-family: 'Familjen Grotesk', sans-serif; font-size: 0.94rem; color: var(--text-primary); line-height: 1.55; }
+.rd-a1-detail-txt { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; }
+.rd-a1-detail-actions { display: flex; gap: 10px; margin-top: 4px; }
+.rd-a1-detail-actions .btn-accent, .rd-a1-detail-actions .btn-ghost { flex: 1; }
 
 </style>
 </head>
@@ -1964,12 +2282,27 @@ body.rd-lectura .luminous-line { opacity: 0; }
     </div>
   </section>
 
+  <!-- ══════════════════════ VISTA: OFICINA (A1 laboral offline · con Alfred) ══════
+       Quinta pestaña. Dos paneles (patrón STORY): #a1-home (portada/onboarding) y
+       #a1-escena (loop inmersivo, oculto — lo llena la Capa 2). Todo el render lo
+       hace js/a1-office.js en runtime; #a1-escena se registra en actualizarCromo
+       para ocultar el nav dentro del loop. Estilos: bloque rd-a1-* aditivo. -->
+  <section id="view-a1" class="view">
+    <div id="a1-home" class="scroll-area flex flex-col gap-5" style="flex:1;">
+      <!-- Lo llena window.renderA1Home(): onboarding de Alfred o el home. -->
+    </div>
+    <div id="a1-escena" class="hidden flex-col" style="flex:1; min-height:0;">
+      <!-- Loop inmersivo de 6 pasos — Capa 2. Vacío en Capa 1. -->
+    </div>
+  </section>
+
 </main>
 
 <!-- ═══════════════════════════ TAB BAR ═══════════════════════════ -->
-<!-- Nav de 3 pestañas de práctica: talk · story (con DROP dentro) · slang.
+<!-- Nav de 5 pestañas: talk · story (con DROP dentro) · roleplay · slang · oficina.
      SUBE (ladder) y DNA salieron del nav al icono de perfil del header; sus
-     vistas #view-ladder / #view-dna siguen existiendo, se abren desde ahí. -->
+     vistas #view-ladder / #view-dna siguen existiendo, se abren desde ahí.
+     Los tab-item son flex:1 1 0 → los 5 se auto-reparten y caben en 320px. -->
 <nav class="tabbar glass" aria-label="Navegación principal">
   <button class="tab-item active" data-view="talk" aria-label="Talk — conversación">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -1982,6 +2315,10 @@ body.rd-lectura .luminous-line { opacity: 0; }
   <button class="tab-item" data-view="slang" aria-label="Slang — expresiones">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
     SLANG
+  </button>
+  <button class="tab-item" data-view="a1" aria-label="Oficina — inglés de trabajo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+    OFICINA
   </button>
 </nav>
 
@@ -2018,6 +2355,12 @@ body.rd-lectura .luminous-line { opacity: 0; }
      sin pack ni bridge, el botón solo muestra un toast. -->
 <script src="js/cards-pack-001.js"></script>
 <script src="js/cards-mode.js"></script>
+<!-- OFICINA (módulo A1 laboral offline). Cargan ANTES del script principal:
+     a1-office-content.js define window.A1_OFFICE (datos puros); a1-office.js
+     define window.renderA1Home / a1Speak / openA1Panic. Se ejecutan en runtime
+     (al clic), nunca en tiempo de carga (aún no existen switchView/openSheet). -->
+<script src="js/a1-office-content.js"></script>
+<script src="js/a1-office.js"></script>
 <script>
 'use strict';
 
@@ -2125,6 +2468,11 @@ const state = {
   // Array plano de strings, listo para sync futuro. La CLAVE existe ⇒ ya
   // respondió o saltó ⇒ el onboarding no vuelve. [] = saltó / sin elegir.
   intereses: store.get('rodeo_intereses', []),
+  // ── Nivel (selector de arranque) ──
+  // null = nunca eligió (primera vez) ⇒ se muestra el selector al abrir.
+  // 'a1' = principiante ⇒ arranca en OFICINA con Alfred. 'avanzado' = flujo
+  // completo de Gus (TALK, historias, slang). Editable desde el perfil.
+  nivel: store.get('rodeo_nivel', null),
 };
 
 // Dos grupos de chips. Fuente única para el onboarding y para la sección
@@ -2171,6 +2519,71 @@ function renderInteresGrupos(chipsClass) {
         ${g.items.map((it, i) => `<button type="button" class="chip int-chip${sel.has(it) ? ' selected' : ''}" data-val="${escAttr(it)}" style="--i:${i}">${esc(it)}</button>`).join('')}
       </div>
     </div>`).join('');
+}
+
+// Selector de nivel al abrir (primera vez). Reusa el overlay #onboarding.
+// A1 → OFICINA con Alfred (se SALTA el onboarding de intereses, tematizado al
+// mundo B2→C1 de Gus). Avanzado → flujo completo; si nunca eligió intereses,
+// enlaza con el onboarding de intereses de siempre.
+// ── Navbar por nivel ───────────────────────────────────────────────────────
+// Cada quien ve SOLO lo que le sirve. El principiante (A1) tiene un único
+// destino —OFICINA con Alfred—, así que con una sola pestaña el nav sobra: se
+// recoge entero y el icono de perfil del header (siempre presente) es la salida
+// para cambiar de nivel. El avanzado ve TALK·STORY·SLANG y no ve OFICINA, que
+// es un módulo de otro nivel. DNA y SUBE son transversales: viven en el perfil.
+const VISTAS_POR_NIVEL = {
+  a1:       ['a1'],
+  avanzado: ['talk', 'story', 'slang'],
+};
+// Sin nivel elegido todavía (primera visita) se asume el flujo completo: el
+// selector está encima y en cuanto elija se repinta.
+function vistasDelNivel() { return VISTAS_POR_NIVEL[state.nivel] || VISTAS_POR_NIVEL.avanzado; }
+
+function aplicarNivel() {
+  const permitidas = vistasDelNivel();
+  $$('.tab-item').forEach((t) => t.classList.toggle('hidden', !permitidas.includes(t.dataset.view)));
+  document.body.classList.toggle('nivel-a1', state.nivel === 'a1');
+}
+
+function elegirNivel(nivel) {
+  state.nivel = nivel;
+  store.set('rodeo_nivel', nivel);
+  aplicarNivel();
+  cerrarOnboarding();
+  if (nivel === 'a1') {
+    switchView('a1');
+    toast('¡De una! Alfred te espera en OFICINA 🧳', 3200);
+  } else {
+    if (state.view !== 'talk') switchView('talk');
+    if (store.get('rodeo_intereses', null) === null) mostrarOnboarding();
+  }
+}
+function mostrarSelectorNivel() {
+  const cont = $('#onboarding');
+  if (!cont) return;
+  cont.innerHTML = `
+    <div class="ob-inner">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>RODEO · bienvenido</p>
+      <p class="font-display ob-title">¿CÓMO ANDÁS<br>CON EL <span style="color:var(--accent);">INGLÉS?</span></p>
+      <p class="ob-sub">Pa' arrancar por donde te sirve. Podés cambiarlo cuando querás desde tu perfil.</p>
+      <div class="rd-lvl-choices">
+        <button type="button" class="rd-lvl rd-lvl--a1" id="lvl-a1">
+          <span class="rd-lvl-tag">Estoy empezando</span>
+          <span class="rd-lvl-title">Quiero lo básico pal trabajo</span>
+          <span class="rd-lvl-sub">Frases cortas para la oficina, con Alfred de colega. Sin examen, sin miedo — de a poquito.</span>
+          <span class="rd-lvl-ex"><span>saludar</span><span>pedir la hora</span><span>un descanso</span><span>la reunión</span></span>
+        </button>
+        <button type="button" class="rd-lvl" id="lvl-adv">
+          <span class="rd-lvl-tag">Ya me defiendo</span>
+          <span class="rd-lvl-title">Quiero soltura y subir a C1</span>
+          <span class="rd-lvl-sub">Conversá libre, historias jugables, slang y tu lectura diaria. El RODEO completo.</span>
+          <span class="rd-lvl-ex"><span>charla libre</span><span>historias</span><span>slang</span><span>C1</span></span>
+        </button>
+      </div>
+    </div>`;
+  cont.classList.add('show');
+  $('#lvl-a1').addEventListener('click', () => elegirNivel('a1'));
+  $('#lvl-adv').addEventListener('click', () => elegirNivel('avanzado'));
 }
 
 function mostrarOnboarding() {
@@ -2649,7 +3062,12 @@ function parseJSON(raw) {
 // dna/ladder ya no tienen pestaña; se abren desde el perfil, así que el
 // resaltado de pestaña se limpia solo cuando la vista no está en el nav.
 function switchView(v) {
-  if (!v || v === state.view) return;
+  if (!v) return;
+  // Nivel: si la vista pedida no le corresponde a este nivel, se cae al home
+  // del nivel en vez de aterrizar en una pantalla que no le sirve. DNA y SUBE
+  // se exceptúan: son transversales y se abren desde el perfil en cualquier nivel.
+  if (v !== 'dna' && v !== 'ladder' && !vistasDelNivel().includes(v)) v = vistasDelNivel()[0];
+  if (v === state.view) return;
   state.view = v;
   $$('.tab-item').forEach((t) => t.classList.toggle('active', t.dataset.view === v));
   $$('.view').forEach((s) => s.classList.remove('active'));
@@ -2668,6 +3086,8 @@ function switchView(v) {
   if (v === 'dna') renderDNA();
   if (v === 'story') renderStoryHome();
   if (v === 'ladder') renderLadder();
+  // ROLEPLAY ya no es vista: vive en #escenas-pane dentro de TALK (ver .talk-tab).
+  if (v === 'a1') window.renderA1Home?.();    // OFICINA (módulo A1 offline, carga externa)
   if (v === 'talk') refrescarRompehielos();   // rompehielos fresco al volver a TALK
   animateIn(section.children, { y: 18, duration: 0.7 });
 }
@@ -2719,6 +3139,7 @@ function actualizarCromo() {
   const enSesion =
     (activa('view-talk') && visible('talk-session')) ||
     (activa('view-talk') && visible('escenas-pane') && visible('roleplay-session')) ||
+    (activa('view-a1') && visible('a1-escena')) ||
     (activa('view-story') && visible('story-run')) ||
     (activa('view-story') && visible('drop-pane') && visible('drop-session'));
   document.body.classList.toggle('rd-sesion', enSesion);
@@ -2727,7 +3148,7 @@ function actualizarCromo() {
 }
 {
   const obs = new MutationObserver(actualizarCromo);
-  ['view-talk', 'view-story', 'talk-session', 'escenas-pane', 'roleplay-session', 'story-run', 'drop-pane', 'drop-session'].forEach((id) => {
+  ['view-talk', 'view-story', 'view-a1', 'talk-session', 'escenas-pane', 'roleplay-session', 'story-run', 'a1-escena', 'drop-pane', 'drop-session'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
   });
@@ -4051,6 +4472,14 @@ function openPerfil() {
       ${stat(fallos, 'en tu DNA')}
       ${stat(pct + '%', 'camino a C1')}
     </div>
+    <div style="margin-bottom:20px;">
+      <p class="rd-eyebrow rd-eyebrow--accent"><span class="rd-eyebrow-rule"></span>Tu nivel</p>
+      <p class="rd-eyebrow rd-eyebrow--muted" style="margin:8px 0 12px;text-transform:none;letter-spacing:normal;">Principiante arranca en OFICINA con Alfred; avanzado abre el RODEO completo.</p>
+      <div style="display:flex;gap:8px;">
+        <button class="chip${state.nivel === 'a1' ? ' selected' : ''}" data-nivel="a1" style="flex:1;justify-content:center;min-height:44px;">🧳 Principiante</button>
+        <button class="chip${state.nivel === 'avanzado' ? ' selected' : ''}" data-nivel="avanzado" style="flex:1;justify-content:center;min-height:44px;">🚀 Avanzado</button>
+      </div>
+    </div>
     <button class="btn-ghost" onclick="irA('dna')" style="width:100%;display:flex;align-items:center;gap:12px;justify-content:flex-start;min-height:56px;padding:0 18px;margin-bottom:10px;text-align:left;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c6.667-6 13.333 0 20-6"></path><path d="M2 9c6.667 6 13.333 0 20 6"></path><path d="M9 6.3c.33 1 .33 2.4 0 3.4"></path><path d="M15 14.3c.33 1 .33 2.4 0 3.4"></path></svg>
       <span><b style="font-weight:700;">Mis fallos — DNA</b><br><span class="rd-eyebrow">tus errores y repaso espaciado</span></span>
@@ -4074,6 +4503,18 @@ function openPerfil() {
     ${window.sbCuentaHTML ? window.sbCuentaHTML() : ''}
   `);
 
+  // Cambiar de nivel desde el perfil: persiste y salta a la vista que toca.
+  $('#sheet-content').querySelectorAll('[data-nivel]').forEach((b) => {
+    b.addEventListener('click', () => {
+      const n = b.dataset.nivel;
+      state.nivel = n;
+      store.set('rodeo_nivel', n);
+      aplicarNivel();          // el nav se repinta en caliente al cambiar de nivel
+      closeSheet();
+      switchView(n === 'a1' ? 'a1' : 'talk');
+      toast(n === 'a1' ? 'Nivel: principiante · OFICINA con Alfred 🧳' : 'Nivel: avanzado · el RODEO completo', 2600);
+    });
+  });
   // Toggle directo en el perfil: se guarda al tocar (sin mínimo — puede vaciar).
   $('#sheet-content').querySelectorAll('.int-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -6464,11 +6905,22 @@ if (location.protocol === 'file:') {
   // Premium: revalida en background si la licencia lleva >7 días sin chequear
   // (no-op si no hay licencia o el kill-switch está apagado).
   if (window.premiumInit) window.premiumInit();
-  animateIn($('#view-talk').children, { y: 26, duration: 1 });
-  // Onboarding de intereses: SOLO la primera vez. Si la clave rodeo_intereses
-  // no existe todavía (ni respondió ni saltó) se muestra el selector; al elegir
-  // o saltar se escribe la clave y no vuelve a aparecer nunca.
-  if (store.get('rodeo_intereses', null) === null) mostrarOnboarding();
+  // Ruteo por nivel: el principiante (A1) arranca directo en OFICINA con Alfred;
+  // el avanzado (o quien todavía no elige) ve TALK como siempre.
+  aplicarNivel();   // el nav muestra solo las pestañas de su nivel
+  if (state.nivel === 'a1') {
+    switchView('a1');
+  } else {
+    animateIn($('#view-talk').children, { y: 26, duration: 1 });
+  }
+  // La PRIMERA vez (nivel === null) se pregunta el nivel y el selector enruta al
+  // elegir. Si ya es 'avanzado' y nunca eligió intereses, sigue el onboarding de
+  // intereses de siempre. El A1 se salta ese onboarding (es del mundo de Gus).
+  if (state.nivel === null) {
+    mostrarSelectorNivel();
+  } else if (state.nivel === 'avanzado' && store.get('rodeo_intereses', null) === null) {
+    mostrarOnboarding();
+  }
 }
 
 /* ── PWA: registro del Service Worker (mejora progresiva) ──────────────────

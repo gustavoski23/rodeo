@@ -20,7 +20,7 @@
 // Sube este número en cada release donde quieras invalidar cache viejo.
 // ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
 // a esos archivos NO llega a los usuarios hasta subir esta versión.
-const VERSION = 'rodeo-v6';
+const VERSION = 'rodeo-v7';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
@@ -62,6 +62,8 @@ const APP_WARM = [
   '/js/premium.js',
   '/js/cards-pack-001.js',
   '/js/cards-mode.js',
+  '/js/a1-office-content.js',
+  '/js/a1-office.js',
   '/episodios/princess/1.jpg',
   '/episodios/princess/2.jpg',
   '/episodios/princess/3.jpg',
