@@ -62,7 +62,11 @@ export default function LadderView() {
   }, [pool.length, idx]);
 
   async function startVeta(veta: Veta, ownPhrase?: string) {
-    if (busy) return;
+    // startVeta L6876 leía `state.busy`, el flag VIVO. Aquí también: la copia
+    // suscrita (`busy`) es la del render y no se entera de setBusy(true)
+    // dentro del mismo lote, así que dos disparos en el mismo tick colarían
+    // dos llamadas a la API.
+    if (useLadder.getState().busy) return;
     setVacioFallos(false);
     iniciarRun([]); // combo y clavados del run a 0, runarea limpia
 
@@ -237,7 +241,6 @@ export default function LadderView() {
             idx={idx}
             total={pool.length}
             combo={combo}
-            busy={busy}
             setBusy={setBusy}
             onSelfJudge={onSelfJudge}
             onSiguiente={siguiente}

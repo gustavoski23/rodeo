@@ -44,7 +44,10 @@ export function Repaso({ dna }: { dna: DnaItem[] }) {
   const areaRef = useRef<HTMLDivElement>(null);
 
   async function pedirQuiz() {
-    if (busy) return;
+    // El guard lee el flag VIVO del store (no la copia del render): así es
+    // inmune a dos disparos dentro del mismo lote de React, igual que el
+    // `if (state.busy) return;` del viejo.
+    if (useLadder.getState().busy) return;
     if (dna.length < 3) {
       toast('Necesitas al menos 3 cosas en tu DNA — ve a hablar primero');
       return;
@@ -110,6 +113,24 @@ MATERIAL:\n${materialDe(pool)}`,
           style={{ minHeight: 48, background: 'var(--accent)', color: 'var(--accent-ink)' }}
         >
           REPASO RÁPIDO
+        </motion.button>
+
+        {/* RÉTAME 🃏 (#retame-btn-dna, legacy.html:2832). La lógica vive en la
+            isla js/cards-mode.js, que engancha por DELEGACIÓN en document
+            (`e.target.closest('#retame-btn, #retame-btn-dna')`, cards-mode.js:571):
+            basta con que el botón exista en el árbol con su id. Si la isla no
+            está cargada el botón no hace nada — el cableado final (o su
+            ocultado) es del orquestador, §9.25. */}
+        <motion.button
+          type="button"
+          id="retame-btn-dna"
+          whileTap={{ scale: 0.97 }}
+          whileHover={{ y: -1 }}
+          aria-label="Rétame — mazo rápido de tarjetas"
+          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border bg-transparent px-[22px] py-[13px] text-[0.85rem] font-semibold"
+          style={{ minHeight: 48, borderColor: 'var(--borde-medio)', color: 'var(--text-primary)' }}
+        >
+          RÉTAME 🃏
         </motion.button>
       </div>
 

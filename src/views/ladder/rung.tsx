@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { MicButton } from '@/components/rodeo/mic-button';
 
 import { msgsJuez, type Judge } from './prompts';
-import type { Rung } from '@/stores/ladder';
+import { useLadder, type Rung } from '@/stores/ladder';
 
 /* El peldaño: cara frontal (B2) → zona de intento → cara trasera (C1 + swap +
    veredicto). Port de showRung / openRungInput / revealRung / flipToBack /
@@ -56,7 +56,6 @@ export function RungCard({
   idx,
   total,
   combo,
-  busy,
   setBusy,
   onSelfJudge,
   onSiguiente,
@@ -65,7 +64,6 @@ export function RungCard({
   idx: number;
   total: number;
   combo: number;
-  busy: boolean;
   setBusy: (v: boolean) => void;
   /** selfJudge L7031: sube XP/combo/DNA. Lo hace la vista, no la tarjeta. */
   onSelfJudge: (r: Rung, nailed: boolean) => void;
@@ -73,6 +71,13 @@ export function RungCard({
 }) {
   const rot = ROTS[idx % ROTS.length];
   const theme = CARD_THEMES[idx % CARD_THEMES.length];
+
+  /* Combo CONGELADO al montar la tarjeta. El viejo escribía la cabecera en
+     showRung (L6936) y selfJudge (L7031-7057) solo reemplazaba el innerHTML de
+     .flip-card, así que el sufijo "· combo xN" no aparecía hasta el peldaño
+     SIGUIENTE. Con la key={idx} de la vista, cada peldaño remonta y captura el
+     combo que había al mostrarse: mismo comportamiento, 1:1. */
+  const [comboAlMostrar] = useState(combo);
 
   const [fase, setFase] = useState<Fase>('front');
   const [zonaAbierta, setZonaAbierta] = useState(false);
@@ -96,7 +101,9 @@ export function RungCard({
   }, [zonaAbierta]);
 
   async function revealRung(intento: string) {
-    if (busy) return; // guard global compartido (§9.21)
+    // Guard global compartido (§9.21) leído del store VIVO: la prop `busy` es
+    // la copia del render y no vería un setBusy(true) del mismo lote.
+    if (useLadder.getState().busy) return;
     recRef.current?.abort();
     setGrabando(false);
     setAttempt(intento);
@@ -158,7 +165,7 @@ export function RungCard({
     <div>
       <div className="mb-2.5 font-mono text-[0.62rem] tracking-[0.16em] uppercase" style={{ color: 'var(--text-muted)' }}>
         Peldaño {idx + 1} / {total}
-        {combo > 1 ? ` · combo x${combo}` : ''}
+        {comboAlMostrar > 1 ? ` · combo x${comboAlMostrar}` : ''}
       </div>
 
       {/* rd-in: entrada de 0.9s con expo.out. Va en el envoltorio, no en las
