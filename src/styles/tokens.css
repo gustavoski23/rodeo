@@ -258,10 +258,15 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior-y: none;
   }
+  /* ALTO FIJO, no min-height: el chat de TALK necesita un contenedor acotado
+     para que su scroll interno sea el que se mueve (con min-height crece la
+     página entera y el dock de voz se va debajo del pliegue). Es el
+     `<div style="height:100dvh">` que envolvía la app original. */
   #root {
-    min-height: 100dvh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 }
 

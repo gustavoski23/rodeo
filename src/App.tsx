@@ -1,60 +1,71 @@
 import { useState } from 'react';
+import { MotionConfig } from 'motion/react';
 
 import { Header } from '@/components/rodeo/header';
 import { TabBar } from '@/components/rodeo/tab-bar';
-import { Button } from '@/components/ui/button';
-import { RainbowButton } from '@/components/magicui/rainbow-button';
-import { TextAnimate } from '@/components/magicui/text-animate';
+import { Toaster } from '@/components/rodeo/toaster';
+import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
+import { useEnSesion } from '@/stores/talk';
+import TalkView from '@/views/talk';
 
-/* Shell F0: header + tab bar + una vista de muestra que demuestra que la
-   fundación funciona (shadcn Button, RainbowButton y TextAnimate salen con la
-   piel de RODEO sin tocar su código). Las vistas reales llegan en F1-F5. */
+/* Shell: header + vista activa + tab bar. El switch de vistas es el switchView
+   del viejo (public/legacy.html:3641) sin el DOM: cada vista se monta y se
+   desmonta, que es lo que hace que TALK sortee un rompehielos fresco al volver
+   de una sesión sin que nadie tenga que acordarse de refrescarlo.
+
+   TALK está portada; STORY, SLANG y OFICINA llegan en las fases siguientes. */
+
+const PENDIENTES: Record<string, { titulo: string; sub: string }> = {
+  story: { titulo: 'STORY', sub: 'El thriller por capítulos y la lectura diaria llegan en la próxima entrega.' },
+  slang: { titulo: 'SLANG', sub: 'El mazo de expresiones de calle llega en la próxima entrega.' },
+  ladder: { titulo: 'SUBE', sub: 'Los peldaños B2 → C1 llegan en la próxima entrega.' },
+  dna: { titulo: 'TU DNA', sub: 'Tus errores, tu jerga y tus upgrades — llegan en la próxima entrega.' },
+  a1: { titulo: 'OFICINA', sub: 'El flujo de principiante con Alfred llega en la próxima entrega.' },
+};
+
+function VistaPendiente({ view }: { view: string }) {
+  const d = PENDIENTES[view] ?? { titulo: view.toUpperCase(), sub: 'En camino.' };
+  return (
+    <div className="flex min-h-0 flex-1 flex-col justify-center gap-3">
+      <p className="font-display text-[clamp(2rem,8.5vw,2.8rem)] leading-[0.92] font-extrabold tracking-[-0.035em]">
+        {d.titulo}
+        <span style={{ color: 'var(--accent)' }}>.</span>
+      </p>
+      <p className="max-w-[330px] text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
+        {d.sub}
+      </p>
+    </div>
+  );
+}
+
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const view = useApp((s) => s.view);
-  const nombre = useApp((s) => s.nombre);
+  // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
+  // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
+  const enSesion = useEnSesion();
 
   return (
-    <>
+    /* reducedMotion="user" apaga los springs de motion (morphs, píldoras, pulso
+       del mic) para quien pidió menos movimiento en el sistema. Va en la raíz
+       para no repetir la comprobación en cada componente — el CSS portado del
+       viejo ya trae sus propias @media (prefers-reduced-motion). */
+    <MotionConfig reducedMotion="user">
       <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
       <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
 
-      <main className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 pt-6 pb-32">
-        <section className="flex flex-col gap-2">
-          <span className="font-mono text-[0.62rem] tracking-[0.14em] text-brand uppercase">
-            fundación nueva · fase 0
-          </span>
-          <h2 className="font-display text-4xl leading-[0.95] font-black tracking-tight">
-            <TextAnimate animation="blurInUp" by="character" once as="span">
-              {nombre ? `¿Qué hay, ${nombre}?` : '¿Qué hay?'}
-            </TextAnimate>
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Vista activa: <span className="font-mono text-foreground">{view}</span>. Las pantallas reales
-            (TALK, STORY, SLANG, OFICINA) se portan una a una sobre esta base.
-          </p>
-        </section>
-
-        <section className="flex flex-col gap-3">
-          <span className="font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase">
-            componentes instalados verbatim, con la piel de RODEO
-          </span>
-          <div className="flex flex-wrap items-center gap-3">
-            <Button>Botón primario</Button>
-            <Button variant="secondary">Secundario</Button>
-            <Button variant="outline">Outline</Button>
-            <Button variant="destructive">Peligro</Button>
-          </div>
-          <div className="pt-2">
-            <RainbowButton size="lg" className="h-13 rounded-full px-9 font-display text-base font-bold tracking-wide">
-              LISTO
-            </RainbowButton>
-          </div>
-        </section>
+      <main
+        className={cn(
+          'flex min-h-0 flex-1 flex-col px-5 pt-5',
+          enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
+        )}
+      >
+        {view === 'talk' ? <TalkView /> : <VistaPendiente view={view} />}
       </main>
 
-      <TabBar />
-    </>
+      {!enSesion && <TabBar />}
+      <Toaster />
+    </MotionConfig>
   );
 }
