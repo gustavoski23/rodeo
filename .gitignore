@@ -22,3 +22,7 @@ Thumbs.db
 # Imágenes sueltas de pruebas en la raíz (se colaron una vez, no vuelven)
 /*.jpeg
 /*.jpg
+
+# Build (Vite)
+node_modules/
+dist/

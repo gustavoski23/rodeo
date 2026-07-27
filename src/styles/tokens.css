@@ -1,0 +1,275 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* El tema de RODEO se conmuta con data-theme="light" en <html> (lo pone el
+   anti-flash del head antes del primer paint). Esta variante deja funcionar
+   el prefijo dark: de cualquier componente shadcn/Magic UI pegado tal cual. */
+@custom-variant dark (&:where(:root:not([data-theme='light']) *));
+
+/* ══════════════════════════════════════════════════════════════════════
+   RODEO — TOKENS v2 ("Dark Shell + Sticker Pop")
+   Copiados VERBATIM de la app original (public/legacy.html). NO renombrar:
+   --accent, --bg-*, --text-*, --card-* los consumen las islas legacy y todo
+   el CSS portado. Valores oklch verificados WCAG: texto de card AA >= 4.5:1.
+     · Archivo (600-900)        → DISPLAY grotesca pesada ancha
+     · Familjen Grotesk (400-700, italic) → BODY + énfasis
+     · Space Mono (400/700)     → labels, eyebrows, contadores
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Shell oscuro (frío, temperatura 265) ── */
+  --bg-void:        oklch(9% 0.008 265);
+  --bg-deep:        oklch(13% 0.012 265);
+  --bg-surface:     oklch(17% 0.015 265);
+  --bg-elevated:    oklch(21% 0.018 265);
+
+  --text-primary:   oklch(96% 0.004 265);
+  --text-secondary: oklch(68% 0.010 265);
+  --text-muted:     oklch(62% 0.010 265);   /* L62 → ~4.6:1 sobre shell: pasa AA en labels pequeños */
+
+  /* ── Acento: LIMA CHARTREUSE. Color de éxito/C1/CTA. ── */
+  --accent:         oklch(87% 0.21 128);              /* #aced37 aprox — sobre shell = 14.6:1 */
+  --accent-dim:     oklch(87% 0.21 128 / 0.14);       /* fondos tenues de acento */
+  --accent-ink:     oklch(24% 0.05 128);              /* texto OSCURO sobre botón lima (11.5:1) */
+
+  /* ── Glass (tab bar, sheets) ── */
+  --glass-bg:       oklch(15% 0.015 265 / 0.62);
+  --glass-border:   oklch(96% 0.004 265 / 0.09);
+
+  /* ── TARJETAS-STICKER pastel saturadas: PASTEL CLARO con TEXTO OSCURO ── */
+  --card-blue:      oklch(76% 0.12 248);   /* cielo    · dark-text */
+  --card-lavender:  oklch(80% 0.10 290);   /* lavanda  · dark-text */
+  --card-green:     oklch(86% 0.13 158);   /* menta    · dark-text */
+  --card-yellow:    oklch(90% 0.15 95);    /* amarillo · dark-text */
+  --card-coral:     oklch(78% 0.13 28);    /* coral/durazno · dark-text */
+  --card-peach:     oklch(86% 0.10 55);    /* durazno  · dark-text */
+  --card-paper:     oklch(95% 0.012 85);   /* papel    · dark-text */
+
+  /* Tinta de texto para TODAS las cards (fondos pastel claros) */
+  --card-ink:        oklch(24% 0.03 265);   /* texto primario sobre card  (>=7.7:1) */
+  --card-ink-soft:   oklch(32% 0.03 265);   /* texto secundario/nota sobre card (>=4.5:1) */
+
+  /* SWAP (LEVEL UP) — tintas hue-locked oscuras que leen sobre CUALQUIER card */
+  --swap-new:        oklch(34% 0.16 132);   /* lima entintada (el upgrade C1) — >=5.2:1 en toda card */
+  --swap-old:        oklch(38% 0.20 27);    /* rojo entintado (el B2 tachado)  — >=4.5:1 en toda card */
+
+  /* ── Semántica viva (sobre SHELL oscuro, no sobre cards) ── */
+  --success:        oklch(87% 0.21 128);   /* = accent lima */
+  --danger:         oklch(66% 0.20 27);    /* coral vivo: error, HEAT, "básico" */
+  --danger-dim:     oklch(66% 0.20 27 / 0.16);
+  --warn:           oklch(84% 0.16 92);    /* amarillo: aviso, glosa, empate */
+
+  /* Sombra difusa de sticker + versión levantada */
+  --sticker-shadow: 0 14px 34px oklch(0% 0 0 / 0.34), 0 3px 8px oklch(0% 0 0 / 0.22);
+  --sticker-shadow-lift: 0 22px 50px oklch(0% 0 0 / 0.42), 0 4px 10px oklch(0% 0 0 / 0.28);
+
+  /* Glow de HEAT (STORY) — vira el ambient a coral cuando HEAT>55 */
+  --heat-glow-color: oklch(66% 0.20 27 / 0.16);
+
+  /* Píldoras de audio de la barra de sesión (volumen · play · repetir) */
+  --pill-bg:        oklch(100% 0 0 / 0.04);
+  --pill-bg-hover:  oklch(100% 0 0 / 0.07);
+  --pill-border:    oklch(100% 0 0 / 0.09);
+
+  /* Borde de las tarjetas-sticker: invisible sobre shell oscuro */
+  --card-borde:     transparent;
+
+  /* ── Tokens que el tema claro invierte ── */
+  --chip-bg:        oklch(16% 0.015 265 / 0.4);    /* pills inactivas (chip, mode-tab…) */
+  --chip-bg-fuerte: oklch(16% 0.015 265 / 0.55);
+  --borde-sutil:    oklch(96% 0.004 265 / 0.12);   /* separadores y bordes de pill */
+  --borde-medio:    oklch(96% 0.004 265 / 0.22);
+  --superficie-t:   oklch(96% 0.004 265 / 0.07);   /* fondos translúcidos (burbujas) */
+  --texto-mal:      oklch(80% 0.16 27);            /* la cita incorrecta (tachada) */
+  --texto-obst:     oklch(80% 0.13 40);            /* el obstáculo del roleplay */
+  --texto-es:       oklch(80% 0.14 55);            /* chip ES del micrófono */
+
+  /* Radio base para los componentes shadcn (deriva sm/md/lg/xl abajo) */
+  --radius: 1rem;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CLARO — el mismo sistema, dado vuelta. La lima BAJA a L50 para servir
+   como texto sobre papel (~4.6:1) y como relleno con tinta clara encima.
+   Las cards pastel no se invierten: solo se apagan un punto y ganan borde.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root[data-theme='light'] {
+  /* Rampa de fondos: papel cálido, no blanco clínico */
+  --bg-void:        oklch(98.5% 0.003 95);
+  --bg-deep:        oklch(96.5% 0.005 95);
+  --bg-surface:     oklch(100% 0 0);
+  --bg-elevated:    oklch(94.5% 0.007 95);
+
+  --text-primary:   oklch(22% 0.012 265);
+  --text-secondary: oklch(44% 0.014 265);
+  --text-muted:     oklch(52% 0.014 265);   /* L52 sobre papel → ~4.7:1: pasa AA */
+
+  /* Lima profunda: legible como texto Y como relleno */
+  --accent:         oklch(50% 0.17 132);
+  --accent-dim:     oklch(50% 0.17 132 / 0.13);
+  --accent-ink:     oklch(99% 0.01 128);    /* tinta CLARA sobre la lima profunda */
+
+  --glass-bg:       oklch(100% 0 0 / 0.78);
+  --glass-border:   oklch(22% 0.012 265 / 0.10);
+
+  --card-blue:      oklch(84% 0.09 248);
+  --card-lavender:  oklch(87% 0.075 290);
+  --card-green:     oklch(90% 0.095 158);
+  --card-yellow:    oklch(93% 0.12 95);
+  --card-coral:     oklch(85% 0.10 28);
+  --card-peach:     oklch(90% 0.075 55);
+  --card-paper:     oklch(97% 0.010 85);
+  --card-borde:     oklch(22% 0.012 265 / 0.12);
+
+  --card-ink:       oklch(21% 0.03 265);
+  --card-ink-soft:  oklch(35% 0.03 265);
+
+  --swap-new:       oklch(38% 0.16 132);
+  --swap-old:       oklch(42% 0.20 27);
+
+  --success:        oklch(52% 0.17 145);
+  --danger:         oklch(52% 0.20 27);
+  --danger-dim:     oklch(52% 0.20 27 / 0.12);
+  --warn:           oklch(47% 0.13 72);     /* el amarillo brillante no lee sobre papel */
+
+  /* Sombras: sobre claro las negras al 34% son manchas. Suaves y frías. */
+  --sticker-shadow:      0 10px 26px oklch(22% 0.012 265 / 0.10), 0 2px 6px oklch(22% 0.012 265 / 0.07);
+  --sticker-shadow-lift: 0 18px 40px oklch(22% 0.012 265 / 0.14), 0 3px 8px oklch(22% 0.012 265 / 0.09);
+
+  --heat-glow-color: oklch(52% 0.20 27 / 0.10);
+
+  --pill-bg:        oklch(22% 0.012 265 / 0.04);
+  --pill-bg-hover:  oklch(22% 0.012 265 / 0.08);
+  --pill-border:    oklch(22% 0.012 265 / 0.12);
+
+  --chip-bg:        oklch(22% 0.012 265 / 0.045);
+  --chip-bg-fuerte: oklch(22% 0.012 265 / 0.08);
+  --borde-sutil:    oklch(22% 0.012 265 / 0.13);
+  --borde-medio:    oklch(22% 0.012 265 / 0.24);
+  --superficie-t:   oklch(22% 0.012 265 / 0.05);
+  --texto-mal:      oklch(48% 0.19 27);
+  --texto-obst:     oklch(46% 0.15 40);
+  --texto-es:       oklch(46% 0.14 55);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PUENTE Tailwind v4 + shadcn — cualquier componente instalado con
+   `npx shadcn add` o el MCP de Magic UI sale YA con la piel de RODEO.
+
+   OJO nomenclatura: en clases Tailwind, la lima de marca es `primary`
+   (bg-primary / text-primary-foreground). El `accent` de shadcn es su
+   superficie sutil de hover (dropdowns, menús) → va a bg-elevated. La
+   variable CSS var(--accent) sigue siendo la lima, como siempre.
+   ══════════════════════════════════════════════════════════════════════════ */
+@theme inline {
+  --font-sans: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Archivo', 'Familjen Grotesk', ui-sans-serif, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+
+  /* Contrato shadcn */
+  --color-background: var(--bg-void);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-elevated);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--bg-elevated);
+  --color-secondary-foreground: var(--text-primary);
+  --color-muted: var(--bg-surface);
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--bg-elevated);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: oklch(98% 0.01 27);
+  --color-border: var(--glass-border);
+  --color-input: var(--borde-medio);
+  --color-ring: var(--accent);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+
+  /* Vocabulario RODEO como utilidades (bg-card-coral, text-swap-new, …) */
+  --color-brand: var(--accent);
+  --color-brand-ink: var(--accent-ink);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-deep: var(--bg-deep);
+  --color-card-blue: var(--card-blue);
+  --color-card-lavender: var(--card-lavender);
+  --color-card-green: var(--card-green);
+  --color-card-yellow: var(--card-yellow);
+  --color-card-coral: var(--card-coral);
+  --color-card-peach: var(--card-peach);
+  --color-card-paper: var(--card-paper);
+  --color-card-ink: var(--card-ink);
+  --color-card-ink-soft: var(--card-ink-soft);
+  --color-swap-new: var(--swap-new);
+  --color-swap-old: var(--swap-old);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+
+  --shadow-sticker: var(--sticker-shadow);
+  --shadow-sticker-lift: var(--sticker-shadow-lift);
+
+  /* rainbow-button (Magic UI) — entrada theme del registry, verbatim */
+  --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
+}
+
+/* rainbow-button (Magic UI) — cssVars del registry, verbatim (mismos valores
+   en claro y oscuro; los 5 colores del arcoíris no siguen al tema) */
+:root,
+:root[data-theme='light'] {
+  --color-1: oklch(66.2% 0.225 25.9);
+  --color-2: oklch(60.4% 0.26 302);
+  --color-3: oklch(69.6% 0.165 251);
+  --color-4: oklch(80.2% 0.134 225);
+  --color-5: oklch(90.7% 0.231 133);
+}
+
+/* rainbow-button (Magic UI) — css del registry, verbatim */
+@keyframes rainbow {
+  0% {
+    background-position: 0%;
+  }
+  100% {
+    background-position: 200%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--accent) 50%, transparent);
+  }
+  html {
+    height: 100%;
+  }
+  body {
+    min-height: 100%;
+    min-height: 100dvh;
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  #root {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* El barrido circular del cambio de tema (AnimatedThemeToggler) anima
+   ::view-transition-new(root) con un clip-path circular; sin esto el
+   crossfade por defecto de la View Transitions API pelea con el círculo. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
