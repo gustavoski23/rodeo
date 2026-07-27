@@ -174,12 +174,21 @@ export function GlossText({
       if (s.start > pos) out.push(clean.slice(pos, s.start));
       const chunk = clean.slice(s.start, s.end);
       out.push(
-        <button
+        /* <span role="button">, no <button>: el legacy usaba
+           <span class="gloss" tabindex="0" role="button"> (L3298) y hay un
+           motivo de layout, no solo de fidelidad — el navegador "blockifica"
+           todo <button> a inline-block aunque le pongas display:inline, así
+           que la glosa era una caja atómica de max-content: no partía entre
+           líneas y un chunk largo empujaba el scroll horizontal del chat.
+           Como span sí fluye con el texto; [overflow-wrap:anywhere] remata el
+           caso de un token sin espacios (una URL dentro de ⟦…||…⟧). */
+        <span
           key={`g${i}`}
-          type="button"
+          role="button"
+          tabIndex={0}
           data-gloss
           aria-label="Ver significado"
-          className="inline cursor-help border-b-[1.5px] border-dotted border-[var(--warn)] text-left underline-offset-[3px] hover:text-[var(--warn)] focus-visible:text-[var(--warn)] focus-visible:outline-none"
+          className="cursor-help border-b-[1.5px] border-dotted border-[var(--warn)] underline-offset-[3px] [overflow-wrap:anywhere] hover:text-[var(--warn)] focus-visible:text-[var(--warn)] focus-visible:outline-none"
           onMouseEnter={(e) => {
             // Hover sólo si no hay nada fijado (en táctil no existe y no estorba).
             if (useTip.getState().tip?.fijado) return;
@@ -193,9 +202,18 @@ export function GlossText({
             if (actual?.fijado && actual.el === e.currentTarget) cerrar();
             else abrir({ owner, el: e.currentTarget, es: s.es, term: savable ? chunk : null, fijado: true });
           }}
+          /* Un <span> no dispara click con teclado: lo que el <button> daba
+             gratis hay que devolverlo a mano (Enter y Espacio, como el rol). */
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            const actual = useTip.getState().tip;
+            if (actual?.fijado && actual.el === e.currentTarget) cerrar();
+            else abrir({ owner, el: e.currentTarget, es: s.es, term: savable ? chunk : null, fijado: true });
+          }}
         >
           {chunk}
-        </button>,
+        </span>,
       );
       pos = s.end;
     });

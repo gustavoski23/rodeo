@@ -80,6 +80,7 @@
   --borde-medio:    oklch(96% 0.004 265 / 0.22);
   --superficie-t:   oklch(96% 0.004 265 / 0.07);   /* fondos translúcidos (burbujas) */
   --texto-mal:      oklch(80% 0.16 27);            /* la cita incorrecta (tachada) */
+  --texto-bien:     oklch(87% 0.21 128);           /* el fix de la corrección: lima sobre coral apagado */
   --texto-obst:     oklch(80% 0.13 40);            /* el obstáculo del roleplay */
   --texto-es:       oklch(80% 0.14 55);            /* chip ES del micrófono */
 
@@ -147,6 +148,10 @@
   --borde-medio:    oklch(22% 0.012 265 / 0.24);
   --superficie-t:   oklch(22% 0.012 265 / 0.05);
   --texto-mal:      oklch(48% 0.19 27);
+  /* Baja de L50 (la lima de --accent) a L45: sobre el coral de --danger-dim
+     compuesto (rgb 244,223,222) la lima de acento se queda en 4,4:1 y el fix
+     va a 13,6 px en negrita — que NO es texto grande para AA. A L45 da 5,5:1. */
+  --texto-bien:     oklch(45% 0.17 132);
   --texto-obst:     oklch(46% 0.15 40);
   --texto-es:       oklch(46% 0.14 55);
 }

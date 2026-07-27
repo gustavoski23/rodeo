@@ -87,7 +87,7 @@ OUTPUT — STRICT JSON, your very first character must be '{':
 {
   "reply": "the scene + the character's spoken line, in natural English. To underline a genuinely useful phrase, wrap it INLINE with these EXACT markers: ⟦english chunk||explicación corta y cercana en español⟧ — only phrases that help Gus negotiate, persuade or sound natural, AT MOST 1-2 per turn, often zero.",
   "glosses": [ up to 3 items {"term","es"} chosen FROM your own reply — phrasal verbs, idioms or collocations a B2 won't fully catch. "term" MUST be an exact substring of reply (same case, same words). "es" explains like a bilingual friend, never grammar-speak (no 'subjuntivo', no tense names). [] if none, or if you already underlined them inline. ],
-  "consejo": "OPTIONAL theatrical aside in SPANISH — a director whispering from the wings. When it helps, hand Gus 1-2 concrete English phrases he could USE right now to negotiate, stand his ground or apply strategic courtesy, e.g. Para no ceder de una: \\"That's a bit steep — what's your best price?\\". Empty string on most turns; include it ONLY when it truly helps him take the next move."
+  "consejo": "OPTIONAL theatrical aside in SPANISH — a director whispering from the wings. When it helps, hand Gus 1-2 concrete English phrases he could USE right now to negotiate, stand his ground or apply strategic courtesy, e.g. Para no ceder de una: \"That's a bit steep — what's your best price?\". Empty string on most turns; include it ONLY when it truly helps him take the next move."
 }
 The ⟦||⟧ markers are the ONLY place Spanish may appear inside "reply". NEVER leave a ⟦ or a ⟧ unmatched, and never repeat a phrase both inline with ⟦||⟧ and again in the glosses array.`;
 }

@@ -97,7 +97,9 @@ export function BurbujaChat({ b }: { b: Burbuja }) {
     return (
       <motion.div
         {...entrada}
-        className="ml-auto max-w-[85%] rounded-[16px_16px_4px_16px] border px-[15px] py-3 text-[0.85rem]"
+        /* break-words: el `quote` es literalmente lo que Gus dictó o pegó —
+           una URL o un token larguísimo se salía de la tarjeta y se recortaba. */
+        className="ml-auto max-w-[85%] rounded-[16px_16px_4px_16px] border px-[15px] py-3 text-[0.85rem] [overflow-wrap:anywhere]"
         style={{ background: 'var(--danger-dim)', borderColor: 'color-mix(in oklch, var(--danger) 32%, transparent)' }}
       >
         <div className="leading-[1.5]">
@@ -105,7 +107,9 @@ export function BurbujaChat({ b }: { b: Burbuja }) {
             {b.quote}
           </span>
           {' → '}
-          <span className="font-bold" style={{ color: 'var(--accent)' }}>
+          {/* --texto-bien y no --accent: en claro la lima de acento sobre el
+              coral de la tarjeta se queda en 4,4:1 y esto son 13,6 px negrita. */}
+          <span className="font-bold" style={{ color: 'var(--texto-bien)' }}>
             {b.fix}
           </span>
         </div>

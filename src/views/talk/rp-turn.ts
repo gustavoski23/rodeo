@@ -25,7 +25,7 @@
 import { callAPI, callJSON, callStream, extractPartialReply, parseJSON, type ChatMessage } from '@/lib/api';
 import { saveDNA } from '@/lib/dna';
 import { stripChunksLive, type Gloss } from '@/lib/gloss';
-import { registrarHablado, speak, ttsActivo } from '@/lib/speech';
+import { registrarHablado, speak, stopSpeak, ttsActivo } from '@/lib/speech';
 import { useApp } from '@/stores/app';
 import { useEscenas, type RpAprendizaje, type RpSession } from '@/stores/escenas';
 import { useLadder } from '@/stores/ladder';
@@ -187,6 +187,9 @@ export function startRoleplay(sc: Escena): void {
   if (useTalk.getState().busy || useEscenas.getState().session) return;
   // Premium: cada escena cuenta contra la cuota diaria de 'roleplay'.
   if (!premiumGate('roleplay')) return;
+  // §1.8 paso 2 (legacy L7307): la voz que estuviera sonando calla ANTES de
+  // abrir la escena — si no, el narrador entra encima del audio anterior.
+  stopSpeak();
 
   const ses = useEscenas.getState().abrirSesion(sc);
   ses.messages.push({ role: 'system', content: rpSystemPrompt(sc) });

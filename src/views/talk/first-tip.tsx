@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { create } from 'zustand';
 
+import { cn } from '@/lib/utils';
 import { store } from '@/lib/storage';
+import { useEnSesion } from '@/stores/talk';
 
 /* Tip de primera vez — port de tipPrimeraVez (public/legacy.html:3220-3234)
    y su CSS .rd-tip (L564-581).
@@ -31,6 +33,13 @@ export function tipPrimeraVez(key: string, texto: string): void {
 export function FirstTip() {
   const texto = useTip((s) => s.texto);
   const cerrar = useTip((s) => s.cerrar);
+  /* El tip y el toast se turnan los extremos de la pantalla: el toaster está
+     ARRIBA en sesión y ABAJO fuera de ella (toaster.tsx), así que el tip hace
+     exactamente lo contrario. Sin esto, cerrar una escena con el tip de 8 s
+     todavía vivo devolvía el toaster abajo, justo encima del tip lavanda, y el
+     aviso quedaba medio tapado. Fuera de sesión el tip baja del header (no lo
+     pisa) en vez de irse al borde de arriba. */
+  const enSesion = useEnSesion();
 
   useEffect(() => {
     if (!texto) return;
@@ -42,13 +51,19 @@ export function FirstTip() {
     <AnimatePresence>
       {texto && (
         <motion.div
-          initial={{ opacity: 0, y: 16, x: '-50%' }}
+          layout
+          initial={{ opacity: 0, y: enSesion ? 16 : -16, x: '-50%' }}
           animate={{ opacity: 1, y: 0, x: '-50%' }}
-          exit={{ opacity: 0, y: 10, x: '-50%' }}
+          exit={{ opacity: 0, y: enSesion ? 10 : -10, x: '-50%' }}
           transition={{ type: 'spring', stiffness: 420, damping: 32 }}
           /* z-990: por encima de CUALQUIER overlay de la app, igual que el
              viejo — el tip llega justo cuando se abre una sesión. */
-          className="fixed bottom-[calc(120px+env(safe-area-inset-bottom))] left-1/2 z-[990] flex max-w-[min(92vw,420px)] items-center gap-2.5 rounded-full py-[11px] pr-3.5 pl-4 text-[0.85rem] font-semibold"
+          className={cn(
+            'fixed left-1/2 z-[990] flex max-w-[min(92vw,420px)] items-center gap-2.5 rounded-full py-[11px] pr-3.5 pl-4 text-[0.85rem] font-semibold',
+            enSesion
+              ? 'bottom-[calc(120px+env(safe-area-inset-bottom))]'
+              : 'top-[calc(80px+env(safe-area-inset-top))]',
+          )}
           style={{
             background: 'var(--card-lavender)',
             color: 'var(--card-ink)',

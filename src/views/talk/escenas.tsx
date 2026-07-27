@@ -85,24 +85,28 @@ function RoleplayHome() {
 
   return (
     <div className="scroll-area flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-4">
-      {/* ── HÉROE ── */}
-      <div className="relative">
-        <Eyebrow>Roleplay · teatro jugable</Eyebrow>
-        <p className="font-display mt-3 mb-3 text-[clamp(2.1rem,9vw,3.1rem)] leading-[0.92] font-extrabold tracking-[-0.035em]">
-          ACTÚA.
-          <br />
-          NO SOLO <span style={{ color: 'var(--accent)' }}>HABLES.</span>
-        </p>
-        <p className="max-w-[330px] text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
-          Una escena, un objetivo, alguien que se te opone.
-        </p>
+      {/* ── HÉROE ──
+          El telón deja de estar en absolute detrás del titular: mandarlo al
+          fondo (-z-10) no arreglaba nada porque es lima sobre lima y el trazo
+          se comía la S de HABLES. Ahora es una columna hermana — el texto
+          nunca pasa por debajo, y el titular parte donde tiene que partir. */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <Eyebrow>Roleplay · teatro jugable</Eyebrow>
+          <p className="font-display mt-3 mb-3 text-[clamp(2.1rem,9vw,3.1rem)] leading-[0.92] font-extrabold tracking-[-0.035em]">
+            ACTÚA.
+            <br />
+            NO SOLO <span style={{ color: 'var(--accent)' }}>HABLES.</span>
+          </p>
+          <p className="max-w-[330px] text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
+            Una escena, un objetivo, alguien que se te opone.
+          </p>
+        </div>
 
-        {/* Telón + máscara: el motivo teatral del viejo, line-art lima. Va
-            detrás del titular por lo mismo que el de CHARLA — el trazo es
-            grueso y cruzaba la palabra. */}
+        {/* Telón + máscara: el motivo teatral del viejo, line-art lima. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-1 -right-0.5 -z-10 h-[104px] w-[104px] opacity-85 max-[359px]:hidden"
+          className="pointer-events-none mt-1 h-[104px] w-[104px] shrink-0 opacity-85 max-[359px]:hidden"
           style={{ color: 'var(--accent)' }}
         >
           <svg
