@@ -26,3 +26,4 @@ Thumbs.db
 # Build (Vite)
 node_modules/
 dist/
+*.tsbuildinfo
