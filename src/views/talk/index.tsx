@@ -1,7 +1,6 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'motion/react';
 
-import { PencilLoader } from '@/components/rodeo/pencil-loader';
 import { onCostChange } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -10,25 +9,18 @@ import { useTalk, type TalkMode } from '@/stores/talk';
 import { CharlaEmpty } from './charla-empty';
 import { CharlaSession } from './charla-session';
 import { DebriefSheet } from './debrief-sheet';
+import EscenasPane from './escenas';
 import { FirstTip } from './first-tip';
 import { useCoachTurn } from './use-coach-turn';
 
 /* Vista TALK — port de #view-talk (public/legacy.html:2318-2522) y del handler
    del toggle .talk-tab (L3678-3699).
 
-   ESCENAS entra por import perezoso: es un pane entero con su propio motor de
-   generación y no tiene por qué viajar en el bundle de quien solo va a charlar.
-   El .catch() cubre el caso de que el archivo aún no exista en una rama a
-   medias: la app no se cae, el pane dice que llega después. */
-const EscenasPane = lazy(() =>
-  import('./escenas').catch(() => ({
-    default: () => (
-      <p className="p-6 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
-        Las escenas todavía no están disponibles.
-      </p>
-    ),
-  })),
-);
+   ESCENAS entra por import normal. Estuvo detrás de un lazy() mientras el pane
+   era un placeholder; ahora que existe de verdad, partir el bundle por aquí
+   solo compraría un parpadeo: los dos panes comparten el motor de turnos, el
+   glosado, la voz y el mic, así que lo que quedaba del otro lado del corte era
+   poco más que su portada. */
 
 const TABS: { modo: TalkMode; label: string }[] = [
   { modo: 'charla', label: 'CHARLA' },
@@ -91,15 +83,7 @@ export default function TalkView() {
           <CharlaEmpty onLibre={motor.startLibre} onScenario={motor.startSession} />
         )
       ) : (
-        <Suspense
-          fallback={
-            <div className="flex min-h-0 flex-1 items-center justify-center">
-              <PencilLoader size={5.2} label="Cargando escenas" />
-            </div>
-          }
-        >
-          <EscenasPane />
-        </Suspense>
+        <EscenasPane />
       )}
 
       <FirstTip />

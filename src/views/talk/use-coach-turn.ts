@@ -8,6 +8,7 @@ import { toast } from '@/stores/toast';
 import { guardarOpener, leerOpeners, useTalk, type Debrief, type TalkSession } from '@/stores/talk';
 
 import { tipPrimeraVez } from './first-tip';
+import { crearPintor } from './stream-paint';
 import {
   DEBRIEF_SYSTEM,
   IDEA_SYSTEM,
@@ -51,35 +52,6 @@ import {
      stream (texto plano, throttled a un frame) y la fase 2 es un swap atómico
      a <GlossText>: el subrayado sigue "apareciendo como remate", que era el
      efecto buscado, sin re-teclear lo que ya se leyó. */
-
-/* Throttle del stream a un frame: callStream entrega el acumulado en cada
-   chunk (decenas por segundo) y cada patch es un render de la lista entera.
-   Con rAF se pinta como mucho una vez por frame, que es lo máximo que el ojo
-   puede ver. */
-function crearPintor(patch: (texto: string) => void) {
-  let raf = 0;
-  let pendiente: string | null = null;
-  return {
-    pintar(texto: string) {
-      pendiente = texto;
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        if (pendiente !== null) {
-          patch(pendiente);
-          pendiente = null;
-        }
-      });
-    },
-    // Se llama antes de borrar la burbuja o de hacer el swap final: si quedara
-    // un frame en vuelo, repintaría el texto de la fase 1 encima de la fase 2.
-    cancelar() {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      pendiente = null;
-    },
-  };
-}
 
 type RespuestaCoach = { reply?: string; corrections?: unknown; glosses?: unknown };
 type Correccion = { quote?: string; fix?: string; why?: string };

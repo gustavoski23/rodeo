@@ -55,6 +55,10 @@ export function CharlaSession({ motor }: { motor: Motor }) {
     (t: string) => {
       const limpio = t.trim();
       if (!limpio) return;
+      // El viejo deshabilitaba #send-btn mientras el turno volaba (L4112). Aquí
+      // además se comprueba antes de vaciar el campo: sendTurn descarta el envío
+      // por su guard de busy, y sin esto el texto se perdería al limpiarlo.
+      if (useTalk.getState().busy) return;
       setTexto('');
       void motor.sendTurn(limpio);
     },
@@ -235,8 +239,9 @@ export function CharlaSession({ motor }: { motor: Motor }) {
               whileTap={{ scale: 0.94 }}
               transition={{ type: 'spring', stiffness: 600, damping: 25 }}
               onClick={() => enviar(texto)}
+              disabled={busy}
               aria-label="Enviar mensaje"
-              className="inline-flex size-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0"
+              className="inline-flex size-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 disabled:cursor-default disabled:opacity-40"
               style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
             >
               <SendHorizontal size={18} strokeWidth={2} />
