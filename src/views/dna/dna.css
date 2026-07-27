@@ -1,0 +1,9 @@
+/* DNA — lo poco que no cabe en utilidades.
+
+   Las citas, ejemplos y frases largas del DNA no pueden ensanchar la fila: el
+   botón de borrar tiene que seguir a la vista en pantallas de 320 px, y una
+   URL o una palabra kilométrica pegada por el coach rompía el layout. */
+.rd-dna-texto {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

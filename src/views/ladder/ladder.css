@@ -1,0 +1,148 @@
+/* Geometría de SUBE. Solo lo que no cabe en utilidades de Tailwind: el
+   contrato 3D del flip, la tarjeta sticker y el shimmer del lote.
+   Port de public/legacy.html:760-793 (.slang-card), 901-940 (.flip-*, .swap-*),
+   950-955 (.vchip) y 995-1000 (.skeleton). */
+
+/* ── FLIP 3D REAL ─────────────────────────────────────────────────────────
+   El viejo definía este contrato y nunca lo usaba: re-renderizaba el HTML y
+   el único "giro" era el cambio de signo del rotate(). Aquí sí gira, con
+   motion moviendo rotateY del .lad-flip-inner.
+
+   Las dos caras viven en la MISMA celda de grid: así el alto del contenedor
+   es el de la cara más alta (la trasera, que lleva swap + nota + veredicto) y
+   ninguna se recorta. Y las dos están en el DOM desde el primer frame — razón
+   de L7021: en pestañas de fondo el rAF se estrangula y una respuesta que
+   dependa de un onComplete no llega nunca. */
+.lad-flip {
+  perspective: 1400px;
+  -webkit-perspective: 1400px;
+}
+.lad-flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+.lad-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.lad-face--back {
+  transform: rotateY(180deg);
+}
+/* Sin 3D no hay backface: la cara trasera taparía a la frontal. Se apilan por
+   opacidad, controlada con el atributo data-cara del envoltorio. */
+@media (prefers-reduced-motion: reduce) {
+  .lad-flip-inner {
+    transform: none !important;
+  }
+  .lad-flip[data-cara='front'] .lad-face--back,
+  .lad-flip[data-cara='back'] .lad-face--front {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .lad-face--back {
+    transform: none;
+  }
+}
+
+/* ── Tarjeta sticker (.slang-card) ────────────────────────────────────────
+   Pastel plano, muy redondeada, sombra difusa y borde interior de 1px = el
+   recorte de pegatina. El color de texto SIEMPRE es la tinta oscura: los
+   temas `light-text`/`dark-text` del viejo eran legado inerte (spec §8.1). */
+.lad-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 26px;
+  padding: 28px 24px 24px;
+  border: 1px solid oklch(20% 0.03 265 / 0.15);
+  box-shadow: var(--sticker-shadow);
+  color: var(--card-ink);
+}
+.lad-term {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+  color: var(--card-ink);
+  overflow-wrap: anywhere;
+}
+/* La cara trasera lleva más cosas debajo: el C1 va un punto más chico. */
+.lad-term--back {
+  font-size: clamp(2rem, 8.5vw, 3rem);
+}
+.lad-label-mini {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--card-ink-soft);
+}
+
+/* Tintas del swap: hue-locked oscuras, leen sobre CUALQUIER card pastel. */
+.lad-swap-old {
+  color: var(--swap-old);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  font-weight: 600;
+}
+.lad-swap-new {
+  color: var(--swap-new);
+  font-weight: 700;
+}
+
+.lad-vchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Lote en camino: misma silueta que la tarjeta que va a aparecer. */
+.lad-skeleton {
+  border-radius: 26px;
+  min-height: 210px;
+  border: 1px solid var(--superficie-t);
+  background: linear-gradient(100deg, var(--bg-surface) 40%, var(--bg-elevated) 50%, var(--bg-surface) 60%);
+  background-size: 200% 100%;
+  animation: lad-shimmer 1.4s infinite;
+}
+@keyframes lad-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lad-skeleton {
+    animation: none;
+  }
+}
+
+/* Input de la frase propia y del intento: 16px para que iOS no haga zoom. */
+.lad-input {
+  width: 100%;
+  min-width: 0;
+  border-radius: 100px;
+  border: 1px solid var(--borde-sutil);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  padding: 13px 20px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.25s ease;
+}
+.lad-input:focus {
+  border-color: oklch(87% 0.21 128 / 0.6);
+}
+.lad-input::placeholder {
+  color: var(--text-muted);
+}
