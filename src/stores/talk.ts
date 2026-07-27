@@ -5,6 +5,7 @@ import type { Gloss } from '@/lib/gloss';
 import { store } from '@/lib/storage';
 import { stopSpeak } from '@/lib/speech';
 import type { ScenarioKey, Situacion } from '@/views/talk/prompts';
+import type { Maquina } from '@/views/talk/typewriter';
 
 /* Estado de la vista TALK — port de `state.talkMode` / `state.session` /
    `state.busy` / `state.sessions` (public/legacy.html:3006-3043).
@@ -38,10 +39,14 @@ export type TalkSession = {
 /* Una burbuja del chat. `coach` tiene dos fases y por eso `texto` cambia de
    naturaleza: en fase 1 (stream) es el texto YA limpio de marcadores que se
    pinta como texto plano; en fase 2 (`final`) es el reply CRUDO, con sus
-   ⟦en||es⟧, porque <GlossText> es quien sabe convertirlos en subrayados. */
+   ⟦en||es⟧, porque <GlossText> es quien sabe convertirlos en subrayados.
+
+   `tw` marca la tercera forma de fase 1: la máquina de escribir del viejo
+   (§3.2), que solo entra cuando NO hubo stream que leer. Lleva las medidas
+   (medirMaquina) para que la burbuja anime con ellas. */
 export type Burbuja =
   | { id: number; tipo: 'user'; texto: string }
-  | { id: number; tipo: 'coach'; texto: string; glosses: Gloss[] | null; final: boolean }
+  | { id: number; tipo: 'coach'; texto: string; glosses: Gloss[] | null; final: boolean; tw?: Maquina | null }
   | { id: number; tipo: 'correccion'; quote: string; fix: string; why: string }
   | { id: number; tipo: 'idea'; texto: string }
   | { id: number; tipo: 'espera'; desde: number };

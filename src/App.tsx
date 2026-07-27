@@ -2,25 +2,27 @@ import { useState } from 'react';
 import { MotionConfig } from 'motion/react';
 
 import { Header } from '@/components/rodeo/header';
+import { MenuSheet } from '@/components/rodeo/menu-sheet';
 import { TabBar } from '@/components/rodeo/tab-bar';
 import { Toaster } from '@/components/rodeo/toaster';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useEnSesion } from '@/stores/talk';
 import TalkView from '@/views/talk';
+import SlangView from '@/views/slang';
+import LadderView from '@/views/ladder';
+import DnaView from '@/views/dna';
 
 /* Shell: header + vista activa + tab bar. El switch de vistas es el switchView
    del viejo (public/legacy.html:3641) sin el DOM: cada vista se monta y se
    desmonta, que es lo que hace que TALK sortee un rompehielos fresco al volver
    de una sesión sin que nadie tenga que acordarse de refrescarlo.
 
-   TALK está portada; STORY, SLANG y OFICINA llegan en las fases siguientes. */
+   TALK, SLANG, SUBE y DNA están portadas (DNA y SUBE se abren desde el menú,
+   como en el viejo vivían tras el perfil); STORY y OFICINA llegan después. */
 
 const PENDIENTES: Record<string, { titulo: string; sub: string }> = {
   story: { titulo: 'STORY', sub: 'El thriller por capítulos y la lectura diaria llegan en la próxima entrega.' },
-  slang: { titulo: 'SLANG', sub: 'El mazo de expresiones de calle llega en la próxima entrega.' },
-  ladder: { titulo: 'SUBE', sub: 'Los peldaños B2 → C1 llegan en la próxima entrega.' },
-  dna: { titulo: 'TU DNA', sub: 'Tus errores, tu jerga y tus upgrades — llegan en la próxima entrega.' },
   a1: { titulo: 'OFICINA', sub: 'El flujo de principiante con Alfred llega en la próxima entrega.' },
 };
 
@@ -61,10 +63,21 @@ export default function App() {
           enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
         )}
       >
-        {view === 'talk' ? <TalkView /> : <VistaPendiente view={view} />}
+        {view === 'talk' ? (
+          <TalkView />
+        ) : view === 'slang' ? (
+          <SlangView />
+        ) : view === 'ladder' ? (
+          <LadderView />
+        ) : view === 'dna' ? (
+          <DnaView />
+        ) : (
+          <VistaPendiente view={view} />
+        )}
       </main>
 
       {!enSesion && <TabBar />}
+      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
       <Toaster />
     </MotionConfig>
   );

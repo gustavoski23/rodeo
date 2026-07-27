@@ -2,13 +2,15 @@ import { useCallback, useRef, useState } from 'react';
 
 import { callAPI, callJSON, callStream, extractPartialReply, parseJSON, type ChatMessage } from '@/lib/api';
 import { recordUpgrade, saveDNA } from '@/lib/dna';
-import { stripChunksLive, type Gloss } from '@/lib/gloss';
+import { parseChunks, stripChunksLive, type Gloss } from '@/lib/gloss';
 import { registrarHablado, speak, ttsActivo } from '@/lib/speech';
+import { REDUCED } from '@/lib/theme';
 import { toast } from '@/stores/toast';
 import { guardarOpener, leerOpeners, useTalk, type Debrief, type TalkSession } from '@/stores/talk';
 
 import { tipPrimeraVez } from './first-tip';
 import { crearPintor } from './stream-paint';
+import { medirMaquina } from './typewriter';
 import {
   DEBRIEF_SYSTEM,
   IDEA_SYSTEM,
@@ -46,15 +48,43 @@ import {
      descarta) es idéntico; lo que se arregla es una corrupción invisible que
      la propia spec marca como la asimetría a documentar.
 
-   · No hay máquina de escribir. El viejo tecleaba el reply limpio pieza a pieza
-     y AL TERMINAR cambiaba el innerHTML por la versión glosada; con streaming
-     eso significaba escribir dos veces el mismo texto. Aquí la fase 1 es el
-     stream (texto plano, throttled a un frame) y la fase 2 es un swap atómico
-     a <GlossText>: el subrayado sigue "apareciendo como remate", que era el
-     efecto buscado, sin re-teclear lo que ya se leyó. */
+   · La máquina de escribir (§3.2) solo entra cuando NO hubo stream. El viejo
+     tecleaba el reply limpio pieza a pieza y AL TERMINAR cambiaba el innerHTML
+     por la versión glosada; con streaming eso significa re-escribir un texto
+     que el usuario acaba de leer, así que ahí la fase 2 es un swap atómico a
+     <GlossText> (el subrayado sigue "apareciendo como remate", que era el
+     efecto buscado). Cuando la respuesta llega de golpe —fallback sin stream,
+     reintento por 'length', prefers-reduced-motion aparte— se teclea con los
+     valores exactos del viejo y las correcciones caen DENTRO del callback, no
+     en el mismo frame que el reply: ese retardo es parte del ritmo (§1.4 p.11).
+     La apertura de dibujo libre sigue sin tecleo, como en el viejo (§1.3 p.8). */
 
 type RespuestaCoach = { reply?: string; corrections?: unknown; glosses?: unknown };
 type Correccion = { quote?: string; fix?: string; why?: string };
+
+/* Las correcciones caen juntas, en orden, y siempre DESPUÉS del reply: pisarle
+   la lectura al usuario con la tarjeta roja era lo que el viejo evitaba metiendo
+   esto en el callback del tecleo (L4213-4218).
+
+   Si volvió a los escenarios mientras se tecleaba ya no se pintan — el viejo las
+   metía igual en el #chat-scroll recién vaciado y reaparecían en la charla
+   siguiente —, pero SÍ se guardan: el DNA es dato del usuario, no de la
+   pantalla, y esa parte del viejo sí es la correcta. */
+function soltarCorrecciones(corrections: Correccion[]) {
+  const viva = !!useTalk.getState().session;
+  corrections.forEach((c) => {
+    if (!c || !c.fix) return;
+    if (viva) {
+      useTalk.getState().addBubble({
+        tipo: 'correccion',
+        quote: c.quote || '',
+        fix: c.fix,
+        why: c.why || '',
+      });
+    }
+    saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
+  });
+}
 
 export function useCoachTurn() {
   // La bombilla tiene su propio flag: puedes pedir una idea mientras el coach
@@ -148,27 +178,34 @@ export function useCoachTurn() {
 
       const glosses: Gloss[] = parsed && Array.isArray(parsed.glosses) ? (parsed.glosses as Gloss[]) : [];
 
-      // FASE 2: swap atómico. Se cancela el pintor primero para que un frame
-      // rezagado del stream no pise el reply crudo que necesita <GlossText>.
+      // Se cancela el pintor antes de tocar nada para que un frame rezagado del
+      // stream no pise el reply crudo que necesita <GlossText>.
       pintor.cancelar();
       useTalk.getState().removeBubble(typingId);
-      if (liveId === null) {
-        liveId = useTalk.getState().addBubble({ tipo: 'coach', texto: reply, glosses, final: true });
-      } else {
-        useTalk.getState().patchCoach(liveId, { texto: reply, glosses, final: true });
-      }
 
-      // Y recién entonces caen las correcciones, para no pisar la lectura.
-      corrections.forEach((c) => {
-        if (!c || !c.fix) return;
-        useTalk.getState().addBubble({
-          tipo: 'correccion',
-          quote: c.quote || '',
-          fix: c.fix,
-          why: c.why || '',
-        });
-        saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
-      });
+      const { clean } = parseChunks(reply);
+      // Se teclea el texto YA limpio de marcadores: nunca queda un ⟦ a la vista.
+      const tw = liveId === null && !REDUCED && clean ? medirMaquina(clean) : null;
+
+      if (tw) {
+        // FASE 1 tecleada + FASE 2 al terminar, como el viejo. El setTimeout no
+        // se espera (el turno acaba y busy se libera ya, igual que allí: el
+        // escribirMaquina del viejo también volvía en el acto).
+        const burbuja = useTalk.getState().addBubble({ tipo: 'coach', texto: clean, glosses: null, final: false, tw });
+        setTimeout(() => {
+          useTalk.getState().patchCoach(burbuja, { texto: reply, glosses, final: true, tw: null });
+          soltarCorrecciones(corrections);
+        }, tw.totalMs);
+      } else {
+        // FASE 2 directa: swap atómico sobre lo ya streameado (o burbuja nueva
+        // si el tecleo no aplica).
+        if (liveId === null) {
+          liveId = useTalk.getState().addBubble({ tipo: 'coach', texto: reply, glosses, final: true });
+        } else {
+          useTalk.getState().patchCoach(liveId, { texto: reply, glosses, final: true });
+        }
+        soltarCorrecciones(corrections);
+      }
 
       // Memoria anti-repetición: las últimas 8 aperturas vuelven al prompt de
       // las siguientes sesiones como "no abras así".

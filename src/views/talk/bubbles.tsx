@@ -3,7 +3,9 @@ import { motion } from 'motion/react';
 
 import { GlossText } from '@/components/rodeo/gloss-text';
 import { PencilLoader } from '@/components/rodeo/pencil-loader';
+import { TextAnimate } from '@/components/magicui/text-animate';
 import type { Burbuja } from '@/stores/talk';
+import type { Maquina } from './typewriter';
 
 /* Burbujas del chat — port de las clases .bubble-coach / .bubble-user /
    .correction-card / .bubble-idea y de la burbuja de espera con el lápiz
@@ -16,9 +18,11 @@ import type { Burbuja } from '@/stores/talk';
    parecer una lista de tarjetas. Los tokens hacen que en tema claro se dé
    vuelta solo.
 
-   La ENTRADA se anima (era animateIn con GSAP); el TEXTO no: mientras streamea
-   se repinta decenas de veces por segundo y animar cada delta por carácter
-   sería un tartamudeo, no una máquina de escribir. */
+   La ENTRADA se anima (era animateIn con GSAP); el TEXTO solo cuando NO hubo
+   stream: mientras streamea la burbuja se repinta decenas de veces por segundo
+   y animar cada delta por carácter sería un tartamudeo, no una máquina de
+   escribir. Cuando la respuesta llega de golpe (fallback sin stream, reintento
+   por 'length') vuelve el tecleo del viejo (§3.2) — ver <Maquina>. */
 
 const entrada = {
   initial: { opacity: 0, y: 14 },
@@ -42,6 +46,35 @@ function Espera({ desde }: { desde: number }) {
     <PencilLoader size={4.4}>
       {seg >= 3 && <span className="rd-wait">{seg < 25 ? `${seg}s` : `${seg}s · pensando`}</span>}
     </PencilLoader>
+  );
+}
+
+/* Máquina de escribir (escribirMaquina, L4073) sobre TextAnimate — el snippet 5
+   elegido por el dueño, por carácter, con los mismos valores del CSS viejo
+   (@keyframes rd-char, L1632-1642): cada pieza entra desde translateY(30px)
+   rotate(45deg) scale(.5) en .4s con cubic-bezier(.2,1.4,.4,1).
+
+   El `by` y la duración vienen medidos (typewriter.ts) para que el swap a la
+   versión glosada, que dispara el turno, caiga justo cuando termina el barrido.
+   startOnView=false: la burbuja nace al fondo del scroll y el observer de
+   viewport podía dejarla sin arrancar. */
+const PIEZA = {
+  hidden: { opacity: 0, y: 30, rotate: 45, scale: 0.5 },
+  show: {
+    opacity: 1,
+    y: 0,
+    rotate: 0,
+    scale: 1,
+    transition: { duration: 0.4, ease: [0.2, 1.4, 0.4, 1] as const },
+  },
+  exit: { opacity: 0 },
+};
+
+function MaquinaTexto({ texto, tw }: { texto: string; tw: Maquina }) {
+  return (
+    <TextAnimate as="span" by={tw.por} duration={tw.duracion} variants={PIEZA} startOnView={false}>
+      {texto}
+    </TextAnimate>
   );
 }
 
@@ -86,9 +119,16 @@ export function BurbujaChat({ b }: { b: Burbuja }) {
           color: 'var(--text-primary)',
         }}
       >
-        {/* Fase 1: texto plano tal cual llega del stream (nunca HTML: es texto
-            del modelo sin escapar). Fase 2: swap a la versión glosada. */}
-        {b.final ? <GlossText reply={b.texto} glosses={b.glosses} /> : b.texto}
+        {/* Fase 1: texto plano tal cual llega del stream, o tecleado si no hubo
+            stream (nunca HTML: es texto del modelo sin escapar).
+            Fase 2: swap a la versión glosada. */}
+        {b.final ? (
+          <GlossText reply={b.texto} glosses={b.glosses} />
+        ) : b.tw ? (
+          <MaquinaTexto texto={b.texto} tw={b.tw} />
+        ) : (
+          b.texto
+        )}
       </motion.div>
     );
   }
