@@ -32,6 +32,14 @@ try {
   if (JSON.parse(localStorage.getItem('rodeo_nivel') || 'null') === 'a1') {
     document.documentElement.classList.add('nivel-a1');
   }
+  // Tema: si no hay elección guardada se respeta la del sistema. Va aquí y no
+  // en el script principal porque un cambio de fondo después del primer paint
+  // es un fogonazo blanco (o negro) en la cara.
+  var t = JSON.parse(localStorage.getItem('rodeo_tema') || 'null');
+  if (t !== 'claro' && t !== 'oscuro') {
+    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro';
+  }
+  if (t === 'claro') document.documentElement.setAttribute('data-theme', 'light');
 } catch (e) {}
 </script>
 <style>
@@ -112,6 +120,117 @@ try {
   --pill-bg:        oklch(100% 0 0 / 0.04);
   --pill-bg-hover:  oklch(100% 0 0 / 0.07);
   --pill-border:    oklch(100% 0 0 / 0.09);
+
+  /* Borde de las tarjetas-sticker: invisible sobre el shell oscuro (las cards
+     pastel ya saltan solas), imprescindible sobre claro. */
+  --card-borde:     transparent;
+
+  /* ── Tokens que antes eran colores a mano dentro de las reglas ──────────
+     Estaban escritos con la lima/blanco del shell oscuro, así que en tema
+     claro pintaban texto claro sobre fondo claro. Ahora el tema los invierte.
+     Los valores del oscuro son EXACTAMENTE los de antes: no cambia un píxel. */
+  --chip-bg:        oklch(16% 0.015 265 / 0.4);    /* pills inactivas (chip, mode-tab…) */
+  --chip-bg-fuerte: oklch(16% 0.015 265 / 0.55);
+  --borde-sutil:    oklch(96% 0.004 265 / 0.12);   /* separadores y bordes de pill */
+  --borde-medio:    oklch(96% 0.004 265 / 0.22);
+  --superficie-t:   oklch(96% 0.004 265 / 0.07);   /* fondos translúcidos (burbujas) */
+  --texto-mal:      oklch(80% 0.16 27);            /* la cita incorrecta (tachada) */
+  --texto-obst:     oklch(80% 0.13 40);            /* el obstáculo del roleplay */
+  --texto-es:       oklch(80% 0.14 55);            /* chip ES del micrófono */
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CLARO — el mismo sistema, dado vuelta.
+   ──────────────────────────────────────────────────────────────────────────
+   El punto difícil es el ACENTO: la lima brillante (L87) sobre blanco da
+   ~1.3:1, ilegible, y la app la usa para dos cosas a la vez — relleno de
+   botón Y color de texto (.rd-eyebrow--accent, el "HOY?" del titular, los
+   hovers). Por eso en claro la lima BAJA a L58: ahí sirve como texto sobre
+   blanco (~4.6:1) y como relleno con tinta clara encima. Se conserva el verde
+   de marca, solo más denso.
+
+   Las tarjetas pastel NO se invierten: ya son claras con tinta oscura y
+   funcionan en los dos temas. Lo que ganan es un borde, porque sobre fondo
+   blanco perdían el recorte.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root[data-theme="light"] {
+  /* Rampa de fondos: papel cálido, no blanco clínico */
+  --bg-void:        oklch(98.5% 0.003 95);
+  --bg-deep:        oklch(96.5% 0.005 95);
+  --bg-surface:     oklch(100% 0 0);
+  --bg-elevated:    oklch(94.5% 0.007 95);
+
+  --text-primary:   oklch(22% 0.012 265);
+  --text-secondary: oklch(44% 0.014 265);
+  --text-muted:     oklch(52% 0.014 265);   /* L52 sobre papel → ~4.7:1: pasa AA */
+
+  /* Lima profunda: legible como texto Y como relleno */
+  --accent:         oklch(50% 0.17 132);
+  --accent-dim:     oklch(50% 0.17 132 / 0.13);
+  --accent-ink:     oklch(99% 0.01 128);    /* tinta CLARA sobre la lima profunda */
+
+  --glass-bg:       oklch(100% 0 0 / 0.78);
+  --glass-border:   oklch(22% 0.012 265 / 0.10);
+
+  /* Las cards pastel se quedan; solo se apagan un punto para no deslumbrar
+     sobre papel, y ganan borde. La tinta oscura sigue sirviendo igual. */
+  --card-blue:      oklch(84% 0.09 248);
+  --card-lavender:  oklch(87% 0.075 290);
+  --card-green:     oklch(90% 0.095 158);
+  --card-yellow:    oklch(93% 0.12 95);
+  --card-coral:     oklch(85% 0.10 28);
+  --card-peach:     oklch(90% 0.075 55);
+  --card-paper:     oklch(97% 0.010 85);
+  --card-borde:     oklch(22% 0.012 265 / 0.12);
+
+  --card-ink:       oklch(21% 0.03 265);
+  --card-ink-soft:  oklch(35% 0.03 265);
+
+  /* Los swaps ya eran tintas oscuras: siguen leyendo sobre las cards claras */
+  --swap-new:       oklch(38% 0.16 132);
+  --swap-old:       oklch(42% 0.20 27);
+
+  --success:        oklch(52% 0.17 145);
+  --danger:         oklch(52% 0.20 27);
+  --danger-dim:     oklch(52% 0.20 27 / 0.12);
+  --warn:           oklch(47% 0.13 72);     /* el amarillo brillante no lee sobre papel */
+
+  /* Sombras: sobre claro las negras al 34% son manchas. Suaves y frías. */
+  --sticker-shadow:      0 10px 26px oklch(22% 0.012 265 / 0.10), 0 2px 6px oklch(22% 0.012 265 / 0.07);
+  --sticker-shadow-lift: 0 18px 40px oklch(22% 0.012 265 / 0.14), 0 3px 8px oklch(22% 0.012 265 / 0.09);
+
+  --heat-glow-color: oklch(52% 0.20 27 / 0.10);
+
+  /* Píldoras: sobre claro el blanco translúcido no se ve — se usa tinta */
+  --pill-bg:        oklch(22% 0.012 265 / 0.04);
+  --pill-bg-hover:  oklch(22% 0.012 265 / 0.08);
+  --pill-border:    oklch(22% 0.012 265 / 0.12);
+
+  /* Los que en oscuro eran blancos/limas translúcidos: aquí van en tinta */
+  --chip-bg:        oklch(22% 0.012 265 / 0.045);
+  --chip-bg-fuerte: oklch(22% 0.012 265 / 0.08);
+  --borde-sutil:    oklch(22% 0.012 265 / 0.13);
+  --borde-medio:    oklch(22% 0.012 265 / 0.24);
+  --superficie-t:   oklch(22% 0.012 265 / 0.05);
+  --texto-mal:      oklch(48% 0.19 27);
+  --texto-obst:     oklch(46% 0.15 40);
+  --texto-es:       oklch(46% 0.14 55);
+}
+
+/* El barrido circular del cambio de tema (View Transitions API, nativa en
+   Chrome). El tema nuevo entra por encima desde el punto donde está el botón.
+   Sin soporte, el tema cambia igual: solo sin animación. */
+::view-transition-old(root) { animation: none; }
+::view-transition-new(root) {
+  animation: rd-tema-barrido .55s cubic-bezier(.2,.9,.3,1) both;
+  mix-blend-mode: normal;
+}
+@keyframes rd-tema-barrido {
+  from { clip-path: circle(0% at var(--rd-tema-x, 50%) var(--rd-tema-y, 50%)); }
+  to   { clip-path: circle(150% at var(--rd-tema-x, 50%) var(--rd-tema-y, 50%)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) { animation: none; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -357,7 +476,7 @@ body {
 .btn-ghost {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   padding: 12px 22px; min-height: 44px;
-  border: 1px solid oklch(96% 0.004 265 / 0.22);
+  border: 1px solid var(--borde-medio);
   border-radius: 100px; background: transparent;
   color: var(--text-primary);
   font-family: 'Familjen Grotesk', sans-serif;
@@ -365,14 +484,14 @@ body {
   cursor: pointer;
   transition: border-color .3s ease, background .3s ease, transform .2s ease;
 }
-.btn-ghost:hover { border-color: oklch(96% 0.004 265 / 0.5); background: oklch(96% 0.004 265 / 0.05); }
+.btn-ghost:hover { border-color: oklch(96% 0.004 265 / 0.5); background: var(--superficie-t); }
 .btn-ghost:active { transform: scale(0.97); }
 
 .icon-btn {
   width: 46px; height: 46px; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 50%;
-  border: 1px solid oklch(96% 0.004 265 / 0.15);
+  border: 1px solid var(--borde-sutil);
   background: var(--bg-surface);
   color: var(--text-primary);
   cursor: pointer;
@@ -479,7 +598,7 @@ body {
   transition: color .2s ease, border-color .2s ease, background .2s ease, transform .15s ease;
 }
 .mic-lang-chip[data-lang="es"] {
-  color: oklch(80% 0.14 55);
+  color: var(--texto-es);
   border-color: oklch(80% 0.14 55 / 0.4);
   background: oklch(80% 0.14 55 / 0.12);
 }
@@ -493,8 +612,8 @@ body {
   font-family: 'Space Mono', monospace;
   font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--text-secondary); cursor: pointer;
-  border: 1px solid oklch(96% 0.004 265 / 0.12);
-  background: oklch(16% 0.015 265 / 0.5);
+  border: 1px solid var(--borde-sutil);
+  background: var(--chip-bg);
   transition: all .25s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .mode-tab:active { transform: scale(0.96); }
@@ -508,9 +627,9 @@ body {
 .chip {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 12px 18px; min-height: 44px;
-  border: 1px solid oklch(96% 0.004 265 / 0.14);
+  border: 1px solid var(--borde-sutil);
   border-radius: 100px;
-  background: oklch(16% 0.015 265 / 0.55);
+  background: var(--chip-bg-fuerte);
   color: var(--text-primary);
   font-family: 'Familjen Grotesk', sans-serif;
   font-size: 0.9rem; font-weight: 500;
@@ -586,7 +705,7 @@ body {
 .rd-lvl {
   display: block; width: 100%; text-align: left; cursor: pointer;
   padding: 19px 20px; border-radius: 22px;
-  background: var(--bg-surface); border: 1px solid oklch(96% 0.004 265 / 0.14);
+  background: var(--bg-surface); border: 1px solid var(--borde-sutil);
   transition: border-color .25s ease, transform .2s ease, background .25s ease;
   animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
@@ -598,7 +717,7 @@ body {
 .rd-lvl-title { display: block; font-family: 'Familjen Grotesk', sans-serif; font-weight: 700; font-size: 1.3rem; line-height: 1.1; margin: 8px 0 6px; }
 .rd-lvl-sub { display: block; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.45; }
 .rd-lvl-ex { margin-top: 11px; display: flex; flex-wrap: wrap; gap: 6px; }
-.rd-lvl-ex span { font-size: 0.73rem; color: var(--text-muted); background: var(--bg-void); border: 1px solid oklch(96% 0.004 265 / 0.1); border-radius: 100px; padding: 4px 10px; }
+.rd-lvl-ex span { font-size: 0.73rem; color: var(--text-muted); background: var(--bg-void); border: 1px solid var(--borde-sutil); border-radius: 100px; padding: 4px 10px; }
 @media (prefers-reduced-motion: reduce) { .rd-lvl { animation: none; } }
 
 /* ── Dibujo libre (TALK): el coach abre con un rompehielos en la landing ────
@@ -606,7 +725,7 @@ body {
    (elige un escenario). Entrada por keyframe con fill-mode both. */
 .rd-libre {
   border: 1px solid oklch(87% 0.21 128 / 0.24);
-  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.07), oklch(16% 0.015 265 / 0.4));
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.07), var(--chip-bg));
   border-radius: 20px; padding: 16px 18px 15px;
   animation: ob-rise 0.6s cubic-bezier(0.32, 0.72, 0, 1) 0.05s both;
 }
@@ -683,7 +802,7 @@ body {
 .bubble-coach {
   max-width: 85%;
   background: var(--bg-surface);
-  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border: 1px solid var(--superficie-t);
   border-radius: 4px 20px 20px 20px;     /* esquina sup-izq cuadrada = viene del NPC */
   padding: 14px 18px;
   font-size: 1rem; line-height: 1.6; font-weight: 400;
@@ -707,7 +826,7 @@ body {
   font-size: 0.85rem;
 }
 .correction-card .quote {
-  color: oklch(80% 0.16 27);            /* coral claro — pasa AA 4.5 sobre danger-dim */
+  color: var(--texto-mal);            /* coral claro — pasa AA 4.5 sobre danger-dim */
   text-decoration: line-through; text-decoration-thickness: 1.5px;
 }
 .correction-card .fix { color: var(--accent); font-weight: 700; }
@@ -758,7 +877,7 @@ body {
    ───────────────────────────────────────────────────────────────────────── */
 .meter-track {
   height: 8px; border-radius: 100px;
-  background: oklch(96% 0.004 265 / 0.1);
+  background: var(--borde-sutil);
   overflow: hidden;
   box-shadow: inset 0 1px 2px oklch(0% 0 0 / 0.3);
 }
@@ -844,7 +963,7 @@ body {
 }
 .dna-item {
   background: var(--bg-surface);
-  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border: 1px solid var(--superficie-t);
   border-radius: 16px;
   padding: 14px 16px;
 }
@@ -856,7 +975,7 @@ body {
    ───────────────────────────────────────────────────────────────────────── */
 input[type="text"], textarea {
   background: var(--bg-surface);
-  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  border: 1px solid var(--borde-sutil);
   border-radius: 100px;
   color: var(--text-primary);
   padding: 13px 20px;
@@ -879,13 +998,13 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     var(--bg-surface) 40%, var(--bg-elevated) 50%, var(--bg-surface) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
-  border: 1px solid oklch(96% 0.004 265 / 0.05);
+  border: 1px solid var(--superficie-t);
 }
 @keyframes shimmer { to { background-position: -200% 0; } }
 /* barra indeterminada lima fina para los picos de 20-30s (STORY bible) */
 .loading-bar {
   height: 3px; border-radius: 100px; overflow: hidden;
-  background: oklch(96% 0.004 265 / 0.08);
+  background: var(--superficie-t);
   position: relative;
 }
 .loading-bar::after {
@@ -944,7 +1063,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   padding: 12px 22px;
   border-radius: 100px;
   background: var(--bg-elevated);
-  border: 1px solid oklch(96% 0.004 265 / 0.15);
+  border: 1px solid var(--borde-sutil);
   color: var(--text-primary);
   font-family: 'Familjen Grotesk', sans-serif;
   font-size: 0.85rem; font-weight: 600;
@@ -965,7 +1084,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   width: 100%; max-width: 520px; max-height: 88vh;
   overflow-y: auto;
   background: var(--bg-deep);
-  border: 1px solid oklch(96% 0.004 265 / 0.1);
+  border: 1px solid var(--borde-sutil);
   border-radius: 28px 28px 0 0;
   padding: 28px 24px calc(28px + env(safe-area-inset-bottom));
 }
@@ -1005,8 +1124,8 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 .rd-cost-pill {
   display: inline-flex; flex-direction: column; align-items: flex-end;
   padding: 5px 12px; border-radius: 100px;
-  background: oklch(16% 0.015 265 / 0.6);
-  border: 1px solid oklch(96% 0.004 265 / 0.08);
+  background: var(--chip-bg-fuerte);
+  border: 1px solid var(--superficie-t);
 }
 .rd-cost-val { font-family: 'Space Mono', monospace; font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); }
 .rd-cost-label { font-family: 'Space Mono', monospace; font-size: 0.5rem; letter-spacing: 0.14em; color: var(--text-muted); }
@@ -1092,8 +1211,8 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   font-family: 'Space Mono', monospace;
   font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--text-secondary); cursor: pointer;
-  border: 1px solid oklch(96% 0.004 265 / 0.12);
-  background: oklch(16% 0.015 265 / 0.5);
+  border: 1px solid var(--borde-sutil);
+  background: var(--chip-bg);
   transition: all .25s cubic-bezier(0.32, 0.72, 0, 1);
 }
 .story-tab:active { transform: scale(0.96); }
@@ -1111,7 +1230,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   font-family: 'Space Mono', monospace;
   font-size: 0.76rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--text-secondary); cursor: pointer;
-  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  border: 1px solid var(--borde-sutil);
   background: transparent;
   transition: all 0.25s ease;
 }
@@ -1155,7 +1274,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   display: block;
   height: 3px; margin-top: 10px;
   border-radius: 100px;
-  background-color: oklch(96% 0.004 265 / 0.08);
+  background-color: var(--superficie-t);
   background-image: linear-gradient(90deg, transparent, var(--accent), transparent);
   background-size: 40% 100%;
   background-repeat: no-repeat;
@@ -1188,7 +1307,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   padding: 14px 16px;
   border-radius: 20px;
   background: var(--bg-surface);
-  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border: 1px solid var(--superficie-t);
 }
 .dp-play {
   width: 54px; height: 54px; flex-shrink: 0;
@@ -1227,7 +1346,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 /* Tarjeta de léxico */
 .dp-lex-card {
   background: var(--bg-surface);
-  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border: 1px solid var(--superficie-t);
   border-radius: 18px;
   padding: 14px 16px;
 }
@@ -1259,7 +1378,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 /* Tarjeta de pregunta (mc y open comparten esqueleto) */
 .dp-q-card {
   background: var(--bg-surface);
-  border: 1px solid oklch(96% 0.004 265 / 0.07);
+  border: 1px solid var(--superficie-t);
   border-radius: 18px;
   padding: 16px;
 }
@@ -1272,8 +1391,8 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
   display: block; width: 100%; text-align: left;
   padding: 12px 16px; min-height: 44px;
   border-radius: 16px;
-  background: oklch(16% 0.015 265 / 0.55);
-  border: 1px solid oklch(96% 0.004 265 / 0.14);
+  background: var(--chip-bg-fuerte);
+  border: 1px solid var(--borde-sutil);
   color: var(--text-primary);
   font-family: 'Familjen Grotesk', sans-serif;
   font-size: 0.92rem; font-weight: 500; line-height: 1.45;
@@ -1293,12 +1412,12 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
 .dp-opt.wrong {
   border-color: var(--danger);
   background: var(--danger-dim);
-  color: oklch(80% 0.16 27);
+  color: var(--texto-mal);
   opacity: 1;
 }
 .dp-q-why {
   margin-top: 10px; padding-top: 10px;
-  border-top: 1px dashed oklch(96% 0.004 265 / 0.15);
+  border-top: 1px dashed var(--borde-sutil);
   font-size: 0.82rem; line-height: 1.5;
   color: var(--text-secondary);
 }
@@ -1721,7 +1840,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rp-card {
   position: relative; overflow: hidden;
   width: 100%; text-align: left; cursor: pointer;
-  border: 1px solid oklch(96% 0.004 265 / 0.12);
+  border: 1px solid var(--borde-sutil);
   border-radius: 22px; padding: 20px 20px 18px;
   background:
     radial-gradient(120% 90% at 88% -10%, oklch(87% 0.21 128 / 0.10), transparent 60%),
@@ -1740,7 +1859,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
   border-color: oklch(87% 0.21 128 / 0.4);
   background:
     radial-gradient(120% 100% at 90% -20%, oklch(87% 0.21 128 / 0.18), transparent 62%),
-    linear-gradient(158deg, oklch(87% 0.21 128 / 0.08), oklch(16% 0.015 265 / 0.5));
+    linear-gradient(158deg, oklch(87% 0.21 128 / 0.08), var(--chip-bg));
 }
 .rp-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .rp-card-emoji {
@@ -1765,7 +1884,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
   padding-top: 2px;
 }
 .rp-line-v { color: var(--text-secondary); min-width: 0; }
-.rp-line--obst .rp-line-v { color: oklch(80% 0.13 40); }   /* la tensión, en durazno cálido */
+.rp-line--obst .rp-line-v { color: var(--texto-obst); }   /* la tensión, en durazno cálido */
 .rp-card-go {
   margin-top: 14px; display: inline-flex; align-items: center; gap: 7px;
   font-family: 'Space Mono', monospace; font-size: 0.66rem; font-weight: 700;
@@ -1794,7 +1913,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rp-mission {
   border: 1px solid oklch(87% 0.21 128 / 0.32);
   border-radius: 16px; padding: 14px 16px;
-  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.09), oklch(16% 0.015 265 / 0.4));
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.09), var(--chip-bg));
   animation: rp-rise 0.5s cubic-bezier(0.32,0.72,0,1) both;
 }
 .rp-mission-tag {
@@ -1899,7 +2018,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-unit-go { flex-shrink: 0; color: var(--text-muted); font-size: 1.1rem; }
 .rd-a1-locked {
   display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 18px;
-  border: 1px dashed oklch(96% 0.004 265 / 0.14); color: var(--text-muted);
+  border: 1px dashed var(--borde-sutil); color: var(--text-muted);
   font-size: 0.82rem; line-height: 1.4;
 }
 .rd-a1-locked-ico { font-size: 1.05rem; flex-shrink: 0; }
@@ -1909,7 +2028,7 @@ body.rd-lectura .luminous-line { opacity: 0; }
   display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%;
   margin: 4px 0 8px; padding: 14px 18px; min-height: 52px;
   border-radius: 100px; cursor: pointer;
-  background: var(--bg-elevated); border: 1px solid oklch(96% 0.004 265 / 0.18);
+  background: var(--bg-elevated); border: 1px solid var(--borde-sutil);
   color: var(--text-primary);
   font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem;
   transition: border-color .25s ease, transform .2s ease, background .25s ease;
@@ -1923,14 +2042,14 @@ body.rd-lectura .luminous-line { opacity: 0; }
 .rd-a1-hooks { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
 .rd-a1-hook {
   min-height: 44px; padding: 10px 16px; border-radius: 100px; cursor: pointer;
-  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.10), oklch(16% 0.015 265 / 0.4));
+  background: linear-gradient(158deg, oklch(87% 0.21 128 / 0.10), var(--chip-bg));
   border: 1px solid oklch(87% 0.21 128 / 0.28); color: var(--text-primary);
   font-family: 'Familjen Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem;
   transition: border-color .25s ease, transform .2s ease;
 }
 .rd-a1-hook:hover, .rd-a1-hook:focus-visible { border-color: var(--accent); }
 .rd-a1-hook:active { transform: scale(0.97); }
-.rd-a1-hook--locked { opacity: 0.5; background: var(--bg-elevated); border-color: oklch(96% 0.004 265 / 0.16); }
+.rd-a1-hook--locked { opacity: 0.5; background: var(--bg-elevated); border-color: var(--borde-sutil); }
 
 /* ── Hoja de supervivencia (openSheet, frasebook de referencia) ── */
 .rd-a1-sheet-title { font-size: 2rem; line-height: 0.92; margin: 8px 0 6px; }
@@ -4184,10 +4303,10 @@ Max 3 top_errors (the most costly ones) and max 3 upgrades. TRANSCRIPT:\n${trans
 
     openSheet(`
       <p class="font-display" style="font-size: 2.4rem; line-height: 0.95;">DEBRIEF<span style="color: var(--accent);">.</span></p>
-      ${(d.top_errors || []).length ? `<p style="font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: oklch(70% 0.19 30); margin: 18px 0 10px;">Errores que más te cuestan</p>` : ''}
+      ${(d.top_errors || []).length ? `<p style="font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--texto-mal); margin: 18px 0 10px;">Errores que más te cuestan</p>` : ''}
       ${(d.top_errors || []).map((e) => `
         <div class="dna-item" style="margin-bottom: 8px;">
-          <div style="font-size: 0.9rem;"><span style="color: oklch(70% 0.19 30); text-decoration: line-through;">${esc(e.quote)}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(e.fix)}</span></div>
+          <div style="font-size: 0.9rem;"><span style="color: var(--texto-mal); text-decoration: line-through;">${esc(e.quote)}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(e.fix)}</span></div>
           <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">${esc(e.why)}</div>
         </div>`).join('')}
       ${(d.upgrades || []).length ? `<p style="font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin: 18px 0 10px;">Dilo como un C1</p>` : ''}
@@ -4839,7 +4958,7 @@ function renderDNA() {
     if (d.type === 'error') {
       el.innerHTML = `
         <div style="min-width:0;">
-          <div style="font-size: 0.88rem;"><span style="color: oklch(70% 0.19 30); text-decoration: line-through;">${esc(d.quote)}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(d.fix)}</span></div>
+          <div style="font-size: 0.88rem;"><span style="color: var(--texto-mal); text-decoration: line-through;">${esc(d.quote)}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(d.fix)}</span></div>
           <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">${esc(d.why || '')}</div>
         </div>
         <button class="dna-del" data-idx="${idx}" aria-label="Borrar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
@@ -4849,7 +4968,7 @@ function renderDNA() {
       el.innerHTML = `
         <div style="min-width:0;">
           <div style="font-size: 0.88rem;"><span style="color: var(--text-muted); text-decoration: line-through;">${esc(d.b2 || '')}</span> → <span style="color: var(--accent); font-weight: 600;">${esc(d.fix)}</span></div>
-          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">${d.dominado ? '<span style="color: var(--card-yellow);">clavado ✓</span> · ' : ''}${esc(d.why || '')}</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px;">${d.dominado ? '<span style="color: var(--warn); font-weight: 700;">clavado ✓</span> · ' : ''}${esc(d.why || '')}</div>
         </div>
         <button class="dna-del" data-idx="${idx}" aria-label="Borrar" style="background:none;border:none;color:var(--text-muted);cursor:pointer;min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -4937,7 +5056,7 @@ function runQuiz(quiz) {
         </div>
         <div id="quiz-judge" class="hidden" style="display: none; gap: 8px; margin-top: 12px;">
           <button id="quiz-good" class="btn-accent" style="min-height: 44px; padding: 10px 22px; font-size: 0.82rem;">LA TENÍA ✓</button>
-          <button id="quiz-bad" class="btn-ghost" style="border-color: oklch(64% 0.19 30 / 0.5); color: oklch(70% 0.19 30);">Fallé</button>
+          <button id="quiz-bad" class="btn-ghost" style="border-color: var(--texto-mal); color: var(--texto-mal);">Fallé</button>
         </div>
       </div>`;
     $('#quiz-reveal').addEventListener('click', () => {
@@ -5827,7 +5946,7 @@ async function enviarAbiertaDrop(tipo, pregunta, ta, fb, btn) {
     let html = (tipo === 'prod' ? '💬 ' : (parsed.ok ? '✅ ' : '🤔 ')) + esc(parsed.feedback_es || '');
     if (parsed.correccion && parsed.correccion.fix) {
       const c = parsed.correccion;
-      html += '<br><span style="color: oklch(70% 0.19 30); text-decoration: line-through;">' + esc(c.quote || '') + '</span> → <b style="color: var(--accent);">' + esc(c.fix) + '</b> · ' + esc(c.why || '');
+      html += '<br><span style="color: var(--texto-mal); text-decoration: line-through;">' + esc(c.quote || '') + '</span> → <b style="color: var(--accent);">' + esc(c.fix) + '</b> · ' + esc(c.why || '');
       saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' });
     }
     if (esProd && parsed.upgrade && parsed.upgrade.c1) {
@@ -6513,7 +6632,7 @@ function applyJudge(j, line) {
   // upgrade → munición de LEVEL UP
   if (j.upgrade && j.upgrade.c1) recordUpgrade({ b2: j.upgrade.b2 || line, c1: j.upgrade.c1, note: 'de la historia', dominado: false });
 
-  const rankColor = { A: 'var(--accent)', B: 'var(--accent)', C: 'var(--card-yellow)', D: 'oklch(70% 0.19 30)' }[j.rank] || 'var(--text-primary)';
+  const rankColor = { A: 'var(--accent)', B: 'var(--accent)', C: 'var(--card-yellow)', D: 'var(--texto-mal)' }[j.rank] || 'var(--text-primary)';
   const block = document.createElement('div');
   block.className = 'flex flex-col gap-3';
   block.innerHTML = `
@@ -6684,6 +6803,37 @@ window.rodeoStoryProgress = function () {
 // Puente para RÉTAME (js/cards-mode.js): las tarjetas usan la voz, el DNA y la
 // racha de la app sin acoplarse a este scope. trackReplay:false — la voz de una
 // tarjeta no debe contaminar el botón "repetir" del coach de TALK.
+/* ═══════════════════ TEMA CLARO / OSCURO ═══════════════════
+   El barrido circular lo hace la View Transitions API: el navegador saca una
+   foto del antes, aplicamos el cambio, y el después entra con un clip-path
+   que crece desde el botón. Es lo que usa el componente original por dentro,
+   nativo y sin librería. Donde no exista, el tema cambia sin animación. */
+function temaActual() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'claro' : 'oscuro';
+}
+function aplicarTema(tema) {
+  if (tema === 'claro') document.documentElement.setAttribute('data-theme', 'light');
+  else document.documentElement.removeAttribute('data-theme');
+  // La barra del navegador en Android sigue al tema; si no, queda un borde
+  // negro sobre la app clara.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', tema === 'claro' ? '#fbfaf7' : '#0a0a0e');
+}
+function alternarTema(ev) {
+  const nuevo = temaActual() === 'claro' ? 'oscuro' : 'claro';
+  store.set('rodeo_tema', nuevo);
+  // Origen del barrido: el propio botón. Sin él, el círculo nace del centro.
+  const btn = $('#theme-btn');
+  if (btn) {
+    const r = btn.getBoundingClientRect();
+    document.documentElement.style.setProperty('--rd-tema-x', (r.left + r.width / 2) + 'px');
+    document.documentElement.style.setProperty('--rd-tema-y', (r.top + r.height / 2) + 'px');
+  }
+  if (REDUCED || !document.startViewTransition) { aplicarTema(nuevo); return; }
+  document.startViewTransition(() => aplicarTema(nuevo));
+}
+$('#theme-btn').addEventListener('click', alternarTema);
+
 // El episodio ilustrado (js/story-mode.js) también usa el lápiz para su espera
 // de 10-30 s. Se expone en vez de duplicar el SVG en el otro archivo.
 window.rodeoPencilHTML = pencilHTML;
@@ -6812,7 +6962,7 @@ function openRungInput(r, theme, rot) {
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
       </button>
     </div>
-    <button id="rung-skip" class="btn-ghost" style="width:100%; margin-top:8px; font-size:0.78rem; border-color: oklch(96% 0.004 265 / 0.25);">muéstrame la respuesta</button>`;
+    <button id="rung-skip" class="btn-ghost" style="width:100%; margin-top:8px; font-size:0.78rem; border-color: var(--borde-medio);">muéstrame la respuesta</button>`;
   $('#rung-up').replaceWith(zone);
   $('#rung-input').focus();
   $('#rung-send').addEventListener('click', () => revealRung(r, theme, rot, $('#rung-input').value.trim()));
@@ -6865,7 +7015,7 @@ function flipToBack(r, theme, rot, attempt, judge) {
     </div>
     <div class="flex gap-2" style="margin-top:14px;">
       <button id="rung-nailed" class="btn-accent" style="flex:1; min-height:48px; font-size:0.85rem;">LA CLAVÉ ✓</button>
-      <button id="rung-casi" class="btn-ghost" style="min-height:48px; border-color: oklch(64% 0.19 30 / 0.5); color: oklch(70% 0.19 30);">CASI</button>
+      <button id="rung-casi" class="btn-ghost" style="min-height:48px; border-color: var(--texto-mal); color: var(--texto-mal);">CASI</button>
     </div>`;
 
   // Pintamos la cara trasera de INMEDIATO (nunca dependemos de un onComplete de
@@ -7481,6 +7631,7 @@ if (location.protocol === 'file:') {
   // Ruteo por nivel: el principiante (A1) arranca directo en OFICINA con Alfred;
   // el avanzado (o quien todavía no elige) ve TALK como siempre.
   aplicarNivel();   // el nav muestra solo las pestañas de su nivel
+  aplicarTema(temaActual());   // alinea el meta theme-color con lo ya pintado
   if (state.nivel === 'a1') {
     switchView('a1');
   } else {

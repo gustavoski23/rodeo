@@ -35,6 +35,7 @@ const SB_SYNC_KEYS = new Set([
   'rodeo_dna', 'rodeo_intereses', 'rodeo_cost', 'rodeo_sessions',
   'rodeo_stories', 'rodeo_ladder_xp', 'rodeo_streak',
   'rodeo_seen_slang', 'rodeo_seen_ladder', 'rodeo_nombre', 'rodeo_nivel',
+  'rodeo_tema',
 ]);
 
 let sbClient = null;
