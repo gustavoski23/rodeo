@@ -1,0 +1,150 @@
+/* Aurora del Home — deriva de las masas de color dentro de la píldora y haz
+   que recorre el perímetro. Los colores/tiempos entran por variables inline
+   (--au-m1, --au-m2, --au-luz, --au-int, --au-vel) desde el componente. */
+
+@property --au-ang {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.aurora-pill {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 999px;
+  /* Borde PERSISTENTE (no depende del haz): sutil, siempre visible. */
+  border: 1px solid oklch(100% 0 0 / 0.14);
+  background: oklch(11% 0.012 265);
+}
+
+/* Las masas: dos manchas gigantes desenfocadas que derivan. La composición de
+   la captura: oscuridad a la izquierda, tránsito malva, y la LUZ amaneciendo
+   por la derecha. */
+.aurora-pill__masas {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  filter: blur(26px) saturate(calc(100% * var(--au-int, 1)));
+  opacity: calc(0.92 * var(--au-int, 1));
+  background:
+    radial-gradient(42% 65% at 86% 42%, var(--au-luz) 0%, transparent 62%),
+    radial-gradient(55% 80% at 62% 60%, var(--au-m2) 0%, transparent 66%),
+    radial-gradient(70% 100% at 22% 50%, var(--au-m1) 0%, transparent 72%);
+  animation: aurora-deriva var(--au-vel, 12s) ease-in-out infinite alternate;
+}
+
+@keyframes aurora-deriva {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, 2%, 0) scale(1.06);
+  }
+  to {
+    transform: translate3d(4%, -1%, 0) scale(1.02);
+  }
+}
+
+/* El haz: un destello de la LUZ recorriendo todo el perímetro. Anillo de 2px
+   con la técnica de máscara compuesta (el conic vive solo en el borde). */
+.aurora-pill__haz {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 2px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--au-ang),
+    transparent 0deg,
+    transparent 292deg,
+    color-mix(in oklch, var(--au-luz) 88%, white) 330deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: aurora-haz calc(var(--au-vel, 12s) / 3) linear infinite;
+}
+
+@keyframes aurora-haz {
+  to {
+    --au-ang: 360deg;
+  }
+}
+
+/* Estado hundido durante la activación (950 ms; 80 ms con reduced motion). */
+.aurora-pill.is-pressing {
+  transform: scale(0.965) translateY(2px);
+  filter: brightness(0.88);
+}
+.aurora-pill {
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.2, 0.5, 1),
+    filter 0.22s ease;
+}
+
+/* Reduced motion: sin deriva, sin haz girando, sin traslación al hundir. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-pill__masas {
+    animation: none;
+  }
+  .aurora-pill__haz {
+    animation: none;
+    background: conic-gradient(
+      from 210deg,
+      transparent 0deg,
+      transparent 292deg,
+      color-mix(in oklch, var(--au-luz) 88%, white) 330deg,
+      transparent 360deg
+    );
+  }
+  .aurora-pill.is-pressing {
+    transform: scale(0.985);
+  }
+  .aurora-pill {
+    transition: transform 0.08s ease, filter 0.08s ease;
+  }
+}
+
+/* La cápsula "Pensando" de la apertura del Home (assistant-thinking de la
+   referencia): oscura, compacta, con un pulso sutil de la luz. */
+.assistant-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+  border-radius: 999px;
+  border: 1px solid oklch(100% 0 0 / 0.12);
+  background: oklch(13% 0.012 265);
+  color: oklch(88% 0.005 265);
+  padding: 12px 20px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+.assistant-thinking::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: thinking-pulso 1.1s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-thinking::before {
+    animation: none;
+  }
+}
+@keyframes thinking-pulso {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}

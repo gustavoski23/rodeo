@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Dna, TrendingUp, X } from 'lucide-react';
+import { Dna, Palette, TrendingUp, X } from 'lucide-react';
 
 import { useApp, type View } from '@/stores/app';
 
@@ -13,7 +13,16 @@ const ENTRADAS: { view: View; titulo: string; sub: string; Icon: typeof Dna }[] 
   { view: 'ladder', titulo: 'SUBE', sub: 'Peldaños B2 → C1 con juez', Icon: TrendingUp },
 ];
 
-export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function MenuSheet({
+  open,
+  onClose,
+  onPersonalizar,
+}: {
+  open: boolean;
+  onClose: () => void;
+  /** Abre el personalizador del aurora del Home (hoja aparte). */
+  onPersonalizar: () => void;
+}) {
   const setView = useApp((s) => s.setView);
 
   return (
@@ -57,6 +66,27 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
 
             <div className="flex flex-col gap-2">
+              {/* PERSONALIZAR: el aurora del Home a tu gusto (paletas, masas,
+                  luz, intensidad, velocidad). Vive primero: es la entrada
+                  nueva del brief del Home. */}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onPersonalizar();
+                }}
+                className="flex cursor-pointer items-center gap-3.5 rounded-2xl border px-4 py-3.5 text-left transition-colors hover:bg-[var(--superficie-t)]"
+                style={{ borderColor: 'var(--borde-sutil)' }}
+              >
+                <Palette className="size-5 shrink-0" strokeWidth={2} style={{ color: 'var(--accent)' }} />
+                <span className="flex flex-col">
+                  <span className="font-display text-[1.02rem] font-bold tracking-tight">PERSONALIZAR</span>
+                  <span className="text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>
+                    El botón del inicio, a tu gusto
+                  </span>
+                </span>
+              </button>
+
               {ENTRADAS.map(({ view, titulo, sub, Icon }) => (
                 <button
                   key={view}

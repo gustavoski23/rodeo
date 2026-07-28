@@ -49,14 +49,19 @@ export type Burbuja =
   | { id: number; tipo: 'coach'; texto: string; glosses: Gloss[] | null; final: boolean; tw?: Maquina | null }
   | { id: number; tipo: 'correccion'; quote: string; fix: string; why: string }
   | { id: number; tipo: 'idea'; texto: string }
-  | { id: number; tipo: 'espera'; desde: number };
+  | { id: number; tipo: 'espera'; desde: number }
+  /* La cápsula `Pensando` de la apertura desde el Home aurora: temporización
+     local (620 ms), NO una espera de red — por eso es un tipo aparte y no
+     reusa 'espera' (que lleva lápiz y contador de segundos reales). */
+  | { id: number; tipo: 'pensando' };
 
 export type BurbujaNueva =
   | Omit<Extract<Burbuja, { tipo: 'user' }>, 'id'>
   | Omit<Extract<Burbuja, { tipo: 'coach' }>, 'id'>
   | Omit<Extract<Burbuja, { tipo: 'correccion' }>, 'id'>
   | Omit<Extract<Burbuja, { tipo: 'idea' }>, 'id'>
-  | Omit<Extract<Burbuja, { tipo: 'espera' }>, 'id'>;
+  | Omit<Extract<Burbuja, { tipo: 'espera' }>, 'id'>
+  | Omit<Extract<Burbuja, { tipo: 'pensando' }>, 'id'>;
 
 export type Debrief = {
   top_errors?: { quote?: string; fix?: string; why?: string }[];
@@ -76,11 +81,15 @@ type TalkState = {
   roleplayActivo: boolean;
   /** Datos del debrief mientras la hoja está abierta; null = cerrada. */
   debrief: Debrief | null;
+  /** Al entrar desde el Home por TECLADO, el foco debe caer en "Volver a los
+      escenarios" (brief del Home aurora). La sesión lo consume y lo apaga. */
+  focoVolver: boolean;
 
   setTalkMode: (m: TalkMode) => void;
   setBusy: (v: boolean) => void;
   setRoleplayActivo: (v: boolean) => void;
   setDebrief: (d: Debrief | null) => void;
+  setFocoVolver: (v: boolean) => void;
 
   abrirSesion: (s: TalkSession, iniciales?: BurbujaNueva[]) => void;
   cerrarSesion: () => void;
@@ -101,11 +110,13 @@ export const useTalk = create<TalkState>((set, get) => ({
   sessions: store.get<number>('rodeo_sessions', 0),
   roleplayActivo: false,
   debrief: null,
+  focoVolver: false,
 
   setTalkMode: (talkMode) => set({ talkMode }),
   setBusy: (busy) => set({ busy }),
   setRoleplayActivo: (roleplayActivo) => set({ roleplayActivo }),
   setDebrief: (debrief) => set({ debrief }),
+  setFocoVolver: (focoVolver) => set({ focoVolver }),
 
   abrirSesion: (session, iniciales = []) =>
     set({ session, displayLog: iniciales.map((b) => ({ ...b, id: ++seqBurbuja }) as Burbuja) }),

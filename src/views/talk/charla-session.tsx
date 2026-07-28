@@ -32,8 +32,19 @@ export function CharlaSession({ motor }: { motor: Motor }) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const volverRef = useRef<HTMLButtonElement>(null);
   const [texto, setTexto] = useState('');
   const [teclado, setTeclado] = useState(false);
+
+  /* Entrada por teclado desde el Home aurora: el foco cae en "Volver a los
+     escenarios" (brief del Home), para que quien navega sin ratón no quede
+     tirado en el body. Se consume una vez y se apaga. */
+  useEffect(() => {
+    if (useTalk.getState().focoVolver) {
+      volverRef.current?.focus();
+      useTalk.getState().setFocoVolver(false);
+    }
+  }, []);
 
   /* Autoscroll: el viejo lo hacía a mano tras cada addBubble y en cada delta
      del stream. Aquí basta con reaccionar al displayLog — cada patch del
@@ -106,6 +117,7 @@ export function CharlaSession({ motor }: { motor: Motor }) {
       <div className="flex shrink-0 flex-col gap-2 pb-3">
         <div className="flex items-center gap-2">
           <motion.button
+            ref={volverRef}
             type="button"
             whileTap={{ scale: 0.94 }}
             onClick={motor.volver}

@@ -32,9 +32,18 @@ export function Header({ menuOpen, onMenuToggle }: { menuOpen: boolean; onMenuTo
           </svg>
         </span>
         <div className="flex items-baseline gap-2.5">
-          <h1 className="font-display text-[1.7rem] leading-[0.82] font-black tracking-tight">
-            RODEO<span className="text-brand">.</span>
-          </h1>
+          {/* El logo vuelve al Home aurora: es la única ruta de regreso a la
+              puerta (la tab bar no lleva pestaña de inicio a propósito). */}
+          <button
+            type="button"
+            onClick={() => useApp.getState().setView('home')}
+            aria-label="Volver al inicio"
+            className="cursor-pointer border-0 bg-transparent p-0"
+          >
+            <h1 className="font-display text-[1.7rem] leading-[0.82] font-black tracking-tight">
+              RODEO<span className="text-brand">.</span>
+            </h1>
+          </button>
           <span className="font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase">
             tu inglés 24/7
           </span>

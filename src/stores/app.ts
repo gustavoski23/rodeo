@@ -6,7 +6,7 @@ import { temaActual, type Tema } from '@/lib/theme';
    (envolvería los valores en {state,version} y rompería las claves rodeo_*):
    cada campo persistente lee/escribe su clave con el mismo formato de siempre. */
 
-export type View = 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1';
+export type View = 'home' | 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1';
 
 type AppState = {
   view: View;
@@ -20,7 +20,8 @@ type AppState = {
 };
 
 export const useApp = create<AppState>((set) => ({
-  view: 'talk',
+  // El Home aurora es la puerta de la app (decisión de Gus, 2026-07-28).
+  view: 'home',
   tema: typeof document !== 'undefined' ? temaActual() : 'oscuro',
   nombre: store.get<string | null>('rodeo_nombre', null),
   nivel: store.get<string | null>('rodeo_nivel', null),

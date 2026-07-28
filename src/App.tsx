@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { MotionConfig } from 'motion/react';
 
+import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
 import { Header } from '@/components/rodeo/header';
 import { MenuSheet } from '@/components/rodeo/menu-sheet';
 import { TabBar } from '@/components/rodeo/tab-bar';
@@ -8,6 +9,7 @@ import { Toaster } from '@/components/rodeo/toaster';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useEnSesion } from '@/stores/talk';
+import HomeView from '@/views/home';
 import TalkView from '@/views/talk';
 import SlangView from '@/views/slang';
 import LadderView from '@/views/ladder';
@@ -43,6 +45,7 @@ function VistaPendiente({ view }: { view: string }) {
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
   const view = useApp((s) => s.view);
   // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
   // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
@@ -54,30 +57,40 @@ export default function App() {
        para no repetir la comprobación en cada componente — el CSS portado del
        viejo ya trae sus propias @media (prefers-reduced-motion). */
     <MotionConfig reducedMotion="user">
-      <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
-      <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
+      {view === 'home' ? (
+        /* El Home aurora va a pantalla completa: sin header de marca, sin
+           tab bar, sin divisoria — solo su hamburguesa. Es la puerta. */
+        <HomeView menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
+      ) : (
+        <>
+          <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
+          <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
 
-      <main
-        className={cn(
-          'flex min-h-0 flex-1 flex-col px-5 pt-5',
-          enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
-        )}
-      >
-        {view === 'talk' ? (
-          <TalkView />
-        ) : view === 'slang' ? (
-          <SlangView />
-        ) : view === 'ladder' ? (
-          <LadderView />
-        ) : view === 'dna' ? (
-          <DnaView />
-        ) : (
-          <VistaPendiente view={view} />
-        )}
-      </main>
+          <main
+            className={cn(
+              'flex min-h-0 flex-1 flex-col px-5 pt-5',
+              enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
+            )}
+          >
+            {view === 'talk' ? (
+              <TalkView />
+            ) : view === 'slang' ? (
+              <SlangView />
+            ) : view === 'ladder' ? (
+              <LadderView />
+            ) : view === 'dna' ? (
+              <DnaView />
+            ) : (
+              <VistaPendiente view={view} />
+            )}
+          </main>
 
-      {!enSesion && <TabBar />}
-      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
+          {!enSesion && <TabBar />}
+        </>
+      )}
+
+      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} onPersonalizar={() => setCustomizerOpen(true)} />
+      <AuroraCustomizer open={customizerOpen} onClose={() => setCustomizerOpen(false)} />
       <Toaster />
     </MotionConfig>
   );
