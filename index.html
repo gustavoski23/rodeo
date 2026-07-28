@@ -1964,7 +1964,7 @@ function wireMicToggle(btn, ctx, onChange) {
 }
 
 // Reparación por LLM: se añade al system de cada flujo que recibe el habla de Gus.
-const NOTA_STT_BILINGUE = 'Note: his message may come from voice dictation, and Gus is bilingual (Spanish/English) — he often mixes both languages mid-sentence, so words from either language can arrive mis-transcribed or garbled. Read his intent charitably: infer what he meant instead of taking an odd transcription literally, and never flag a likely mis-hearing as a mistake.';
+const NOTA_STT_BILINGUE = 'Note: his message may come from voice dictation, and Gus is bilingual (Spanish/English) — he often mixes both languages mid-sentence, so words from either language can arrive mis-transcribed or garbled. Read his intent charitably: infer what he meant instead of taking an odd transcription literally, and never flag a likely mis-hearing as a mistake. CRITICAL: if his message contains a word, fragment, or phrase that does not make sense in context (nonsense words, a stray unrelated word, a broken half-sentence) — that is almost certainly a transcription error, NOT something he actually said or a grammar mistake to correct. In that case, do not put it in "corrections" at all: either quietly work with what you can understand, or if the message is too garbled to follow, ask him to repeat it in your "reply" instead of grading it.';
 
 const state = {
   view: 'talk',
@@ -2838,6 +2838,22 @@ function escribirMaquina(el, texto, alTerminar) {
   }, 28);
 }
 
+// Red de seguridad contra el coach "corrigiendo" ruido de dictado: una
+// corrección real siempre cita algo que Gus escribió/dijo. Si `quote` no
+// tiene solapamiento real con lo que se envió, es casi seguro una alucinación
+// sobre una transcripción rota (caso real: "Alive people Tell beca Summer"
+// se "corrigió" como si Gus lo hubiera escrito). Comparación por palabras,
+// normalizada, sin exigir orden — basta con no aceptar cualquier cosa.
+function pareceCorreccionValida(quote, userText) {
+  const normalizar = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/[a-z0-9']+/g) || [];
+  const palabrasQuote = normalizar(quote);
+  if (!palabrasQuote.length) return false;
+  const palabrasUser = new Set(normalizar(userText));
+  const coincide = palabrasQuote.filter((w) => palabrasUser.has(w)).length;
+  // Al menos 60% de las palabras de la cita deben aparecer en lo que envió.
+  return coincide / palabrasQuote.length >= 0.6;
+}
+
 async function sendTurn(userText) {
   if (state.busy || !state.session) return;
   state.busy = true;
@@ -2943,6 +2959,10 @@ LENGTH — hard limit, this matters more than anything else here: AT MOST TWO sh
       burbuja.innerHTML = renderReply(reply, glosses);
       corrections.forEach((c) => {
         if (!c || !c.fix) return;
+        // Red de seguridad: si la cita no aparece (aunque sea aproximada) en
+        // lo que Gus realmente envió, es una corrección alucinada sobre ruido
+        // de transcripción — se descarta antes de pintarla o guardarla.
+        if (!pareceCorreccionValida(c.quote, userText)) return;
         addBubble(
           `<div><span class="quote">${esc(c.quote || '')}</span> → <span class="fix">${esc(c.fix)}</span></div><div class="why">${esc(c.why || '')}</div>`,
           'correction-card'
@@ -3085,54 +3105,173 @@ window.closeSheetAndSession = function () {
   closeSession();
 };
 
-/* ═══════════════════ VOZ (Web Speech API) ═══════════════════ */
+/* ═══════════════════ VOZ — DICTADO ═══════════════════════════════════════
+   Motor principal: MediaRecorder graba audio y lo manda a /api/stt (Deepgram
+   Nova-3, language=multi), que hace CODE-SWITCHING real español↔inglés
+   dentro de la MISMA toma. El SpeechRecognition del navegador exige un
+   idioma fijo por toma — con Gus hablando espanglish, ese desajuste es la
+   causa raíz de transcripciones como "Alive people Tell beca Summer" en vez
+   de "that is a lie ... night person" (caso real, 2026-07-28).
 
-let recognition = null;
-let recognizing = false;
+   CONTRATO — distinto del anterior: el texto SIEMPRE aterriza en el campo de
+   texto para que Gus lo revise. NUNCA se envía solo. Antes, recognition.onend
+   llamaba sendTurn(text) directo: eso es lo que dejó pasar el segundo
+   desastre de esa sesión (nunca vio el texto roto antes de que el coach lo
+   "corrigiera" como si fuera un error suyo). Ver también NOTA_STT_BILINGUE
+   y el filtro de `corrections` en sendTurn: el coach tiene prohibido
+   corregir ruido de transcripción.
 
-function initRecognition() {
+   Si /api/stt falla (sin key, red caída, Deepgram caído) cae al
+   SpeechRecognition del navegador — misma calidad de antes, pero YA sin
+   auto-enviar: es una degradación de motor, no de este contrato. */
+
+const STT_MAX_MS = 45_000;   // tope de grabación: una toma no es un podcast
+let micStreamActivo = null;  // stream vivo, se libera al soltar o al abortar
+
+// Jerga guardada (rodeo_dna, type 'slang') como keyterms: sesga a Deepgram
+// hacia el vocabulario que Gus YA está aprendiendo — ataca justo los
+// homófonos que el motor genérico confunde.
+function keytermsActuales() {
+  return store.get('rodeo_dna', [])
+    .filter((d) => d && d.type === 'slang' && d.term)
+    .map((d) => d.term)
+    .slice(0, 20);
+}
+
+async function transcribirAudio(blob) {
+  const headers = { 'Content-Type': blob.type || 'audio/webm' };
+  const pass = store.get('rodeo_pass', null);
+  if (pass) headers['x-rodeo-pass'] = pass;
+  const kt = keytermsActuales();
+  if (kt.length) headers['x-rodeo-keyterms'] = kt.join(',');
+
+  const r = await fetch('/api/stt', { method: 'POST', headers, body: blob });
+  if (r.status === 401) throw new Error('pin_required');
+  const data = await r.json().catch(() => null);
+  if (!r.ok || !data) throw new Error((data && data.detail) || 'stt_failed');
+  return (data.text || '').trim();
+}
+
+// Reconocedor de respaldo por navegador — SOLO para cuando /api/stt falla.
+// Ya NO auto-envía: deposita el texto en el input, como el motor principal.
+function crearReconocedorRespaldo(ctx, onTexto, onFin) {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) return null;
   const r = new SR();
-  r.lang = micLangCode('talk');
+  r.lang = micLangCode(ctx);
   r.interimResults = true;
   r.continuous = false;
   r.onresult = (e) => {
     let final = '', interim = '';
     for (const res of e.results) (res.isFinal ? final += res[0].transcript : interim += res[0].transcript);
-    $('#chat-input').value = (final || interim).trim();
+    onTexto((final || interim).trim());
     if (final) r._finalText = final.trim();
   };
-  r.onend = () => {
-    recognizing = false;
-    $('#mic-btn').classList.remove('recording');
-    const text = r._finalText;
-    r._finalText = '';
-    if (text) { $('#chat-input').value = ''; sendTurn(text); }
-  };
+  r.onend = () => { const t = r._finalText; r._finalText = ''; onFin(t || null); };
   r.onerror = (e) => {
-    recognizing = false;
-    $('#mic-btn').classList.remove('recording');
     if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador');
     else if (e.error === 'network') toast('El dictado usa el servicio de voz de Google y este navegador lo bloquea (típico de Brave). Escribe o usa Chrome.', 5000);
     else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error);
+    onFin(null);
   };
   return r;
 }
 
-$('#mic-btn').addEventListener('click', () => {
-  if (!recognition) recognition = initRecognition();
-  if (!recognition) { toast('Tu navegador no soporta voz — usa Chrome'); return; }
-  if (recognizing) { recognition.stop(); return; }
-  stopSpeaking();
-  recognition._finalText = '';
-  recognition.lang = micLangCode('talk');   // idioma vigente al arrancar la toma
-  try { recognition.start(); recognizing = true; $('#mic-btn').classList.add('recording'); }
-  catch { /* start() doble */ }
-});
-wireMicToggle($('#mic-btn'), 'talk', (code) => { if (recognition) recognition.lang = code; });
+/* Botón de dictado genérico: un toque graba con MediaRecorder, otro toque
+   para y transcribe con Deepgram. El texto SIEMPRE aterriza en `input` — el
+   llamador decide cómo se envía (Enter, botón de enviar), igual que si lo
+   hubiera escrito a mano. `onFinal(texto)` es opcional y NO envía nada por
+   sí solo: existe solo para llamadores que necesitan reflejar el texto en
+   OTRO elemento (p.ej. el puente del episodio ilustrado, rodeoStoryMic). */
+function wireMic(btn, input, onFinal, ctx = 'talk') {
+  if (!btn || !input) return null;
+  let mediaRecorder = null, chunks = [], grabando = false, respaldo = null, timeoutId = null;
 
-function stopMic() { if (recognition && recognizing) try { recognition.abort(); } catch {} }
+  wireMicToggle(btn, ctx, (code) => { if (respaldo) respaldo.lang = code; });
+
+  function pintar(activo) { btn.classList.toggle('recording', activo); }
+
+  function usarRespaldo() {
+    if (!respaldo) {
+      respaldo = crearReconocedorRespaldo(
+        ctx,
+        (texto) => { input.value = texto; if (onFinal) onFinal(texto); },
+        (textoFinal) => { pintar(false); grabando = false; },
+      );
+    }
+    if (!respaldo) { toast('Tu navegador no soporta dictado — usa Chrome'); return; }
+    respaldo.lang = micLangCode(ctx);
+    try { respaldo.start(); grabando = true; pintar(true); } catch { /* start() doble */ }
+  }
+
+  async function empezar() {
+    stopSpeaking();
+    if (!navigator.mediaDevices || !window.MediaRecorder) { usarRespaldo(); return; }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamActivo = stream;
+      const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4']
+        .find((t) => window.MediaRecorder.isTypeSupported && window.MediaRecorder.isTypeSupported(t)) || '';
+      mediaRecorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      chunks = [];
+      mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => { try { t.stop(); } catch {} });
+        micStreamActivo = null;
+        pintar(false);
+        grabando = false;
+        clearTimeout(timeoutId);
+        const blob = new Blob(chunks, { type: mediaRecorder.mimeType || mime || 'audio/webm' });
+        chunks = [];
+        if (!blob.size) return;
+        try {
+          const texto = await transcribirAudio(blob);
+          if (texto) { input.value = texto; if (onFinal) onFinal(texto); }
+        } catch (err) {
+          if (err && err.message === 'pin_required') {
+            toast('Necesitas el PIN de acceso para dictar — ábrelo desde el chat');
+            return;
+          }
+          toast('El dictado en la nube falló — probando el del navegador…', 2500);
+          usarRespaldo();
+        }
+      };
+      mediaRecorder.start();
+      grabando = true;
+      pintar(true);
+      timeoutId = setTimeout(() => { if (grabando && mediaRecorder.state === 'recording') mediaRecorder.stop(); }, STT_MAX_MS);
+    } catch (err) {
+      if (err && err.name === 'NotAllowedError') toast('Permite el micrófono en el navegador');
+      else usarRespaldo();
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    if (grabando) {
+      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+      else if (respaldo) { try { respaldo.stop(); } catch {} }
+      return;
+    }
+    empezar();
+  });
+
+  return {
+    abort() {
+      clearTimeout(timeoutId);
+      if (mediaRecorder && mediaRecorder.state === 'recording') { mediaRecorder.onstop = null; try { mediaRecorder.stop(); } catch {} }
+      if (respaldo) { respaldo.onresult = respaldo.onend = respaldo.onerror = null; try { respaldo.abort(); } catch {} }
+      if (micStreamActivo) { micStreamActivo.getTracks().forEach((t) => { try { t.stop(); } catch {} }); micStreamActivo = null; }
+      grabando = false;
+      pintar(false);
+    },
+  };
+}
+
+// TALK charla: el mic héroe reusa el motor genérico. Sin onFinal — el texto
+// aterriza en #chat-input y el Enter/botón de enviar existentes lo mandan,
+// exactamente igual que si Gus lo hubiera escrito.
+const micTalk = wireMic($('#mic-btn'), $('#chat-input'), null, 'talk');
+function stopMic() { if (micTalk) micTalk.abort(); }
 
 let voiceEN = null;
 function pickVoice() {
@@ -4924,47 +5063,9 @@ window.cerrarShadow = function () {
 
 })();
 
-/* ═══════════════════ MIC GENÉRICO (Story + Ladder) ═══════════════════ */
-// Cada llamada crea su propia instancia; solo una activa a la vez por el guard.
-function wireMic(btn, input, onFinal, ctx = 'talk') {
-  if (!btn || !input) return;
-  let rec = null, active = false;
-  wireMicToggle(btn, ctx, (code) => { if (rec) rec.lang = code; });
-  btn.addEventListener('click', () => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { toast('Tu navegador no soporta voz — usa Chrome'); return; }
-    if (active) { try { rec.stop(); } catch {} return; }
-    if (!rec) {
-      rec = new SR(); rec.lang = micLangCode(ctx); rec.interimResults = true; rec.continuous = false;
-      rec.onresult = (e) => {
-        let f = '', it = '';
-        for (const r of e.results) (r.isFinal ? f += r[0].transcript : it += r[0].transcript);
-        input.value = (f || it).trim();
-        if (f) rec._final = f.trim();
-      };
-      rec.onend = () => { active = false; btn.classList.remove('recording'); const t = rec._final; rec._final = ''; if (t) { input.value = ''; onFinal(t); } };
-      rec.onerror = (e) => { active = false; btn.classList.remove('recording'); if (e.error === 'not-allowed') toast('Permite el micrófono en el navegador'); else if (e.error === 'network') toast('El dictado usa el servicio de voz de Google y este navegador lo bloquea (típico de Brave). Escribe o usa Chrome.', 5000); else if (e.error !== 'aborted' && e.error !== 'no-speech') toast('Error de micrófono: ' + e.error); };
-    }
-    stopSpeaking();
-    rec._final = '';
-    rec.lang = micLangCode(ctx);   // idioma vigente al arrancar la toma
-    try { rec.start(); active = true; btn.classList.add('recording'); } catch {}
-  });
-  // Handle de aborto para llamadores que montan/desmontan el mic (el EPISODIO
-  // ILUSTRADO): corta la toma y DESARMA los callbacks para que un onend/onresult
-  // tardío no dispare onFinal sobre un input que ya no existe.
-  return {
-    abort() {
-      if (rec) {
-        rec.onresult = rec.onend = rec.onerror = null;
-        rec._final = '';
-        try { rec.abort(); } catch {}
-      }
-      active = false;
-      btn.classList.remove('recording');
-    },
-  };
-}
+/* wireMic (Story + Ladder + Roleplay + puente del episodio ilustrado) vive
+   ahora junto al resto del motor de dictado (ver "VOZ — DICTADO" arriba):
+   mismo Deepgram + fallback, mismo contrato de no auto-enviar. */
 
 /* ═══════════════════ STORY MODE ═══════════════════ */
 
@@ -5228,8 +5329,11 @@ function applyJudge(j, line) {
   setMeters();
   s.ranks.push(j.rank);
 
-  // errores → DNA
-  (j.corrections || []).forEach((c) => c && c.fix && saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' }));
+  // errores → DNA. Mismo filtro anti-ruido-de-dictado que en TALK: una
+  // corrección que no cite nada de lo que Gus realmente escribió/dijo es
+  // casi seguro una alucinación sobre una transcripción rota.
+  const correccionesValidas = (j.corrections || []).filter((c) => c && c.fix && pareceCorreccionValida(c.quote, line));
+  correccionesValidas.forEach((c) => saveDNA({ type: 'error', quote: c.quote || '', fix: c.fix, why: c.why || '' }));
   // upgrade → munición de LEVEL UP
   if (j.upgrade && j.upgrade.c1) recordUpgrade({ b2: j.upgrade.b2 || line, c1: j.upgrade.c1, note: 'de la historia', dominado: false });
 
@@ -5242,7 +5346,7 @@ function applyJudge(j, line) {
       <div style="font-size:0.7rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-secondary);">${esc(j.verdict_es || '')}</div>
     </div>
     <div style="font-size:0.62rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-muted);">Leverage ${ld >= 0 ? '+' + ld : ld} · Heat ${hd >= 0 ? '+' + hd : hd}</div>
-    ${(j.corrections || []).filter((c) => c && c.fix).map((c) => `
+    ${correccionesValidas.map((c) => `
       <div class="correction-card" style="margin-left:0; max-width:100%;">
         <div><span class="quote">${esc(c.quote || '')}</span> → <span class="fix">${esc(c.fix)}</span></div>
         <div class="why">${esc(c.why || '')}</div>
@@ -5376,7 +5480,10 @@ $('#story-send').addEventListener('click', () => submitStoryLine());
 $('#story-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitStoryLine(); });
 $('#story-quit').addEventListener('click', quitStory);
 $('#story-panic').addEventListener('click', panicStory);
-wireMic($('#story-mic'), $('#story-input'), (t) => submitStoryLine(t), 'story');
+// Sin auto-enviar: el texto aterriza en #story-input y el Enter existente
+// (o el botón de enviar) dispara submitStoryLine() leyendo el input, igual
+// que si Gus lo hubiera escrito a mano.
+wireMic($('#story-mic'), $('#story-input'), null, 'story');
 
 /* ═══════════════════ LEVEL UP (SUBE) ═══════════════════ */
 
@@ -5522,7 +5629,9 @@ function openRungInput(r, theme, rot) {
   $('#rung-send').addEventListener('click', () => revealRung(r, theme, rot, $('#rung-input').value.trim()));
   $('#rung-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') revealRung(r, theme, rot, $('#rung-input').value.trim()); });
   $('#rung-skip').addEventListener('click', () => revealRung(r, theme, rot, ''));
-  wireMic($('#rung-mic'), $('#rung-input'), (t) => revealRung(r, theme, rot, t), 'ladder');
+  // Sin auto-enviar: el texto aterriza en #rung-input; #rung-send/Enter
+  // (ya cableados) leen el input y llaman revealRung, igual que a mano.
+  wireMic($('#rung-mic'), $('#rung-input'), null, 'ladder');
 }
 
 async function revealRung(r, theme, rot, attempt) {
@@ -6151,7 +6260,9 @@ window.rpCerrarDebrief = function () { rpLastDebrief = []; closeSheet(); closeRo
     syncTTSButton();
     toast(state.ttsOn ? 'Voz: ON' : 'Voz: OFF', 1500);
   });
-  wireMic($('#rp-mic'), $('#rp-input'), (t) => rpTurn(t, false), 'rp');
+  // Sin auto-enviar: el texto aterriza en #rp-input; #rp-send/Enter (ya
+  // cableados en send() más arriba) leen el input, igual que a mano.
+  wireMic($('#rp-mic'), $('#rp-input'), null, 'rp');
 }
 
 /* ═══════════════════ INIT ═══════════════════ */

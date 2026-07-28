@@ -15,6 +15,7 @@ if (existsSync('.env.local')) {
 
 const { default: handler } = await import('./api/chat.js');
 const { default: ttsHandler } = await import('./api/tts.js');
+const { default: sttHandler } = await import('./api/stt.js');
 const { default: cronHandler } = await import('./api/cron-drop.js');
 const { default: dropTodayHandler } = await import('./api/drop-today.js');
 
@@ -41,6 +42,9 @@ createServer(async (req, res) => {
   }
   if (url.pathname === '/api/tts') {
     return ttsHandler(req, res);
+  }
+  if (url.pathname === '/api/stt') {
+    return sttHandler(req, res);
   }
   if (url.pathname === '/api/cron-drop') {
     return cronHandler(req, res);
