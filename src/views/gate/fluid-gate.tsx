@@ -29,7 +29,7 @@
 import * as THREE from 'three';
 import { useMemo, useRef } from 'react';
 import { createPortal, useFrame, useThree } from '@react-three/fiber';
-import { Text, useGLTF } from '@react-three/drei';
+import { useGLTF } from '@react-three/drei';
 
 import FluidGlass from '@/components/reactbits/fluid-glass';
 import { anguloOrbita, orbitaReducida, pintarOrbita } from '@/components/rodeo/gradiente-orbita';
@@ -90,25 +90,11 @@ function FondoOrbita() {
   );
 }
 
-function Wordmark() {
-  return (
-    <Text
-      position={[0, 0.72, 12]}
-      fontSize={0.26}
-      letterSpacing={-0.05}
-      outlineWidth={0}
-      outlineBlur="20%"
-      outlineColor="#000"
-      outlineOpacity={0.5}
-      color="white"
-      anchorX="center"
-      anchorY="middle"
-      font="/fonts/AlanSans-VariableFont_wght.ttf"
-    >
-      RODEO.
-    </Text>
-  );
-}
+/* El wordmark "RODEO." ya NO vive en la escena 3D: lo dibujaba drei <Text>
+   (troika), que instancia un módulo WebAssembly para el texto — y el sandbox
+   del artifact prohíbe WASM (CSP sin unsafe-eval), así que ahí el logo
+   desaparecía. Ahora es texto DOM en el gate (Alan Sans, la misma fuente),
+   crisp y sin dependencias: se ve igual en la app real y en el demo. */
 
 /* El puente: se renderiza dentro del <Scroll> del verbatim pero manda a sus
    hijos a la raíz de la escena portal (ver la nota de arriba). */
@@ -129,10 +115,6 @@ export default function FluidGate({ rect, onLosaLista }) {
       lensProps={{ scale: 0.14, ior: 1.15, thickness: 5, chromaticAberration: 0.1, anisotropy: 0.01 }}
     >
       <FueraDelScroll>
-        {/* El wordmark también fuera del <Scroll> (nota del auditor): con la
-            losa y la gradiente clavadas, que el logo se fuera solo al
-            arrastrar el canvas dejaba la pantalla coja. */}
-        <Wordmark />
         <FondoOrbita />
         {medida && <LosaVidrio rect={medida} onListo={onLosaLista} />}
       </FueraDelScroll>

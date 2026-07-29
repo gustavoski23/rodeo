@@ -180,6 +180,20 @@ export function GateView() {
         </div>
       )}
 
+      {/* Wordmark "RODEO." — texto DOM (Alan Sans), no dentro del canvas 3D:
+          drei <Text> lo dibujaba con troika, que instancia WebAssembly, y el
+          sandbox del artifact prohíbe WASM (CSP sin unsafe-eval) → el logo
+          desaparecía ahí. En DOM se ve en todos lados, crisp, sin depender del
+          motor 3D. Encima de la gradiente, arriba, sin robar toques. */}
+      <div className="pointer-events-none absolute inset-x-0 top-[max(24px,env(safe-area-inset-top))] flex justify-center px-5 sm:top-[8%]">
+        <span
+          className="font-display text-[clamp(3rem,17vw,7rem)] leading-none font-extrabold tracking-[-0.04em] text-white/95"
+          style={{ textShadow: '0 2px 24px rgb(0 0 0 / 0.28)' }}
+        >
+          RODEO<span style={{ color: 'var(--accent)' }}>.</span>
+        </span>
+      </div>
+
       {/* Capa 2: el formulario. Con losa 3D detrás va sin vidrio propio.
 
           `pointer-events-none` en la capa y `pointer-events-auto` SOLO en lo
