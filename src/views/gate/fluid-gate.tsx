@@ -5,15 +5,32 @@
    FluidGlass (React Bits, verbatim) en modo lens con los props del usage
    example de Gus. Los hijos de la escena son nuestros: el plano con la
    gradiente órbita (el lente necesita que la gradiente exista DENTRO del
-   canvas para refractarla) y el wordmark, con el mismo estilo del Typography
-   original pero diciendo RODEO. */
+   canvas para refractarla), el wordmark, y la LOSA de vidrio de la card.
+
+   ── Dónde vive la losa y por qué ──────────────────────────────────────────
+   El verbatim monta así: <Canvas> → <ScrollControls> → <Lens> (ModeWrapper) →
+   <Scroll>{children}</Scroll>. ModeWrapper hace createPortal(children, scene)
+   sobre una escena OFFSCREEN, la renderiza a un FBO y usa ese FBO para (a) un
+   plano a pantalla completa en la escena principal y (b) el buffer del lente.
+   O sea: todo lo que pasamos como children vive en la escena offscreen.
+
+   La losa tiene que estar en esa escena offscreen — así el lente que sigue al
+   puntero también la refracta (vidrio sobre vidrio, que es el look correcto) —
+   pero NO puede estar dentro del <Scroll>, porque el <Scroll> desplaza a sus
+   hijos si el usuario arrastra el canvas y la losa quedaría desalineada de la
+   card DOM, que no se mueve. Solución sin tocar el verbatim y sin restar
+   offsets a mano en useFrame: desde dentro del <Scroll> hacemos un
+   createPortal a la RAÍZ de la escena offscreen (useThree().scene dentro del
+   portal ES esa escena). La losa termina siendo hermana del grupo del Scroll:
+   misma escena, refractada por el lente, e inmune al scroll. */
 import * as THREE from 'three';
-import { useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useMemo, useRef } from 'react';
+import { createPortal, useFrame, useThree } from '@react-three/fiber';
 import { Text, useGLTF } from '@react-three/drei';
 
 import FluidGlass from '@/components/reactbits/fluid-glass';
-import { orbitaReducida, pintarOrbita } from '@/components/rodeo/gradiente-orbita';
+import { anguloOrbita, orbitaReducida, pintarOrbita } from '@/components/rodeo/gradiente-orbita';
+import { LosaVidrio } from './losa-vidrio';
 
 /* lens.glb viene comprimido con DRACO y drei busca el decoder en el CDN de
    Google — que el artifact demo (CSP) y cualquier red capada bloquean. El
@@ -22,28 +39,41 @@ useGLTF.setDecoderPath('/draco/');
 
 function FondoOrbita() {
   const { viewport } = useThree();
+  const malla = useRef();
 
+  /* La textura se pinta UNA vez y el barrido se hace ROTANDO el plano: la
+     gradiente es cónica alrededor del centro del canvas, así que girar la
+     malla ES el barrido — misma receta (anguloOrbita), sin repintar millones
+     de píxeles por frame y sin perder nitidez. Antes se repintaba un canvas de
+     512 estirado a 4× de alto y el resultado en pantalla era un degradado
+     lavado: sin franjas no hay nada que el vidrio pueda DOBLAR, y doblar el
+     fondo es justo el criterio de la losa. */
   const tex = useMemo(() => {
     const c = document.createElement('canvas');
-    c.width = 512;
-    c.height = 512;
+    c.width = 2048;
+    c.height = 2048;
     pintarOrbita(c.getContext('2d'), 0);
     const t = new THREE.CanvasTexture(c);
     t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
     return t;
   }, []);
 
   useFrame(({ clock }) => {
-    if (orbitaReducida()) return; // frame 0 estático, como el DOM
-    pintarOrbita(tex.image.getContext('2d'), clock.getElapsedTime());
-    tex.needsUpdate = true;
+    if (!malla.current || orbitaReducida()) return; // reduced-motion: frame 0 estático, como el DOM
+    /* Grados de la receta → radianes, en negativo: el `from Xdeg` del CSS gira
+       en sentido del reloj y en three la Z positiva mira a la cámara. */
+    malla.current.rotation.z = -(anguloOrbita(clock.getElapsedTime()) * Math.PI) / 180;
   });
 
-  /* Alto ×4: la escena vive dentro de un <Scroll> de 3 páginas (parte del
-     componente verbatim) — si el usuario arrastra el fondo, sigue habiendo
-     gradiente arriba y abajo en vez de un borde morado. */
+  /* Cuadrado grande y centrado en el eje óptico: centrado, el centro de la
+     cónica cae en el centro de la pantalla (igual que el fallback DOM, que es
+     `at 50% 50%`); cuadrado, su círculo inscrito cubre la pantalla en
+     cualquier ángulo de giro; grande, sobra material para el <Scroll> de 3
+     páginas y no aparece borde. */
+  const lado = Math.max(viewport.width, viewport.height) * 2.4;
   return (
-    <mesh position={[0, -viewport.height * 1.4, 0]} scale={[viewport.width * 1.3, viewport.height * 4, 1]}>
+    <mesh ref={malla} position={[0, 0, 0]} scale={[lado, lado, 1]}>
       <planeGeometry />
       <meshBasicMaterial map={tex} toneMapped={false} />
     </mesh>
@@ -70,7 +100,15 @@ function Wordmark() {
   );
 }
 
-export default function FluidGate() {
+/* El puente: se renderiza dentro del <Scroll> del verbatim pero manda la losa
+   a la raíz de la escena portal (ver la nota de arriba). */
+function LosaFueraDelScroll({ rect, onListo }) {
+  const escena = useThree((s) => s.scene); // dentro del portal = la escena offscreen del FluidGlass
+  if (!rect || rect.w < 2 || rect.h < 2) return null;
+  return createPortal(<LosaVidrio rect={rect} onListo={onListo} />, escena);
+}
+
+export default function FluidGate({ rect, onLosaLista }) {
   return (
     <FluidGlass
       mode="lens"
@@ -78,6 +116,7 @@ export default function FluidGate() {
     >
       <FondoOrbita />
       <Wordmark />
+      <LosaFueraDelScroll rect={rect} onListo={onLosaLista} />
     </FluidGlass>
   );
 }

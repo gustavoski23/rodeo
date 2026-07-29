@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 
 import { GradienteOrbita } from '@/components/rodeo/gradiente-orbita';
 import { useAuth } from '@/stores/auth';
+import type { RectCard } from './losa-vidrio';
 
 import './liquid-glass-macos.css';
 
@@ -14,10 +15,13 @@ import './liquid-glass-macos.css';
       movimiento.
    1. FluidGlass (React Bits) en modo lens: un lente 3D que sigue el puntero y
       refracta la misma gradiente + el wordmark. Va lazy en su propio chunk
-      (three pesa) y solo se monta con WebGL disponible.
-   2. La card de vidrio líquido macOS (lucasromerodb) con el formulario:
-      Login · Email · Password · Register+Login · Skip centrado — la misma
-      estructura ya aprobada, ahora en texto blanco sobre el vidrio.
+      (three pesa) y solo se monta con WebGL disponible. En la misma escena va
+      la LOSA: el vidrio 3D de la card (ver losa-vidrio.tsx).
+   2. El formulario: Login · Email · Password · Register+Login · Skip centrado.
+      Con WebGL, la card NO pone vidrio propio — el vidrio es la losa 3D que
+      está detrás, medida contra este mismo rectángulo; la card solo aporta el
+      contenido. Sin WebGL (o si el 3D se cae) recupera el vidrio líquido CSS
+      de macOS (lucasromerodb), que es el fallback.
 
    El gate ya no depende del tema de la app (la gradiente ES el fondo), así
    que no fuerza data-theme.
@@ -31,13 +35,16 @@ const FluidGate = lazy(() => import('./fluid-gate'));
    NO puede caerse con él: la capa 0 (gradiente DOM) + la card son la misma
    pantalla sin lente. Sin este muro, un error dentro de Suspense desmonta la
    app entera. */
-class MuroLente extends Component<{ children: ReactNode }, { roto: boolean }> {
+class MuroLente extends Component<{ children: ReactNode; onRoto?: () => void }, { roto: boolean }> {
   state = { roto: false };
   static getDerivedStateFromError() {
     return { roto: true };
   }
   componentDidCatch() {
-    /* silencioso: el fallback ya está en pantalla */
+    /* silencioso: el fallback ya está en pantalla. Solo avisa al gate para que
+       la card recupere su vidrio CSS: si el 3D murió, la losa no está y una
+       card transparente se quedaría sin vidrio ninguno. */
+    this.props.onRoto?.();
   }
   render() {
     return this.state.roto ? null : this.props.children;
@@ -72,6 +79,45 @@ export function GateView() {
   const [conLente] = useState(() => hayWebGL() && !REDUCED());
 
   const emailRef = useRef<HTMLInputElement>(null);
+
+  /* ── Sincronía card DOM ↔ losa 3D ──────────────────────────────────────
+     La losa tiene que caer EXACTAMENTE detrás de este rectángulo, así que la
+     medida sale del DOM (única fuente de verdad) y viaja como prop al chunk
+     3D. El ref va en un envoltorio SIN animación: la motion.div de dentro
+     lleva un translateY de entrada y getBoundingClientRect lo incluiría,
+     dejando la losa 14 px desplazada durante el primer medio segundo. */
+  const cajaRef = useRef<HTMLDivElement>(null);
+  const [rectCard, setRectCard] = useState<RectCard | null>(null);
+  const [losaLista, setLosaLista] = useState(false);
+  const [lenteRoto, setLenteRoto] = useState(false);
+
+  useEffect(() => {
+    const el = cajaRef.current;
+    if (!conLente || !el) return;
+    const medir = () => {
+      const r = el.getBoundingClientRect();
+      setRectCard((prev) =>
+        prev && prev.x === r.left && prev.y === r.top && prev.w === r.width && prev.h === r.height
+          ? prev // mismo rect: no re-renderizar el 3D por nada
+          : { x: r.left, y: r.top, w: r.width, h: r.height },
+      );
+    };
+    medir();
+    // ResizeObserver coge también los cambios de alto de la card (el aviso de
+    // "te mandé un correo" ocupa varias líneas); resize coge el giro/teclado.
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    window.addEventListener('resize', medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+  }, [conLente]);
+
+  /* El vidrio CSS solo se apaga cuando el de verdad ya está en pantalla: entre
+     el primer paint y el chunk 3D cargado la card sigue siendo de vidrio, y si
+     el 3D se cae vuelve a serlo. */
+  const conLosa = conLente && losaLista && !lenteRoto;
 
   // Foco inicial en Email: al abrir la puerta, el cursor ya está donde se
   // empieza. (Sin autoFocus en el JSX para no pelear con el montaje doble de
@@ -126,23 +172,25 @@ export function GateView() {
           3D ya se ve la gradiente de la capa 0 (mismo dibujo, sin salto). */}
       {conLente && (
         <div className="absolute inset-0">
-          <MuroLente>
+          <MuroLente onRoto={() => setLenteRoto(true)}>
             <Suspense fallback={null}>
-              <FluidGate />
+              <FluidGate rect={rectCard} onLosaLista={() => setLosaLista(true)} />
             </Suspense>
           </MuroLente>
         </div>
       )}
 
-      {/* Capa 2: la card de vidrio líquido con el formulario. */}
+      {/* Capa 2: el formulario. Con losa 3D detrás va sin vidrio propio. */}
       <div className="absolute inset-0 flex items-center justify-center px-5 pt-[max(20px,env(safe-area-inset-top))] pb-[max(20px,env(safe-area-inset-bottom))]">
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-          className="w-full max-w-[360px]"
-        >
-          <div className="glassContainer gate-card">
+        {/* Este div es el que se MIDE: mismo box que la card y sin transform. */}
+        <div ref={cajaRef} className="w-full max-w-[360px]">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+            className="w-full"
+          >
+            <div className={`glassContainer gate-card${conLosa ? ' gate-card--losa' : ''}`}>
             <form
               className="relative z-10 flex flex-col gap-4"
               aria-busy={ocupado}
