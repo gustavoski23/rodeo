@@ -8,6 +8,12 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
+  // RODEO_DEMO=1: el empaquetador del demo (un solo HTML) no puede resolver
+  // import() de chunks relativos, así que todo va en un único bundle. El
+  // build normal mantiene el chunk 3D del gate separado (lazy).
+  build: process.env.RODEO_DEMO
+    ? { rollupOptions: { output: { inlineDynamicImports: true } } }
+    : undefined,
   server: {
     port: 5173,
     // Las funciones serverless viven en /api (Vercel). En dev las sirve

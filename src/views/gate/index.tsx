@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 
 import { GradienteOrbita } from '@/components/rodeo/gradiente-orbita';
@@ -26,6 +26,23 @@ import './liquid-glass-macos.css';
    entera sin cuenta, y quien no quiera registrarse pasa igual. */
 
 const FluidGate = lazy(() => import('./fluid-gate'));
+
+/* Si el mundo 3D falla (glb que no carga, WebGL que muere a mitad), el gate
+   NO puede caerse con él: la capa 0 (gradiente DOM) + la card son la misma
+   pantalla sin lente. Sin este muro, un error dentro de Suspense desmonta la
+   app entera. */
+class MuroLente extends Component<{ children: ReactNode }, { roto: boolean }> {
+  state = { roto: false };
+  static getDerivedStateFromError() {
+    return { roto: true };
+  }
+  componentDidCatch() {
+    /* silencioso: el fallback ya está en pantalla */
+  }
+  render() {
+    return this.state.roto ? null : this.props.children;
+  }
+}
 
 function hayWebGL(): boolean {
   try {
@@ -109,9 +126,11 @@ export function GateView() {
           3D ya se ve la gradiente de la capa 0 (mismo dibujo, sin salto). */}
       {conLente && (
         <div className="absolute inset-0">
-          <Suspense fallback={null}>
-            <FluidGate />
-          </Suspense>
+          <MuroLente>
+            <Suspense fallback={null}>
+              <FluidGate />
+            </Suspense>
+          </MuroLente>
         </div>
       )}
 
