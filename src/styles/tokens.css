@@ -26,6 +26,11 @@
      · Space Mono (400/700)     → labels, eyebrows, contadores
    ══════════════════════════════════════════════════════════════════════ */
 :root {
+  /* El navegador debe saber qué tema está activo: sin esto, el Auto Dark de
+     Chrome (o Dark Reader) cree que la página no tiene tema y repinta los
+     colores por su cuenta — el "no se ve nada" del modo claro. */
+  color-scheme: dark;
+
   /* ── Shell oscuro (frío, temperatura 265) ── */
   --bg-void:        oklch(9% 0.008 265);
   --bg-deep:        oklch(13% 0.012 265);
@@ -116,6 +121,8 @@
    Las cards pastel no se invierten: solo se apagan un punto y ganan borde.
    ══════════════════════════════════════════════════════════════════════════ */
 :root[data-theme='light'] {
+  color-scheme: light;
+
   /* Rampa de fondos: papel cálido, no blanco clínico */
   --bg-void:        oklch(98.5% 0.003 95);
   --bg-deep:        oklch(96.5% 0.005 95);

@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0a0e">
+<!-- Blindaje de color: la app trae SUS dos temas. color-scheme le dice al
+     navegador cuál está activo (evita el Auto Dark de Chrome repintando
+     encima) y darkreader-lock le pide a Dark Reader que no la reprocese —
+     los colores lavados/verdosos que vimos venían de ahí, no de los tokens. -->
+<meta name="color-scheme" content="dark light">
+<meta name="darkreader-lock">
 <title>RODEO — tu inglés 24/7</title>
 <!-- PWA: app instalable + offline. El service worker se registra en el cutover
      (F7); mientras tanto las previews van sin SW para no cachear a medias. -->

@@ -1,0 +1,164 @@
+/* Liquid glass macOS — lucasromerodb/liquid-glass-effect-macos, el CSS que
+   pegó Gus, VERBATIM (solo se omite el bloque `body`, que era el fondo demo
+   de flores: nuestro fondo es la gradiente órbita + el lente FluidGlass).
+   Los filtros #container-glass / #btn-glass viven inline en el gate (SVG del
+   mismo repo). Los ajustes propios van al final, en su bloque marcado. */
+
+.glassContainer {
+  position: fixed;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  width: 300px;
+  height: 200px;
+  border-radius: 30px;
+}
+
+.glassContainer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    border-radius: 30px;
+    -webkit-box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+            box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+}
+
+.glassContainer::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: 30px;
+    -webkit-backdrop-filter: blur(0px);
+            backdrop-filter: blur(0px);
+    -webkit-filter: url(#container-glass);
+            filter: url(#container-glass);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.glassBtn {
+  position: relative;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  cursor: pointer;
+  width: 70px;
+  height: 70px;
+  padding: 15px;
+  background: transparent;
+  border-radius: 9999px;
+  outline: none;
+  border: none;
+  z-index: 0;
+}
+
+.glassBtn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    border-radius: 9999px;
+    -webkit-box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+            box-shadow: inset 2px 2px 0px -2px rgba(255, 255, 255, 0.7), inset 0 0 3px 1px rgba(255, 255, 255, 0.7);
+    background-color: rgb(255 255 255 / 10%);
+}
+
+.glassBtn::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: 9999px;
+    -webkit-backdrop-filter: blur(0px);
+            backdrop-filter: blur(0px);
+    -webkit-filter: url(#btn-glass);
+            filter: url(#btn-glass);
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.glassBtn svg {
+  width: 100%;
+  height: 100%;
+  stroke: #fff;
+}
+
+@-webkit-keyframes moveBackground {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 0% -1000%;
+  }
+}
+
+@keyframes moveBackground {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 0% -1000%;
+  }
+}
+
+/* ── Ajustes RODEO (declarados, fuera del bloque verbatim) ───────────────
+   El demo original era una card fija de 300×200 con un botón redondo; la
+   nuestra es el formulario del gate. Mismos ::before/::after (el vidrio no
+   se toca): solo el tamaño, el flujo interno y un velo mínimo para que el
+   texto blanco lea sobre la gradiente vívida. */
+
+.glassContainer.gate-card {
+  position: relative;      /* la centra el layout del gate, no `fixed` */
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 28px 24px 22px;
+}
+
+.glassContainer.gate-card::before {
+  /* El velo: el vidrio del demo era transparente puro sobre flores suaves;
+     sobre el barrido de colores, los inputs necesitan una base. */
+  background-color: rgb(20 22 26 / 0.30);
+}
+
+.glassBtn.gate-btn {
+  width: auto;
+  height: auto;
+  padding: 12px 16px;
+  border-radius: 16px;
+  flex: 1;
+}
+
+.glassBtn.gate-btn::before,
+.glassBtn.gate-btn::after {
+  border-radius: 16px;
+}
+
+.gate-card input {
+  color: #fff;
+  background: rgb(255 255 255 / 0.10);
+  border: 1px solid rgb(255 255 255 / 0.35);
+}
+
+.gate-card input:focus-visible {
+  border-color: rgb(255 255 255 / 0.85);
+  outline: none;
+}
