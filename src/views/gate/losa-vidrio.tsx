@@ -21,13 +21,11 @@
       plano.
 
    ── Lo que hace esta versión ─────────────────────────────────────────────
-   · GEOMETRÍA PROPIA, un "cojín" de rounded-rect teselado en ANILLOS. Cada
-     anillo es el rounded-rect metido hacia dentro una distancia t — que para
-     un rounded-rect ES exactamente la curva de nivel t del campo de
-     distancias al borde. Así la altura z se puede definir como perfil de t y
-     la superficie sale continua, densa (28 anillos × 80 puntos) y con el
-     contorno EXACTO de la card, que es lo que la alineación con el DOM pide.
-     El perfil tiene dos partes:
+   · GEOMETRÍA PROPIA, un "cojín": el contorno rounded-rect EXACTO de la card
+     (eso es lo que la alineación con el DOM pide) teselado en 46 anillos ×
+     152 puntos, y una altura z que es función ANALÍTICA del campo de
+     distancias al borde (distInterior) — con normales por diferencias finitas
+     de ese mismo perfil, no de los triángulos. El perfil tiene dos partes:
        – BISEL: sube casi vertical en el canto y se aplana hacia dentro
          (1-(1-u)³). Ahí la normal se tumba hasta ~60° y el rayo se desvía
          muchísimo: con thickness 2, un canto a 45° desplaza la muestra ~0.24
@@ -46,8 +44,10 @@
      la losa un instante, se pinta la escena (gradiente + wordmark) en NUESTRO
      render target a resolución completa y se le pasa al material. Lo que se
      refracta es la gradiente NÍTIDA, y no hay recursión de FBOs.
-   · ENTORNO SOLO PARA EL FILO. Dos tiras grandes y suaves, intensidad baja y
-     envMapIntensity 0.5: lo justo para que el Fresnel del canto (donde
+   · ENTORNO SOLO PARA EL FILO. Tiras grandes y suaves, intensidad baja y
+     envMapIntensity 1.1: en el canto F→1 y se enciende el filo entero,
+     mientras la cara, a incidencia normal, solo refleja un ~4 % y no se lava.
+     Es lo justo para que el Fresnel del canto (donde
      F→1 y la transmisión se apaga sola) tenga algo que reflejar en vez de
      salir negro. Nada de bandas nítidas sobre la cara.
 
@@ -76,37 +76,38 @@ export const Z_LOSA = 13;
 /** Tramo recto del canto (la pared vertical del silueteado). Da el filo. */
 const CANTO = 0.1;
 /** Ancho de la banda del bisel, como fracción del lado corto de la card. */
-const BANDA_FRAC = 0.24;
+const BANDA_FRAC = 0.26;
 /** Altura del bisel, como fracción de su ancho (≈ la pendiente del canto). */
-const BISEL_ALTO = 0.62;
+const BISEL_ALTO = 0.66;
 /** Altura del domo central (la lente suave). */
-const DOMO = 0.06;
+const DOMO = 0.095;
 /** Centro del domo, en fracciones del ancho/alto de la card desde su centro.
     Descentrado a propósito: ver la nota de cabecera (cónica invariante). */
-const DOMO_CX = -0.2;
-const DOMO_CY = 0.13;
+const DOMO_CX = -0.26;
+const DOMO_CY = 0.16;
 /** Radio del bulto del domo, en fracciones del ancho/alto. Se pasa de la card
     y el factor del bisel lo recorta: así el domo no toca el contorno. */
-const DOMO_RX = 0.78;
-const DOMO_RY = 0.78;
+const DOMO_RX = 0.74;
+const DOMO_RY = 0.74;
 /** La espalda repite el perfil, más plana: es una lente, no una cáscara. */
 const ESPALDA = 0.35;
+/** Redondeo del eje medio del campo de distancias, en fracciones del lado
+    corto (ver smax). Sin esto salen cortes duros en las diagonales. */
+const SUAVE = 0.32;
 
-/* Teselado. 28 anillos concentran vértices cerca del canto (exponente 1.7) y
-   80 puntos de perímetro dan esquinas limpias a 56 px de radio. */
-const N_ANILLOS = 28;
-const N_ARCO = 12;
-const N_RECTA = 8;
+/* Teselado. El exponente 1.6 concentra anillos cerca del canto (donde el
+   perfil cambia rápido) sin dejar el centro grueso, y 152 puntos de perímetro
+   dan ~2 px por segmento en un lado de 350 px: con menos, la refracción
+   delata las facetas del triangulado. */
+const N_ANILLOS = 46;
+const N_ARCO = 16;
+const N_RECTA = 22;
 const N_PERIM = 4 * (N_ARCO + N_RECTA);
 
-/** Un anillo: el contorno del rounded-rect de semiejes a,b y radio r, en
-    sentido antihorario y con EXACTAMENTE N_PERIM puntos, siempre en el mismo
-    orden — así los anillos se cosen entre sí sin buscar correspondencias.
-    Cuando a o b se agotan (el anillo más interior) los puntos colapsan: los
-    triángulos degenerados no molestan y la superficie queda cerrada. */
-function anillo(a0: number, b0: number, r0: number): number[] {
-  const a = Math.max(a0, 0);
-  const b = Math.max(b0, 0);
+/** El CONTORNO de la card: el rounded-rect de semiejes a,b y radio r, en
+    sentido antihorario y con EXACTAMENTE N_PERIM puntos. Es la silueta que
+    tiene que coincidir con el `border-radius` del DOM. */
+function contorno(a: number, b: number, r0: number): number[] {
   const r = Math.max(0, Math.min(r0, a, b));
   const cx = a - r;
   const cy = b - r;
@@ -134,48 +135,109 @@ function anillo(a0: number, b0: number, r0: number): number[] {
   return p;
 }
 
-/** Altura de la cara sobre el plano medio, para un punto a distancia t del
-    borde y en la posición (px,py) de la card. */
-function altura(t: number, px: number, py: number, w: number, h: number, banda: number): number {
-  const u = banda > 0 ? Math.min(1, t / banda) : 1;
-  // Bisel: casi vertical en t=0 (normal tumbada ⇒ desvío máximo) y plano al
-  // final de la banda. Es la banda que dobla y magnifica la gradiente.
-  const bisel = BISEL_ALTO * banda * (1 - (1 - u) ** 3);
-  // Domo: bulto elíptico descentrado, recortado por `u` para no tocar el
-  // contorno (el silueteado tiene que seguir siendo el rect de la card).
-  const dx = (px - DOMO_CX * w) / (DOMO_RX * w);
-  const dy = (py - DOMO_CY * h) / (DOMO_RY * h);
-  const d = Math.min(1, Math.hypot(dx, dy));
-  const bulto = (1 - d) * (1 - d) * (3 - 2 * (1 - d)); // smoothstep invertido
-  return bisel + DOMO * bulto * u;
+/** Máximo SUAVE. El campo de distancias de un rectángulo tiene aristas en su
+    eje medio (las diagonales de las esquinas y el segmento central): ahí el
+    gradiente salta y una superficie construida sobre él sale con PLIEGUES
+    duros, que en el vidrio se leen como cortes. Redondearlos cuesta esto. */
+function smax(a: number, b: number, k: number): number {
+  return 0.5 * (a + b + Math.sqrt((a - b) ** 2 + k * k));
 }
 
-/** El cojín completo: cara frontal + espalda + pared del canto, indexado
-    (para que computeVertexNormals dé normales SUAVES: en una geometría no
-    indexada saldrían facetadas y el bisel se vería a escalones). */
-function construirCojin(w: number, h: number, radio: number): THREE.BufferGeometry {
-  const tmax = Math.min(w, h) / 2;
-  const banda = Math.min(Math.min(w, h) * BANDA_FRAC, tmax * 0.85);
+/** Distancia de (px,py) al borde de la card, positiva hacia dentro: el campo
+    de distancias analítico del rounded-rect (sdRoundBox con el signo dado la
+    vuelta y el máximo interior suavizado). Es la coordenada natural del perfil
+    del vidrio, y al ser analítica NO depende del teselado: por eso el perfil y
+    las normales salen limpios hasta en el centro y en las esquinas.
+    Ojo: en el CONTORNO sigue dando exactamente 0 (ahí manda el término
+    `fuera`, no el máximo), así que la silueta no se mueve. */
+function distInterior(px: number, py: number, w: number, h: number, radio: number, k: number): number {
+  const qx = Math.abs(px) - (w / 2 - radio);
+  const qy = Math.abs(py) - (h / 2 - radio);
+  const fuera = Math.hypot(Math.max(qx, 0), Math.max(qy, 0));
+  return -(fuera + Math.min(smax(qx, qy, k), 0) - radio);
+}
 
-  const ts: number[] = [];
-  for (let i = 0; i <= N_ANILLOS; i++) ts.push(tmax * (i / N_ANILLOS) ** 1.7);
+/** Altura de la cara sobre el plano medio para el punto (px,py). */
+function altura(px: number, py: number, w: number, h: number, radio: number, banda: number, k: number): number {
+  const d = Math.max(0, distInterior(px, py, w, h, radio, k));
+  const u = banda > 0 ? Math.min(1, d / banda) : 1;
+  /* La puerta del perfil: 1 en el borde de la banda y 0 en el canto, con
+     derivada NULA al llegar a 1 — así no queda un anillo de doblez a
+     distancia `banda`. En u=0 la derivada es grande a propósito: el canto casi
+     vertical es lo que tumba la normal y desvía el rayo. */
+  const puerta = 1 - (1 - u) ** 3;
+  const bisel = BISEL_ALTO * banda * puerta;
+  /* Domo: bulto elíptico descentrado (en e² para no meter el pico del hypot),
+     multiplicado por la puerta para que no toque el contorno — la silueta
+     tiene que seguir siendo el rect exacto de la card. */
+  const ex = (px - DOMO_CX * w) / (DOMO_RX * w);
+  const ey = (py - DOMO_CY * h) / (DOMO_RY * h);
+  const s = 1 - Math.min(1, ex * ex + ey * ey);
+  return bisel + DOMO * s * s * puerta;
+}
+
+/* El cojín completo: cara frontal + espalda + pared del canto.
+
+   ── Parametrización ──────────────────────────────────────────────────────
+   Cada anillo es el CONTORNO encogido radialmente hacia el centro por un
+   factor (1-s). Encogimiento radial y no "insetado" (que sería la curva de
+   nivel exacta del campo de distancias) por una razón práctica: al insetar,
+   el anillo interior de una card no cuadrada DEGENERA en un segmento y ahí
+   los triángulos se vuelven agujas — con normales calculadas del teselado
+   eso salía como un pliegue duro vertical en medio del vidrio y como
+   "pétalos" en las esquinas (se veía clarísimo en la prueba de la regla).
+   Con el encogimiento radial todos los anillos son homotecias del contorno:
+   nada degenera salvo el vértice central.
+
+   ── Normales ─────────────────────────────────────────────────────────────
+   Por DIFERENCIAS FINITAS del propio perfil, no con computeVertexNormals: la
+   altura es una función analítica de (x,y), así que la normal exacta es
+   (-∂z/∂x, -∂z/∂y, 1). Así la refracción no delata el teselado. */
+function construirCojin(w: number, h: number, radio: number): THREE.BufferGeometry {
+  const banda = Math.min(Math.min(w, h) * BANDA_FRAC, (Math.min(w, h) / 2) * 0.85);
+  const eps = Math.min(w, h) * 0.0025;
+  const k = Math.min(w, h) * SUAVE; // radio de redondeo del eje medio
+  const alt = (px: number, py: number) => altura(px, py, w, h, radio, banda, k);
+  const zCara = (px: number, py: number, frente: boolean) =>
+    frente ? CANTO / 2 + alt(px, py) : -(CANTO / 2 + ESPALDA * alt(px, py));
 
   const pos: number[] = [];
+  const nor: number[] = [];
   const idx: number[] = [];
-  const base = [0, (N_ANILLOS + 1) * N_PERIM];
 
+  /** Un vértice de superficie con su normal analítica. */
+  const vertice = (px: number, py: number, frente: boolean) => {
+    const z = zCara(px, py, frente);
+    const gx = (zCara(px + eps, py, frente) - zCara(px - eps, py, frente)) / (2 * eps);
+    const gy = (zCara(px, py + eps, frente) - zCara(px, py - eps, frente)) / (2 * eps);
+    // z = f(x,y) ⇒ normal ∝ (-fx, -fy, 1) hacia +z; la espalda mira a -z.
+    const sg = frente ? 1 : -1;
+    const nx = -gx * sg;
+    const ny = -gy * sg;
+    const nz = sg;
+    const l = Math.hypot(nx, ny, nz) || 1;
+    pos.push(px, py, z);
+    nor.push(nx / l, ny / l, nz / l);
+  };
+
+  const borde = contorno(w / 2, h / 2, radio);
+  /* Los anillos se apiñan cerca del canto (exponente 1.6), que es donde el
+     perfil cambia rápido. El último para en 0.985 y un vértice central cierra
+     la tapa: así ni el centro degenera en agujas. */
+  const ss: number[] = [];
+  for (let i = 0; i <= N_ANILLOS; i++) ss.push(0.985 * (i / N_ANILLOS) ** 1.6);
+
+  const base: number[] = [];
+  const centro: number[] = [];
   for (let cara = 0; cara < 2; cara++) {
-    const signo = cara === 0 ? 1 : -1;
-    const escala = cara === 0 ? 1 : ESPALDA;
+    const frente = cara === 0;
+    base.push(pos.length / 3);
     for (let i = 0; i <= N_ANILLOS; i++) {
-      const t = ts[i];
-      const p = anillo(w / 2 - t, h / 2 - t, radio - t);
-      for (let j = 0; j < N_PERIM; j++) {
-        const px = p[j * 2];
-        const py = p[j * 2 + 1];
-        pos.push(px, py, signo * (CANTO / 2 + altura(t, px, py, w, h, banda) * escala));
-      }
+      const k = 1 - ss[i];
+      for (let j = 0; j < N_PERIM; j++) vertice(borde[j * 2] * k, borde[j * 2 + 1] * k, frente);
     }
+    centro.push(pos.length / 3);
+    vertice(0, 0, frente);
   }
 
   for (let cara = 0; cara < 2; cara++) {
@@ -187,27 +249,36 @@ function construirCojin(w: number, h: number, radio: number): THREE.BufferGeomet
         const v01 = b + i * N_PERIM + k;
         const v11 = b + (i + 1) * N_PERIM + k;
         const v10 = b + (i + 1) * N_PERIM + j;
-        // Los anillos van antihorarios y hacia dentro: este orden mira a +z.
+        // Contorno antihorario + anillos hacia dentro: este orden mira a +z.
         if (cara === 0) idx.push(v00, v01, v11, v00, v11, v10);
         else idx.push(v00, v11, v01, v00, v10, v11);
       }
     }
+    // Abanico del último anillo al vértice central.
+    const ult = b + N_ANILLOS * N_PERIM;
+    for (let j = 0; j < N_PERIM; j++) {
+      const k = (j + 1) % N_PERIM;
+      if (cara === 0) idx.push(ult + j, ult + k, centro[cara]);
+      else idx.push(ult + k, ult + j, centro[cara]);
+    }
   }
 
-  /* La pared del canto duplica el anillo 0 de las dos caras en vértices
-     PROPIOS: si los compartiera, computeVertexNormals promediaría pared y
-     bisel y el filo se redondearía — y el filo es justo donde el Fresnel
-     enciende el rim de luz. */
+  /* La pared del canto: vértices PROPIOS con normal HORIZONTAL (la del campo
+     de distancias). Compartirlos con el bisel redondearía el filo, y el filo
+     es justo donde el Fresnel enciende el rim de luz. */
   const muroF = pos.length / 3;
-  for (let j = 0; j < N_PERIM; j++) {
-    const s = base[0] * 3 + j * 3;
-    pos.push(pos[s], pos[s + 1], pos[s + 2]);
+  for (let vuelta = 0; vuelta < 2; vuelta++) {
+    for (let j = 0; j < N_PERIM; j++) {
+      const px = borde[j * 2];
+      const py = borde[j * 2 + 1];
+      const gx = (distInterior(px + eps, py, w, h, radio, k) - distInterior(px - eps, py, w, h, radio, k)) / (2 * eps);
+      const gy = (distInterior(px, py + eps, w, h, radio, k) - distInterior(px, py - eps, w, h, radio, k)) / (2 * eps);
+      const l = Math.hypot(gx, gy) || 1;
+      pos.push(px, py, vuelta === 0 ? CANTO / 2 : -CANTO / 2);
+      nor.push(-gx / l, -gy / l, 0); // −∇d = hacia fuera
+    }
   }
-  const muroB = pos.length / 3;
-  for (let j = 0; j < N_PERIM; j++) {
-    const s = base[1] * 3 + j * 3;
-    pos.push(pos[s], pos[s + 1], pos[s + 2]);
-  }
+  const muroB = muroF + N_PERIM;
   for (let j = 0; j < N_PERIM; j++) {
     const k = (j + 1) % N_PERIM;
     idx.push(muroF + j, muroB + j, muroF + k, muroF + k, muroB + j, muroB + k);
@@ -215,8 +286,8 @@ function construirCojin(w: number, h: number, radio: number): THREE.BufferGeomet
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   geo.setIndex(idx);
-  geo.computeVertexNormals();
   geo.computeBoundingSphere();
   return geo;
 }
@@ -251,11 +322,14 @@ export function LosaVidrio({ rect, onListo }: { rect: RectCard; onListo?: () => 
 
   /* NUESTRO buffer de refracción (patrón FBO del componente verbatim).
      `state.scene` aquí es la escena portal del FluidGlass: la gradiente + el
-     wordmark. Se oculta la losa para no fotografiarse a sí misma, se pinta a
-     resolución completa y el material muestrea ESO — nítido y sin recursión.
+     wordmark. Se oculta la losa para no fotografiarse a sí misma y el material
+     muestrea ESO — nítido y sin recursión. A MEDIA resolución (nota del
+     auditor): esta es la tercera pasada de escena por frame y a resolución
+     completa era la primera candidata a tumbar los FPS en un móvil de gama
+     baja; la gradiente es suave y la mitad no se nota tras la refracción.
      Sin tone mapping, igual que hace drei internamente: el plano que compone
      la escena offscreen ya aplica ACES una vez y no queremos dos. */
-  const fbo = useFBO();
+  const fbo = useFBO(Math.max(2, Math.round(size.width / 2)), Math.max(2, Math.round(size.height / 2)));
   useFrame((state) => {
     const obj = malla.current;
     if (!obj) return;
@@ -298,6 +372,10 @@ export function LosaVidrio({ rect, onListo }: { rect: RectCard; onListo?: () => 
         <Lightformer intensity={2.1} position={[-1, 3, 2]} scale={[12, 4, 1]} color="#fff3e4" />
         <Lightformer intensity={1.1} position={[1.5, -3, 2]} scale={[12, 4, 1]} color="#d8ecff" />
         <Lightformer intensity={0.9} position={[-5, 0, 1]} rotation-y={Math.PI / 4} scale={[4, 8, 1]} color="#ffe6d2" />
+        {/* El cuarto, por la derecha (nota del auditor): sin él, el canto
+            derecho cortaba contra el fondo sin filo encendido y el aro de luz
+            quedaba abierto. Frío y algo más tenue que su gemelo cálido. */}
+        <Lightformer intensity={0.8} position={[5, 0.5, 1]} rotation-y={-Math.PI / 4} scale={[4, 8, 1]} color="#e4f0ff" />
       </Environment>
 
       <mesh ref={malla} geometry={geo} position={[m.x, m.y, Z_LOSA]}>
@@ -315,7 +393,7 @@ export function LosaVidrio({ rect, onListo }: { rect: RectCard; onListo?: () => 
           color="#ffffff"
           /* La fuerza del filo. Bajo a propósito: sube el rim sin lavar la
              cara (ver la nota del Environment). */
-          envMapIntensity={0.5}
+          envMapIntensity={1.1}
           /* Sin tone mapping: el plano que compone la escena offscreen ya
              aplica ACES una vez; si la losa lo aplicara otra vez su interior
              cambiaría de color respecto al fondo y se vería el parche. */

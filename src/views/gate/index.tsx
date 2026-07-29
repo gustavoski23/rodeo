@@ -180,8 +180,16 @@ export function GateView() {
         </div>
       )}
 
-      {/* Capa 2: el formulario. Con losa 3D detrás va sin vidrio propio. */}
-      <div className="absolute inset-0 flex items-center justify-center px-5 pt-[max(20px,env(safe-area-inset-top))] pb-[max(20px,env(safe-area-inset-bottom))]">
+      {/* Capa 2: el formulario. Con losa 3D detrás va sin vidrio propio.
+
+          `pointer-events-none` en la capa y `pointer-events-auto` SOLO en lo
+          que se toca: esta capa es un `absolute inset-0` encima del canvas y
+          se estaba comiendo TODOS los eventos de puntero, así que el lente del
+          FluidGlass no recibía `pointer` y se quedaba clavado en el centro de
+          la pantalla — un cuenco de borde oscuro estampado sobre el input de
+          Email. Ahora el lente sigue al puntero (que es su gesto) y los
+          campos y botones siguen siendo pulsables. */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-5 pt-[max(20px,env(safe-area-inset-top))] pb-[max(20px,env(safe-area-inset-bottom))]">
         {/* Este div es el que se MIDE: mismo box que la card y sin transform. */}
         <div ref={cajaRef} className="w-full max-w-[360px]">
           <motion.div
@@ -208,7 +216,15 @@ export function GateView() {
               </h1>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gate-email" className="font-mono text-[11px] tracking-[0.08em] text-white/80 uppercase">
+                {/* Etiquetas a blanco pleno + sombra propia: con la losa detrás
+                    el fondo de la card ya NO lleva velo oscuro y puede tocarle
+                    crema o amarillo claro, donde un blanco al 80 % sin sombra
+                    se lee a duras penas. */}
+                <label
+                  htmlFor="gate-email"
+                  className="pointer-events-auto font-mono text-[11px] tracking-[0.08em] text-white uppercase"
+                  style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.6), 0 0 10px rgb(0 0 0 / 0.45)' }}
+                >
                   Email
                 </label>
                 <input
@@ -222,12 +238,16 @@ export function GateView() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   /* 16 px reales: por debajo, iOS hace zoom al enfocar el campo. */
-                  className="w-full rounded-[14px] px-4 py-3 text-[16px]"
+                  className="pointer-events-auto w-full rounded-[14px] px-4 py-3 text-[16px]"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="gate-pass" className="font-mono text-[11px] tracking-[0.08em] text-white/80 uppercase">
+                <label
+                  htmlFor="gate-pass"
+                  className="pointer-events-auto font-mono text-[11px] tracking-[0.08em] text-white uppercase"
+                  style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.6), 0 0 10px rgb(0 0 0 / 0.45)' }}
+                >
                   Password
                 </label>
                 <input
@@ -236,7 +256,7 @@ export function GateView() {
                   autoComplete="current-password"
                   value={pass}
                   onChange={(e) => setPass(e.target.value)}
-                  className="w-full rounded-[14px] px-4 py-3 text-[16px]"
+                  className="pointer-events-auto w-full rounded-[14px] px-4 py-3 text-[16px]"
                 />
               </div>
 
@@ -250,7 +270,8 @@ export function GateView() {
                   disabled={ocupado}
                   aria-busy={cargando === 'register'}
                   onClick={() => void correr('register')}
-                  className="glassBtn gate-btn text-[15px] font-medium text-white disabled:cursor-default disabled:opacity-45"
+                  className="glassBtn gate-btn pointer-events-auto text-[15px] font-medium text-white disabled:cursor-default disabled:opacity-45"
+                  style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.4)' }}
                 >
                   Register
                 </motion.button>
@@ -259,7 +280,7 @@ export function GateView() {
                   whileTap={{ scale: 0.97 }}
                   disabled={ocupado}
                   aria-busy={cargando === 'login'}
-                  className="glassBtn gate-btn text-[15px] font-semibold text-white disabled:cursor-default disabled:opacity-45"
+                  className="glassBtn gate-btn pointer-events-auto text-[15px] font-semibold text-white disabled:cursor-default disabled:opacity-45"
                   style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.4)' }}
                 >
                   Login
@@ -293,8 +314,8 @@ export function GateView() {
                 <button
                   type="button"
                   onClick={skip}
-                  className="cursor-pointer rounded-full px-3 py-1.5 text-[13px] text-white/85 underline underline-offset-4 transition-colors hover:text-white"
-                  style={{ textShadow: '0 1px 6px rgb(0 0 0 / 0.45)' }}
+                  className="pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-[13px] text-white underline underline-offset-4 transition-colors hover:text-white"
+                  style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.65), 0 0 10px rgb(0 0 0 / 0.45)' }}
                 >
                   Skip
                 </button>

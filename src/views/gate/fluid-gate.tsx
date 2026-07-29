@@ -2,27 +2,30 @@
 /* El mundo 3D del gate — va en su PROPIO chunk (React.lazy desde el gate):
    three + fiber + drei pesan, y solo esta pantalla los usa.
 
-   FluidGlass (React Bits, verbatim) en modo lens con los props del usage
-   example de Gus. Los hijos de la escena son nuestros: el plano con la
-   gradiente órbita (el lente necesita que la gradiente exista DENTRO del
-   canvas para refractarla), el wordmark, y la LOSA de vidrio de la card.
+   FluidGlass (React Bits, verbatim) en modo lens. Los hijos de la escena son
+   nuestros: el plano con la gradiente órbita (el lente y la losa necesitan que
+   la gradiente exista DENTRO del canvas para refractarla), el wordmark, y la
+   LOSA de vidrio de la card.
 
-   ── Dónde vive la losa y por qué ──────────────────────────────────────────
+   ── Dónde vive cada cosa y por qué ────────────────────────────────────────
    El verbatim monta así: <Canvas> → <ScrollControls> → <Lens> (ModeWrapper) →
    <Scroll>{children}</Scroll>. ModeWrapper hace createPortal(children, scene)
    sobre una escena OFFSCREEN, la renderiza a un FBO y usa ese FBO para (a) un
    plano a pantalla completa en la escena principal y (b) el buffer del lente.
    O sea: todo lo que pasamos como children vive en la escena offscreen.
 
-   La losa tiene que estar en esa escena offscreen — así el lente que sigue al
-   puntero también la refracta (vidrio sobre vidrio, que es el look correcto) —
-   pero NO puede estar dentro del <Scroll>, porque el <Scroll> desplaza a sus
-   hijos si el usuario arrastra el canvas y la losa quedaría desalineada de la
-   card DOM, que no se mueve. Solución sin tocar el verbatim y sin restar
-   offsets a mano en useFrame: desde dentro del <Scroll> hacemos un
-   createPortal a la RAÍZ de la escena offscreen (useThree().scene dentro del
-   portal ES esa escena). La losa termina siendo hermana del grupo del Scroll:
-   misma escena, refractada por el lente, e inmune al scroll. */
+   Necesitamos estar en esa escena offscreen —así el lente que sigue al puntero
+   refracta también nuestras cosas, que es el look correcto— pero la GRADIENTE
+   y la LOSA no pueden estar dentro del <Scroll>:
+     · la losa se desalinearía de la card DOM, que no se mueve;
+     · la gradiente, al desplazarse, dejaría ver el clear color morado del
+       verbatim (`gl.setClearColor(0x5227ff)`) por el borde.
+   Solución sin tocar el verbatim y sin restar el offset del scroll a mano en
+   useFrame: desde dentro del <Scroll> hacemos un createPortal a la RAÍZ de la
+   escena offscreen (useThree().scene dentro del portal ES esa escena). Quedan
+   como hermanas del grupo del Scroll: misma escena, refractadas por el lente,
+   inmunes al scroll. El wordmark SÍ se queda dentro del <Scroll> — que algo
+   se mueva al arrastrar es el gesto del componente original. */
 import * as THREE from 'three';
 import { useMemo, useRef } from 'react';
 import { createPortal, useFrame, useThree } from '@react-three/fiber';
@@ -44,10 +47,7 @@ function FondoOrbita() {
   /* La textura se pinta UNA vez y el barrido se hace ROTANDO el plano: la
      gradiente es cónica alrededor del centro del canvas, así que girar la
      malla ES el barrido — misma receta (anguloOrbita), sin repintar millones
-     de píxeles por frame y sin perder nitidez. Antes se repintaba un canvas de
-     512 estirado a 4× de alto y el resultado en pantalla era un degradado
-     lavado: sin franjas no hay nada que el vidrio pueda DOBLAR, y doblar el
-     fondo es justo el criterio de la losa. */
+     de píxeles por frame y sin perder nitidez. */
   const tex = useMemo(() => {
     const c = document.createElement('canvas');
     c.width = 2048;
@@ -66,23 +66,24 @@ function FondoOrbita() {
     malla.current.rotation.z = -(anguloOrbita(clock.getElapsedTime()) * Math.PI) / 180;
   });
 
-  /* Cuadrado grande: su círculo inscrito cubre la pantalla en cualquier ángulo
-     de giro y sobra material para el <Scroll> de 3 páginas.
-
-     El centro de la cónica —donde convergen los cuatro colores— se desplaza un
-     poco abajo-izquierda. Ni centrado ni fuera: centrado justo detrás de la
-     card, el vidrio ampliaba la singularidad y dejaba una mancha pastel plana
-     en medio del formulario; fuera de la pantalla, la card quedaba sobre una
-     sola franja de color plana y no había NADA que doblar. Desplazado, las
-     cuatro fronteras de color cruzan la card en diagonal — que es exactamente
-     la estructura que la refracción del canto tiene que quebrar. */
-  const lado = Math.max(viewport.width, viewport.height) * 3;
+  /* PARIDAD CON LA CAPA 0 (el DOM). La capa 0 es un div full-bleed con
+     `conic-gradient(... at 50% 50%)`: la singularidad cae en el CENTRO de la
+     pantalla y la textura se ve a tamaño natural. Aquí, exactamente igual:
+       · centro en [0,0,0] — la ronda anterior lo movía a
+         [-vw*0.16, -vh*0.2] y con eso la única estructura nítida que tiene
+         esta gradiente (la singularidad, donde convergen los cuatro colores)
+         quedaba FUERA de la card: no había nada que doblar. Ahora las cuatro
+         fronteras de color CRUZAN la card, que es el criterio;
+       · lado = la DIAGONAL del viewport (no 3×). Con 3× se veía una porción
+         angular minúscula de una textura de 2048 estirada seis veces: un
+         degradado lavado y borroso. Con el lado = diagonal, el círculo
+         inscrito del cuadrado cubre la pantalla en CUALQUIER ángulo de giro y
+         quedan ~2 texels por píxel: la cónica se ve nítida, como en el DOM.
+     Al vivir fuera del <Scroll> ya no hace falta material de sobra para las
+     3 páginas del ScrollControls. */
+  const lado = Math.hypot(viewport.width, viewport.height) * 1.02;
   return (
-    <mesh
-      ref={malla}
-      position={[-viewport.width * 0.16, -viewport.height * 0.2, 0]}
-      scale={[lado, lado, 1]}
-    >
+    <mesh ref={malla} position={[0, 0, 0]} scale={[lado, lado, 1]}>
       <planeGeometry />
       <meshBasicMaterial map={tex} toneMapped={false} />
     </mesh>
@@ -109,23 +110,32 @@ function Wordmark() {
   );
 }
 
-/* El puente: se renderiza dentro del <Scroll> del verbatim pero manda la losa
-   a la raíz de la escena portal (ver la nota de arriba). */
-function LosaFueraDelScroll({ rect, onListo }) {
+/* El puente: se renderiza dentro del <Scroll> del verbatim pero manda a sus
+   hijos a la raíz de la escena portal (ver la nota de arriba). */
+function FueraDelScroll({ children }) {
   const escena = useThree((s) => s.scene); // dentro del portal = la escena offscreen del FluidGlass
-  if (!rect || rect.w < 2 || rect.h < 2) return null;
-  return createPortal(<LosaVidrio rect={rect} onListo={onListo} />, escena);
+  return createPortal(children, escena);
 }
 
 export default function FluidGate({ rect, onLosaLista }) {
+  const medida = rect && rect.w >= 2 && rect.h >= 2 ? rect : null;
   return (
     <FluidGlass
       mode="lens"
-      lensProps={{ scale: 0.25, ior: 1.15, thickness: 5, chromaticAberration: 0.1, anisotropy: 0.01 }}
+      /* scale 0.14 (el del demo original es 0.15). La ronda anterior lo tenía
+         a 0.25 y el lente era el elemento vítreo dominante de la pantalla:
+         un cuenco enorme estampado sobre el formulario. Pequeño, y siguiendo
+         al puntero como manda el componente, se lee como lupa. */
+      lensProps={{ scale: 0.14, ior: 1.15, thickness: 5, chromaticAberration: 0.1, anisotropy: 0.01 }}
     >
-      <FondoOrbita />
-      <Wordmark />
-      <LosaFueraDelScroll rect={rect} onListo={onLosaLista} />
+      <FueraDelScroll>
+        {/* El wordmark también fuera del <Scroll> (nota del auditor): con la
+            losa y la gradiente clavadas, que el logo se fuera solo al
+            arrastrar el canvas dejaba la pantalla coja. */}
+        <Wordmark />
+        <FondoOrbita />
+        {medida && <LosaVidrio rect={medida} onListo={onLosaLista} />}
+      </FueraDelScroll>
     </FluidGlass>
   );
 }
