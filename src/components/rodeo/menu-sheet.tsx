@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { Dna, Palette, TrendingUp, X } from 'lucide-react';
+import { Briefcase, Dna, Palette, TrendingUp, X } from 'lucide-react';
 
 import { useApp, type View } from '@/stores/app';
 
@@ -9,6 +9,8 @@ import { useApp, type View } from '@/stores/app';
    Cuando toque re-activarlas, se devuelven a ENTRADAS. */
 
 const ENTRADAS: { view: View; titulo: string; sub: string; Icon: typeof Dna }[] = [
+  // OFICINA estrena el diseño nuevo: curso A1 de Alfred con trabajos y voz.
+  { view: 'a1', titulo: 'OFICINA', sub: 'Inglés de oficina desde cero, con Alfred', Icon: Briefcase },
   // { view: 'dna', titulo: 'TU DNA', sub: 'Tus errores, tu jerga y tus upgrades', Icon: Dna },
   // { view: 'ladder', titulo: 'SUBE', sub: 'Peldaños B2 → C1 con juez', Icon: TrendingUp },
 ];

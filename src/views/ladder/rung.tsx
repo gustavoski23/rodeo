@@ -3,9 +3,9 @@ import { motion } from 'motion/react';
 import { Send } from 'lucide-react';
 
 import { callJSON } from '@/lib/api';
-import { crearReconocedor, type Reconocedor } from '@/lib/speech';
 import { cn } from '@/lib/utils';
 import { MicButton } from '@/components/rodeo/mic-button';
+import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
 
 import { msgsJuez, type Judge } from './prompts';
 import { useLadder, type Rung } from '@/stores/ladder';
@@ -90,11 +90,14 @@ export function RungCard({
   const [elegido, setElegido] = useState<'nailed' | 'casi' | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const recRef = useRef<Reconocedor | null>(null);
-  const [grabando, setGrabando] = useState(false);
 
-  // Un onend tardío no debe disparar el juez sobre un peldaño ya pasado.
-  useEffect(() => () => recRef.current?.abort(), []);
+  /* Mic Deepgram con onda: el intento cae al campo y el juez se llama con el
+     botón de enviar — nunca con lo que el STT creyó oír (lección de producción). */
+  const dictado = useDictado((t) => {
+    setTexto(t);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  });
+  const grabando = dictado.grabando;
 
   useEffect(() => {
     if (zonaAbierta) inputRef.current?.focus();
@@ -104,8 +107,7 @@ export function RungCard({
     // Guard global compartido (§9.21) leído del store VIVO: la prop `busy` es
     // la copia del render y no vería un setBusy(true) del mismo lote.
     if (useLadder.getState().busy) return;
-    recRef.current?.abort();
-    setGrabando(false);
+    dictado.cancelar(); // una toma a medio grabar no debe aterrizar en el peldaño siguiente
     setAttempt(intento);
 
     let veredicto: Judge | null = null;
@@ -124,31 +126,6 @@ export function RungCard({
     }
     setJudge(veredicto);
     setFase('back');
-  }
-
-  function toggleMic() {
-    if (grabando) {
-      recRef.current?.stop();
-      return;
-    }
-    if (!recRef.current) {
-      recRef.current = crearReconocedor(
-        'ladder',
-        (t) => setTexto(t), // el viejo escribía el interim en el input
-        (final) => {
-          setGrabando(false);
-          // continuous:false ⇒ el navegador corta al detectar silencio y ESE
-          // es el envío. Sin texto no pasa nada (L6352).
-          if (final) {
-            setTexto('');
-            void revealRung(final);
-          }
-        },
-      );
-    }
-    if (!recRef.current) return; // sin STT: crearReconocedor ya avisó
-    recRef.current.start();
-    setGrabando(true);
   }
 
   function elegir(nailed: boolean) {
@@ -208,14 +185,17 @@ export function RungCard({
                 </button>
               ) : (
                 <div className="mt-4">
+                  {/* La onda en vivo mientras dices tu versión C1. */}
+                  <OndaDictado g={dictado} className="px-6 pb-2" height={28} />
                   <div className="flex items-center gap-2">
                     <MicButton
                       ctx="ladder"
                       recording={grabando}
-                      onToggle={toggleMic}
+                      onToggle={dictado.toggle}
                       size={44}
                       variant="plain"
                       showLabel={false}
+                      showChip={false}
                       disabled={esperando || fase === 'back'}
                     />
                     <input

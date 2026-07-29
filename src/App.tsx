@@ -5,14 +5,20 @@ import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
 import { Header } from '@/components/rodeo/header';
 import { MenuSheet } from '@/components/rodeo/menu-sheet';
 import { Toaster } from '@/components/rodeo/toaster';
+import { JOB_PACKS, JobPicker } from '@/content/a1/jobs';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
+import { useA1 } from '@/stores/a1';
+import { useAuth } from '@/stores/auth';
 import { useEnSesion } from '@/stores/talk';
 import HomeView from '@/views/home';
 import TalkView from '@/views/talk';
 import SlangView from '@/views/slang';
 import LadderView from '@/views/ladder';
 import DnaView from '@/views/dna';
+import A1View from '@/views/a1';
+import { PasoVoz } from '@/views/a1-voice/paso-voz';
+import GateView from '@/views/gate';
 
 /* Shell: header + vista activa + tab bar. El switch de vistas es el switchView
    del viejo (public/legacy.html:3641) sin el DOM: cada vista se monta y se
@@ -24,7 +30,6 @@ import DnaView from '@/views/dna';
 
 const PENDIENTES: Record<string, { titulo: string; sub: string }> = {
   story: { titulo: 'STORY', sub: 'El thriller por capítulos y la lectura diaria llegan en la próxima entrega.' },
-  a1: { titulo: 'OFICINA', sub: 'El flujo de principiante con Alfred llega en la próxima entrega.' },
 };
 
 function VistaPendiente({ view }: { view: string }) {
@@ -42,6 +47,44 @@ function VistaPendiente({ view }: { view: string }) {
   );
 }
 
+/* OFICINA cableada: al entrar por primera vez (ya con el onboarding de Alfred
+   visto) toca elegir trabajo; con trabajo elegido, el curso completo con packs
+   y el paso de producción hablada (A1.3) enchufado al loop. */
+function OficinaView() {
+  const onboarded = useA1((s) => s.onboarded);
+  const job = useA1((s) => s.job);
+  const setJob = useA1((s) => s.setJob);
+  // "Después elijo" vale por esta visita: el picker vuelve la próxima vez,
+  // porque elegir trabajo es lo que desbloquea las unidades del rol.
+  const [pospuesto, setPospuesto] = useState(false);
+
+  if (onboarded && !job && !pospuesto) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+        <div>
+          <p className="font-display text-[clamp(1.7rem,7vw,2.2rem)] leading-[0.95] font-extrabold tracking-[-0.03em]">
+            ¿En qué trabajás<span style={{ color: 'var(--accent)' }}>?</span>
+          </p>
+          <p className="mt-1.5 text-[0.9rem]" style={{ color: 'var(--text-secondary)' }}>
+            El tronco del curso es para todos; tu trabajo le suma sus propias escenas.
+          </p>
+        </div>
+        <JobPicker packs={JOB_PACKS} seleccionado={null} onPick={setJob} />
+        <button
+          type="button"
+          onClick={() => setPospuesto(true)}
+          className="mx-auto mt-1 cursor-pointer text-[0.85rem] underline-offset-4 hover:underline"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Después elijo
+        </button>
+      </div>
+    );
+  }
+
+  return <A1View packsExtra={JOB_PACKS} PasoVoz={PasoVoz} />;
+}
+
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
@@ -49,6 +92,22 @@ export default function App() {
   // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
   // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
   const enSesion = useEnSesion();
+
+  /* El gate de login es LO PRIMERO que se ve (pedido de Gus): antes que el
+     Home aurora. `listo` evita el flash — hasta resolver getSession no se
+     decide nada y la pantalla queda en el negro del Home. Con sesión o con
+     Skip previo, el gate no existe. */
+  const authListo = useAuth((s) => s.listo);
+  const gateNecesario = useAuth((s) => s.gateNecesario);
+  if (!authListo) return <div className="min-h-dvh" style={{ background: '#14161a' }} />;
+  if (gateNecesario) {
+    return (
+      <MotionConfig reducedMotion="user">
+        <GateView />
+        <Toaster />
+      </MotionConfig>
+    );
+  }
 
   return (
     /* reducedMotion="user" apaga los springs de motion (morphs, píldoras, pulso
@@ -79,6 +138,8 @@ export default function App() {
               <LadderView />
             ) : view === 'dna' ? (
               <DnaView />
+            ) : view === 'a1' ? (
+              <OficinaView />
             ) : (
               <VistaPendiente view={view} />
             )}

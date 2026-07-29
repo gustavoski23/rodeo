@@ -4,15 +4,8 @@ import { ArrowLeft, Play, RefreshCw, SendHorizontal, Volume2, VolumeX } from 'lu
 
 import { MicButton } from '@/components/rodeo/mic-button';
 import { PillButton } from '@/components/rodeo/pill-button';
-import {
-  crearReconocedor,
-  repetirUltimo,
-  replayUltimo,
-  soportaSTT,
-  toggleTts,
-  useTts,
-  type Reconocedor,
-} from '@/lib/speech';
+import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
+import { repetirUltimo, replayUltimo, toggleTts, useTts } from '@/lib/speech';
 import { useApp } from '@/stores/app';
 import { useEscenas } from '@/stores/escenas';
 import { toast } from '@/stores/toast';
@@ -46,7 +39,6 @@ export function EscenasSession() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [texto, setTexto] = useState('');
-  const [grabando, setGrabando] = useState(false);
 
   // Autoscroll: cada patch del stream crea una lista nueva, así que este
   // efecto corre tan seguido como el scrollTop a mano del viejo.
@@ -73,38 +65,13 @@ export function EscenasSession() {
   /* ── Mic (wireMic sobre #rp-mic, L7593) ──────────────────────────────
      Instancia perezosa y contexto 'rp': el chip ES/EN de esta pantalla tiene
      su propia clave (rodeo_miclang_rp), separada de la de CHARLA. */
-  const recRef = useRef<Reconocedor | null>(null);
-  const toggleMic = useCallback(() => {
-    if (!recRef.current) {
-      if (!soportaSTT()) {
-        toast('Tu navegador no soporta voz — usa Chrome');
-        return;
-      }
-      recRef.current = crearReconocedor(
-        'rp',
-        (t) => setTexto(t), // transcripción en vivo dentro del input
-        (final) => {
-          setGrabando(false);
-          // El envío ocurre AQUÍ (continuous=false ⇒ el navegador corta al
-          // detectar silencio). Si el turno está en vuelo, rpTurn devuelve la
-          // línea al campo en vez de tragársela.
-          if (final) enviar(final);
-        },
-      );
-    }
-    const r = recRef.current;
-    if (!r) return;
-    if (grabando) {
-      r.stop();
-      return;
-    }
-    r.start(); // corta la voz del narrador y relee el idioma del chip
-    setGrabando(true);
-  }, [grabando, enviar]);
-
-  // Al desmontar la escena el reconocedor se aborta Y desarma sus callbacks:
-  // un onend tardío no debe disparar un turno sobre una sesión muerta.
-  useEffect(() => () => recRef.current?.abort(), []);
+  /* Mic Deepgram con onda: el transcript cae al campo y se envía a mano (la
+     lección de producción — jamás auto-enviar lo que entendió el STT). */
+  const dictado = useDictado((t) => {
+    setTexto(t);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  });
+  const grabando = dictado.grabando;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -182,16 +149,20 @@ export function EscenasSession() {
         ))}
       </div>
 
+      {/* La onda en vivo mientras hablas. */}
+      <OndaDictado g={dictado} className="shrink-0 px-10 pt-2" height={32} />
+
       {/* ── Dock: siempre visible. Deshabilitar DE VERDAD mientras el narrador
               vuela — bajar la opacidad no impide el clic (§8 trampa 14). ── */}
       <div className="flex shrink-0 items-center gap-2 pt-3">
         <MicButton
           ctx="rp"
           recording={grabando}
-          onToggle={toggleMic}
+          onToggle={dictado.toggle}
           size={46}
           variant="plain"
           showLabel={false}
+          showChip={false}
           disabled={!inputOn}
         />
         <input

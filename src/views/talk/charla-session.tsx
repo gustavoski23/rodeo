@@ -3,8 +3,9 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Keyboard, Lightbulb, Play, RefreshCw, SendHorizontal, Volume2, VolumeX } from 'lucide-react';
 
 import { MicButton } from '@/components/rodeo/mic-button';
+import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
 import { PillButton } from '@/components/rodeo/pill-button';
-import { crearReconocedor, soportaSTT, toggleTts, useTts, useUltimoHablado, replayUltimo, repetirUltimo, type Reconocedor } from '@/lib/speech';
+import { toggleTts, useTts, useUltimoHablado, replayUltimo, repetirUltimo } from '@/lib/speech';
 import { toast } from '@/stores/toast';
 import { useApp } from '@/stores/app';
 import { useTalk } from '@/stores/talk';
@@ -54,14 +55,6 @@ export function CharlaSession({ motor }: { motor: Motor }) {
     if (c) c.scrollTop = c.scrollHeight;
   }, [displayLog]);
 
-  /* ── Mic (initRecognition + #mic-btn, L4368-4409) ─────────────────────
-     Instancia perezosa: se crea en el primer toque, no al abrir la sesión
-     (pedir el micrófono antes de que lo pidas es de mala educación). */
-  const recRef = useRef<Reconocedor | null>(null);
-  const [grabando, setGrabando] = useState(false);
-
-  // El envío ocurre en onEnd, no en onresult: continuous=false ⇒ el navegador
-  // corta solo al detectar silencio, y ESE es el gesto de enviar.
   const enviar = useCallback(
     (t: string) => {
       const limpio = t.trim();
@@ -76,34 +69,16 @@ export function CharlaSession({ motor }: { motor: Motor }) {
     [motor],
   );
 
-  const toggleMic = useCallback(() => {
-    if (!recRef.current) {
-      if (!soportaSTT()) {
-        toast('Tu navegador no soporta voz — usa Chrome');
-        return;
-      }
-      recRef.current = crearReconocedor(
-        'talk',
-        (t) => setTexto(t), // transcripción en vivo dentro del input
-        (final) => {
-          setGrabando(false);
-          if (final) enviar(final);
-        },
-      );
-    }
-    const r = recRef.current;
-    if (!r) return;
-    if (grabando) {
-      r.stop(); // cierre limpio: el navegador entrega el final y dispara onEnd
-      return;
-    }
-    r.start(); // corta la voz del coach y relee el idioma del chip
-    setGrabando(true);
-  }, [grabando, enviar]);
-
-  // stopMic() del closeSession: al desmontar la sesión el reconocedor se aborta
-  // Y desarma sus callbacks, para que un onend tardío no dispare un turno.
-  useEffect(() => () => recRef.current?.abort(), []);
+  /* ── Mic: Deepgram Nova-3 multi con onda en vivo ──────────────────────
+     El transcript cae SIEMPRE al campo de texto (jamás se auto-envía: la
+     lección de producción). El teclado se abre solo para que se vea qué
+     entendió Deepgram antes de mandarlo. */
+  const dictado = useDictado((t) => {
+    setTexto(t);
+    setTeclado(true);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  });
+  const grabando = dictado.grabando;
 
   const abrirTeclado = () => {
     const abrir = !teclado;
@@ -180,6 +155,9 @@ export function CharlaSession({ motor }: { motor: Motor }) {
         ))}
       </div>
 
+      {/* La onda en vivo mientras hablas (y su latido de "procesando"). */}
+      <OndaDictado g={dictado} className="shrink-0 px-8 pt-2" />
+
       {/* ── Dock de voz: el mic es el protagonista (voz-primero) ── */}
       <div className="grid shrink-0 grid-cols-[46px_1fr_46px] items-center gap-2 pt-3">
         <motion.button
@@ -199,7 +177,8 @@ export function CharlaSession({ motor }: { motor: Motor }) {
         </motion.button>
 
         <div className="col-start-2">
-          <MicButton ctx="talk" recording={grabando} onToggle={toggleMic} />
+          {/* Sin chip ES/EN: el modelo multi escucha los dos idiomas a la vez. */}
+          <MicButton ctx="talk" recording={grabando} onToggle={dictado.toggle} showChip={false} />
         </div>
 
         {/* Bombilla: una respuesta-ejemplo. No bloquea el turno del coach. */}

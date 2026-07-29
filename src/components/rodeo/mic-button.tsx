@@ -83,7 +83,7 @@ export function MicButton({
         type="button"
         onClick={onToggle}
         disabled={disabled}
-        aria-label={recording ? 'Escuchando — toca para enviar' : 'Presiona y habla'}
+        aria-label={recording ? 'Escuchando — toca para parar' : 'Presiona y habla'}
         aria-pressed={recording}
         whileTap={{ scale: 0.96 }}
         /* Pulso coral del viejo (@keyframes pulse, L512): el anillo crece de 0 a
@@ -129,7 +129,8 @@ export function MicButton({
             recording ? 'text-[oklch(74%_0.20_27)]' : 'text-[var(--text-muted)]',
           )}
         >
-          {recording ? 'Escuchando… toca para enviar' : 'Presiona y habla'}
+          {/* Con Deepgram el texto queda en el campo al parar: enviar es aparte. */}
+          {recording ? 'Escuchando… toca para parar' : 'Presiona y habla'}
         </span>
       )}
     </div>

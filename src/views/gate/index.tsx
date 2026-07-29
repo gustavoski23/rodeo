@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 
 import { BorderBeam } from '@/components/magicui/border-beam';
@@ -33,6 +33,19 @@ export function GateView() {
   const [aviso, setAviso] = useState<string | null>(null);
 
   const emailRef = useRef<HTMLInputElement>(null);
+
+  /* El gate vive SIEMPRE en oscuro (fondo #14161a + card de vidrio oscura):
+     con el tema claro activo, los tokens resolvían texto oscuro sobre card
+     oscura y el título desaparecía. Mientras el gate está montado se fuerza
+     el tema oscuro en <html> y al salir se restaura el del usuario. */
+  useLayoutEffect(() => {
+    const html = document.documentElement;
+    const previo = html.getAttribute('data-theme');
+    html.removeAttribute('data-theme'); // sin atributo = oscuro (tokens.css)
+    return () => {
+      if (previo !== null) html.setAttribute('data-theme', previo);
+    };
+  }, []);
 
   // Foco inicial en Email: al abrir la puerta, el cursor ya está donde se
   // empieza. (Sin autoFocus en el JSX para no pelear con el montaje doble de

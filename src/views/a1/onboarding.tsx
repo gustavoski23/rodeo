@@ -32,18 +32,21 @@ function Cognado({ c }: { c: A1Cognate }) {
       onClick={() => setVolteada((v) => !v)}
       aria-pressed={volteada}
       aria-label={`${c.en} — tocá para ver el español`}
-      className="relative min-h-[74px] cursor-pointer"
+      className="relative cursor-pointer"
       style={{ perspective: 700 }}
     >
+      {/* Alto fijo y las dos caras en absoluto: si la cara de atrás sale del
+          flujo y la de adelante no, la tarjeta cambia de tamaño al voltear y
+          la grilla entera baila. */}
       <motion.span
         animate={{ rotateY: volteada ? 180 : 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-        className="relative block h-full w-full"
+        className="relative block h-[78px] w-full"
         style={{ transformStyle: 'preserve-3d' }}
       >
         {/* Cara EN */}
         <span
-          className="flex h-full w-full flex-col items-center justify-center gap-1 rounded-[18px] border px-2 py-3"
+          className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-[18px] border px-2 py-3 text-center"
           style={{
             backfaceVisibility: 'hidden',
             background: 'var(--bg-surface)',

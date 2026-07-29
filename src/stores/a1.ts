@@ -472,6 +472,15 @@ export function puntoDeRetomar(): Retomar | null {
   return { unit, scene, chunkIdx: i, sceneNum: idx + 1, sceneTotal: unit.scenes.length };
 }
 
+/** ¿Es la PRIMERA vez que se entra a esta unidad? Se deduce del progreso que ya
+    existe (ninguna escena cerrada y ningún chunk suyo en el SRS) en vez de
+    guardar una marca nueva: las claves rodeo_a1_* son las del legacy y no se
+    les inventa un campo solo pa' decidir si Alfred saluda. */
+export function unidadVirgen(u: A1Unit): boolean {
+  const { progreso, srs } = useA1.getState();
+  return u.scenes.every((s) => !progreso.doneScenes.includes(s.id) && s.chunks.every((c) => !srs[c.id]));
+}
+
 /** La escena por la que sigue una unidad: la primera sin terminar. */
 export function proximaEscena(u: A1Unit): A1Scene | null {
   const hechas = useA1.getState().progreso.doneScenes;

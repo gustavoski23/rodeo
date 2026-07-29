@@ -16,10 +16,27 @@ import { toast } from '@/stores/toast';
    La muleta `sounds_es` está SIEMPRE, suene o no suene el audio: es lo que
    salva a quien va en el bus sin datos o con el celular en silencio. */
 
+/* Los botones redondos viven en dos fondos distintos: sobre la tarjeta de papel
+   (tinta oscura) y sobre el shell (tinta clara). Un solo set de colores no sirve
+   para los dos, así que el tono es explícito y su default es la tarjeta, que es
+   donde más aparecen. */
+type Tono = 'tinta' | 'claro';
+function pielBoton(tono: Tono, tamano: number) {
+  const base = tono === 'tinta' ? 'var(--card-ink)' : 'var(--text-primary)';
+  return {
+    width: tamano,
+    height: tamano,
+    borderColor:
+      tono === 'tinta' ? 'color-mix(in oklch, var(--card-ink) 18%, transparent)' : 'var(--borde-sutil)',
+    background: tono === 'tinta' ? 'color-mix(in oklch, var(--card-ink) 7%, transparent)' : 'var(--chip-bg)',
+    color: base,
+  };
+}
+
 /** Botón de voz real: speak() → /api/tts (Aura-2). Con la voz apagada no se
     pinta — la muleta "suena:" ya cubre el paso, y un botón que no hace nada es
     peor que ninguno. */
-export function BotonAudio({ en, tamano = 36 }: { en: string; tamano?: number }) {
+export function BotonAudio({ en, tamano = 36, tono = 'tinta' }: { en: string; tamano?: number; tono?: Tono }) {
   const { ttsOn } = useTts();
   const [sonando, setSonando] = useState(false);
   if (!ttsOn) return null;
@@ -38,13 +55,7 @@ export function BotonAudio({ en, tamano = 36 }: { en: string; tamano?: number })
       }}
       aria-label={`Escuchar «${en}»`}
       className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border"
-      style={{
-        width: tamano,
-        height: tamano,
-        borderColor: 'color-mix(in oklch, var(--card-ink) 18%, transparent)',
-        background: 'color-mix(in oklch, var(--card-ink) 7%, transparent)',
-        color: 'var(--card-ink)',
-      }}
+      style={pielBoton(tono, tamano)}
     >
       {sonando ? (
         <Loader2 className="size-[18px] animate-spin" strokeWidth={2} />
@@ -56,7 +67,15 @@ export function BotonAudio({ en, tamano = 36 }: { en: string; tamano?: number })
 }
 
 /** ★ Mis frases (rodeo_a1_saved). Nada que ver con el DNA de Gus. */
-export function BotonEstrella({ chunk, tamano = 36 }: { chunk: A1Chunk; tamano?: number }) {
+export function BotonEstrella({
+  chunk,
+  tamano = 36,
+  tono = 'tinta',
+}: {
+  chunk: A1Chunk;
+  tamano?: number;
+  tono?: Tono;
+}) {
   const guardada = useA1((s) => s.guardadas.some((x) => x && x.id === chunk.id));
   const alternar = useA1((s) => s.alternarGuardada);
 
@@ -71,13 +90,9 @@ export function BotonEstrella({ chunk, tamano = 36 }: { chunk: A1Chunk; tamano?:
       aria-pressed={guardada}
       aria-label={guardada ? 'Quitar de mis frases' : 'Guardar en mis frases'}
       className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full border"
-      style={{
-        width: tamano,
-        height: tamano,
-        borderColor: 'color-mix(in oklch, var(--card-ink) 18%, transparent)',
-        background: 'color-mix(in oklch, var(--card-ink) 7%, transparent)',
-        color: 'var(--card-ink)',
-      }}
+      /* Guardada = estrella RELLENA, no estrella de otro color: la lima de
+         acento no lee sobre el papel claro de la tarjeta. */
+      style={pielBoton(tono, tamano)}
     >
       <Star className="size-[18px]" strokeWidth={2} fill={guardada ? 'currentColor' : 'none'} />
     </motion.button>

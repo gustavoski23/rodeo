@@ -119,7 +119,9 @@ function caerASistema(text: string, motivo: string, err?: unknown) {
 }
 
 // Pide el audio al proxy /api/tts (Deepgram). Devuelve un ArrayBuffer MP3.
-async function pedirTTS(text: string, modelOverride?: VozId): Promise<ArrayBuffer> {
+// Exportada para el visor de transcript, que necesita el audio como blob (no
+// reproducirlo al vuelo como speak()).
+export async function pedirTTS(text: string, modelOverride?: VozId): Promise<ArrayBuffer> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const pass = store.get<string | null>('rodeo_pass', null);
   if (pass) headers['x-rodeo-pass'] = pass;
