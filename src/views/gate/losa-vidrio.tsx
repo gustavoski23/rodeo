@@ -17,25 +17,30 @@
      · chromaticAberration: rojo y azul se refractan con ior distinto y en los
        bordes se separan (el fringe).
 
-   El rim de luz es especular de verdad: roughness 0 + luces en la escena, el
-   bisel curvo devuelve un filo brillante donde la luz se quiebra.
+   El rim de luz no se pinta: es Fresnel. En el canto la normal queda casi
+   perpendicular a la vista, la transmisión se apaga y el vidrio refleja el
+   entorno — un estudio de Lightformers generado en runtime (ver abajo).
 
    Valores del material: los que fijó el dueño (transmission 1, roughness 0,
    ior 1.15, thickness 2, chromaticAberration 0.05, anisotropy 0.01). */
 import { useEffect, useMemo, useRef } from 'react';
 import { useThree } from '@react-three/fiber';
-import { MeshTransmissionMaterial, RoundedBox } from '@react-three/drei';
+import { Environment, Lightformer, MeshTransmissionMaterial, RoundedBox } from '@react-three/drei';
 
 /** El rect de la card DOM, en píxeles CSS de la ventana (getBoundingClientRect). */
 export type RectCard = { x: number; y: number; w: number; h: number };
 
-/* Radio del borde: el mismo `border-radius: 30px` de .glassContainer. Se pasa
-   a mundo con la misma escala que el ancho, así el canto del vidrio cae
-   exactamente sobre la esquina de la card DOM. */
-const RADIO_PX = 30;
+/* Radio del borde, en píxeles CSS. Tiene que ser EL MISMO que el
+   `border-radius` de .gate-card--losa en liquid-glass-macos.css: el filo
+   interior del DOM cae encima del canto del vidrio y si no coinciden se ve
+   doble borde. Es más generoso que los 30 px del vidrio CSS a propósito: el
+   bisel ES la lente del borde, y cuanto más ancho, más ancha la banda donde la
+   gradiente se dobla y se magnifica (o sea, más grosor aparente). */
+const RADIO_PX = 56;
 
-/** Canto de la losa en unidades de mundo. Es el grosor que se ve en el bisel. */
-const PROF = 0.22;
+/** Canto de la losa en unidades de mundo. Es el grosor que se ve en el bisel.
+    Tiene que dar de sí para el radio: RoundedBox extruye `depth - radius*2`. */
+const PROF = 0.34;
 
 /** z de la losa: entre la cámara (z=20) y la gradiente (z=0), y DELANTE del
     wordmark (z=12) para que el vidrio también lo refracte. */
@@ -80,13 +85,36 @@ export function LosaVidrio({ rect, onListo }: { rect: RectCard; onListo?: () => 
 
   return (
     <>
-      {/* Luz para el especular del bisel: sin esto el vidrio refracta pero no
-          BRILLA, y el filo de luz es medio criterio del look. La clave está
-          arriba-derecha (como el highlight del vidrio macOS) y hay un relleno
-          frío por abajo-izquierda para que el canto no se apague. */}
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[m.x + 1.2, m.y + 1.8, Z_LOSA + 3]} intensity={2.6} />
-      <directionalLight position={[m.x - 1.6, m.y - 1.2, Z_LOSA + 2]} intensity={1.2} color="#a8e6ff" />
+      {/* EL FILO DE LUZ. Esto no es decoración: es Fresnel.
+
+          En el canto, la normal queda casi perpendicular a la vista, F→1 y la
+          refracción se apaga sola —`(1.0 - F) * attenuatedColor`—, así que ahí
+          el vidrio REFLEJA en vez de transmitir. Sin mapa de entorno no hay
+          nada que reflejar y el borde sale NEGRO: un contorno sucio en vez del
+          filo brillante donde la luz se quiebra. (Con luces sueltas tampoco
+          basta: con roughness 0 el lóbulo especular es finísimo, o se enciende
+          la cara plana entera —un rectángulo blanco pegado dentro de la card— o
+          no se ve nada.)
+
+          El entorno se GENERA en runtime con Lightformers, sin HDR de ningún
+          CDN (el demo single-file no puede pedir nada fuera). frames={1}: se
+          cocina una vez y no cuesta nada por frame. Tiras cálidas arriba-izquierda
+          —como el fePointLight(-200,-200) del vidrio CSS de macOS— y frías
+          abajo-derecha, que es lo que hace que un canto se lea como cristal.
+
+          Tampoco hay ambientLight: con transmission=1 el difuso se sustituye
+          entero por la refracción (`mix(totalDiffuse, transmission, 1.0)`), así
+          que una ambiental no pintaría nada. */}
+      <Environment resolution={128} frames={1}>
+        <color attach="background" args={['#0a0a12']} />
+        {/* Tira principal: el barrido de luz del borde superior. */}
+        <Lightformer intensity={7} position={[-1.5, 3.5, 2]} scale={[8, 1.4, 1]} color="#fff6ec" />
+        {/* Laterales, uno cálido y otro frío: separan los dos cantos verticales. */}
+        <Lightformer intensity={4} position={[-5, 0.5, 1.5]} rotation-y={Math.PI / 4} scale={[3, 5, 1]} color="#ffd7bd" />
+        <Lightformer intensity={3.2} position={[5, -0.5, 1.5]} rotation-y={-Math.PI / 4} scale={[3, 5, 1]} color="#c6ecff" />
+        {/* Suelo tenue: sin él el canto de abajo se hunde en negro. */}
+        <Lightformer intensity={2.4} position={[0, -3.5, 1.5]} scale={[8, 1, 1]} color="#ffffff" />
+      </Environment>
 
       <RoundedBox
         // Geometría de card: caja redondeada, bisel bien teselado (el bisel ES
@@ -115,6 +143,12 @@ export function LosaVidrio({ rect, onListo }: { rect: RectCard; onListo?: () => 
              que promediar y son 3 refracciones por muestra (una por canal). */
           samples={6}
           color="#ffffff"
+          /* La fuerza del filo: sube o baja el reflejo del entorno sin tocar la
+             refracción, que son los valores fijados por el dueño. */
+          envMapIntensity={1.35}
+          /* Sin tone mapping, igual que el plano de la gradiente: si el vidrio
+             pasara por ACES y el fondo no, el centro de la losa cambiaría de
+             color respecto a lo que tiene detrás y se notaría el parche. */
           toneMapped={false}
         />
       </RoundedBox>

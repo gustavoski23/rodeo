@@ -300,8 +300,9 @@ export function GateView() {
                 </button>
               </div>
             </form>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Filtros del vidrio macOS — el contenido del filtro es el del repo

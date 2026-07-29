@@ -66,14 +66,23 @@ function FondoOrbita() {
     malla.current.rotation.z = -(anguloOrbita(clock.getElapsedTime()) * Math.PI) / 180;
   });
 
-  /* Cuadrado grande y centrado en el eje óptico: centrado, el centro de la
-     cónica cae en el centro de la pantalla (igual que el fallback DOM, que es
-     `at 50% 50%`); cuadrado, su círculo inscrito cubre la pantalla en
-     cualquier ángulo de giro; grande, sobra material para el <Scroll> de 3
-     páginas y no aparece borde. */
-  const lado = Math.max(viewport.width, viewport.height) * 2.4;
+  /* Cuadrado grande: su círculo inscrito cubre la pantalla en cualquier ángulo
+     de giro y sobra material para el <Scroll> de 3 páginas.
+
+     El centro de la cónica —donde convergen los cuatro colores— se desplaza un
+     poco abajo-izquierda. Ni centrado ni fuera: centrado justo detrás de la
+     card, el vidrio ampliaba la singularidad y dejaba una mancha pastel plana
+     en medio del formulario; fuera de la pantalla, la card quedaba sobre una
+     sola franja de color plana y no había NADA que doblar. Desplazado, las
+     cuatro fronteras de color cruzan la card en diagonal — que es exactamente
+     la estructura que la refracción del canto tiene que quebrar. */
+  const lado = Math.max(viewport.width, viewport.height) * 3;
   return (
-    <mesh ref={malla} position={[0, 0, 0]} scale={[lado, lado, 1]}>
+    <mesh
+      ref={malla}
+      position={[-viewport.width * 0.16, -viewport.height * 0.2, 0]}
+      scale={[lado, lado, 1]}
+    >
       <planeGeometry />
       <meshBasicMaterial map={tex} toneMapped={false} />
     </mesh>

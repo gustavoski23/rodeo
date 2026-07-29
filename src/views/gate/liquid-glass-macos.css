@@ -139,6 +139,34 @@
   background-color: rgb(20 22 26 / 0.30);
 }
 
+/* Con la LOSA 3D detrás (ver views/gate/losa-vidrio.tsx) el vidrio del
+   CONTENEDOR se apaga: el velo oscuro y el filtro SVG serían un segundo cristal
+   encima del de verdad y aplanarían la refracción — es exactamente el
+   rectángulo semitransparente que se rechazó. Queda solo el contenido, y un
+   filo interior tenue que cae justo sobre el canto de la losa (mismo radio) y
+   remata el borde en pantallas donde el especular queda flojo.
+   Los inputs y los botones SÍ conservan su vidrio fino: se leen encima de una
+   gradiente refractada, y necesitan base propia. */
+.glassContainer.gate-card.gate-card--losa,
+.glassContainer.gate-card.gate-card--losa::before,
+.glassContainer.gate-card.gate-card--losa::after {
+  /* 56 px = RADIO_PX de losa-vidrio.tsx. Si se cambia uno hay que cambiar el
+     otro: son la misma esquina, una en DOM y otra en geometría 3D. */
+  border-radius: 56px;
+}
+
+.glassContainer.gate-card.gate-card--losa::before {
+  background-color: transparent;
+  box-shadow: inset 1px 1px 0px -1px rgb(255 255 255 / 0.45), inset 0 0 2px 0px rgb(255 255 255 / 0.35);
+}
+
+.glassContainer.gate-card.gate-card--losa::after {
+  -webkit-backdrop-filter: none;
+          backdrop-filter: none;
+  -webkit-filter: none;
+          filter: none;
+}
+
 .glassBtn.gate-btn {
   width: auto;
   height: auto;
