@@ -1,6 +1,16 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Alan Sans — la fuente redondeada del Home aurora, tal cual la referencia
+   aprobada (self-hosted, no Google Fonts). Variable 100-900. */
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('/fonts/AlanSans-VariableFont_wght.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 /* El tema de RODEO se conmuta con data-theme="light" en <html> (lo pone el
    anti-flash del head antes del primer paint). Esta variante deja funcionar
    el prefijo dark: de cualquier componente shadcn/Magic UI pegado tal cual. */
@@ -87,11 +97,17 @@
   /* Radio base para los componentes shadcn (deriva sm/md/lg/xl abajo) */
   --radius: 1rem;
 
-  /* La redondeada del Home aurora. Baloo 2 es la más cercana a la fuente de
-     la referencia de Gus (que vive en su PC): si nos dice el nombre real o
-     sube los .woff2 al repo, se cambia SOLO aquí. Aislada al Home a propósito
-     — el resto de la app sigue en Archivo/Familjen. */
-  --font-home: 'Baloo 2', 'Familjen Grotesk', ui-sans-serif, sans-serif;
+  /* Aurora del Home — valores por defecto de la referencia aprobada
+     (index.html:43-50). El store los sobrescribe en :root al arrancar y al
+     personalizar; estos son el punto de partida antes de que monte React. */
+  --aurora-1: #B85D8A;
+  --aurora-2: #D99C66;
+  --aurora-3: #EBE0C5;
+  --aurora-strength: 1;
+  --aurora-brightness: 1;
+  --aurora-duration-one: 12.8s;
+  --aurora-duration-two: 14s;
+  --aurora-duration-three: 10.6s;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════

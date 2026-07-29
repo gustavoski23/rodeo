@@ -3,15 +3,18 @@ import { Dna, Palette, TrendingUp, X } from 'lucide-react';
 
 import { useApp, type View } from '@/stores/app';
 
-/* Menú del botón ☰ — versión de integración. En el viejo, DNA y SUBE viven
-   detrás del perfil (openPerfil, legacy.html:4693); aquí salen del entierro
-   con entrada propia. El resto del perfil (nombre, intereses, nivel, premium,
-   cuenta Google) llega con la fase de sync — se anuncia, no se finge. */
+/* Menú del botón ☰. Por ahora solo PERSONALIZAR: el resto (TU DNA, SUBE, y lo
+   que venga) se va agregando con diseños propios sobre la línea del Home
+   aurora — el código de esas vistas sigue en el repo, solo no se listan aún.
+   Cuando toque re-activarlas, se devuelven a ENTRADAS. */
 
 const ENTRADAS: { view: View; titulo: string; sub: string; Icon: typeof Dna }[] = [
-  { view: 'dna', titulo: 'TU DNA', sub: 'Tus errores, tu jerga y tus upgrades', Icon: Dna },
-  { view: 'ladder', titulo: 'SUBE', sub: 'Peldaños B2 → C1 con juez', Icon: TrendingUp },
+  // { view: 'dna', titulo: 'TU DNA', sub: 'Tus errores, tu jerga y tus upgrades', Icon: Dna },
+  // { view: 'ladder', titulo: 'SUBE', sub: 'Peldaños B2 → C1 con juez', Icon: TrendingUp },
 ];
+// Referencias conservadas para cuando se re-activen las entradas de arriba.
+void Dna;
+void TrendingUp;
 
 export function MenuSheet({
   open,

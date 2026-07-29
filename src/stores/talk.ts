@@ -4,6 +4,7 @@ import type { ChatMessage } from '@/lib/api';
 import type { Gloss } from '@/lib/gloss';
 import { store } from '@/lib/storage';
 import { stopSpeak } from '@/lib/speech';
+import { useApp } from '@/stores/app';
 import type { ScenarioKey, Situacion } from '@/views/talk/prompts';
 import type { Maquina } from '@/views/talk/typewriter';
 
@@ -128,6 +129,10 @@ export const useTalk = create<TalkState>((set, get) => ({
   cerrarSesion: () => {
     stopSpeak();
     set({ session: null, displayLog: [] });
+    // Salir de una conversación SIEMPRE devuelve al Home aurora (decisión de
+    // Gus, 2026-07-29): la vista vieja de TALK con los chips queda oculta.
+    // Cubre volver, terminar (<3 turnos) y el cierre del debrief en un punto.
+    useApp.getState().setView('home');
   },
 
   addBubble: (b) => {

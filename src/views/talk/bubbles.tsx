@@ -96,12 +96,12 @@ export function BurbujaChat({ b }: { b: Burbuja }) {
   }
 
   if (b.tipo === 'pensando') {
-    // La apertura desde el Home aurora: cápsula oscura con el texto exacto
-    // `Pensando` (brief del Home). Los estilos viven en aurora.css, que ya
-    // llega al bundle vía el AuroraPillButton del propio Home.
+    // Apertura desde el Home aurora — cápsula "Pensando" 1:1 de la referencia
+    // (addAssistantThinking, index.html:3691-3701): borde orbital + superficie
+    // interna. Los estilos viven en aurora.css.
     return (
-      <motion.div {...entrada} aria-live="polite" className="assistant-thinking">
-        Pensando
+      <motion.div {...entrada} role="status" aria-live="polite" className="assistant-thinking">
+        <span className="assistant-thinking__surface">Pensando</span>
       </motion.div>
     );
   }

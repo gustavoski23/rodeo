@@ -1,150 +1,508 @@
-/* Aurora del Home — deriva de las masas de color dentro de la píldora y haz
-   que recorre el perímetro. Los colores/tiempos entran por variables inline
-   (--au-m1, --au-m2, --au-luz, --au-int, --au-vel) desde el componente. */
+/* ══════════════════════════════════════════════════════════════════════════
+   AURORA — copiado 1:1 de la referencia aprobada por Gus
+   (codex/home-aurora-production-review, index.html). NO reinterpretar: colores,
+   tiempos, gradientes y curvas son los del original. Lo único que cambia es
+   que aquí React monta el layout, así que las reglas `body.rd-aurora-home`
+   (que ocultaban el DOM viejo) no hacen falta.
+   ══════════════════════════════════════════════════════════════════════════ */
 
-@property --au-ang {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
+.aurora-home {
+  width: 100%;
+  max-width: 760px;
+  min-height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(38px, 8vh, 72px);
+  padding: 18px 0 clamp(28px, 7vh, 64px);
+  text-align: center;
+}
+.aurora-home__copy {
+  display: grid;
+  justify-items: center;
+  gap: 13px;
+}
+.aurora-home__greeting {
+  margin: 0;
+  color: oklch(69% 0.008 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: clamp(1.02rem, 2vw, 1.18rem);
+  font-variation-settings: 'wght' 620;
+}
+.aurora-home__question {
+  max-width: 720px;
+  margin: 0;
+  color: oklch(96% 0.004 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: clamp(2.55rem, 6.5vw, 5.15rem);
+  font-variation-settings: 'wght' 760;
+  line-height: 0.94;
+  letter-spacing: -0.047em;
+  text-wrap: balance;
+}
+.aurora-home__actions {
+  width: min(100%, 480px);
+  display: grid;
+  justify-items: center;
+  gap: 16px;
 }
 
 .aurora-pill {
   position: relative;
   isolation: isolate;
+  width: 100%;
+  min-height: 82px;
+  display: flex;
+  align-items: center;
   overflow: hidden;
+  padding: 16px 24px;
+  border: 1px solid oklch(94% 0.008 265 / 0.065);
   border-radius: 999px;
-  /* Borde PERSISTENTE (no depende del haz): sutil, siempre visible. */
-  border: 1px solid oklch(100% 0 0 / 0.14);
-  background: oklch(11% 0.012 265);
+  background: linear-gradient(168deg, oklch(18.5% 0.014 265), oklch(14.5% 0.012 265));
+  color: oklch(97% 0.003 265);
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 oklch(96% 0.006 265 / 0.08),
+    inset 0 -1px 0 oklch(6% 0.014 265 / 0.34),
+    0 7px 18px oklch(6% 0.014 265 / 0.28),
+    0 2px 5px oklch(6% 0.014 265 / 0.22);
+  transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
 }
-
-/* Las masas: dos manchas gigantes desenfocadas que derivan. La composición de
-   la captura: oscuridad a la izquierda, tránsito malva, y la LUZ amaneciendo
-   por la derecha. */
-.aurora-pill__masas {
+.aurora-pill::after {
   position: absolute;
-  inset: -40%;
-  z-index: -1;
-  filter: blur(26px) saturate(calc(100% * var(--au-int, 1)));
-  opacity: calc(0.92 * var(--au-int, 1));
-  background:
-    radial-gradient(42% 65% at 86% 42%, var(--au-luz) 0%, transparent 62%),
-    radial-gradient(55% 80% at 62% 60%, var(--au-m2) 0%, transparent 66%),
-    radial-gradient(70% 100% at 22% 50%, var(--au-m1) 0%, transparent 72%);
-  animation: aurora-deriva var(--au-vel, 12s) ease-in-out infinite alternate;
+  z-index: 20;
+  inset: 1px;
+  border: 1px solid oklch(94% 0.008 265 / 0.05);
+  border-radius: inherit;
+  pointer-events: none;
+  content: '';
 }
-
-@keyframes aurora-deriva {
-  from {
-    transform: translate3d(-3%, -2%, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(2%, 2%, 0) scale(1.06);
-  }
-  to {
-    transform: translate3d(4%, -1%, 0) scale(1.02);
-  }
+.aurora-pill:hover:not(:disabled) {
+  border-color: oklch(94% 0.008 265 / 0.12);
+  box-shadow:
+    inset 0 1px 0 oklch(96% 0.006 265 / 0.1),
+    inset 0 -1px 0 oklch(6% 0.014 265 / 0.32),
+    0 9px 20px oklch(6% 0.014 265 / 0.3);
 }
-
-/* El haz: un destello de la LUZ recorriendo todo el perímetro. Anillo de 2px
-   con la técnica de máscara compuesta (el conic vive solo en el borde). */
-.aurora-pill__haz {
+.aurora-pill:active:not(:disabled) { transform: scale(0.99); }
+.aurora-pill:disabled { cursor: default; opacity: 1; }
+.aurora-pill.is-pressing {
+  transform: translate3d(0, 4px, 0) scale3d(.986, .97, 1);
+  border-color: oklch(94% 0.008 265 / 0.045);
+  box-shadow:
+    inset 0 4px 12px oklch(5% 0.014 265 / .48),
+    inset 0 -1px 0 oklch(94% 0.006 265 / .035),
+    0 2px 5px oklch(5% 0.014 265 / .2);
+  transition-duration: .16s;
+}
+.aurora-pill.is-pressing .aurora-pill__field {
+  transform: translate3d(0, 1px, 0);
+  filter: brightness(.91);
+}
+.aurora-pill.is-pressing .aurora-pill__label { transform: translate3d(0, 1px, 0); }
+.aurora-pill__field,
+.aurora-pill__label { transition: filter .18s ease, transform .18s cubic-bezier(.22, 1, .36, 1); }
+.aurora-pill__label {
+  position: relative;
+  z-index: 10;
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: 1.12rem;
+  font-variation-settings: 'wght' 720;
+  line-height: 1;
+  letter-spacing: -0.014em;
+}
+.aurora-pill__field {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.aurora-pill__field::before {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    oklch(17.5% 0.013 265) 0%,
+    oklch(17.5% 0.013 265 / 0.98) 27%,
+    oklch(17.5% 0.013 265 / 0.91) 43%,
+    oklch(17.5% 0.013 265 / 0.68) 58%,
+    oklch(17.5% 0.013 265 / 0.25) 75%,
+    transparent 91%
+  );
+  content: '';
+}
+.aurora-pill__inner {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  border-radius: inherit;
-  padding: 2px;
-  pointer-events: none;
-  background: conic-gradient(
-    from var(--au-ang),
-    transparent 0deg,
-    transparent 292deg,
-    color-mix(in oklch, var(--au-luz) 88%, white) 330deg,
-    transparent 360deg
+  contain: paint;
+  opacity: clamp(0.55, var(--aurora-strength), 1);
+  filter: saturate(var(--aurora-strength)) brightness(var(--aurora-brightness));
+}
+.aurora-pill__inner::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    96deg,
+    transparent 12%,
+    color-mix(in oklch, var(--aurora-1) 10%, transparent) 42%,
+    color-mix(in oklch, var(--aurora-2) 26%, transparent) 70%,
+    color-mix(in oklch, var(--aurora-3) 48%, transparent) 100%
   );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  animation: aurora-haz calc(var(--au-vel, 12s) / 3) linear infinite;
+  opacity: 0.72;
+  content: '';
+}
+.aurora-pill__mass {
+  position: absolute;
+  display: block;
+  will-change: transform, border-radius;
+}
+.aurora-pill__mass--one {
+  top: -30%;
+  right: -4%;
+  width: 68%;
+  height: 116%;
+  background: radial-gradient(
+    118% 76% at 74% 44%,
+    color-mix(in oklch, var(--aurora-2) 78%, var(--aurora-3)) 0 20%,
+    var(--aurora-2) 43%,
+    color-mix(in oklch, var(--aurora-1) 68%, transparent) 66%,
+    transparent 84%
+  );
+  filter: blur(5px) saturate(1.03);
+  opacity: .86;
+  animation: aurora-mass-one var(--aurora-duration-one) ease-in-out -4.1s infinite;
+}
+.aurora-pill__mass--two {
+  right: -1%;
+  bottom: -36%;
+  width: 76%;
+  height: 94%;
+  background: radial-gradient(
+    124% 90% at 78% 42%,
+    var(--aurora-1) 0 22%,
+    color-mix(in oklch, var(--aurora-1) 70%, var(--aurora-2)) 46%,
+    color-mix(in oklch, var(--aurora-1) 58%, transparent) 67%,
+    transparent 86%
+  );
+  filter: blur(6px) saturate(.98);
+  opacity: .78;
+  animation: aurora-mass-two var(--aurora-duration-two) ease-in-out -8.6s infinite;
+}
+.aurora-pill__mass--three {
+  top: -9%;
+  right: -7%;
+  width: 40%;
+  height: 118%;
+  background: radial-gradient(
+    94% 76% at 70% 50%,
+    var(--aurora-3) 0 22%,
+    color-mix(in oklch, var(--aurora-3) 62%, var(--aurora-2)) 46%,
+    color-mix(in oklch, var(--aurora-3) 48%, transparent) 64%,
+    transparent 82%
+  );
+  filter: blur(3.5px) saturate(.94);
+  opacity: .9;
+  animation: aurora-mass-three var(--aurora-duration-three) ease-in-out -2.7s infinite;
+}
+@keyframes aurora-mass-one {
+  0%, 100% { transform: translate3d(-4%, 4%, 0) scale3d(.94, 1.03, 1) skewX(-3deg); border-radius: 48% 52% 58% 42% / 46% 41% 59% 54%; }
+  50% { transform: translate3d(-11%, -5%, 0) scale3d(1.05, .94, 1) skewX(2deg); border-radius: 58% 42% 46% 54% / 57% 52% 48% 43%; }
+}
+@keyframes aurora-mass-two {
+  0%, 100% { transform: translate3d(-6%, -2%, 0) scale3d(1.03, .96, 1) skewY(2deg); border-radius: 44% 56% 51% 49% / 56% 47% 53% 44%; }
+  50% { transform: translate3d(-14%, -10%, 0) scale3d(.92, 1.08, 1) skewY(-3deg); border-radius: 54% 46% 42% 58% / 45% 58% 42% 55%; }
+}
+@keyframes aurora-mass-three {
+  0%, 100% { transform: translate3d(4%, -4%, 0) scale3d(.95, 1.04, 1); border-radius: 54% 46% 42% 58% / 46% 56% 44% 54%; }
+  50% { transform: translate3d(-6%, 5%, 0) scale3d(1.06, .94, 1); border-radius: 43% 57% 59% 41% / 57% 43% 55% 45%; }
 }
 
-@keyframes aurora-haz {
-  to {
-    --au-ang: 360deg;
-  }
-}
-
-/* Estado hundido durante la activación (950 ms; 80 ms con reduced motion). */
-.aurora-pill.is-pressing {
-  transform: scale(0.965) translateY(2px);
-  filter: brightness(0.88);
-}
-.aurora-pill {
-  transition:
-    transform 0.22s cubic-bezier(0.34, 1.2, 0.5, 1),
-    filter 0.22s ease;
-}
-
-/* Reduced motion: sin deriva, sin haz girando, sin traslación al hundir. */
-@media (prefers-reduced-motion: reduce) {
-  .aurora-pill__masas {
-    animation: none;
-  }
-  .aurora-pill__haz {
-    animation: none;
-    background: conic-gradient(
-      from 210deg,
-      transparent 0deg,
-      transparent 292deg,
-      color-mix(in oklch, var(--au-luz) 88%, white) 330deg,
-      transparent 360deg
-    );
-  }
-  .aurora-pill.is-pressing {
-    transform: scale(0.985);
-  }
-  .aurora-pill {
-    transition: transform 0.08s ease, filter 0.08s ease;
-  }
-}
-
-/* La cápsula "Pensando" de la apertura del Home (assistant-thinking de la
-   referencia): oscura, compacta, con un pulso sutil de la luz. */
+/* Estado local de apertura: comunica una transición breve, no trabajo de red. */
 .assistant-thinking {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  align-self: flex-start;
+  position: relative;
+  isolation: isolate;
+  width: fit-content;
+  min-width: 132px;
+  overflow: hidden;
+  padding: 1px;
+  border: 1px solid oklch(94% 0.008 265 / .1);
   border-radius: 999px;
-  border: 1px solid oklch(100% 0 0 / 0.12);
-  background: oklch(13% 0.012 265);
-  color: oklch(88% 0.005 265);
-  padding: 12px 20px;
-  font-size: 0.92rem;
-  font-weight: 500;
+  background: oklch(15% 0.012 265);
+  box-shadow:
+    0 8px 22px oklch(5% 0.014 265 / .24),
+    inset 0 1px 0 oklch(94% 0.006 265 / .045);
 }
 .assistant-thinking::before {
+  position: absolute;
+  z-index: 0;
+  inset: -105% -42%;
+  background: conic-gradient(
+    from 0turn,
+    transparent 0 64%,
+    color-mix(in oklch, var(--aurora-1) 64%, transparent) 73%,
+    color-mix(in oklch, var(--aurora-2) 88%, var(--aurora-3)) 80%,
+    var(--aurora-3) 84%,
+    transparent 92% 100%
+  );
+  opacity: .9;
   content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--accent);
-  animation: thinking-pulso 1.1s ease-in-out infinite;
+  animation: assistant-thinking-orbit 1.55s linear infinite;
+  will-change: transform;
 }
+.assistant-thinking__surface {
+  position: relative;
+  z-index: 1;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: inherit;
+  background: linear-gradient(160deg, oklch(18% 0.014 265), oklch(13.5% 0.011 265));
+  color: oklch(91% 0.006 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: .92rem;
+  font-variation-settings: 'wght' 650;
+  letter-spacing: -.008em;
+  box-shadow: inset 0 0 0 1px oklch(94% 0.008 265 / .075);
+}
+@keyframes assistant-thinking-orbit { to { transform: rotate(1turn); } }
+
+.aurora-more {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(94% 0.008 265 / 0.09);
+  border-radius: 50%;
+  background: oklch(18% 0.012 265 / 0.38);
+  color: oklch(70% 0.008 265);
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background .2s ease, transform .25s ease;
+}
+.aurora-more:hover,
+.aurora-more:focus-visible {
+  color: oklch(94% 0.004 265);
+  border-color: oklch(94% 0.008 265 / 0.18);
+  background: oklch(20% 0.012 265 / 0.66);
+}
+.aurora-more[aria-expanded='true'] { transform: rotate(180deg); }
+.aurora-more svg { width: 18px; height: 18px; }
+.aurora-story-option {
+  width: min(100%, 310px);
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 18px;
+  border: 1px solid oklch(94% 0.008 265 / 0.11);
+  border-radius: 17px;
+  background: oklch(18% 0.013 265 / 0.88);
+  color: oklch(91% 0.006 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: .96rem;
+  font-variation-settings: 'wght' 650;
+  cursor: pointer;
+  box-shadow: 0 8px 24px oklch(5% 0.014 265 / .24);
+  animation: aurora-option-in .26s cubic-bezier(.22, 1, .36, 1) both;
+}
+.aurora-story-option[hidden] { display: none; }
+.aurora-story-option:hover,
+.aurora-story-option:focus-visible { border-color: oklch(94% 0.008 265 / .22); }
+.aurora-story-option svg { width: 18px; height: 18px; color: oklch(76% 0.08 55); }
+@keyframes aurora-option-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } }
+
+/* ── Personalizador ─────────────────────────────────────────────────────── */
+.aurora-customizer { color: oklch(94% 0.006 265); }
+.aurora-customizer__header,
+.aurora-customizer__map-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.aurora-customizer__eyebrow {
+  margin: 0 0 5px;
+  color: oklch(67% 0.012 265);
+  font-family: 'Space Mono', monospace;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.aurora-customizer h2,
+.aurora-customizer h3 {
+  margin: 0;
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-variation-settings: 'wght' 720;
+  line-height: 1;
+  letter-spacing: -.018em;
+}
+.aurora-customizer h2 { font-size: 1.35rem; }
+.aurora-customizer h3 { font-size: 1.08rem; }
+.aurora-customizer__close,
+.aurora-customizer__reset,
+.aurora-customizer__swap {
+  min-height: 44px;
+  border: 1px solid oklch(92% 0.008 265 / .1);
+  border-radius: 13px;
+  color: oklch(83% 0.008 265);
+  background: oklch(96% 0.004 265 / .045);
+  cursor: pointer;
+}
+.aurora-customizer__close {
+  width: 44px;
+  flex: 0 0 44px;
+  font-size: 1.4rem;
+}
+.aurora-customizer__reset { min-width: 102px; padding: 0 13px; font-size: .7rem; font-weight: 650; }
+.aurora-customizer__reset:disabled { cursor: default; opacity: .36; }
+.aurora-customizer__preview {
+  margin: 18px 0 14px;
+  padding: 18px;
+  border: 1px solid oklch(92% 0.008 265 / .07);
+  border-radius: 22px;
+  background: radial-gradient(circle at 55% 50%, oklch(25% 0.018 265 / .5), transparent 66%), oklch(11% 0.01 265 / .72);
+}
+.aurora-customizer__map {
+  padding: 16px;
+  border: 1px solid oklch(92% 0.008 265 / .075);
+  border-radius: 22px;
+  background: oklch(12.5% 0.011 265 / .6);
+}
+.aurora-customizer__presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 15px;
+}
+.aurora-preset {
+  min-width: 0;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px 7px 7px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: oklch(69% 0.01 265);
+  background: oklch(96% 0.004 265 / .035);
+  font-size: .66rem;
+  font-weight: 620;
+  cursor: pointer;
+}
+.aurora-preset[aria-pressed='true'] {
+  color: oklch(95% 0.006 265);
+  border-color: oklch(92% 0.008 265 / .18);
+  background: oklch(96% 0.004 265 / .07);
+}
+.aurora-preset__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-preset__map {
+  width: 34px;
+  height: 20px;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 34px;
+}
+.aurora-preset__map i {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: 0;
+  border: 1px solid oklch(12% 0.01 265 / .38);
+  border-radius: 50%;
+}
+.aurora-preset__map i:nth-child(1) { left: 0; }
+.aurora-preset__map i:nth-child(2) { left: 7px; }
+.aurora-preset__map i:nth-child(3) { left: 14px; }
+.aurora-customizer__colors {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 16px;
+}
+.aurora-color-field { min-width: 0; display: grid; gap: 6px; }
+.aurora-color-field__label { color: oklch(66% 0.01 265); font-size: .61rem; font-weight: 650; }
+.aurora-color-field__shell {
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: 1px solid oklch(92% 0.008 265 / .09);
+  border-radius: 12px;
+  background: oklch(8.5% 0.009 265 / .62);
+}
+.aurora-color-field__shell:focus-within { border-color: oklch(84% 0.08 74 / .52); }
+.aurora-color-field__shell[data-invalid='true'] { border-color: oklch(68% 0.14 28 / .66); }
+.aurora-color-field__swatch {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  border: 1px solid oklch(98% 0.004 265 / .12);
+  border-radius: 8px;
+}
+.aurora-color-field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: oklch(83% 0.008 265);
+  background: transparent;
+  font-family: 'Space Mono', monospace;
+  font-size: .61rem;
+  text-transform: uppercase;
+}
+.aurora-color-field__error { min-height: .7rem; color: oklch(76% 0.13 28); font-size: .55rem; }
+.aurora-customizer__swap {
+  width: 100%;
+  margin-top: 2px;
+  font-size: .72rem;
+  font-weight: 650;
+}
+.aurora-customizer__motion {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid oklch(92% 0.008 265 / .07);
+}
+.aurora-customizer__motion label { min-width: 0; display: grid; gap: 9px; color: oklch(68% 0.01 265); font-size: .65rem; font-weight: 650; }
+.aurora-customizer__motion label > span { display: flex; justify-content: space-between; gap: 8px; }
+.aurora-customizer__motion output { color: oklch(84% 0.008 265); font-family: 'Space Mono', monospace; font-size: .57rem; }
+.aurora-customizer__motion input[type='range'] { width: 100%; height: 20px; margin: 0; accent-color: #d99c66; cursor: pointer; }
+.aurora-customizer__note { margin: 12px 2px 0; color: oklch(59% 0.009 265); font-size: .66rem; text-align: center; }
+
 @media (prefers-reduced-motion: reduce) {
+  .aurora-story-option { animation: none; }
+  .aurora-more { transition: none; }
+  .aurora-pill.is-pressing { transform: none; transition: none; }
+  .aurora-pill.is-pressing .aurora-pill__field,
+  .aurora-pill.is-pressing .aurora-pill__label { transform: none; transition: none; }
+  .aurora-pill__mass { animation: none !important; will-change: auto; }
   .assistant-thinking::before {
     animation: none;
+    inset: 0;
+    background: linear-gradient(90deg, var(--aurora-1), var(--aurora-2), var(--aurora-3));
   }
 }
-@keyframes thinking-pulso {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scale(0.85);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.15);
-  }
+
+@media (max-width: 600px) {
+  .aurora-home { justify-content: center; gap: clamp(34px, 7vh, 54px); padding-top: 8px; }
 }

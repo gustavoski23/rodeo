@@ -1,123 +1,150 @@
 import { create } from 'zustand';
 
-/* Config del botón aurora del Home — el que Gus aprobó en su referencia local.
-   Tres colores con nombre propio (los del personalizador): las dos MASAS de
-   color que derivan dentro de la píldora y la LUZ que remata el extremo.
+/* Aurora — port 1:1 del modelo de la referencia aprobada
+   (codex/home-aurora-production-review, index.html:2551-2637).
+   Tres colores HEX (2 masas vibrantes + 1 luz), intensidad 55-135, velocidad
+   50-200, y una paleta activa. Persistencia SOLO en sessionStorage
+   (AURORA_SESSION_KEY): el look sobrevive a recargas pero cada pestaña nueva
+   arranca en el default. Aplica variables --aurora-* en :root, que el CSS
+   del botón/thinking consume. */
 
-   Persistencia SOLO en sessionStorage (decisión del brief del Home): el look
-   se conserva al recargar, pero cada pestaña/sesión nueva arranca con el
-   default. Por eso NO usa store.get/set (que es localStorage y sincroniza a
-   Supabase) — esto es un juguete de sesión, no estado del usuario. */
-
-export type AuroraCfg = {
-  masa1: string;
-  masa2: string;
-  luz: string;
-  /** 0.35–1.4 — multiplica la opacidad/presencia de las masas. */
-  intensidad: number;
-  /** Segundos por ciclo de deriva. Menos = más rápido. */
-  velocidad: number;
-  /** Nombre de la paleta activa, o null si Gus editó colores a mano. */
-  paleta: string | null;
+export type AuroraAppearance = {
+  colors: [string, string, string];
+  intensity: number;
+  speed: number;
+  activePresetId: string | null;
 };
 
-export type Paleta = { nombre: string; masa1: string; masa2: string; luz: string };
+export type AuroraPreset = { id: string; label: string; colors: [string, string, string] };
 
-/* Diez paletas. La primera es la de la captura aprobada: píldora oscura que
-   amanece hacia durazno/crema por la derecha con un tránsito malva. */
-export const PALETAS: Paleta[] = [
-  { nombre: 'Amanecer', masa1: '#241b3a', masa2: '#8a5a83', luz: '#f5cfa8' },
-  { nombre: 'Boreal', masa1: '#04202e', masa2: '#0e7a6f', luz: '#9ff2c8' },
-  { nombre: 'Lima RODEO', masa1: '#12210b', masa2: '#4e7a1e', luz: '#d9f56a' },
-  { nombre: 'Ultravioleta', masa1: '#170b2e', masa2: '#5b2d91', luz: '#c4a6ff' },
-  { nombre: 'Sangre fría', masa1: '#230a12', masa2: '#8a1f3d', luz: '#ff9fb0' },
-  { nombre: 'Océano', masa1: '#061530', masa2: '#1e4f9e', luz: '#8fd0ff' },
-  { nombre: 'Brasas', masa1: '#2b0f05', masa2: '#a83c0f', luz: '#ffcf7d' },
-  { nombre: 'Menta nocturna', masa1: '#0a1f1a', masa2: '#2c7a5e', luz: '#c8ffe3' },
-  { nombre: 'Neón', masa1: '#1c0530', masa2: '#c026d3', luz: '#67e8f9' },
-  { nombre: 'Grafito', masa1: '#111114', masa2: '#3f3f46', luz: '#e4e4e7' },
+const AURORA_SESSION_KEY = 'rodeo_aurora';
+
+export const AURORA_DEFAULT: AuroraAppearance = {
+  colors: ['#B85D8A', '#D99C66', '#EBE0C5'],
+  intensity: 100,
+  speed: 100,
+  activePresetId: 'noir',
+};
+
+export const AURORA_PRESETS: AuroraPreset[] = [
+  { id: 'noir', label: 'Noir ámbar', colors: ['#B85D8A', '#D99C66', '#EBE0C5'] },
+  { id: 'copper', label: 'Cobre rosado', colors: ['#B34E5F', '#E49A6C', '#F0C99F'] },
+  { id: 'olive', label: 'Oliva crema', colors: ['#6F6A2B', '#B6AC72', '#ECE0AF'] },
+  { id: 'plum', label: 'Ciruela humo', colors: ['#70516B', '#AD858B', '#DFC0AD'] },
+  { id: 'mineral', label: 'Azul mineral', colors: ['#397486', '#86A9A8', '#D5DAB9'] },
+  { id: 'ruby', label: 'Rubí arena', colors: ['#B93E63', '#D97E82', '#F0D8B9'] },
+  { id: 'indigo', label: 'Índigo nube', colors: ['#4654AF', '#9198C5', '#DADDEB'] },
+  { id: 'jade', label: 'Jade salvia', colors: ['#268F84', '#86B8AA', '#D4DDC6'] },
+  { id: 'saffron', label: 'Azafrán lino', colors: ['#D78319', '#D4AD79', '#EDE1CA'] },
+  { id: 'violet', label: 'Violeta humo', colors: ['#774092', '#A889AF', '#DCD4E5'] },
 ];
 
-const DEFAULT: AuroraCfg = { ...PALETAS[0], paleta: PALETAS[0].nombre, intensidad: 1, velocidad: 12 } as AuroraCfg & {
-  nombre?: string;
-};
-// PALETAS[0] arrastra `nombre`, que no es parte de la config: fuera.
-delete (DEFAULT as Record<string, unknown>).nombre;
+export const AURORA_HEX = /^#[0-9A-F]{6}$/i;
+const clampAurora = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Number(value)));
 
-const CLAVE = 'rodeo_aurora';
+export function normalizeAuroraAppearance(raw: unknown): AuroraAppearance {
+  const source = (raw && typeof raw === 'object' ? raw : {}) as Partial<AuroraAppearance>;
+  const colors: [string, string, string] =
+    Array.isArray(source.colors) && source.colors.length === 3
+      ? (source.colors.map((color, index) =>
+          AURORA_HEX.test(String(color)) ? String(color).toUpperCase() : AURORA_DEFAULT.colors[index],
+        ) as [string, string, string])
+      : ([...AURORA_DEFAULT.colors] as [string, string, string]);
+  const presetExists = AURORA_PRESETS.some((preset) => preset.id === source.activePresetId);
+  return {
+    colors,
+    intensity: clampAurora(source.intensity || AURORA_DEFAULT.intensity, 55, 135),
+    speed: clampAurora(source.speed || AURORA_DEFAULT.speed, 50, 200),
+    activePresetId: presetExists ? (source.activePresetId as string) : null,
+  };
+}
 
-function leer(): AuroraCfg {
+function load(): AuroraAppearance {
   try {
-    const raw = sessionStorage.getItem(CLAVE);
-    if (!raw) return { ...DEFAULT };
-    const v = JSON.parse(raw) as Partial<AuroraCfg>;
-    return {
-      masa1: typeof v.masa1 === 'string' ? v.masa1 : DEFAULT.masa1,
-      masa2: typeof v.masa2 === 'string' ? v.masa2 : DEFAULT.masa2,
-      luz: typeof v.luz === 'string' ? v.luz : DEFAULT.luz,
-      intensidad: clamp(Number(v.intensidad), 0.35, 1.4, DEFAULT.intensidad),
-      velocidad: clamp(Number(v.velocidad), 4, 30, DEFAULT.velocidad),
-      paleta: typeof v.paleta === 'string' || v.paleta === null ? (v.paleta as string | null) : DEFAULT.paleta,
-    };
+    const saved = sessionStorage.getItem(AURORA_SESSION_KEY);
+    return saved ? normalizeAuroraAppearance(JSON.parse(saved)) : normalizeAuroraAppearance(AURORA_DEFAULT);
   } catch {
-    return { ...DEFAULT };
+    return normalizeAuroraAppearance(AURORA_DEFAULT);
   }
 }
 
-function clamp(n: number, min: number, max: number, fallback: number) {
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
-}
-
-function guardar(cfg: AuroraCfg) {
+function persist(a: AuroraAppearance) {
   try {
-    sessionStorage.setItem(CLAVE, JSON.stringify(cfg));
+    sessionStorage.setItem(AURORA_SESSION_KEY, JSON.stringify(a));
   } catch {
-    /* sessionStorage bloqueado: el look vive solo en memoria y no pasa nada */
+    /* la personalización sigue viva en memoria si sessionStorage está bloqueado */
   }
 }
 
-type AuroraState = AuroraCfg & {
-  set: (patch: Partial<AuroraCfg>) => void;
-  aplicarPaleta: (p: Paleta) => void;
-  intercambiarExtremos: () => void;
-  restablecer: () => void;
+/* Pinta las variables en :root — la misma matemática del original:
+   strength = intensity/100, brightness = 0.8 + intensity/500,
+   durationScale = 100/speed sobre las tres duraciones base. */
+export function applyAuroraAppearance(a: AuroraAppearance) {
+  const root = document.documentElement;
+  const strength = a.intensity / 100;
+  const brightness = 0.8 + a.intensity / 500;
+  const durationScale = 100 / a.speed;
+  root.style.setProperty('--aurora-1', a.colors[0]);
+  root.style.setProperty('--aurora-2', a.colors[1]);
+  root.style.setProperty('--aurora-3', a.colors[2]);
+  root.style.setProperty('--aurora-strength', strength.toFixed(2));
+  root.style.setProperty('--aurora-brightness', brightness.toFixed(2));
+  root.style.setProperty('--aurora-duration-one', (12.8 * durationScale).toFixed(2) + 's');
+  root.style.setProperty('--aurora-duration-two', (14 * durationScale).toFixed(2) + 's');
+  root.style.setProperty('--aurora-duration-three', (10.6 * durationScale).toFixed(2) + 's');
+}
+
+export function isAuroraDefault(a: AuroraAppearance) {
+  return (
+    a.intensity === AURORA_DEFAULT.intensity &&
+    a.speed === AURORA_DEFAULT.speed &&
+    a.colors.every((color, index) => color === AURORA_DEFAULT.colors[index])
+  );
+}
+
+type AuroraState = {
+  appearance: AuroraAppearance;
+  update: (patch: Partial<AuroraAppearance>, opts?: { persist?: boolean }) => void;
+  reset: () => void;
+  swapEnds: () => void;
+  applyPreset: (preset: AuroraPreset) => void;
 };
 
-export const useAurora = create<AuroraState>((set, get) => ({
-  ...leer(),
+export const useAurora = create<AuroraState>((set, get) => {
+  const inicial = load();
+  return {
+    appearance: inicial,
 
-  set: (patch) => {
-    // Editar un color a mano desengancha la paleta con nombre (queda "custom"),
-    // pero mover intensidad/velocidad no: siguen siendo la misma paleta.
-    const tocaColor = 'masa1' in patch || 'masa2' in patch || 'luz' in patch;
-    const next = { ...cfgDe(get()), ...patch, ...(tocaColor && !('paleta' in patch) ? { paleta: null } : {}) };
-    guardar(next);
-    set(next);
-  },
+    update: (patch, opts = {}) => {
+      const next = normalizeAuroraAppearance({ ...get().appearance, ...patch });
+      applyAuroraAppearance(next);
+      if (opts.persist !== false) persist(next);
+      set({ appearance: next });
+    },
 
-  aplicarPaleta: (p) => {
-    const next = { ...cfgDe(get()), masa1: p.masa1, masa2: p.masa2, luz: p.luz, paleta: p.nombre };
-    guardar(next);
-    set(next);
-  },
+    reset: () => {
+      const next = normalizeAuroraAppearance(AURORA_DEFAULT);
+      applyAuroraAppearance(next);
+      try {
+        sessionStorage.removeItem(AURORA_SESSION_KEY);
+      } catch {
+        /* noop */
+      }
+      set({ appearance: next });
+    },
 
-  /* La luz y la masa oscura se cambian de lado: el "amanecer" pasa de derecha
-     a izquierda. Se implementa permutando los extremos del gradiente. */
-  intercambiarExtremos: () => {
-    const c = cfgDe(get());
-    const next = { ...c, masa1: c.luz, luz: c.masa1, paleta: null };
-    guardar(next);
-    set(next);
-  },
+    swapEnds: () => {
+      const c = get().appearance.colors;
+      get().update({ colors: [c[2], c[1], c[0]], activePresetId: null });
+    },
 
-  restablecer: () => {
-    const next = { ...DEFAULT };
-    guardar(next);
-    set(next);
-  },
-}));
+    applyPreset: (preset) => {
+      get().update({ colors: [...preset.colors] as [string, string, string], activePresetId: preset.id });
+    },
+  };
+});
 
-function cfgDe(s: AuroraState): AuroraCfg {
-  const { masa1, masa2, luz, intensidad, velocidad, paleta } = s;
-  return { masa1, masa2, luz, intensidad, velocidad, paleta };
+/* Aplica el look guardado al arrancar, antes de que se monte el Home. */
+export function initAurora() {
+  applyAuroraAppearance(useAurora.getState().appearance);
 }

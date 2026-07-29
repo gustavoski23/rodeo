@@ -2,27 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import { REDUCED } from '@/lib/theme';
-import { useAurora } from '@/stores/aurora';
 
 import './aurora.css';
 
-/* EL AuroraPillButton — único en la app (regla del brief: no crear un segundo).
-   La píldora del Home aprobado: masas de color derivando dentro, borde
-   persistente y un haz de luz recorriendo el perímetro.
+/* AuroraPillButton — estructura y tiempos 1:1 de la referencia aprobada
+   (codex/home-aurora-production-review, index.html:1980-1989 y 3946-3986).
+   No hay un segundo AuroraPillButton en la app.
 
-   Interacción de activación (brief del Home, temporización LOCAL — no finge
-   ninguna llamada al modelo):
-   - Al activar NO navega ya: estado hundido (.is-pressing) durante 950 ms,
-     con aria-busy y bloqueo de reactivaciones.
-   - Después dispara onLaunch(viaTeclado) — el destino lo decide el llamador.
-   - Reduced motion: la presión dura 80 ms y no hay traslación ni haz animado
-     (eso lo resuelve aurora.css con @media).
-   - Enter/Espacio activan gratis por ser <button>; distinguimos teclado por
-     event.detail === 0 (los clics sintetizados por teclado llegan sin detail),
-     para que el llamador pueda mover el foco a "Volver a los escenarios". */
+   Activación (temporización LOCAL, no finge red):
+   - press: is-pressing + aria-busy + bloqueo durante AURORA_HOME_PRESS_MS (950ms;
+     80ms con reduced motion);
+   - luego onLaunch(viaTeclado). Enter/Espacio activan vía keydown; el clic por
+     teclado (detail===0) también cuenta como teclado para llevar el foco a
+     "Volver a los escenarios".
 
-export const AURORA_HOME_PRESS_MS = 950;
-const PRESS_MS_REDUCED = 80;
+   demo=true (preview del personalizador): disabled, sin press ni launch, pero
+   las masas siguen animando para ver la paleta en vivo. */
+
+export const AURORA_HOME_PRESS_MS = REDUCED ? 80 : 950;
+
+const waitForUi = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export function AuroraPillButton({
   children,
@@ -31,56 +30,57 @@ export function AuroraPillButton({
   demo = false,
 }: {
   children: React.ReactNode;
-  onLaunch?: (viaTeclado: boolean) => void;
+  onLaunch?: (viaTeclado: boolean) => void | Promise<void>;
   className?: string;
-  /** El preview del personalizador: sin presión larga ni launch. */
   demo?: boolean;
 }) {
-  const { masa1, masa2, luz, intensidad, velocidad } = useAurora();
   const [pressing, setPressing] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef(false);
+  const vivoRef = useRef(true);
 
-  // Si el Home se desmonta a mitad de presión (volvió atrás, cambió de vista),
-  // el timer muere con él: nada de launches fantasma.
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(() => {
+    vivoRef.current = true;
+    return () => {
+      vivoRef.current = false;
+    };
+  }, []);
 
-  function activar(e: React.MouseEvent<HTMLButtonElement>) {
-    if (demo || pressing) return; // bloqueo de activaciones repetidas
-    const viaTeclado = e.detail === 0;
+  async function activar(viaTeclado: boolean) {
+    if (demo || pendingRef.current) return;
+    pendingRef.current = true;
     setPressing(true);
-    timerRef.current = setTimeout(() => {
-      setPressing(false);
-      onLaunch?.(viaTeclado);
-    }, REDUCED ? PRESS_MS_REDUCED : AURORA_HOME_PRESS_MS);
+    try {
+      await waitForUi(AURORA_HOME_PRESS_MS);
+      if (!vivoRef.current) return;
+      await onLaunch?.(viaTeclado);
+    } finally {
+      if (vivoRef.current) setPressing(false);
+      pendingRef.current = false;
+    }
   }
 
   return (
     <button
       type="button"
-      onClick={activar}
+      aria-label={typeof children === 'string' ? children : undefined}
       aria-busy={pressing || undefined}
-      disabled={demo ? true : undefined}
-      className={cn(
-        'aurora-pill flex w-full cursor-pointer items-center px-8 text-left',
-        pressing && 'is-pressing',
-        demo && 'pointer-events-none',
-        className,
-      )}
-      style={
-        {
-          '--au-m1': masa1,
-          '--au-m2': masa2,
-          '--au-luz': luz,
-          '--au-int': intensidad,
-          '--au-vel': `${velocidad}s`,
-        } as React.CSSProperties
-      }
+      disabled={demo || pressing || undefined}
+      onClick={(e) => void activar(e.detail === 0)}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        void activar(true);
+      }}
+      className={cn('aurora-pill', pressing && 'is-pressing', className)}
     >
-      <span className="aurora-pill__masas" aria-hidden="true" />
-      <span className="aurora-pill__haz" aria-hidden="true" />
-      <span className="relative z-10 text-[1.32rem] font-bold tracking-tight text-white [text-shadow:0_1px_10px_rgba(0,0,0,0.45)]">
-        {children}
+      <span className="aurora-pill__field" aria-hidden="true">
+        <span className="aurora-pill__inner">
+          <span className="aurora-pill__mass aurora-pill__mass--one" />
+          <span className="aurora-pill__mass aurora-pill__mass--two" />
+          <span className="aurora-pill__mass aurora-pill__mass--three" />
+        </span>
       </span>
+      <span className="aurora-pill__label">{children}</span>
     </button>
   );
 }

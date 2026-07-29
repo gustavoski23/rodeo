@@ -4,7 +4,6 @@ import { MotionConfig } from 'motion/react';
 import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
 import { Header } from '@/components/rodeo/header';
 import { MenuSheet } from '@/components/rodeo/menu-sheet';
-import { TabBar } from '@/components/rodeo/tab-bar';
 import { Toaster } from '@/components/rodeo/toaster';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -85,7 +84,9 @@ export default function App() {
             )}
           </main>
 
-          {!enSesion && <TabBar />}
+          {/* Tab bar oculta por ahora: la app arranca minimal desde el Home
+              aurora y las demás secciones (SLANG, SUBE, DNA, OFICINA) se van
+              agregando con diseños propios. El código sigue en el repo. */}
         </>
       )}
 
