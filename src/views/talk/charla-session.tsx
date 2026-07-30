@@ -13,6 +13,7 @@ import { Backlight } from '@/components/magicui/backlight';
 import { PillButton } from '@/components/rodeo/pill-button';
 import { useDictado } from '@/components/rodeo/onda-dictado';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { toggleTts, useTts, useUltimoHablado, replayUltimo, repetirUltimo } from '@/lib/speech';
 import { toast } from '@/stores/toast';
 import { useApp } from '@/stores/app';
@@ -209,17 +210,26 @@ export function CharlaSession({ motor }: { motor: Motor }) {
           el halo. En CLARO no: sobre papel el mismo filtro es una mancha gris.
           Las utilidades [&>div] estiran el div interno del Backlight (el que
           lleva el filter) para que la Card siga siendo la que reparte el alto;
-          el componente es verbatim y no expone className para ese div. */}
-      {oscuro ? (
-        <Backlight
-          blur={40}
-          className={`${COLUMNA} flex min-h-0 flex-1 flex-col [&>div]:flex [&>div]:min-h-0 [&>div]:flex-1 [&>div]:flex-col`}
-        >
-          {tarjeta}
-        </Backlight>
-      ) : (
-        <div className={`${COLUMNA} flex min-h-0 flex-1 flex-col`}>{tarjeta}</div>
-      )}
+          el componente es verbatim y no expone className para ese div.
+
+          El Backlight se monta SIEMPRE, en los dos temas, y lo que cambia es si
+          el filtro está puesto o no. Montarlo solo en oscuro cambiaba el TIPO
+          del nodo padre al tocar el toggle, y React desmontaba la Card entera:
+          las burbujas nacían de cero, el texto ya asentado del coach se volvía
+          a animar y las glosas se perdían hasta que el barrido acababa otra vez
+          (lo cazó la auditoría r2). Ahora el árbol no se mueve. */}
+      <Backlight
+        blur={40}
+        className={cn(
+          COLUMNA,
+          'flex min-h-0 flex-1 flex-col [&>div]:flex [&>div]:min-h-0 [&>div]:flex-1 [&>div]:flex-col',
+          // En CLARO se apaga el halo anulando el filtro. La clase lleva `!`
+          // porque el componente verbatim pinta `filter` como estilo INLINE.
+          !oscuro && '[&>div]:[filter:none]!',
+        )}
+      >
+        {tarjeta}
+      </Backlight>
 
       {/* ── La barra de abajo (imagen 3) ── */}
       <ConversationBar

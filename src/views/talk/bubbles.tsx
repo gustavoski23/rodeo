@@ -85,7 +85,7 @@ function MaquinaTexto({ texto, tw }: { texto: string; tw: Maquina }) {
    ya tenía la app ("el subrayado aparece como remate"):
 
      1. Al llegar el FINAL se pinta el texto LIMPIO (parseChunks: sin los ⟦||⟧)
-        dentro de <TextAnimate animation="blurInUp" by="character">.
+        con el barrido blurInUp por carácter (ver BarridoPalabras).
      2. Cuando termina el barrido se cambia por <GlossText> con el reply crudo.
         El texto visible es EXACTAMENTE el mismo (GlossText pinta ese mismo
         `clean`), así que no hay salto: lo único que aparece son los subrayados
@@ -100,7 +100,62 @@ function MaquinaTexto({ texto, tw }: { texto: string; tw: Maquina }) {
    son la animación de la última pieza (0,4 s) más un respiro. */
 function medirBarrido(n: number) {
   const duracion = Math.min(1.1, Math.max(0.3, n * 0.012));
-  return { duracion, swapMs: duracion * 1000 + 450 };
+  // Reparto real por carácter: con textos largos el techo de 1,1 s aprieta el
+  // paso, y el barrido tiene que seguir siendo continuo de punta a punta.
+  return { duracion, porCaracter: n > 0 ? duracion / n : 0, swapMs: duracion * 1000 + 450 };
+}
+
+/* ── El barrido blurInUp, palabra a palabra ────────────────────────────────
+   POR QUÉ NO UN SOLO <TextAnimate by="character"> (auditoría r2):
+
+   TextAnimate parte el texto con split('') y pinta CADA carácter como un
+   inline-block. El navegador puede cortar la línea entre dos inline-blocks
+   cualesquiera, así que durante el barrido las palabras se parten por la mitad
+   y el párrafo se re-maqueta: medimos 5 líneas animando contra 3 ya asentado,
+   y la burbuja pegaba un salto de 148 → 173 px justo al cambiar a GlossText.
+
+   Solución: un TextAnimate POR PALABRA, cada uno con su delay acumulado. Dentro
+   de la palabra los caracteres siguen entrando uno a uno (es el mismo blurInUp
+   por carácter que pidió Gus), pero la palabra entera es una caja inline-block
+   que ya no se puede partir. La maqueta durante la animación es EXACTAMENTE la
+   del texto final, así que el swap a GlossText no mueve un píxel.
+
+   Los espacios se pintan como texto normal, no como piezas animadas: son los
+   únicos puntos donde queremos que la línea pueda cortar. */
+function BarridoPalabras({ texto, porCaracter }: { texto: string; porCaracter: number }) {
+  const piezas = useMemo(() => texto.split(/(\s+)/).filter((p) => p !== ''), [texto]);
+
+  let acumulado = 0; // caracteres ya barridos, para encadenar los delays
+  return (
+    <>
+      {/* El texto se lee de una pieza; las palabras animadas quedan ocultas
+          al lector de pantalla (si no, lo deletrearía carácter a carácter). */}
+      <span className="sr-only">{texto}</span>
+      <span aria-hidden="true">
+        {piezas.map((p, i) => {
+          if (/^\s+$/.test(p)) return <span key={i}>{p}</span>;
+          const delay = acumulado * porCaracter;
+          acumulado += p.length;
+          return (
+            <TextAnimate
+              key={i}
+              as="span"
+              className="inline-block"
+              animation="blurInUp"
+              by="character"
+              delay={delay}
+              duration={p.length * porCaracter}
+              startOnView={false}
+              accessible={false}
+              once
+            >
+              {p}
+            </TextAnimate>
+          );
+        })}
+      </span>
+    </>
+  );
 }
 
 function TextoCoach({ b }: { b: Extract<Burbuja, { tipo: 'coach' }> }) {
@@ -109,7 +164,7 @@ function TextoCoach({ b }: { b: Extract<Burbuja, { tipo: 'coach' }> }) {
   if (b.tw) huboMaquina.current = true;
 
   const clean = useMemo(() => (b.final ? parseChunks(b.texto).clean : ''), [b.final, b.texto]);
-  const { duracion, swapMs } = useMemo(() => medirBarrido(clean.length), [clean.length]);
+  const { porCaracter, swapMs } = useMemo(() => medirBarrido(clean.length), [clean.length]);
 
   const [glosado, setGlosado] = useState(false);
   const animar = b.final && !glosado && !huboMaquina.current && !REDUCED && !!clean;
@@ -126,13 +181,7 @@ function TextoCoach({ b }: { b: Extract<Burbuja, { tipo: 'coach' }> }) {
     return b.tw ? <MaquinaTexto texto={b.texto} tw={b.tw} /> : <>{b.texto}</>;
   }
 
-  if (animar) {
-    return (
-      <TextAnimate as="span" animation="blurInUp" by="character" duration={duracion} startOnView={false} once>
-        {clean}
-      </TextAnimate>
-    );
-  }
+  if (animar) return <BarridoPalabras texto={clean} porCaracter={porCaracter} />;
 
   return <GlossText reply={b.texto} glosses={b.glosses} />;
 }
