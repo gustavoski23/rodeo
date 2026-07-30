@@ -181,29 +181,38 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
 export function slangTextSource(
   term: string,
   subtitle: string,
-  opts?: { termColor?: string; accentColor?: string; subtitleColor?: string },
+  opts?: { baseColor?: string; accentColor?: string },
 ): StickerSource {
-  const termColor = opts?.termColor ?? '#19191d';
-  const subtitleColor = opts?.subtitleColor ?? '#5b5b66';
+  const base = opts?.baseColor ?? '#19191d';
+  const accent = opts?.accentColor ?? 'rgb(36, 126, 245)';
+  // Dos tonos como el "PEEL ME" original: primera palabra oscura, el resto azul.
+  // Término de una sola palabra → azul completo.
+  const words = term.split(/\s+/);
+  const termRuns =
+    words.length > 1
+      ? [
+          { text: words[0] + ' ', color: base, fontSize: 30, fontWeight: 900 },
+          {
+            text: words.slice(1).join(' '),
+            color: accent,
+            fontSize: 30,
+            fontWeight: 900,
+          },
+        ]
+      : [{ text: term, color: accent, fontSize: 30, fontWeight: 900 }];
   return {
     type: 'text',
     text: `${term}\n${subtitle}`,
-    color: termColor,
+    color: base,
     fontFamily: 'Arial Rounded MT Bold, Arial Black, sans-serif',
     fontWeight: 900,
     richText: {
       blocks: [
-        {
-          align: 'center',
-          lineHeight: 1.1,
-          runs: [{ text: term, color: termColor, fontSize: 30, fontWeight: 900 }],
-        },
+        { align: 'center', lineHeight: 1.1, runs: termRuns },
         {
           align: 'center',
           lineHeight: 1.2,
-          runs: [
-            { text: subtitle, color: subtitleColor, fontSize: 12, fontWeight: 600 },
-          ],
+          runs: [{ text: subtitle, color: accent, fontSize: 12, fontWeight: 600 }],
         },
       ],
     },
