@@ -2,6 +2,7 @@ import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
+import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import { onCostChange } from '@/lib/api';
 import { pedirPermisoMic } from '@/lib/permisos';
 import { cn } from '@/lib/utils';
@@ -81,7 +82,18 @@ export default function TalkView() {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    /* `vidrio-tema` (aurora.css) va en la RAÍZ, no solo en la cabecera: declara
+       las dos crudas --background/--foreground que consume el CSS del vidrio
+       (GlassStyles) y tiene que alcanzar también al CTA de la portada y a los
+       botones de la sesión, que se pintan más abajo en este mismo árbol. Solo
+       declara variables: ni layout, ni fondo, ni tamaño. */
+    <div className="vidrio-tema flex min-h-0 flex-1 flex-col">
+      {/* El CSS del vidrio (@property --angle-1/-2, .glass-button*) se monta UNA
+          vez aquí: fuera del gate no existe en ningún otro sitio, y todo lo que
+          usa vidrio en TALK (tabs, CTA, barra de audio de la sesión) cuelga de
+          este árbol. */}
+      <GlassStyles />
+
       {/* ── Barra de sección ────────────────────────────────────────────────
           Con sesión viva desaparece entera: el ← de la barra de sesión es la
           única vuelta, igual que body.rd-sesion en el viejo. Sin sesión es la
@@ -109,51 +121,50 @@ export default function TalkView() {
             </span>
           </div>
 
-          {/* Segmentado con carril: el mismo gesto de las dos píldoras de
-              antes, pero la pastilla lima viaja con layoutId (layoutId propio,
-              `rd-talk-segmento`, para no compartir animación con SLANG), así
-              que cambiar de pane se lee como un movimiento y no como dos
-              colores que parpadean. */}
+          {/* Segmentado en VIDRIO (regla 6 del contrato): fuera el carril con
+              pastilla lima; cada pane es ahora un GlassButton del login, el
+              mismo material. El vidrio NO se tiñe al activarse — la pestaña
+              activa se marca tipográficamente (negrita + subrayado en
+              var(--accent)), que es lo que distingue sin romper el material.
+
+              El wrapper de GlassButton mete un <div> entre el tablist y cada
+              <button role="tab">, así que la relación ARIA se declara con
+              aria-owns: el patrón de tabs sigue siendo válido (tablist → tabs)
+              aunque el DOM tenga el envoltorio del vidrio en medio. El
+              onKeyDown sigue en el contenedor: los eventos de teclado de los
+              botones burbujean hasta aquí igual que antes. */}
           <div
             ref={tablistRef}
             role="tablist"
             aria-label="Modo de Talk"
+            aria-owns={TABS.map((t) => idTab(t.modo)).join(' ')}
             onKeyDown={porTeclado}
-            className="flex shrink-0 gap-1 rounded-full border p-1"
-            style={{ borderColor: 'var(--borde-sutil)', background: 'var(--chip-bg)' }}
+            className="flex shrink-0 flex-wrap items-center gap-3"
           >
             {TABS.map(({ modo, label }) => {
               const activa = talkMode === modo;
               return (
-                <motion.button
+                <GlassButton
                   key={modo}
                   type="button"
+                  size="sm"
                   role="tab"
                   id={idTab(modo)}
                   aria-selected={activa}
                   aria-controls={idPanel(modo)}
                   tabIndex={activa ? 0 : -1}
-                  whileTap={{ scale: 0.97 }}
                   onClick={() => setTalkMode(modo)}
-                  className="relative min-h-10 flex-1 cursor-pointer rounded-full px-1.5 font-mono text-[0.6rem] font-bold tracking-[0.05em] whitespace-nowrap uppercase transition-colors sm:text-[0.7rem] sm:tracking-[0.08em]"
-                  style={{ color: activa ? 'var(--accent-ink)' : 'var(--text-secondary)' }}
-                >
-                  {activa && (
-                    <motion.span
-                      layoutId="rd-talk-segmento"
-                      aria-hidden="true"
-                      className="absolute inset-0 rounded-full"
-                      style={{
-                        background: 'var(--accent)',
-                        boxShadow: '0 3px 14px color-mix(in oklch, var(--accent) 26%, transparent)',
-                      }}
-                      transition={{ type: 'spring', stiffness: 430, damping: 38 }}
-                    />
+                  contentClassName={cn(
+                    /* `!` porque .glass-button-text trae tracking-tighter de
+                       serie y aquí el rótulo es mono espaciado. */
+                    'font-mono text-[0.7rem] tracking-[0.14em]! whitespace-nowrap uppercase',
+                    activa
+                      ? 'font-bold underline decoration-2 underline-offset-[6px] decoration-[var(--accent)]'
+                      : 'font-medium no-underline',
                   )}
-                  {/* `relative` para que el rótulo pinte POR ENCIMA de la
-                      pastilla (va después en el DOM y ambos posicionados). */}
-                  <span className="relative">{label}</span>
-                </motion.button>
+                >
+                  {label}
+                </GlassButton>
               );
             })}
           </div>

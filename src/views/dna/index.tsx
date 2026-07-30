@@ -73,7 +73,12 @@ export default function DnaView() {
           <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat valor={errores} label="Errores cazados" />
             <Stat valor={slang} label="Slang guardado" color="var(--accent)" />
-            <Stat valor={upgrades} label="Upgrades clavados" color="var(--card-yellow)" />
+            {/* --warn y no --card-yellow: los tokens --card-* están calibrados para
+                leerse sobre las CARDS pastel, no sobre la superficie del tema. El
+                amarillo de card (L90/L93) sobre el papel del tema claro se borra.
+                --warn es el amarillo semántico "sobre shell", que baja a L47 en
+                claro y se mantiene brillante en oscuro/gradiente. */}
+            <Stat valor={upgrades} label="Upgrades clavados" color="var(--warn)" />
             <Stat valor={stories} label="Episodios" />
           </div>
 

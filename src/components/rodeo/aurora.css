@@ -1113,3 +1113,37 @@
   );
   color: oklch(97% 0.004 265 / 0.78);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   .vidrio-tema — el vidrio del login, FUERA del gate.
+   ──────────────────────────────────────────────────────────────────────────
+   GlassStyles/GlassButton (src/components/ui/sign-up.tsx — INTOCABLE) están
+   escritos contra dos variables CRUDAS del contrato shadcn upstream:
+   `--background` (la lámina de vidrio: relleno, brillo inferior, barrido) y
+   `--foreground` (la tinta: sombra, borde cónico, color del texto). En RODEO
+   esas dos crudas NO existen: tokens.css solo publica el puente
+   `--color-background`/`--color-foreground` dentro de @theme inline, que
+   Tailwind consume para bg-background/text-foreground pero que el CSS del
+   vidrio nunca ve. El gate las declara a mano en `.gate-tema`; en el resto de
+   la app hay que declararlas igual — y aquí SÍ deben seguir al tema.
+
+   Se mapean a tokens que tokens.css ya redefine por tema, así que la clase se
+   auto-adapta sin ramas: en oscuro y en gradiente (ausencia de data-theme)
+   --bg-elevated es el gris 21% y --text-primary el casi-blanco → lámina
+   oscura + borde luminoso; en claro (data-theme='light') --bg-elevated es el
+   papel 94.5% y --text-primary la tinta 22% → exactamente la relación del
+   login. El texto del botón sale de var(--foreground) al 90%, de modo que
+   hereda el contraste correcto en los tres temas sin tocar sign-up.tsx.
+
+   Alcance: son variables locales al subárbol. Ningún componente shadcn de la
+   app consume `--background`/`--foreground` crudas (Card/Button leen
+   --color-card/--color-background del puente, que salen de --bg-surface y
+   --bg-void), así que redeclararlas aquí no puede filtrar a nada más.
+
+   Uso: envolver el contenedor del bloque glass, con <GlassStyles/> montado
+   una vez en la app:  <div className="vidrio-tema"> … <GlassButton/> … </div>
+   ══════════════════════════════════════════════════════════════════════════ */
+.vidrio-tema {
+  --background: var(--bg-elevated);
+  --foreground: var(--text-primary);
+}

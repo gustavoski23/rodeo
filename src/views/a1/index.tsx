@@ -133,7 +133,13 @@ export default function A1View({
   const alMapa = () => setPantalla({ tipo: 'mapa' });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    /* La COLUMNA de 640 px sube a la RAÍZ del módulo. El Mapa ya la ponía en
+       cada uno de sus hijos, pero la portada, la sesión, la misión y el
+       onboarding no la tenían: a 1280 px se estiraban de borde a borde
+       mientras el resto de la app (SLANG, SUBE, DNA, CHARLA) vive en 640.
+       Puesta acá vale para las cinco pantallas del módulo, y las COLUMNA
+       internas del Mapa quedan idempotentes (640 dentro de 640). */
+    <div className="mx-auto flex min-h-0 w-full max-w-[640px] flex-1 flex-col">
       {!onboarded ? (
         <Onboarding onListo={() => useA1.getState().marcarOnboarded()} />
       ) : pantalla.tipo === 'sesion' ? (

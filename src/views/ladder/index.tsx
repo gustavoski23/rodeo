@@ -227,7 +227,13 @@ export default function LadderView() {
             ) : vacioFallos ? (
               <div
                 className="rounded-2xl border px-4 py-3.5"
-                style={{ background: 'var(--bg-surface)', borderColor: 'oklch(87% 0.21 128 / 0.3)' }}
+                /* El borde sale de --accent por color-mix, no de la lima literal:
+                   oklch(87% …) es la lima del tema OSCURO y sobre el papel del
+                   tema claro se desvanece. */
+                style={{
+                  background: 'var(--bg-surface)',
+                  borderColor: 'color-mix(in oklch, var(--accent) 30%, transparent)',
+                }}
               >
                 <div className="text-[0.92rem] font-semibold">Aquí caen las frases que TÚ dijiste en TALK, subidas a C1.</div>
                 <div className="mt-1.5 text-[0.82rem]" style={{ color: 'var(--text-secondary)' }}>

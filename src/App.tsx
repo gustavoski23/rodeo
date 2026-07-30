@@ -3,7 +3,8 @@ import { MotionConfig, motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
 import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
-import { Header } from '@/components/rodeo/header';
+import { FilaSuperior } from '@/components/rodeo/fila-superior';
+import { FondoTema } from '@/components/rodeo/fondo-tema';
 import { Toaster } from '@/components/rodeo/toaster';
 import { Card } from '@/components/ui/card';
 import { JOB_PACKS, JobPicker } from '@/content/a1/jobs';
@@ -22,7 +23,7 @@ import A1View from '@/views/a1';
 import { PasoVoz } from '@/views/a1-voice/paso-voz';
 import GateView from '@/views/gate';
 
-/* Shell: header + vista activa + tab bar. El switch de vistas es el switchView
+/* Shell: fila superior + vista activa + tab bar. El switch de vistas es el switchView
    del viejo (public/legacy.html:3641) sin el DOM: cada vista se monta y se
    desmonta, que es lo que hace que TALK sortee un rompehielos fresco al volver
    de una sesión sin que nadie tenga que acordarse de refrescarlo.
@@ -164,15 +165,16 @@ export default function App() {
   // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
   // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
   const enSesion = useEnSesion();
-  /* La SESIÓN DE CHARLA va a pantalla completa, como el Home: sin Header de
-     marca ni divisoria. Su barra de sesión (← · título · Terminar) ya es el
-     header de esa pantalla, y el wordmark RODEO + hamburguesa encima sobraban.
-     Solo la charla: ESCENAS (roleplayActivo) y las demás vistas siguen igual.
-     Al cerrar la sesión el flag se apaga y el Header vuelve solo.
-     El hook va SUELTO, nunca dentro del `&&`: cortocircuitarlo lo saltaría en
-     los renders de otras vistas y rompería el orden de hooks. */
+  /* La SESIÓN DE CHARLA ya no es una excepción de cabecera: la fila superior
+     (Menu + toggler) está en TODAS las pantallas, también dentro de la sesión
+     — regla 3 del contrato («el boton de cambiar los temas … debe verse en
+     todas y cada una de las pantallas»). Lo único que la sesión sigue pidiendo
+     es aire: su Card es alta y a 390px cada píxel cuenta, así que la fila
+     cierra con un pb corto. El hook va SUELTO, nunca dentro de un `&&`:
+     cortocircuitarlo lo saltaría en los renders de otras vistas y rompería el
+     orden de hooks. */
   const enCharla = useEnCharla();
-  const charlaPantallaCompleta = view === 'talk' && enCharla;
+  const charlaEnSesion = view === 'talk' && enCharla;
 
   /* El gate de login es LO PRIMERO que se ve (pedido de Gus): antes que el
      Home aurora. `listo` evita el flash — hasta resolver getSession no se
@@ -196,27 +198,37 @@ export default function App() {
        para no repetir la comprobación en cada componente — el CSS portado del
        viejo ya trae sus propias @media (prefers-reduced-motion). */
     <MotionConfig reducedMotion="user">
+      {/* FONDO DEL TEMA, una sola vez y por DETRÁS del switch: con el tema
+          gradiente las burbujas quedan detrás de TODAS las vistas, no solo del
+          Home (regla 4). Va aquí y no en el gate a propósito — el login tiene
+          su propio lienzo. */}
+      <FondoTema />
+
       {view === 'home' ? (
         /* El Home aurora va a pantalla completa: sin header de marca, sin
            tab bar, sin divisoria — solo su hamburguesa. Es la puerta. */
         <HomeView onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen} />
       ) : (
         <>
-          {!charlaPantallaCompleta && (
-            <>
-              <Header onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen} />
-              <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
-            </>
-          )}
+          {/* La MISMA fila del Home, sin marca ni divisoria: Menu ≡ a la
+              izquierda y el toggler de tema a la derecha. Ella pone el hueco
+              del notch (el mismo max(14px, safe-area) del Home), así que el
+              main ya no necesita pt propio. */}
+          <FilaSuperior
+            onPersonalizar={() => setCustomizerOpen(true)}
+            menuOculto={customizerOpen}
+            className={cn(
+              'px-5 pt-[max(14px,env(safe-area-inset-top))]',
+              // En sesión la Card es alta y a 390px pide todo el alto que
+              // pueda: la fila cierra corta. Fuera de sesión, el pb-3 de siempre.
+              charlaEnSesion ? 'pb-1.5' : 'pb-3',
+            )}
+          />
 
           <main
             className={cn(
               'flex min-h-0 flex-1 flex-col px-5',
-              /* Sin Header, el techo del main es el techo de la ventana: hace
-                 falta el hueco del notch que antes ponía el header (mismo
-                 max(14px, safe-area) del Home). Con Header, el pt-5 de
-                 siempre. El pb no se toca: en sesión ya era el corto. */
-              charlaPantallaCompleta ? 'pt-[max(14px,env(safe-area-inset-top))]' : 'pt-5',
+              // El pb no se toca: en sesión ya era el corto.
               enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
             )}
           >

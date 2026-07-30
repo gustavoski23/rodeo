@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import SocialCards, { type CardItem } from '@/components/ui/card-fan-carousel';
-import { useApp } from '@/stores/app';
+import { useApp, type View } from '@/stores/app';
 
 import './aurora.css';
 
@@ -85,8 +85,21 @@ function OverlayProximamente() {
 
 const IMG_PRONTO = ['05', '06', '09', '10'];
 
+/* ← AL ORIGEN (regla 5): «cuando hago click en el boton para ← regresar me
+   lleva directo al home, debe regresar es al carrusel de features». Las vistas
+   no saben por dónde entró el usuario — su ← siempre hace setView('home') —,
+   así que la marca la deja QUIEN abre: al salir por una carta se levanta
+   `carruselAlVolver` y el Home, al montar, aparece con la vitrina abierta.
+   Se lee del store con getState() y no con un hook: esto corre dentro de un
+   onClick, no en render, y así el carrusel no se re-renderiza por suscribirse
+   a un setter que nunca cambia. */
+function abrirFeature(view: View) {
+  const { setCarruselAlVolver, setView } = useApp.getState();
+  setCarruselAlVolver(true);
+  setView(view);
+}
+
 export function CarruselFeatures() {
-  const setView = useApp((s) => s.setView);
   const lienzoRef = useRef<HTMLDivElement>(null);
   const [centro, setCentro] = useState(CENTRO_INICIAL);
 
@@ -132,7 +145,7 @@ export function CarruselFeatures() {
     {
       imgUrl: '/carrusel/07.jpg',
       alt: 'SUBE · De B2 a C1 con juez',
-      onClick: () => setView('ladder'),
+      onClick: () => abrirFeature('ladder'),
       contenido: (
         <OverlayFeature
           aurora
@@ -145,7 +158,7 @@ export function CarruselFeatures() {
     {
       imgUrl: '/carrusel/slang.jpg',
       alt: 'SLANG · Phrasal verbs y jerga real',
-      onClick: () => setView('slang'),
+      onClick: () => abrirFeature('slang'),
       contenido: (
         <OverlayFeature
           titulo="SLANG"
@@ -157,7 +170,7 @@ export function CarruselFeatures() {
     {
       imgUrl: '/carrusel/story.jpg',
       alt: 'STORY · Modo historia',
-      onClick: () => setView('story'),
+      onClick: () => abrirFeature('story'),
       contenido: (
         <OverlayFeature
           titulo="STORY"
@@ -177,7 +190,7 @@ export function CarruselFeatures() {
          sigue existiendo y sin cambiar — es la píldora aurora del Home; aquí, en
          la vitrina, lo que corresponde es enseñar la sección, y "Sígueme el
          hilo →" de la portada arranca la misma conversación libre a un toque. */
-      onClick: () => setView('talk'),
+      onClick: () => abrirFeature('talk'),
       contenido: (
         <OverlayFeature
           titulo="CONVERSACIÓN"
@@ -189,7 +202,7 @@ export function CarruselFeatures() {
     {
       imgUrl: '/carrusel/oficina.jpg',
       alt: 'OFICINA · Inglés de trabajo con Alfred',
-      onClick: () => setView('a1'),
+      onClick: () => abrirFeature('a1'),
       contenido: (
         <OverlayFeature
           titulo="OFICINA"
@@ -201,7 +214,7 @@ export function CarruselFeatures() {
     {
       imgUrl: '/carrusel/08.jpg',
       alt: 'TU DNA · Tu cerebro de errores',
-      onClick: () => setView('dna'),
+      onClick: () => abrirFeature('dna'),
       contenido: (
         <OverlayFeature
           aurora

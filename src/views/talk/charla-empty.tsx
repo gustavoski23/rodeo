@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 
 import { TextAnimate } from '@/components/magicui/text-animate';
 import { Card } from '@/components/ui/card';
+import { GlassButton } from '@/components/ui/sign-up';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 
@@ -94,20 +95,18 @@ export function CharlaEmpty({
             {ice}
           </p>
           <div className="flex flex-wrap items-center gap-3.5">
-            <motion.button
+            {/* CTA en VIDRIO (regla 6 del contrato): era una pastilla lima
+                maciza; ahora es el GlassButton del login, tamaño default. El
+                material y el color los pone .vidrio-tema, que talk/index.tsx
+                declara en la raíz de la vista — aquí no hay que teñir nada.
+                El `!` es por el tracking-tighter que trae .glass-button-text. */}
+            <GlassButton
               type="button"
-              whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.97 }}
               onClick={() => onLibre(ice)}
-              className="inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2.5 rounded-full border-0 px-[22px] py-3 text-[0.95rem] font-bold"
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--accent-ink)',
-                boxShadow: '0 0 32px color-mix(in oklch, var(--accent) 25%, transparent)',
-              }}
+              contentClassName="text-[0.95rem] font-bold tracking-normal!"
             >
               Sígueme el hilo →
-            </motion.button>
+            </GlassButton>
             <button
               type="button"
               onClick={() => setIce(elegirRompehielos())}

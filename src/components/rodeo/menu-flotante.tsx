@@ -68,6 +68,7 @@ export function MenuFlotante({
   className?: string;
 }) {
   const setView = useApp((s) => s.setView);
+  const setCarruselAlVolver = useApp((s) => s.setCarruselAlVolver);
 
   // Si el menú estuviera abierto al aparecer el modal, se cierra con su morph
   // inverso en vez de quedarse congelado como panel invisible detrás del velo.
@@ -76,8 +77,16 @@ export function MenuFlotante({
   }, [oculto]);
 
   const items = [
-    { label: 'Inicio', onClick: () => { cerrarMenu(); setView('home'); } },
-    { label: 'Oficina', onClick: () => { cerrarMenu(); setView('a1'); } },
+    /* INICIO es "llévame a la portada", no "vuelve por donde viniste": baja la
+       marca de `carruselAlVolver` antes de navegar para que el Home aparezca
+       CERRADO aunque el usuario hubiera entrado a esta vista por una carta de
+       la vitrina. El ← de la vista sigue siendo el que reabre el carrusel. */
+    { label: 'Inicio', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('home'); } },
+    /* Igual OFICINA: entrar por el menú NO es entrar por la vitrina, así que su
+       ← tiene que devolver el Home cerrado. Si no se limpiara aquí, la marca
+       que dejó una carta anterior sobreviviría al salto y el ← de OFICINA
+       reabriría un carrusel del que el usuario ya se había ido. */
+    { label: 'Oficina', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('a1'); } },
     { label: 'Personalizar', onClick: () => { cerrarMenu(); onPersonalizar(); } },
   ];
 

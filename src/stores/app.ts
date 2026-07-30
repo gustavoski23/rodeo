@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { store } from '@/lib/storage';
-import { aplicarTema, ETIQUETA_TEMA, hidratarTema, type Tema } from '@/lib/theme';
-import { toast } from '@/stores/toast';
+import { aplicarTema, hidratarTema, type Tema } from '@/lib/theme';
 
 /* Estado de shell. La persistencia NO usa el middleware `persist` de zustand
    (envolvería los valores en {state,version} y rompería las claves rodeo_*):
@@ -22,6 +21,13 @@ type AppState = {
       del personalizador, para que los tres no se desincronicen nunca. */
   cambiarTema: (t: Tema) => void;
   setCost: (total: number) => void;
+  /** ← AL ORIGEN (regla 5 del contrato). Lo levanta la carta del carrusel
+      justo antes de navegar y lo consume el Home AL MONTAR: si está en alto,
+      el Home aparece con la vitrina YA abierta, que es de donde salió el
+      usuario. No se persiste a propósito — es memoria de un viaje, no una
+      preferencia: recargar la app tiene que devolver el Home cerrado. */
+  carruselAlVolver: boolean;
+  setCarruselAlVolver: (v: boolean) => void;
 };
 
 export const useApp = create<AppState>((set) => ({
@@ -37,9 +43,13 @@ export const useApp = create<AppState>((set) => ({
     aplicarTema(tema);
     store.set('rodeo_tema', tema);
     set({ tema });
-    // El ciclo es de TRES: sin el aviso, el tercer toque parece un no-op
-    // (gradiente y oscuro comparten tokens; lo que cambia es el fondo).
-    toast(`Tema: ${ETIQUETA_TEMA[tema]}`, 1500);
+    /* SIN TOAST (regla 1 del contrato): «no quiero que salga ese pop-up — el
+       usuario podra ver el nombre del tema si hace click en el menu y va a
+       personalizar». Antes salía un `Tema: …` de 1500ms para que el tercer
+       toque del ciclo no pareciera un no-op; el nombre vive ahora únicamente
+       en las tarjetas del personalizador. */
   },
   setCost: (cost) => set({ cost }),
+  carruselAlVolver: false,
+  setCarruselAlVolver: (carruselAlVolver) => set({ carruselAlVolver }),
 }));

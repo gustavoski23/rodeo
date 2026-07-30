@@ -92,7 +92,11 @@ export default function StoryView() {
             className="font-display mt-2 text-[2rem] leading-[0.92] font-extrabold tracking-[-0.034em] sm:text-[2.6rem]"
             style={{ color: 'oklch(98% 0 0)' }}
           >
-            Story<span style={{ color: 'var(--accent)' }}>.</span>
+            {/* El punto NO va con var(--accent): el velo de esta tarjeta es
+                SIEMPRE oscuro (ver la nota de cabecera), y en tema claro la lima
+                de acento baja a L50 — sobre el velo negro el punto desaparecía.
+                Literal, como el resto del texto que vive sobre la foto. */}
+            Story<span style={{ color: 'oklch(87% 0.21 128)' }}>.</span>
           </h2>
           <p
             className="mt-3 max-w-[34ch] text-[0.88rem] leading-[1.55]"

@@ -1,12 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { ArrowLeft } from 'lucide-react';
 
-import { AnimatedThemeToggler } from '@/components/magicui/animated-theme-toggler';
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
 import { CarruselFeatures } from '@/components/rodeo/carrusel-features';
-import { MenuFlotante } from '@/components/rodeo/menu-flotante';
-import { BubbleBackground } from '@/components/ui/components-backgrounds-bubble';
-import { SIGUIENTE_TEMA, temaVisual } from '@/lib/theme';
+import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { useApp } from '@/stores/app';
 import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
 
@@ -29,15 +27,20 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
   const nombre = useApp((s) => s.nombre);
   const setView = useApp((s) => s.setView);
   const tema = useApp((s) => s.tema);
-  const cambiarTema = useApp((s) => s.cambiarTema);
-  const [carruselAbierto, setCarruselAbierto] = useState(false);
+  /* ← AL ORIGEN (regla 5). El Home nace con la vitrina ABIERTA si quien nos
+     trajo de vuelta fue el ← de una vista a la que se entró por una carta:
+     esa carta dejó levantado `carruselAlVolver` (stores/app.ts). Se lee UNA
+     vez, en el inicializador del useState — no como suscripción — para que
+     bajar la marca justo después no vuelva a cerrar la vitrina. */
+  const [carruselAbierto, setCarruselAbierto] = useState(() => useApp.getState().carruselAlVolver);
   const moreRef = useRef<HTMLButtonElement>(null);
-  /* La burbuja que sigue al puntero solo tiene sentido donde hay puntero: en
-     móvil es un listener de mousemove que nunca dispara y una capa más que
-     componer. Se decide UNA vez al montar (no en cada render). */
-  const [interactivo] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px) and (pointer: fine)').matches,
-  );
+
+  /* Y se consume: la marca vale por UN regreso. Si sobreviviera, el siguiente
+     Home (p. ej. tras "Inicio" del menú) también abriría la vitrina. Bajarla es
+     idempotente, así que el doble montaje de StrictMode no cambia nada. */
+  useEffect(() => {
+    useApp.getState().setCarruselAlVolver(false);
+  }, []);
 
   // Escape cierra el carrusel y devuelve el foco a la flecha (misma regla que
   // tenía la ruta secundaria en el original: index.html:3993-3998).
@@ -59,70 +62,38 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
   return (
     /* `aurora-shell` (aurora.css) pone el fondo: en OSCURO es el mismo #14161a
        literal de siempre; en CLARO, el papel de la app (var(--bg-void)). El
-       inline fijo se fue porque era justo lo que hacía invisible el barrido del
-       AnimatedThemeToggler: el círculo del View Transition barría un lienzo
-       idéntico al de antes y solo se veía cambiar el menú. */
-    <div className="aurora-shell flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))]">
-      {/* TEMA GRADIENTE: el BubbleBackground como fondo a pantalla completa,
-          detrás de todo el Home. Se monta SOLO con este tema — es un árbol de
-          motion con seis capas animadas en loop infinito y un filtro goo, y no
-          tiene por qué estar corriendo en claro/oscuro. Tampoco vive en las
-          demás vistas: el gradiente es la puerta, y adentro mandan los tokens
-          oscuros (que son los mismos que los de 'oscuro', ver lib/theme.ts). */}
-      {tema === 'gradiente' && (
-        <div className="aurora-fondo-gradiente" aria-hidden="true">
-          <BubbleBackground interactive={interactivo} className="size-full">
-            <div className="aurora-fondo-gradiente__velo" />
-          </BubbleBackground>
-        </div>
-      )}
+       inline FIJO de #14161a se fue porque era justo lo que hacía invisible el
+       barrido del AnimatedThemeToggler: el círculo del View Transition barría un
+       lienzo idéntico al de antes y solo se veía cambiar el menú. El único
+       inline que queda es el `transparent` del gradiente, y ese no compite con
+       el barrido: en gradiente el lienzo es el <FondoTema/> global. */
+    <div
+      className="aurora-shell flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))]"
+      style={tema === 'gradiente' ? { background: 'transparent' } : undefined}
+    >
+      {/* FILA SUPERIOR — Menu ≡ a la izquierda y el botón de tema a la derecha
+          (regla 3). Ya no se escribe aquí: es la pieza compartida
+          `FilaSuperior`, la MISMA que monta App en el resto de las pantallas,
+          con el cableado verbatim que vivía en este fichero. `inerte` la apaga
+          con la vitrina abierta —la saca del orden de tabulación sin mover un
+          píxel— y de paso aparta el menú, que al ser `fixed` se pintaría por
+          encima de la capa opaca del carrusel.
 
-      {/* Con la vitrina abierta, todo lo que queda DEBAJO de la capa opaca sale
-          del orden de tabulación: el toggler de tema se ve tapado pero seguiría
-          siendo enfocable (un usuario de teclado aterrizaba en un botón que no
-          puede ver). `inert` lo apaga y lo esconde del árbol de accesibilidad
-          sin mover un píxel; la píldora "Conversación libre" ya salía por el
-          display:none de .aurora-home--con-carrusel, y el chevron ⌄ se queda
-          fuera porque es el mando de cerrar.
-
-          El MENÚ es el caso aparte: `inert` NO lo esconde, porque su raíz es
-          `fixed` con z-index propio y se pintaba ENCIMA de la capa opaca del
-          carrusel (z-index:40) mientras el toggler de su misma fila sí quedaba
-          tapado — media fila visible y media no, y encima la píldora amarilla
-          seguía leyéndose "Menu ≡" sin responder al toque (inert la saca del
-          hit-test). Se aparta con la MISMA pieza que ya usa el personalizador:
-          `oculto`, que lo desvanece, lo baja de z-index y le quita el puntero,
-          dejando su caja de 150×48 en flujo para que la fila no se recoloque. */}
-      {/* Fila superior: hamburguesa a la izquierda y el toggler de tema a la
-          DERECHA (posición pedida por Gus). Mismo AnimatedThemeToggler verbatim
-          y mismo cableado controlado del Header: RODEO es dueño de la
-          persistencia (data-theme + rodeo_tema). El Home YA NO es siempre
-          oscuro: sigue el tema como el resto de la app (en oscuro, idéntico al
-          diseño aprobado; en claro, papel y tinta oscura) para que el barrido
-          circular del toggler tenga contraste que barrer.
-
-          Su borde/ícono se declaran con el par `x dark:x`: en OSCURO ganan
-          border-white/15 y text-white/85 —los valores de siempre, ni un píxel
-          distinto—, y en CLARO caen a negro translúcido para que el botón no
-          desaparezca sobre el papel. */}
-      <div className="flex shrink-0 items-center justify-between" inert={carruselAbierto}>
-        <MenuFlotante onPersonalizar={onPersonalizar} oculto={menuOculto || carruselAbierto} />
-        {/* CICLO DE TRES. El AnimatedThemeToggler es verbatim y binario: solo
-            sabe decir "ahora toca light" o "ahora toca dark". Se le IGNORA el
-            valor que reporta y el siguiente tema lo decide RODEO
-            (SIGUIENTE_TEMA: día → noche → gradiente → día). Al toggler se le
-            pasa el tema VISUAL (gradiente se dibuja como noche, luna) para que
-            el icono no mienta. La animación de barrido la dispara él solo en
-            cada toque, así que sigue corriendo también en los saltos
-            oscuro→gradiente y gradiente→claro. */}
-        <AnimatedThemeToggler
-          theme={temaVisual(tema)}
-          duration={700}
-          onThemeChange={() => cambiarTema(SIGUIENTE_TEMA[tema])}
-          aria-label="Cambiar de tema: día, noche o gradiente"
-          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-black/15 bg-transparent text-black/70 dark:border-white/15 dark:text-white/85 [&_svg]:size-5"
-        />
-      </div>
+          El FONDO DEL TEMA tampoco vive ya aquí: el <FondoTema/> de App monta
+          las burbujas una sola vez, por detrás de TODAS las vistas (regla 4).
+          Lo que sí hace falta es dejarlas VER: `.aurora-shell` pinta el #14161a
+          del Home y, con [data-fondo='gradiente'], además crea contexto de
+          apilado (aurora.css:941), así que su fondo opaco tapaba la capa de
+          burbujas (z-index:-1, en el contexto de #root). En gradiente el shell
+          se declara transparente y el lienzo lo pone el fondo global; en
+          claro/oscuro no se toca ni un píxel. Va inline y no por clase porque
+          aurora.css no es de este dueño (ver informe). */}
+      <FilaSuperior
+        onPersonalizar={onPersonalizar}
+        menuOculto={menuOculto}
+        inerte={carruselAbierto}
+        className="pb-3"
+      />
 
       {/* --con-carrusel solo existe con la vitrina abierta: manda el chevron al
           pie (como mando de cerrar) y esconde la píldora, que queda debajo de
@@ -180,6 +151,30 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
             exit={{ opacity: 0, y: 12 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
+            {/* ← DEL CARRUSEL (regla 2): «donde te hice un circulito rojo arriba
+                a la izquierda, allí es donde debe haber una flechita ← para
+                regresar». Cierra exactamente lo mismo que el chevron del pie
+                —que NO se toca y sigue con su función— y devuelve el foco a él,
+                igual que hace Escape: el mando de "abrir" recupera el foco tras
+                cerrar, así el teclado no se queda huérfano en un botón que
+                acaba de desmontarse.
+                Colores FIJOS de capa oscura (blancos translúcidos), sin par
+                `dark:`: esta capa es #14161a en los TRES temas por diseño
+                (aurora.css:531-543), así que un ← que se adaptara al tema claro
+                se pintaría negro sobre negro. Es el mismo criterio que ya usan
+                aquí las flechas ‹ › y los puntos del abanico. */}
+            <button
+              type="button"
+              onClick={() => {
+                setCarruselAbierto(false);
+                moreRef.current?.focus();
+              }}
+              aria-label="Cerrar las features"
+              className="absolute top-[max(14px,env(safe-area-inset-top))] left-5 z-50 inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/85 transition-colors hover:border-white/30 hover:bg-white/10"
+            >
+              <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
+            </button>
+
             <CarruselFeatures />
           </motion.div>
         )}

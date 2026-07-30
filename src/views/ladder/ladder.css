@@ -140,8 +140,10 @@
   outline: none;
   transition: border-color 0.25s ease;
 }
+/* Por token: la lima literal oklch(87% …) es la del tema OSCURO y sobre el
+   papel del tema claro el foco se volvía invisible. */
 .lad-input:focus {
-  border-color: oklch(87% 0.21 128 / 0.6);
+  border-color: color-mix(in oklch, var(--accent) 60%, transparent);
 }
 .lad-input::placeholder {
   color: var(--text-muted);
