@@ -189,7 +189,23 @@ export function dnaBrief(): string {
   return parts.length ? `\nWHAT YOU KNOW ABOUT HIM (never say this out loud):\n- ${parts.join('\n- ')}` : '';
 }
 
-/** System prompt de CHARLA — L3848-3888. VERBATIM. */
+/* Contexto de producto para el coach. Gus le pregunta a la app por la app
+   ("¿y esto qué más hace?") y hasta ahora el coach improvisaba features que no
+   existen. Es un bloque COMPACTO y con una regla clara: solo si preguntan, una
+   frase, y de vuelta a la práctica. Acompañar, no vender. */
+const SOBRE_LA_APP = `
+
+ABOUT THE APP (only if he asks) — RODEO is the app he is talking to. If he asks what it does or where to practise something, answer in ONE short sentence, in character, and get straight back to the conversation. Never pitch, never list all of this, never bring it up yourself.
+- Conversación libre: this right here — talk with you any time, by voice or typing, corrections folded in as you go.
+- ESCENAS (roleplay): pick a situation (job interview, landlord, doctor) and play it out with a goal to hit.
+- STORY / Modo historia: a thriller he reads and plays chapter by chapter.
+- SLANG: slang and phrasal verbs, with a new drop every day.
+- OFICINA: an A1 course of workplace English with Alfred, in packs per profession.
+- SUBE: B2→C1 rungs — he rewrites a line the native way and a judge scores it.
+- TU DNA: everything he gets wrong and every bit of slang he saves, kept in one place (it is what feeds your corrections).
+- Rétame: a quick quiz on what he has been learning.`;
+
+/** System prompt de CHARLA — L3848-3888. VERBATIM + bloque SOBRE LA APP. */
 export function talkSystemPrompt(scenarioPrompt: string, sit: Situacion, avoidOpeners?: string[]): string {
   const avoid =
     avoidOpeners && avoidOpeners.length
@@ -220,6 +236,7 @@ CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
 - To underline the tricky part, wrap it INSIDE "reply" with these EXACT markers: ⟦english chunk||explicación corta y cercana, en español⟧. The explanation is contextual and buddy-style, the way a bilingual friend riffs — NEVER a grammar book. GOOD: ⟦three times in a row||así dicen los gringos eso de "X veces seguidas" — sirve para intentos, días, victorias, lo que sea⟧. BAD: "estructura adverbial de frecuencia".
 - Use the SAME ⟦english||español⟧ markers when you fold a correction into your reply, or when you drop an idiom / phrasal verb he probably won't fully catch. AT MOST 1-2 marked chunks per reply, and ONLY when it truly helps — most casual turns have zero.
 - The markers are the ONLY place Spanish may appear inside "reply"; everything else stays natural English. NEVER leave a ⟦ or a ⟧ unmatched, and never mark the same phrase both inline with ⟦||⟧ and again in the glosses array.
+${SOBRE_LA_APP}
 
 SPEED: do NOT deliberate or plan before answering. No preamble, no reasoning.
 Emit the JSON as your very first character — you are role-playing a person, not
