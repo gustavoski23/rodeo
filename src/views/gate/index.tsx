@@ -232,15 +232,15 @@ const GateTema = () => (
          la luminosidad alta (70–80%), así el papel sigue claro y el título
          oscuro se lee, pero el ámbar es ámbar, el coral es coral y el azulado
          tiene cuerpo en vez de ser gris. */
-      --color-primary: oklch(74% 0.135 252);       /* azulado con cuerpo (izq) */
-      --color-secondary: oklch(78% 0.175 70);      /* ámbar (arriba-der) */
-      --color-accent: oklch(77% 0.125 248);        /* azulado (arriba-izq) */
-      --color-destructive: oklch(71% 0.195 30);    /* coral (abajo-der) */
-      --color-chart-1: oklch(80% 0.165 80);        /* ámbar cálido */
-      --color-chart-2: oklch(78% 0.165 58);
-      --color-chart-3: oklch(79% 0.115 246);       /* azul con presencia */
-      --color-chart-4: oklch(75% 0.185 56);        /* naranja/ámbar */
-      --color-chart-5: oklch(79% 0.155 42);        /* durazno */
+      --color-primary: oklch(78% 0.115 250);       /* azulado con cuerpo (izq) */
+      --color-secondary: oklch(80% 0.155 72);      /* ámbar (arriba-der) */
+      --color-accent: oklch(80% 0.105 246);        /* azulado (arriba-izq) */
+      --color-destructive: oklch(74% 0.175 30);    /* coral (abajo-der) */
+      --color-chart-1: oklch(82% 0.15 80);         /* ámbar cálido */
+      --color-chart-2: oklch(80% 0.15 58);
+      --color-chart-3: oklch(82% 0.095 244);       /* azul con presencia */
+      --color-chart-4: oklch(78% 0.165 58);        /* naranja/ámbar */
+      --color-chart-5: oklch(81% 0.14 42);         /* durazno */
 
       /* Puente Tailwind re-mapeado (tintas oscuras sobre papel) */
       --color-foreground: var(--foreground);

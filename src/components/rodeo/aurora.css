@@ -527,7 +527,8 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  /* Hueco reservado abajo para el chevron de cerrar, que va fijo al pie. */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
   background: #14161a;
 }
 
