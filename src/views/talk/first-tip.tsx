@@ -60,8 +60,16 @@ export function FirstTip() {
              viejo — el tip llega justo cuando se abre una sesión. */
           className={cn(
             'fixed left-1/2 z-[990] flex max-w-[min(92vw,420px)] items-center gap-2.5 rounded-full py-[11px] pr-3.5 pl-4 text-[0.85rem] font-semibold',
+            /* Los 120 px son el alto del dock de voz clásico (mic héroe +
+               OndaDictado + barra de teclado), que es lo que sigue montando
+               ESCENAS. CHARLA rediseñada tiene una ConversationBar de la mitad
+               de alto, y con el offset viejo el tip aterrizaba flotando DENTRO
+               de la Card del chat, sin anclaje a nada (auditoría r1). En vez de
+               recalibrar a ojo, quien monta una barra distinta publica su
+               medida real en --rd-tip-abajo (ver charla-session.tsx) y aquí se
+               usa si está; si no, manda el offset de siempre. */
             enSesion
-              ? 'bottom-[calc(120px+env(safe-area-inset-bottom))]'
+              ? 'bottom-[var(--rd-tip-abajo,calc(120px+env(safe-area-inset-bottom)))]'
               : 'top-[calc(80px+env(safe-area-inset-top))]',
           )}
           style={{

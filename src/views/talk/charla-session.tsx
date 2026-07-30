@@ -68,6 +68,7 @@ export function CharlaSession({ motor }: { motor: Motor }) {
   const oscuro = useTemaOscuro();
 
   const volverRef = useRef<HTMLButtonElement>(null);
+  const barraRef = useRef<HTMLDivElement>(null);
   /* Lo que Deepgram entendió, de camino al textarea de la barra (prop
      `textoInicial`). Se limpia en el tick siguiente para que dictar DOS VECES
      la misma frase vuelva a caer en el campo: la barra compara valores y con
@@ -79,6 +80,33 @@ export function CharlaSession({ motor }: { motor: Motor }) {
     const h = setTimeout(() => setTranscript(''), 0);
     return () => clearTimeout(h);
   }, [transcript]);
+
+  /* El tip de primera vez (FirstTip) es global y se coloca solo, con un offset
+     desde abajo calibrado para el dock de voz clásico (120 px). La
+     ConversationBar mide la mitad, así que el tip aterrizaba flotando DENTRO de
+     la Card, sin anclaje visible (auditoría r1). Le publicamos la MEDIDA REAL:
+     la distancia del borde inferior de la ventana al techo del bloque de la
+     barra, que es exactamente el borde de abajo de la Card — el tip queda
+     apoyado en la tarjeta y justo encima de la barra. Se recalcula si la barra
+     crece (al abrir el teclado) y se retira al salir, para que ESCENAS y
+     OFICINA sigan con su offset de siempre. */
+  useEffect(() => {
+    const el = barraRef.current;
+    if (!el) return;
+    const medir = () => {
+      const alto = window.innerHeight - el.getBoundingClientRect().top;
+      document.documentElement.style.setProperty('--rd-tip-abajo', `${Math.round(alto)}px`);
+    };
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    window.addEventListener('resize', medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', medir);
+      document.documentElement.style.removeProperty('--rd-tip-abajo');
+    };
+  }, []);
 
   /* Entrada por teclado desde el Home aurora: el foco cae en "Volver a los
      escenarios" (brief del Home), para que quien navega sin ratón no quede
@@ -141,8 +169,13 @@ export function CharlaSession({ motor }: { motor: Motor }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ── Barra de sesión ── */}
-      <div className="flex shrink-0 flex-col gap-2 pb-3">
+      {/* ── Barra de sesión ──────────────────────────────────────────────────
+          Va en la MISMA columna que la Card y la barra de abajo. Sin esto, en
+          escritorio los mandos se estiraban a todo el ancho mientras lo que
+          controlan se ceñía a 640 px: el ← y el título en el borde izquierdo, el
+          "Terminar" y el coste en el derecho, y la tarjeta flotando en medio sin
+          relación con ninguno (auditoría r1). */}
+      <div className={cn(COLUMNA, 'flex shrink-0 flex-col gap-2 pb-3')}>
         <div className="flex items-center gap-2">
           <motion.button
             ref={volverRef}
@@ -231,21 +264,26 @@ export function CharlaSession({ motor }: { motor: Motor }) {
         {tarjeta}
       </Backlight>
 
-      {/* ── La barra de abajo (imagen 3) ── */}
-      <ConversationBar
-        className={`${COLUMNA} shrink-0 p-0 pt-3`}
-        conectado
-        grabando={dictado.grabando}
-        procesando={dictado.procesando}
-        onMic={dictado.toggle}
-        onEnviar={enviar}
-        onColgar={motor.volver}
-        etiqueta="Coach RODEO"
-        alStreamListo={dictado.alStreamListo}
-        alError={dictado.alError}
-        alStreamFin={dictado.alStreamFin}
-        textoInicial={transcript}
-      />
+      {/* ── La barra de abajo (imagen 3) ──────────────────────────────────────
+          El envoltorio no es decorativo: es lo que se mide para colocar el tip
+          de primera vez (ver el efecto de --rd-tip-abajo arriba), y su techo es
+          el borde de abajo de la Card. */}
+      <div ref={barraRef} className={cn(COLUMNA, 'shrink-0 pt-3')}>
+        <ConversationBar
+          className="p-0"
+          conectado
+          grabando={dictado.grabando}
+          procesando={dictado.procesando}
+          onMic={dictado.toggle}
+          onEnviar={enviar}
+          onColgar={motor.volver}
+          etiqueta="Coach RODEO"
+          alStreamListo={dictado.alStreamListo}
+          alError={dictado.alError}
+          alStreamFin={dictado.alStreamFin}
+          textoInicial={transcript}
+        />
+      </div>
     </div>
   );
 }
