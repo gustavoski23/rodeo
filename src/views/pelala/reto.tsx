@@ -17,6 +17,7 @@ import {
   slangTextSource,
   type PeelStickerHandle,
 } from '@/components/pelala/peel-sticker';
+import { UsarSlang } from '@/components/pelala/usar-slang';
 import { usePelala } from '@/stores/pelala';
 
 export function Pelala() {
@@ -72,6 +73,11 @@ export function Pelala() {
         />
       </div>
 
+      {/* Hint: subido a la altura de la raya amarilla (entre sticker y contexto). */}
+      <p className="mt-2 text-center text-xs text-neutral-400">
+        Cuando ya te lo sepas, pela el sticker para el siguiente ✌️
+      </p>
+
       {/* Contexto en blur + ojito (revelar) + bookmark (guardar). */}
       <div className="mt-2 flex items-start gap-2">
         <div className="relative min-h-[3.25rem] flex-1 overflow-hidden rounded-xl bg-neutral-100 px-4 py-3 dark:bg-neutral-900">
@@ -124,9 +130,8 @@ export function Pelala() {
         </button>
       </div>
 
-      <p className="mt-4 text-center text-xs text-neutral-400">
-        Cuando ya te lo sepas, pela el sticker para el siguiente ✌️
-      </p>
+      {/* Mini-chat "úsalo tú" (raya azul): usar el término y ser corregido. */}
+      <UsarSlang term={term} />
     </div>
   );
 }
