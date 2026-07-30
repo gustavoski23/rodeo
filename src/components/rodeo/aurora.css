@@ -584,6 +584,17 @@
 .aurora-carrusel section > div:last-child > div > span { background: rgb(255 255 255 / 0.18); }
 .aurora-carrusel section > div:last-child > div > span[class*='scale-'] { background: rgb(255 255 255 / 0.85); }
 
+/* Foco de teclado en una carta: la trae AL FRENTE además de dibujarle el aro.
+   Sin esto, tabular hasta una carta lateral enfocaba algo que está debajo de
+   la central (en móvil el solape se come casi toda la vecina) y no se veía
+   dónde estaba el foco. El z-index lo escribe GSAP inline, así que aquí sí
+   hace falta !important. */
+.aurora-carrusel .fan-card:focus-visible {
+  z-index: 30 !important;
+  outline: 2px solid rgb(255 255 255 / 0.85);
+  outline-offset: 3px;
+}
+
 /* Overlay de las cartas ───────────────────────────────────────────────────
    Va encima de la foto: velo oscuro desde abajo para que el texto blanco se
    lea sobre cualquier gradiente, y el texto apoyado en la base de la carta.
