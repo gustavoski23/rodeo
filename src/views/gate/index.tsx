@@ -228,7 +228,7 @@ const GateTema = () => (
       --foreground: oklch(25% 0.02 265);
 
       /* Manchas de la captura — VIVAS (ronda "gradiente intensa" de Gus): el
-         lavado tímido de antes (chroma .035–.11) subió a .11–.22 manteniendo
+         lavado tímido de antes (chroma .035–.11) subió a .095–.175 manteniendo
          la luminosidad alta (70–80%), así el papel sigue claro y el título
          oscuro se lee, pero el ámbar es ámbar, el coral es coral y el azulado
          tiene cuerpo en vez de ser gris. */
@@ -253,10 +253,13 @@ const GateTema = () => (
        distinguirlos por posición porque ninguno tiene clase.
          primer <g>  → float1: 20s → 10s
          último <g>  → float2: 25s → 12.5s
+       El selector se acota al SVG del fondo (viewBox 800×600) y a sus <g>
+       HIJOS DIRECTOS: bajo .gate-tema hay más <g> (los del icono de Google,
+       viewBox 64×64) y un ".gate-tema svg g" suelto también los alcanzaría.
        Solo se toca la duración; la curva y el keyframe siguen siendo los del
        componente sign-up (que NO se edita). */
-    .gate-tema svg g:first-of-type { animation-duration: 10s !important; }
-    .gate-tema svg g:last-of-type { animation-duration: 12.5s !important; }
+    .gate-tema svg[viewBox="0 0 800 600"] > g:first-of-type { animation-duration: 10s !important; }
+    .gate-tema svg[viewBox="0 0 800 600"] > g:last-of-type { animation-duration: 12.5s !important; }
 
     .gate-titulo { color: var(--foreground); }
     .gate-muted { color: oklch(48% 0.015 265); }

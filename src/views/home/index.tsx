@@ -47,7 +47,14 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
 
   return (
     <div className="flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))]" style={{ background: '#14161a' }}>
-      <div className="shrink-0">
+      {/* Con la vitrina abierta, todo lo que queda DEBAJO de la capa opaca sale
+          del orden de tabulación: la hamburguesa se veía tapada pero seguía
+          siendo enfocable (un usuario de teclado aterrizaba en un botón que no
+          puede ver). `inert` la apaga y la esconde del árbol de accesibilidad
+          sin mover un píxel; la píldora ya salía por el display:none de
+          .aurora-home--con-carrusel, y el chevron ⌄ se queda fuera porque es
+          el mando de cerrar. */}
+      <div className="shrink-0" inert={carruselAbierto}>
         <MenuToggle open={menuOpen} onToggle={onMenuToggle} />
       </div>
 
@@ -58,7 +65,7 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
         className={`aurora-home${carruselAbierto ? ' aurora-home--con-carrusel' : ''}`}
         aria-labelledby="aurora-home-question"
       >
-        <div className="aurora-home__copy">
+        <div className="aurora-home__copy" inert={carruselAbierto}>
           <p className="aurora-home__greeting">{nombre ? `Hola, ${nombre}` : 'Hola'}</p>
           <h2 className="aurora-home__question" id="aurora-home-question">
             ¿Qué quieres practicar hoy?

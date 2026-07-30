@@ -4,26 +4,45 @@
    referencia (esquinas generosas, sombra suave que separa las cartas del fondo
    negro).
 
-   ALTURAS — medidas, no copiadas. El primer intento usó la tabla de
-   getHeightMultiplier (22/26/28/34/38rem) como alto del .fan-layout y las
-   cartas de los flancos SE SALÍAN de la caja por abajo: el abanico baja las
-   cartas laterales hasta 7.3rem (`y` de FAN_POSITIONS) y encima las rota 21°,
-   así que su borde inferior queda ~259px por debajo del centro mientras la
-   caja solo reservaba 176. Resultado: los puntos de paginación aterrizaban
-   ENCIMA de las cartas (visto en carrusel-r1-abierto-movil.png).
+   ALTURAS — medidas, no copiadas, y en DOS PASOS.
 
-   Las alturas de abajo son las que caben de verdad: alto de caja ≈ 2× el
-   alcance del flanco (media carta escalada · cos21° + medio ancho · sen21° +
-   7.3rem), y la carta encogida en pantallas grandes para que caja + flechas +
-   puntos entren en 800px de alto sin recortar. */
+   Paso 1 (bug original): usar la tabla de getHeightMultiplier (22/26/28/34/38rem)
+   como ALTO de .fan-layout dejaba a los flancos fuera de la caja: el abanico
+   baja las cartas laterales 7.3rem (`y` de FAN_POSITIONS) y encima las rota
+   21°, así que su borde inferior cae mucho más abajo que el de la central.
+   Los puntos de paginación aterrizaban ENCIMA de las cartas.
+
+   Paso 2 (esta ronda): la corrección de arriba daba la holgura con una caja
+   ALTA Y SIMÉTRICA, pero el abanico solo cae hacia ABAJO — la mitad de arriba
+   sobraba y, al centrar la capa, ese sobrante se sumaba al hueco negro
+   superior (~198px en móvil). Ahora la caja mide EXACTAMENTE lo que mide la
+   carta central y la holgura se da SOLO POR ABAJO con padding-bottom
+   (box-sizing: content-box para que la altura declarada siga siendo la de la
+   carta). Las cartas son `position:absolute` sin offsets: su posición estática
+   la fija el `items-center` del flex, o sea el centro del CONTENT box — el
+   padding no las mueve, solo reserva sitio para la caída.
+
+   Cuánto reservar: el flanco (escala .7756, rotación 21°) tiene una semialtura
+   envolvente de (alto·cos21 + ancho·sen21)·.7756/2 ≈ .4415·alto, y baja 7.3rem.
+   Su borde inferior queda .4415·alto + 7.3rem por debajo del centro, y el de
+   la carta central .5·alto → sobresale 7.3rem − .0585·alto. De ahí la fórmula
+   del padding-bottom (con ~.3rem de colchón para la sombra).
+
+   Y el alto de la carta vuelve a ser GRANDE — es una vitrina, la protagonista
+   manda — pero acotado con dvh para que en pantallas cortas siga entrando el
+   conjunto caja + flechas + puntos sin recortes. */
 
 .fan-layout {
-  height: 32.5rem;
+  --cf-alto: min(26rem, 50dvh);
+  box-sizing: content-box;
+  height: var(--cf-alto);
+  /* 7.3rem de caída del flanco − lo que ya sobresale la carta central. */
+  padding-bottom: calc(7.6rem - var(--cf-alto) * 0.0585);
 }
 
 .fan-card {
   position: absolute;
-  height: 20rem;
+  height: var(--cf-alto);
   aspect-ratio: 4 / 7;
   border-radius: 1.25rem;
   overflow: hidden;
@@ -33,22 +52,16 @@
   will-change: transform, opacity;
 }
 
-@media (min-width: 480px) {
-  .fan-layout { height: 33rem; }
-  .fan-card { height: 21rem; }
-}
-
 @media (min-width: 640px) {
-  .fan-layout { height: 34rem; }
-  .fan-card { height: 22rem; }
+  .fan-layout { --cf-alto: min(27rem, 52dvh); }
 }
 
 @media (min-width: 768px) {
-  .fan-layout { height: 34rem; }
-  .fan-card { height: 22rem; border-radius: 1.5rem; }
+  .fan-layout { --cf-alto: min(28rem, 54dvh); }
+  .fan-card { border-radius: 1.5rem; }
 }
 
 @media (min-width: 1024px) {
-  .fan-layout { height: 36rem; }
-  .fan-card { height: 24rem; border-radius: 1.75rem; }
+  .fan-layout { --cf-alto: min(30rem, 56dvh); }
+  .fan-card { border-radius: 1.75rem; }
 }

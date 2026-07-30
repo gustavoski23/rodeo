@@ -532,6 +532,10 @@
   background: #14161a;
 }
 
+/* Lienzo: solo existe para llevar `data-centro` (qué carta manda ahora) y
+   para que el <section> del componente ocupe todo el ancho de la capa. */
+.aurora-carrusel__lienzo { width: 100%; }
+
 /* Con el carrusel abierto el chevron es el mando de cerrar: se va al pie,
    centrado y por encima de la capa (ya gira 180° por su [aria-expanded]).
    La píldora aurora y cualquier otro hijo de las acciones se ocultan: están
@@ -546,28 +550,96 @@
 }
 .aurora-home--con-carrusel .aurora-home__actions > :not(.aurora-more) { display: none; }
 
+/* Mandos del abanico (flechas ‹ › y puntos) ───────────────────────────────
+   ARREGLO DE CONTRASTE, no capricho. card-fan-carousel.tsx pinta sus mandos
+   con pares de utilidades Tailwind `x dark:x` (bg-black/5 dark:bg-white/5,
+   text-black/40 dark:text-white/55, punto activo bg-black/70 dark:bg-white/80).
+   La app corre con data-theme="light" y SIN clase `.dark`, así que siempre
+   gana la rama clara… encima de esta capa, que es negra (#14161a). Resultado
+   medido: glifo negro al 40% y punto activo negro al 70% sobre negro — los
+   mandos DESAPARECÍAN y el indicador de "estás aquí" era el píxel más oscuro
+   de la fila.
+   Se corrige aquí y no en el .tsx (que no se toca): estos selectores son
+   0-2-1 / 0-2-2 y ganan a las utilidades (0-1-0) sin necesidad de !important.
+   El chevron es un <svg stroke="currentColor">, así que basta con `color`. */
+.aurora-carrusel button[aria-label='Previous'],
+.aurora-carrusel button[aria-label='Next'] {
+  border-color: rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(255 255 255 / 0.62);
+}
+.aurora-carrusel button[aria-label='Previous']:hover,
+.aurora-carrusel button[aria-label='Next']:hover {
+  border-color: rgb(255 255 255 / 0.32);
+  background: rgb(255 255 255 / 0.1);
+  color: rgb(255 255 255 / 0.92);
+}
+.aurora-carrusel button[aria-label='Previous']:focus-visible,
+.aurora-carrusel button[aria-label='Next']:focus-visible {
+  outline: 2px solid rgb(255 255 255 / 0.6);
+  outline-offset: 3px;
+}
+/* Puntos: inactivos apenas insinuados, el activo BLANCO (es el que marca
+   dónde estás). El activo se reconoce por la utilidad scale-[1.3]. */
+.aurora-carrusel section > div:last-child > div > span { background: rgb(255 255 255 / 0.18); }
+.aurora-carrusel section > div:last-child > div > span[class*='scale-'] { background: rgb(255 255 255 / 0.85); }
+
 /* Overlay de las cartas ───────────────────────────────────────────────────
    Va encima de la foto: velo oscuro desde abajo para que el texto blanco se
-   lea sobre cualquier gradiente, y el texto apoyado en la base de la carta. */
+   lea sobre cualquier gradiente, y el texto apoyado en la base de la carta.
+
+   JERARQUÍA (arreglo de la ronda 2): en un abanico las cartas se TAPAN entre
+   sí — la vecina de la derecha pierde su franja izquierda debajo de la
+   central, y en móvil pierde casi toda la carta. Con el texto completo en
+   todas, la de STORY se leía "TORY / do historia / hriller por capítulos…":
+   palabras partidas, que parecen un fallo y no un diseño.
+   Por eso el texto rico (título + subtítulo + línea) SOLO aparece en la carta
+   CENTRADA, que es la única que nunca está tapada; las demás se quedan con la
+   eyebrow centrada abajo, discreta, como los "Próximamente". El abanico gana
+   jerarquía y no hay una sola palabra cortada.
+   Qué carta está centrada lo dice `data-centro` en el lienzo (lo publica
+   carrusel-features leyendo los puntos de paginación del propio componente).
+   Si ese dato faltara, el estado por defecto es el discreto: nunca texto roto. */
 .cf-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
+  align-items: var(--cf-align, center);
   justify-content: flex-end;
   gap: 5px;
   padding: 18px 16px 20px;
   background: linear-gradient(
     to top,
-    oklch(8% 0.012 265 / 0.86) 0%,
-    oklch(8% 0.012 265 / 0.62) 26%,
-    oklch(8% 0.012 265 / 0.12) 56%,
+    oklch(8% 0.012 265 / calc(0.86 * var(--cf-velo, 0.72))) 0%,
+    oklch(8% 0.012 265 / calc(0.62 * var(--cf-velo, 0.72))) 26%,
+    oklch(8% 0.012 265 / calc(0.12 * var(--cf-velo, 0.72))) 56%,
     transparent 78%
   );
   color: oklch(98% 0 0);
   text-align: left;
   text-shadow: 0 1px 12px oklch(6% 0.012 265 / 0.55);
   pointer-events: none;
+}
+.cf-overlay__texto { display: var(--cf-texto, none); }
+
+/* La carta centrada: overlay completo, alineado a la izquierda y con el velo
+   a plena potencia. Una fila por posición porque el selector tiene que casar
+   el índice de `data-centro` con el hijo n del abanico (las cartas están en
+   orden en el DOM); CSS no sabe hacer esa cuenta de otra forma. */
+.aurora-carrusel__lienzo[data-centro='0'] .fan-layout > :nth-child(1) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='1'] .fan-layout > :nth-child(2) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='2'] .fan-layout > :nth-child(3) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='3'] .fan-layout > :nth-child(4) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='4'] .fan-layout > :nth-child(5) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='5'] .fan-layout > :nth-child(6) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='6'] .fan-layout > :nth-child(7) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='7'] .fan-layout > :nth-child(8) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='8'] .fan-layout > :nth-child(9) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='9'] .fan-layout > :nth-child(10) .cf-overlay {
+  --cf-texto: block;
+  --cf-align: flex-start;
+  --cf-velo: 1;
 }
 .cf-overlay__eyebrow {
   margin: 0 0 2px;
