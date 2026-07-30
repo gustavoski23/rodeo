@@ -64,6 +64,12 @@ export default function LadderView() {
 
   const [cargando, setCargando] = useState(false);
   const [vacioFallos, setVacioFallos] = useState(false);
+  /* El fallo de red tiene que DEJAR ALGO en pantalla, como ESCENAS ("sin api ·
+     reintentar"). Antes solo salía un toast efímero y la vista volvía al mismo
+     estado vacío, así que a los tres segundos nadie sabía si había pasado algo
+     ni por dónde volver a intentarlo. Guardamos también la veta (y la frase
+     propia, si la hubo) para poder repetir EXACTAMENTE la misma llamada. */
+  const [fallo, setFallo] = useState<{ veta: Veta; own?: string; msg: string } | null>(null);
   const [frase, setFrase] = useState('');
   const [resumen, setResumen] = useState(false);
 
@@ -87,6 +93,7 @@ export default function LadderView() {
     // dos llamadas a la API.
     if (useLadder.getState().busy) return;
     setVacioFallos(false);
+    setFallo(null);
     iniciarRun([]); // combo y clavados del run a 0, runarea limpia
 
     if (veta === 'fallos') {
@@ -130,7 +137,9 @@ export default function LadderView() {
       iniciarRun(valid);
     } catch (err) {
       limpiarRun();
-      toast('Error: ' + (err instanceof Error ? err.message : String(err)));
+      const msg = err instanceof Error ? err.message : String(err);
+      setFallo({ veta, own: ownPhrase, msg });
+      toast('Error: ' + msg);
     } finally {
       setCargando(false);
       setBusy(false);
@@ -210,7 +219,7 @@ export default function LadderView() {
           {/* ── Zona del peldaño (#ladder-runarea) ── */}
           {/* Con peldaño (o skeleton) el bloque mide lo suyo y el scroll manda;
               vacío, se estira para centrar el estado vacío en la tarjeta. */}
-          <div className={cn(rung || cargando || vacioFallos ? 'shrink-0 pb-1' : 'flex min-h-0 flex-1 flex-col justify-center pb-1')}>
+          <div className={cn(rung || cargando || vacioFallos || fallo ? 'shrink-0 pb-1' : 'flex min-h-0 flex-1 flex-col justify-center pb-1')}>
             {cargando ? (
               <div className="lad-skeleton flex items-center justify-center">
                 <PencilLoader size={4.4} label="Buscando peldaños" />
@@ -231,6 +240,36 @@ export default function LadderView() {
                   style={{ minHeight: 44, background: 'var(--accent)', color: 'var(--accent-ink)' }}
                 >
                   IR A TALK
+                </button>
+              </div>
+            ) : fallo ? (
+              /* Estado de error PERSISTENTE, con el mismo registro que ESCENAS:
+                 el rótulo mono "sin api" y un reintento que repite la misma
+                 veta (y la misma frase propia, si la escribiste). */
+              <div
+                className="rounded-2xl border px-4 py-3.5"
+                style={{ background: 'var(--bg-surface)', borderColor: 'var(--borde-medio)' }}
+              >
+                <span
+                  className="font-mono text-[0.6rem] font-bold tracking-[0.16em] uppercase"
+                  style={{ color: 'var(--texto-mal)' }}
+                >
+                  sin api
+                </span>
+                <div className="mt-1.5 text-[0.92rem] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  No pude traer los peldaños de {VETAS.find((v) => v.veta === fallo.veta)?.label ?? 'tu frase'}.
+                </div>
+                <div className="mt-1 text-[0.82rem]" style={{ color: 'var(--text-secondary)' }}>
+                  {fallo.msg}
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void startVeta(fallo.veta, fallo.own)}
+                  className="mt-3 cursor-pointer rounded-full border-0 px-[22px] py-2.5 text-[0.82rem] font-bold disabled:opacity-45"
+                  style={{ minHeight: 44, background: 'var(--accent)', color: 'var(--accent-ink)' }}
+                >
+                  REINTENTAR
                 </button>
               </div>
             ) : rung ? (

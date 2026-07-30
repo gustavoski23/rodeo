@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 
 import SocialCards, { type CardItem } from '@/components/ui/card-fan-carousel';
 import { useApp } from '@/stores/app';
-import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
 
 import './aurora.css';
 
@@ -170,12 +169,15 @@ export function CarruselFeatures() {
     {
       imgUrl: '/carrusel/conversacion.jpg',
       alt: 'CONVERSACIÓN · Habla 24/7 con tu coach',
-      onClick: () => {
-        // El mismo viaje que la píldora aurora del Home: sesión libre lista
-        // ANTES de navegar, para no aterrizar en la vista vieja de escenarios.
-        lanzarLibreAurora({ focoVolver: false });
-        setView('talk');
-      },
+      /* La carta abre la PORTADA de TALK, no una sesión ya empezada.
+         Antes hacía `lanzarLibreAurora(); setView('talk')`, y como la píldora
+         del Home hace lo mismo, las DOS únicas rutas a la vista aterrizaban con
+         sesión viva: la portada (CHARLA + ESCENAS, su toggle y todo el catálogo
+         de escenas) era inalcanzable para un usuario. El atajo a la charla libre
+         sigue existiendo y sin cambiar — es la píldora aurora del Home; aquí, en
+         la vitrina, lo que corresponde es enseñar la sección, y "Sígueme el
+         hilo →" de la portada arranca la misma conversación libre a un toque. */
+      onClick: () => setView('talk'),
       contenido: (
         <OverlayFeature
           titulo="CONVERSACIÓN"

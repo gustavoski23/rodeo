@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MotionConfig, motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
@@ -40,6 +40,35 @@ const COLUMNA = 'mx-auto w-full max-w-[640px]';
 /* OFICINA cableada: al entrar por primera vez (ya con el onboarding de Alfred
    visto) toca elegir trabajo; con trabajo elegido, el curso completo con packs
    y el paso de producción hablada (A1.3) enchufado al loop. */
+/* Pista de que HAY MÁS ABAJO. Con SIN_BARRA el scroller no pinta barra, así que
+   un contenido cortado por el borde de la Card se lee como contenido que
+   termina ahí. Devuelve true solo mientras quede recorrido por debajo: el velo
+   aparece cuando desborda y se apaga al llegar al fondo. */
+function useDesborde() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hayMas, setHayMas] = useState(false);
+
+  const medir = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setHayMas(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    medir();
+    // El contenido entra animado (stagger de las pegatinas), así que el alto
+    // final llega después del primer frame: lo vigila un ResizeObserver.
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    return () => ro.disconnect();
+  }, [medir]);
+
+  return { ref, hayMas, medir };
+}
+
 function OficinaView() {
   const onboarded = useA1((s) => s.onboarded);
   const job = useA1((s) => s.job);
@@ -48,6 +77,7 @@ function OficinaView() {
   // "Después elijo" vale por esta visita: el picker vuelve la próxima vez,
   // porque elegir trabajo es lo que desbloquea las unidades del rol.
   const [pospuesto, setPospuesto] = useState(false);
+  const scroller = useDesborde();
 
   if (onboarded && !job && !pospuesto) {
     /* Paso de elección con el patrón canónico: barra ← + título mono, y las
@@ -83,12 +113,14 @@ function OficinaView() {
 
         <Card className={cn(COLUMNA, 'relative min-h-0 flex-1 gap-0 overflow-hidden rounded-[22px] py-0 shadow-sm')}>
           <div
+            ref={scroller.ref}
+            onScroll={scroller.medir}
             className={cn(
-              'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-4 sm:px-4',
+              'flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-3 py-4 sm:gap-4 sm:px-4',
               '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
             )}
           >
-            <p className="text-[0.9rem] leading-[1.5]" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[0.88rem] leading-[1.45] sm:text-[0.9rem] sm:leading-[1.5]" style={{ color: 'var(--text-secondary)' }}>
               El tronco del curso es para todos; tu trabajo le suma sus propias escenas.
             </p>
             <JobPicker packs={JOB_PACKS} seleccionado={null} onPick={setJob} />
@@ -101,6 +133,18 @@ function OficinaView() {
               Después elijo
             </button>
           </div>
+
+          {/* El velo de "sigue abajo": desvanece el último renglón contra el
+              borde de la Card para que se lea como contenido cortado, no como
+              contenido terminado. Solo mientras quede recorrido. */}
+          <motion.div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-10 rounded-b-[22px]"
+            style={{ background: 'linear-gradient(to top, var(--bg-surface), transparent)' }}
+            initial={false}
+            animate={{ opacity: scroller.hayMas ? 1 : 0 }}
+            transition={{ duration: 0.18 }}
+          />
         </Card>
       </div>
     );

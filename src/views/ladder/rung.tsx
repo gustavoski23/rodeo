@@ -90,6 +90,12 @@ export function RungCard({
   const [elegido, setElegido] = useState<'nailed' | 'casi' | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  /* La zona de veredicto (LA CLAVÉ / CASI y luego SIGUIENTE) nace DEBAJO del
+     pliegue del scroller de la Card: al revelar el C1 la tarjeta crece y los
+     botones caían fuera del overflow-hidden (medido: 14 px cortados a 390 px,
+     35 px a 1280 px). Se traen a la vista solos — es la acción principal del
+     peldaño y no puede aparecer partida por el borde. */
+  const juezRef = useRef<HTMLDivElement>(null);
 
   /* Mic Deepgram con onda: el intento cae al campo y el juez se llama con el
      botón de enviar — nunca con lo que el STT creyó oír (lección de producción). */
@@ -102,6 +108,20 @@ export function RungCard({
   useEffect(() => {
     if (zonaAbierta) inputRef.current?.focus();
   }, [zonaAbierta]);
+
+  /* Al llegar a la cara trasera (y otra vez cuando el autojuicio destapa el
+     SIGUIENTE) se acerca el bloque de botones. El flip es un transform y no
+     mueve el layout, así que el alto final ya está en el DOM en este frame; el
+     rAF es solo para que el navegador tenga la caja medida antes de scrollear.
+     `block:'end'` + `scroll-mb` deja aire por debajo, y como el único ancestro
+     scrolleable es el scroller de la Card, la página no se mueve. */
+  useEffect(() => {
+    if (fase !== 'back') return;
+    const id = requestAnimationFrame(() => {
+      juezRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [fase, elegido]);
 
   async function revealRung(intento: string) {
     // Guard global compartido (§9.21) leído del store VIVO: la prop `busy` es
@@ -281,7 +301,7 @@ export function RungCard({
 
       {/* Autoevaluación + SIGUIENTE. Fuera del flip: no gira con la tarjeta. */}
       {fase === 'back' && (
-        <>
+        <div ref={juezRef} className="scroll-mb-4">
           <div className="mt-3.5 flex gap-2">
             <button
               type="button"
@@ -325,7 +345,7 @@ export function RungCard({
               </button>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );

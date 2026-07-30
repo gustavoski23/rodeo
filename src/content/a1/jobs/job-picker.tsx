@@ -42,8 +42,14 @@ export function JobPicker({
   onPick: (id: JobPackId) => void;
 }) {
   return (
+    /* DOS COLUMNAS SIEMPRE. En una sola columna las cuatro pegatinas medían
+       más que la pantalla de 390 px y la salida secundaria ("Después elijo")
+       caía por debajo del pliegue del scroller, sin ninguna pista de que
+       hubiera más abajo. Apiladas de dos en dos, la decisión entera —las cuatro
+       opciones y la salida— cabe de un vistazo, que es lo que pide una
+       pantalla de elegir. */
     <motion.div
-      className="grid grid-cols-1 gap-3.5 min-[420px]:grid-cols-2"
+      className="grid grid-cols-2 gap-2.5 sm:gap-3.5"
       initial="oculta"
       animate="visible"
       variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
@@ -65,7 +71,7 @@ export function JobPicker({
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
             whileHover={{ y: -3, rotate: 0, boxShadow: 'var(--shadow-sticker-lift)' }}
             whileTap={{ scale: 0.985, rotate: 0 }}
-            className="flex w-full cursor-pointer flex-col rounded-[22px] border-2 px-[18px] pt-[18px] pb-4 text-left shadow-sticker"
+            className="flex w-full cursor-pointer flex-col rounded-[22px] border-2 px-3.5 pt-3.5 pb-3.5 text-left shadow-sticker sm:px-[18px] sm:pt-[18px] sm:pb-4"
             style={{
               background: PASTEL[pack.id],
               /* El borde vive siempre (border-2), solo cambia de color: si
@@ -105,7 +111,7 @@ export function JobPicker({
             </span>
 
             <span
-              className="mt-2 text-[0.82rem] leading-[1.45]"
+              className="mt-1.5 text-[0.78rem] leading-[1.4] sm:mt-2 sm:text-[0.82rem] sm:leading-[1.45]"
               style={{ color: 'var(--card-ink-soft)' }}
             >
               {pack.promesa_es}
@@ -114,7 +120,7 @@ export function JobPicker({
             {/* Etiqueta de estado en texto: el lector de pantalla ya tiene el
                 aria-pressed, pero en pantalla ayuda a confirmar la elección. */}
             <span
-              className="mt-3 font-mono text-[0.58rem] font-bold tracking-[0.14em] uppercase"
+              className="mt-2.5 font-mono text-[0.58rem] font-bold tracking-[0.14em] uppercase sm:mt-3"
               style={{ color: 'var(--card-ink-soft)', opacity: activo ? 1 : 0.7 }}
             >
               {activo ? 'Tu pack · listo' : 'Elegir →'}
