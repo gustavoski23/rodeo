@@ -604,10 +604,14 @@
    central, y en móvil pierde casi toda la carta. Con el texto completo en
    todas, la de STORY se leía "TORY / do historia / hriller por capítulos…":
    palabras partidas, que parecen un fallo y no un diseño.
-   Por eso el texto rico (título + subtítulo + línea) SOLO aparece en la carta
-   CENTRADA, que es la única que nunca está tapada; las demás se quedan con la
-   eyebrow centrada abajo, discreta, como los "Próximamente". El abanico gana
-   jerarquía y no hay una sola palabra cortada.
+   Por eso TODO el texto del overlay —la eyebrow incluida— SOLO aparece en la
+   carta CENTRADA, que es la única que nunca está tapada; las demás se quedan
+   con su gradiente y nada más.
+   (Ronda 3: en la ronda 2 esta regla se aplicó solo al bloque rico y la
+   eyebrow se seguía pintando en las seis cartas de los flancos, donde el
+   solape la troceaba en «PRÓXIMAN», «ÓXIMAMENTE», «IMAMENTE»… el mismo fallo
+   un escalón tipográfico más abajo. Ahora eyebrow y texto rico comparten el
+   MISMO interruptor `--cf-texto`, así que no puede volver a desincronizarse.)
    Qué carta está centrada lo dice `data-centro` en el lienzo (lo publica
    carrusel-features leyendo los puntos de paginación del propio componente).
    Si ese dato faltara, el estado por defecto es el discreto: nunca texto roto. */
@@ -632,7 +636,13 @@
   text-shadow: 0 1px 12px oklch(6% 0.012 265 / 0.55);
   pointer-events: none;
 }
-.cf-overlay__texto { display: var(--cf-texto, none); }
+/* UN SOLO interruptor para todo el texto del overlay: la eyebrow va en el
+   mismo `display: var(--cf-texto)` que el bloque rico. Si mañana se añade otra
+   línea al overlay, tiene que colgar de aquí también. */
+.cf-overlay__eyebrow,
+.cf-overlay__texto {
+  display: var(--cf-texto, none);
+}
 
 /* La carta centrada: overlay completo, alineado a la izquierda y con el velo
    a plena potencia. Una fila por posición porque el selector tiene que casar
