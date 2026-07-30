@@ -59,7 +59,13 @@ export function FirstTip() {
           /* z-990: por encima de CUALQUIER overlay de la app, igual que el
              viejo — el tip llega justo cuando se abre una sesión. */
           className={cn(
-            'fixed left-1/2 z-[990] flex max-w-[min(92vw,420px)] items-center gap-2.5 rounded-full py-[11px] pr-3.5 pl-4 text-[0.85rem] font-semibold',
+            /* w-max: al ser `fixed` con `left:50%` y sin `right`, el ancho de
+               ajuste se calcula contra el hueco que queda de la mitad de la
+               pantalla al borde derecho — la mitad del viewport. Una píldora de
+               seis palabras salía partida en TRES líneas (se ve en las capturas
+               de la auditoría). Con max-content mide lo que ocupa su texto y el
+               max-w sigue poniéndole techo. */
+            'fixed left-1/2 z-[990] flex w-max max-w-[min(92vw,420px)] items-center gap-2.5 rounded-full py-[11px] pr-3.5 pl-4 text-[0.85rem] font-semibold',
             /* Los 120 px son el alto del dock de voz clásico (mic héroe +
                OndaDictado + barra de teclado), que es lo que sigue montando
                ESCENAS. CHARLA rediseñada tiene una ConversationBar de la mitad
