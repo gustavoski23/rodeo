@@ -8,10 +8,11 @@
    ese mismo barrido se dispara al empezar a pelar (sweep = setBackgroundRemovalEffect,
    que reusa el láser de la entrada — no se inventa nada). */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 
+import { CornerHint } from '@/components/pelala/corner-hint';
 import {
   PeelSticker,
   slangTextSource,
@@ -27,6 +28,8 @@ export function Pelala() {
   const retoSiguiente = usePelala((s) => s.retoSiguiente);
   const guardados = usePelala((s) => s.guardados);
   const toggleGuardar = usePelala((s) => s.toggleGuardar);
+  const peelHintVisto = usePelala((s) => s.peelHintVisto);
+  const marcarPeelHintVisto = usePelala((s) => s.marcarPeelHintVisto);
 
   const term = orden[retoIndex % orden.length];
   const guardado = guardados.includes(term.id);
@@ -37,7 +40,15 @@ export function Pelala() {
   /* Al empezar a pelar: barrido holográfico (el mismo de la entrada). */
   const onPeelStart = useCallback(() => {
     stickerRef.current?.sweep();
-  }, []);
+    marcarPeelHintVisto();
+  }, [marcarPeelHintVisto]);
+
+  /* La pista de esquina se descarta sola a los 6s aunque no pelen (una sola vez). */
+  useEffect(() => {
+    if (peelHintVisto) return;
+    const t = window.setTimeout(marcarPeelHintVisto, 6000);
+    return () => window.clearTimeout(t);
+  }, [peelHintVisto, marcarPeelHintVisto]);
 
   /* Al despegar del todo: entra el siguiente término (blur reseteado). */
   const onDetach = useCallback(() => {
@@ -71,6 +82,7 @@ export function Pelala() {
           onDetach={onDetach}
           className="h-full w-full"
         />
+        {!peelHintVisto && <CornerHint />}
       </div>
 
       {/* Hint: subido a la altura de la raya amarilla (entre sticker y contexto). */}

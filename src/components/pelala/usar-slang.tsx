@@ -60,10 +60,11 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
       className="mt-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900"
     >
       <p className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-        Ahora úsalo tú — escribe una frase con{' '}
+        Si quieres practicar, escribe{' '}
         <span className="font-bold text-neutral-800 dark:text-neutral-100">
           «{term.term}»
-        </span>
+        </span>{' '}
+        en una frase
       </p>
 
       <div className="flex items-center gap-2">

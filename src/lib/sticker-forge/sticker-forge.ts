@@ -2062,10 +2062,11 @@ class StickerRenderer implements StickerInstance {
   }
 
   private startInteractionHint() {
-    this.interactionHintActive = true;
-    this.interactionHintElapsed = 0;
-    this.uniforms.uInteractionHint.value = 1;
-    this.requestRender();
+    // Rodeo (customización): desactivado a propósito. No queremos el borde/hint
+    // AZUL del engine que aparece al presionar fuera del borde peelable. La pista
+    // de "por dónde pelar" la damos con una animación propia en la esquina
+    // (ver PeelSticker), y solo la primera vez. Se deja el método como no-op para
+    // no tocar su llamada en onPointerDown.
   }
 
   private configureEntranceAxis() {

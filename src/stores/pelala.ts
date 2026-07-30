@@ -9,6 +9,23 @@ import { DECK, type SlangTerm } from '@/content/pelala/deck';
 
 export type PelalaMode = 'picker' | 'muro' | 'reto';
 
+/* Pista de esquina "por dónde pelar" — se muestra una sola vez (persistida). */
+const PEEL_HINT_KEY = 'pelala_peel_hint_visto';
+function leerPeelHintVisto(): boolean {
+  try {
+    return localStorage.getItem(PEEL_HINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function marcarPeelHintVistoLS(): void {
+  try {
+    localStorage.setItem(PEEL_HINT_KEY, '1');
+  } catch {
+    /* almacenamiento no disponible: se ignora */
+  }
+}
+
 /* Términos guardados — persistidos a localStorage (patrón manual de Rodeo). */
 const GUARDADOS_KEY = 'pelala_guardados';
 function leerGuardados(): string[] {
@@ -64,6 +81,10 @@ type PelalaState = {
   guardados: string[];
   estaGuardado: (id: string) => boolean;
   toggleGuardar: (id: string) => void;
+
+  /* ----- Pista de esquina "por dónde pelar" (una sola vez) ----- */
+  peelHintVisto: boolean;
+  marcarPeelHintVisto: () => void;
 };
 
 export const usePelala = create<PelalaState>((set, get) => ({
@@ -113,4 +134,11 @@ export const usePelala = create<PelalaState>((set, get) => ({
       escribirGuardados(next);
       return { guardados: next };
     }),
+
+  peelHintVisto: leerPeelHintVisto(),
+  marcarPeelHintVisto: () => {
+    if (get().peelHintVisto) return;
+    marcarPeelHintVistoLS();
+    set({ peelHintVisto: true });
+  },
 }));

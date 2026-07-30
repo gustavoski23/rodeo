@@ -140,6 +140,17 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       el.addEventListener('ready', onReadyEvt);
 
       host.appendChild(el);
+
+      /* Quitar el anillo de foco CUADRADO del canvas al pelar (el engine hace
+         .focus() en pointerdown). Se inyecta en el shadow root para no tocar el
+         engine; se conserva el foco de teclado vía :focus-visible (a11y). */
+      if (el.shadowRoot) {
+        const fix = document.createElement('style');
+        fix.textContent =
+          'canvas:focus:not(:focus-visible){outline:none!important}';
+        el.shadowRoot.appendChild(fix);
+      }
+
       void el.setSource(sourceRef.current);
       if (options) el.setOptions(options);
 
