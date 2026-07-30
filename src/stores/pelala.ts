@@ -9,8 +9,9 @@ import { DECK, type SlangTerm } from '@/content/pelala/deck';
 
 export type PelalaMode = 'picker' | 'muro' | 'reto';
 
-/* Pista de esquina "por dónde pelar" — se muestra una sola vez (persistida). */
-const PEEL_HINT_KEY = 'pelala_peel_hint_visto';
+/* Pista de esquina "por dónde pelar" — se muestra una sola vez (persistida).
+   Sufijo _v2: resetea la pista para quien ya tenía el flag viejo. */
+const PEEL_HINT_KEY = 'pelala_peel_hint_visto_v2';
 function leerPeelHintVisto(): boolean {
   try {
     return localStorage.getItem(PEEL_HINT_KEY) === '1';

@@ -8,7 +8,7 @@
    ese mismo barrido se dispara al empezar a pelar (sweep = setBackgroundRemovalEffect,
    que reusa el láser de la entrada — no se inventa nada). */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 
@@ -40,15 +40,8 @@ export function Pelala() {
   /* Al empezar a pelar: barrido holográfico (el mismo de la entrada). */
   const onPeelStart = useCallback(() => {
     stickerRef.current?.sweep();
-    marcarPeelHintVisto();
+    marcarPeelHintVisto(); // al pelar por primera vez, la pista ya no vuelve
   }, [marcarPeelHintVisto]);
-
-  /* La pista de esquina se descarta sola a los 6s aunque no pelen (una sola vez). */
-  useEffect(() => {
-    if (peelHintVisto) return;
-    const t = window.setTimeout(marcarPeelHintVisto, 6000);
-    return () => window.clearTimeout(t);
-  }, [peelHintVisto, marcarPeelHintVisto]);
 
   /* Al despegar del todo: entra el siguiente término (blur reseteado). */
   const onDetach = useCallback(() => {
