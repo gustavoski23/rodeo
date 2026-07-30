@@ -1,0 +1,42 @@
+/* CSS acompañante del card-fan-carousel: el prompt traía el componente pero no
+   su hoja (vive en el sitio original). Las ALTURAS del layout salen de la tabla
+   del propio código (getHeightMultiplier: 22/26/28/34/38 rem por breakpoint);
+   la carta guarda la proporción 4:7 de las imágenes (400×700) y el redondeo y
+   la sombra están calcados de la captura de referencia (esquinas generosas,
+   sombra suave que separa las cartas del fondo negro). */
+
+.fan-layout {
+  height: 22rem;
+}
+
+.fan-card {
+  position: absolute;
+  height: 20rem;
+  aspect-ratio: 4 / 7;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow:
+    0 18px 44px rgb(0 0 0 / 0.5),
+    0 4px 12px rgb(0 0 0 / 0.4);
+  will-change: transform, opacity;
+}
+
+@media (min-width: 480px) {
+  .fan-layout { height: 26rem; }
+  .fan-card { height: 23.5rem; }
+}
+
+@media (min-width: 640px) {
+  .fan-layout { height: 28rem; }
+  .fan-card { height: 25.5rem; }
+}
+
+@media (min-width: 768px) {
+  .fan-layout { height: 34rem; }
+  .fan-card { height: 30.5rem; border-radius: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .fan-layout { height: 38rem; }
+  .fan-card { height: 34rem; border-radius: 1.75rem; }
+}
