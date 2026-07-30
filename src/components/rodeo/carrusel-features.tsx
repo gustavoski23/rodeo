@@ -16,15 +16,22 @@ import './aurora.css';
    ORDEN DE LAS CARTAS (decisión, no descuido): el carrusel arranca con
    `centerIndex = HALF = 3` — es estado inicial del componente de Gus, que no
    tocamos. Es decir: la carta que nace GRANDE Y CENTRADA (la protagonista del
-   abanico) es la del índice 3, no la del 0. Por eso SLANG va en el índice 3 y
-   STORY en el 4 (justo a su derecha): al abrir, lo primero que se ve enorme y
-   al frente es SLANG, que es lo que pide la vitrina. Los índices 0-2 y 5-9 son
-   los "Próximamente", que es donde tienen que estar: en los flancos.
+   abanico) es la del índice 3, no la del 0. Por eso SLANG sigue en el índice 3:
+   al abrir, lo primero que se ve enorme y al frente es SLANG, que es lo que
+   pide la vitrina.
 
-   Las imágenes de las 4 features REALES son las ilustraciones de Gus
+   Ahora son SEIS features reales. SUBE entra en el 2 (a la izquierda de SLANG)
+   y TU DNA en el 7 (a la derecha de OFICINA), de modo que las seis quedan
+   CONTIGUAS en 2-7: paginando desde SLANG se recorre la app entera sin tropezar
+   con un placeholder en medio. Quedan cuatro "Próximamente" repartidos en los
+   dos flancos (0-1 y 8-9), que es donde tienen que estar.
+
+   Las imágenes de las features REALES son las ilustraciones de Gus
    (public/carrusel/{slang,story,conversacion,oficina}.jpg, 800×1400, set
-   coherente con acentos lima); los placeholders usan las gradientes aurora
-   (05…10.jpg, 400×700, paletas del personalizador). */
+   coherente con acentos lima) y, para las dos nuevas, las gradientes 07/08 —
+   las que ya estaban en el set y mejor aguantan un título encima. Los
+   placeholders usan las gradientes aurora restantes (05, 06, 09, 10, 400×700,
+   paletas del personalizador). */
 
 /** Índice de la carta centrada al abrir: el HALF del componente. */
 const CENTRO_INICIAL = 3;
@@ -42,13 +49,20 @@ function OverlayFeature({
   titulo,
   subtitulo,
   linea,
+  aurora = false,
 }: {
   titulo: string;
   subtitulo: string;
   linea: string;
+  /* SUBE y TU DNA no tienen ilustración propia: van sobre una gradiente aurora,
+     que es mucho más clara y saturada que las fotos oscuras de las otras cuatro
+     y se come el texto blanco. `aurora` añade .cf-overlay--aurora, que solo
+     sube el velo — ninguna clase existente cambia, así que las cuatro cartas
+     originales quedan pixel-iguales. */
+  aurora?: boolean;
 }) {
   return (
-    <div className="cf-overlay">
+    <div className={`cf-overlay${aurora ? ' cf-overlay--aurora' : ''}`}>
       <p className="cf-overlay__tag">{titulo}</p>
       <p className="cf-overlay__eyebrow">FEATURE</p>
       <div className="cf-overlay__texto">
@@ -70,7 +84,7 @@ function OverlayProximamente() {
   );
 }
 
-const IMG_PRONTO = ['05', '06', '07', '08', '09', '10'];
+const IMG_PRONTO = ['05', '06', '09', '10'];
 
 export function CarruselFeatures() {
   const setView = useApp((s) => s.setView);
@@ -104,10 +118,10 @@ export function CarruselFeatures() {
     return () => observador.disconnect();
   }, []);
 
-  // Los seis placeholders, repartidos: tres a la izquierda de la protagonista
-  // (índices 0-2) y tres al final (índices 7-9). Las CUATRO features reales
-  // quedan contiguas (3-6): paginando a la derecha desde SLANG se recorren
-  // STORY → CONVERSACIÓN → OFICINA sin placeholders en medio.
+  // Los cuatro placeholders, repartidos: dos al principio (índices 0-1) y dos
+  // al final (8-9). Las SEIS features reales quedan contiguas (2-7): paginando
+  // desde SLANG se recorren STORY → CONVERSACIÓN → OFICINA → TU DNA a la
+  // derecha y SUBE a la izquierda, sin placeholders en medio.
   const pronto: CardItem[] = IMG_PRONTO.map((n) => ({
     imgUrl: `/carrusel/${n}.jpg`,
     alt: 'Feature en camino',
@@ -115,7 +129,20 @@ export function CarruselFeatures() {
   }));
 
   const cards: CardItem[] = [
-    ...pronto.slice(0, 3),
+    ...pronto.slice(0, 2),
+    {
+      imgUrl: '/carrusel/07.jpg',
+      alt: 'SUBE · De B2 a C1 con juez',
+      onClick: () => setView('ladder'),
+      contenido: (
+        <OverlayFeature
+          aurora
+          titulo="SUBE"
+          subtitulo="B2 → C1"
+          linea="Peldaños con juez: di lo mismo, pero como un nativo."
+        />
+      ),
+    },
     {
       imgUrl: '/carrusel/slang.jpg',
       alt: 'SLANG · Phrasal verbs y jerga real',
@@ -169,7 +196,20 @@ export function CarruselFeatures() {
         />
       ),
     },
-    ...pronto.slice(3),
+    {
+      imgUrl: '/carrusel/08.jpg',
+      alt: 'TU DNA · Tu cerebro de errores',
+      onClick: () => setView('dna'),
+      contenido: (
+        <OverlayFeature
+          aurora
+          titulo="TU DNA"
+          subtitulo="Tu cerebro de errores"
+          linea="Tus fallos, tu jerga y tus upgrades, vivos."
+        />
+      ),
+    },
+    ...pronto.slice(2),
   ];
 
   return (

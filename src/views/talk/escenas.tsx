@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Dices } from 'lucide-react';
 
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { useEscenas } from '@/stores/escenas';
 
 import { EscenaCard } from './escena-card';
@@ -17,11 +19,22 @@ import { generarEscenas, rpSorprende, startRoleplay } from './rp-turn';
    viva (L7143). En React sale gratis — con `session` se monta la sesión y la
    portada ni existe — pero el efecto de generación también tiene que
    respetarla, porque una escena sorpresa que llega tarde no debe disparar
-   una generación por debajo. */
+   una generación por debajo.
+
+   REDISEÑO al patrón canónico (el de src/views/slang/index.tsx): fuera el
+   héroe "ACTÚA. NO SOLO HABLES." y el telón SVG — el título de la vista lo
+   pone ahora la barra mono de talk/index (que también trae el ← : aquí NO se
+   duplica). El escenario clásico y las escenas frescas viven dentro de una
+   Card scroller, y SORPRÉNDEME baja a la barra de acción de abajo, donde la
+   charla dispara su turno. Todo lo demás intacto. */
 
 /* Skeletons de carga. El viejo usaba un shimmer con background-position; aquí
    basta el pulse de Tailwind: son 3 rectángulos que dicen "vienen en camino",
    no una pieza de diseño. */
+/* Las dos constantes del patrón, redeclaradas aquí (convención del repo). */
+const COLUMNA = 'mx-auto w-full max-w-[640px]';
+const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+
 function Skeletons() {
   return (
     <>
@@ -84,102 +97,80 @@ function RoleplayHome() {
   }, []);
 
   return (
-    <div className="scroll-area flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pb-4">
-      {/* ── HÉROE ──
-          El telón deja de estar en absolute detrás del titular: mandarlo al
-          fondo (-z-10) no arreglaba nada porque es lima sobre lima y el trazo
-          se comía la S de HABLES. Ahora es una columna hermana — el texto
-          nunca pasa por debajo, y el titular parte donde tiene que partir. */}
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <Eyebrow>Roleplay · teatro jugable</Eyebrow>
-          <p className="font-display mt-3 mb-3 text-[clamp(2.1rem,9vw,3.1rem)] leading-[0.92] font-extrabold tracking-[-0.035em]">
-            ACTÚA.
-            <br />
-            NO SOLO <span style={{ color: 'var(--accent)' }}>HABLES.</span>
-          </p>
-          <p className="max-w-[330px] text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
-            Una escena, un objetivo, alguien que se te opone.
-          </p>
-        </div>
-
-        {/* Telón + máscara: el motivo teatral del viejo, line-art lima. */}
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ── La tarjeta ──────────────────────────────────────────────────────
+          Un solo scroller para toda la portada. Es el tabpanel del segmentado
+          que pinta talk/index (de ahí el id fijo), y como es scrollable lleva
+          tabIndex 0 para poder recorrerlo con teclado. */}
+      <Card className={cn(COLUMNA, 'relative min-h-0 flex-1 gap-0 overflow-hidden rounded-[22px] py-0 shadow-sm')}>
         <div
-          aria-hidden="true"
-          className="pointer-events-none mt-1 h-[104px] w-[104px] shrink-0 opacity-85 max-[359px]:hidden"
-          style={{ color: 'var(--accent)' }}
+          role="tabpanel"
+          id="rd-talk-panel-escenas"
+          aria-labelledby="rd-talk-tab-escenas"
+          tabIndex={0}
+          className={cn('flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-4 sm:px-4', SIN_BARRA)}
         >
-          <svg
-            viewBox="0 0 100 100"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="5.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="block h-full w-full"
+          {/* Un titular moderado dentro de la tarjeta: el rótulo grande de la
+              vista ya lo lleva la barra mono de arriba. */}
+          <p className="text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
+            Una escena, un objetivo, alguien que se te opone. <strong style={{ color: 'var(--text-primary)' }}>Actúa, no solo hables.</strong>
+          </p>
+
+          {/* ── El clásico de la casa ── */}
+          <Eyebrow mudo>El clásico de la casa</Eyebrow>
+          <motion.div initial="oculta" animate="visible">
+            <EscenaCard sc={RP_CANONICO} canon onEnter={startRoleplay} />
+          </motion.div>
+
+          {/* ── Escenas frescas ── */}
+          <div className="flex items-center justify-between gap-2">
+            <Eyebrow>Escenas frescas para ti</Eyebrow>
+            <BotonTexto onClick={() => void generarEscenas(true)} disabled={genBusy} aria-label="Generar otras escenas">
+              otras escenas
+            </BotonTexto>
+          </div>
+
+          {/* La cascada: las tres entran escalonadas, como el --i * 0.06s del viejo. */}
+          <motion.div
+            className="flex flex-col gap-4 pb-1"
+            initial="oculta"
+            animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
           >
-            <path d="M14 12 H86" />
-            <path d="M22 12 C22 40 18 58 30 58 C40 58 36 34 36 12" />
-            <path d="M50 12 C50 44 44 66 60 66 C72 66 66 40 66 12" />
-            <path d="M78 12 C78 40 82 58 70 58" />
-            <path d="M40 78 C40 62 44 56 52 56 C60 56 64 62 64 78 Q52 88 40 78 Z" />
-            <path d="M47 68 L47 68" strokeWidth="6" />
-            <path d="M57 68 L57 68" strokeWidth="6" />
-          </svg>
+            {(estado.tipo === 'cargando' || estado.tipo === 'espera') && <Skeletons />}
+
+            {estado.tipo === 'espera' && (
+              <p className="text-[0.82rem] leading-[1.5]" style={{ color: 'var(--text-muted)' }}>
+                Estoy terminando otra cosa — tus escenas cargan solas en cuanto acabe ·{' '}
+                <BotonTexto onClick={() => void generarEscenas(true)}>cargar ya</BotonTexto>
+              </p>
+            )}
+
+            {estado.tipo === 'error' && (
+              <p className="text-[0.88rem] leading-[1.5]" style={{ color: 'var(--text-muted)' }}>
+                {estado.msg} · <BotonTexto onClick={() => void generarEscenas(true)}>reintentar</BotonTexto>
+              </p>
+            )}
+
+            {estado.tipo === 'ok' &&
+              cards.map((sc, i) => (
+                <EscenaCard key={`${sc.title}-${i}`} sc={sc} i={i} onEnter={startRoleplay} />
+              ))}
+          </motion.div>
         </div>
-      </div>
+      </Card>
 
-      {/* ── El clásico de la casa ── */}
-      <Eyebrow mudo>El clásico de la casa</Eyebrow>
-      <motion.div initial="oculta" animate="visible">
-        <EscenaCard sc={RP_CANONICO} canon onEnter={startRoleplay} />
-      </motion.div>
-
-      {/* ── Escenas frescas ── */}
-      <div className="flex items-center justify-between gap-2">
-        <Eyebrow>Escenas frescas para ti</Eyebrow>
-        <BotonTexto onClick={() => void generarEscenas(true)} disabled={genBusy} aria-label="Generar otras escenas">
-          otras escenas
-        </BotonTexto>
-      </div>
-
-      {/* La cascada: las tres entran escalonadas, como el --i * 0.06s del viejo. */}
-      <motion.div
-        className="flex flex-col gap-4"
-        initial="oculta"
-        animate="visible"
-        variants={{ visible: { transition: { staggerChildren: 0.07 } } }}
-      >
-        {(estado.tipo === 'cargando' || estado.tipo === 'espera') && <Skeletons />}
-
-        {estado.tipo === 'espera' && (
-          <p className="text-[0.82rem] leading-[1.5]" style={{ color: 'var(--text-muted)' }}>
-            Estoy terminando otra cosa — tus escenas cargan solas en cuanto acabe ·{' '}
-            <BotonTexto onClick={() => void generarEscenas(true)}>cargar ya</BotonTexto>
-          </p>
-        )}
-
-        {estado.tipo === 'error' && (
-          <p className="text-[0.88rem] leading-[1.5]" style={{ color: 'var(--text-muted)' }}>
-            {estado.msg} · <BotonTexto onClick={() => void generarEscenas(true)}>reintentar</BotonTexto>
-          </p>
-        )}
-
-        {estado.tipo === 'ok' &&
-          cards.map((sc, i) => (
-            <EscenaCard key={`${sc.title}-${i}`} sc={sc} i={i} onEnter={startRoleplay} />
-          ))}
-      </motion.div>
-
-      {/* ── Sorpréndeme ── */}
-      <div className="flex justify-center pb-4">
+      {/* ── La barra de abajo ───────────────────────────────────────────────
+          El sitio del que la charla dispara su turno: aquí dispara la escena
+          sorpresa. */}
+      <div className={cn(COLUMNA, 'shrink-0 pt-3')}>
         <motion.button
           type="button"
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.97 }}
           onClick={() => void rpSorprende()}
           disabled={genBusy}
-          className="inline-flex min-h-[46px] cursor-pointer items-center justify-center gap-2.5 rounded-full border-0 px-[22px] py-3 text-[0.95rem] font-bold disabled:cursor-default disabled:opacity-50"
+          className="inline-flex min-h-[46px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-full border-0 px-[22px] py-3 text-[0.95rem] font-bold disabled:cursor-default disabled:opacity-50"
           style={{
             background: 'var(--accent)',
             color: 'var(--accent-ink)',

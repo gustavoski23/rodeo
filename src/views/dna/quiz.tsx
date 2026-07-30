@@ -102,14 +102,17 @@ MATERIAL:\n${materialDe(pool)}`,
 
   return (
     <>
-      <div className="flex gap-3">
+      {/* `flex-wrap` + `whitespace-nowrap`: dentro de la Card de DNA (390 px)
+          los dos botones caben en fila, y si algún día no caben bajan enteros
+          en vez de partir "REPASO RÁPIDO" en dos líneas. */}
+      <div className="flex flex-wrap gap-2.5">
         <motion.button
           type="button"
           whileTap={{ scale: 0.97 }}
           whileHover={{ y: -1 }}
           onClick={() => void pedirQuiz()}
           disabled={busy}
-          className="cursor-pointer rounded-full border-0 px-7 py-[13px] text-[0.88rem] font-bold disabled:opacity-45"
+          className="cursor-pointer rounded-full border-0 px-6 py-[13px] text-[0.88rem] font-bold whitespace-nowrap disabled:opacity-45"
           style={{ minHeight: 48, background: 'var(--accent)', color: 'var(--accent-ink)' }}
         >
           REPASO RÁPIDO
@@ -127,7 +130,7 @@ MATERIAL:\n${materialDe(pool)}`,
           whileTap={{ scale: 0.97 }}
           whileHover={{ y: -1 }}
           aria-label="Rétame — mazo rápido de tarjetas"
-          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border bg-transparent px-[22px] py-[13px] text-[0.85rem] font-semibold"
+          className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-full border bg-transparent px-5 py-[13px] text-[0.85rem] font-semibold whitespace-nowrap"
           style={{ minHeight: 48, borderColor: 'var(--borde-medio)', color: 'var(--text-primary)' }}
         >
           RÉTAME 🃏

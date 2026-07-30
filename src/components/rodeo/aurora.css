@@ -1074,3 +1074,42 @@
 :root[data-theme='light'] .aurora-tema-card[aria-pressed='true'] .aurora-tema-card__check {
   color: oklch(45% 0.13 55);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CARRUSEL · VARIANTE AURORA DEL OVERLAY DE FEATURE
+   Añadido AL FINAL y sin tocar una sola clase de arriba, así que las cuatro
+   cartas con ilustración de Gus (SLANG, STORY, CONVERSACIÓN, OFICINA) quedan
+   pixel-iguales.
+
+   Las dos cartas nuevas —SUBE (07.jpg) y TU DNA (08.jpg)— no tienen ilustración
+   propia: van sobre una gradiente aurora, que es mucho más CLARA y saturada que
+   las fotos. Con el velo estándar, "Peldaños con juez…" en blanco al 70% sobre
+   un naranja/lima al 80% de luminancia se lee a duras penas. Aquí el velo se
+   refuerza solo en esas dos: el mismo degradado, un punto más opaco y subiendo
+   un poco más alto, más una sombra de texto algo más marcada. No se toca el
+   tamaño ni la posición de nada, para que las seis cartas sigan siendo la misma
+   composición.
+
+   El velo NO se lleva al 100%: la gracia de estas dos cartas es el color, y
+   taparlo entero las convertiría en rectángulos negros indistinguibles. */
+.cf-overlay--aurora {
+  background: linear-gradient(
+    to top,
+    oklch(8% 0.012 265 / calc(0.94 * var(--cf-velo, 0.3))) 0%,
+    oklch(8% 0.012 265 / calc(0.78 * var(--cf-velo, 0.3))) 34%,
+    oklch(8% 0.012 265 / calc(0.3 * var(--cf-velo, 0.3))) 64%,
+    transparent 86%
+  );
+  text-shadow: 0 1px 14px oklch(6% 0.012 265 / 0.75);
+}
+/* El rótulo micro del borde superior (cartas NO centradas) también cae sobre
+   la gradiente clara: mismo refuerzo, mismo criterio. */
+.cf-overlay--aurora .cf-overlay__tag {
+  background: linear-gradient(
+    to bottom,
+    oklch(8% 0.012 265 / 0.68) 0%,
+    oklch(8% 0.012 265 / 0.3) 32%,
+    transparent 100%
+  );
+  color: oklch(97% 0.004 265 / 0.78);
+}

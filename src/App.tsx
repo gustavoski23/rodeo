@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { MotionConfig } from 'motion/react';
+import { MotionConfig, motion } from 'motion/react';
+import { ArrowLeft } from 'lucide-react';
 
 import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
 import { Header } from '@/components/rodeo/header';
 import { Toaster } from '@/components/rodeo/toaster';
+import { Card } from '@/components/ui/card';
 import { JOB_PACKS, JobPicker } from '@/content/a1/jobs';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -13,6 +15,7 @@ import { useEnCharla, useEnSesion } from '@/stores/talk';
 import HomeView from '@/views/home';
 import TalkView from '@/views/talk';
 import SlangView from '@/views/slang';
+import StoryView from '@/views/story';
 import LadderView from '@/views/ladder';
 import DnaView from '@/views/dna';
 import A1View from '@/views/a1';
@@ -24,27 +27,15 @@ import GateView from '@/views/gate';
    desmonta, que es lo que hace que TALK sortee un rompehielos fresco al volver
    de una sesión sin que nadie tenga que acordarse de refrescarlo.
 
-   TALK, SLANG, SUBE y DNA están portadas (DNA y SUBE se abren desde el menú,
-   como en el viejo vivían tras el perfil); STORY y OFICINA llegan después. */
+   Ya no queda ninguna vista "pendiente": TALK, SLANG, STORY, SUBE, DNA y
+   OFICINA tienen pantalla propia, así que el switch es exhaustivo y la rama
+   final es STORY (el viejo VistaPendiente y su tabla PENDIENTES se fueron con
+   ella — era un titular gigante sin ← del que solo se salía por el menú). */
 
-const PENDIENTES: Record<string, { titulo: string; sub: string }> = {
-  story: { titulo: 'STORY', sub: 'El thriller por capítulos y la lectura diaria llegan en la próxima entrega.' },
-};
-
-function VistaPendiente({ view }: { view: string }) {
-  const d = PENDIENTES[view] ?? { titulo: view.toUpperCase(), sub: 'En camino.' };
-  return (
-    <div className="flex min-h-0 flex-1 flex-col justify-center gap-3">
-      <p className="font-display text-[clamp(2rem,8.5vw,2.8rem)] leading-[0.92] font-extrabold tracking-[-0.035em]">
-        {d.titulo}
-        <span style={{ color: 'var(--accent)' }}>.</span>
-      </p>
-      <p className="max-w-[330px] text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
-        {d.sub}
-      </p>
-    </div>
-  );
-}
+/* La misma COLUMNA de 640 px que usan las vistas (slang, charla, story): el
+   shell la redeclara para el wrapper de OFICINA, que también es pantalla.
+   Convención del repo — se copia, no se extrae a una lib compartida. */
+const COLUMNA = 'mx-auto w-full max-w-[640px]';
 
 /* OFICINA cableada: al entrar por primera vez (ya con el onboarding de Alfred
    visto) toca elegir trabajo; con trabajo elegido, el curso completo con packs
@@ -53,30 +44,64 @@ function OficinaView() {
   const onboarded = useA1((s) => s.onboarded);
   const job = useA1((s) => s.job);
   const setJob = useA1((s) => s.setJob);
+  const setView = useApp((s) => s.setView);
   // "Después elijo" vale por esta visita: el picker vuelve la próxima vez,
   // porque elegir trabajo es lo que desbloquea las unidades del rol.
   const [pospuesto, setPospuesto] = useState(false);
 
   if (onboarded && !job && !pospuesto) {
+    /* Paso de elección con el patrón canónico: barra ← + título mono, y las
+       cuatro pegatinas dentro de la Card. Antes era un héroe clamp("¿En qué
+       trabajás?") suelto a todo el ancho y sin salida: la única forma de dejar
+       OFICINA sin elegir pack era "Después elijo" o el menú. La funcionalidad
+       es la de antes — onPick sigue siendo setJob, "Después elijo" sigue
+       posponiendo por esta visita. */
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-        <div>
-          <p className="font-display text-[clamp(1.7rem,7vw,2.2rem)] leading-[0.95] font-extrabold tracking-[-0.03em]">
-            ¿En qué trabajás<span style={{ color: 'var(--accent)' }}>?</span>
-          </p>
-          <p className="mt-1.5 text-[0.9rem]" style={{ color: 'var(--text-secondary)' }}>
-            El tronco del curso es para todos; tu trabajo le suma sus propias escenas.
-          </p>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-3')}>
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.94 }}
+            onClick={() => setView('home')}
+            aria-label="Volver al inicio"
+            className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+            style={{
+              borderColor: 'var(--borde-sutil)',
+              background: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
+            }}
+          >
+            <ArrowLeft size={17} strokeWidth={2} />
+          </motion.button>
+          <span
+            className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
+            style={{ color: 'var(--accent)' }}
+          >
+            Oficina · elegí tu trabajo
+          </span>
         </div>
-        <JobPicker packs={JOB_PACKS} seleccionado={null} onPick={setJob} />
-        <button
-          type="button"
-          onClick={() => setPospuesto(true)}
-          className="mx-auto mt-1 cursor-pointer text-[0.85rem] underline-offset-4 hover:underline"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Después elijo
-        </button>
+
+        <Card className={cn(COLUMNA, 'relative min-h-0 flex-1 gap-0 overflow-hidden rounded-[22px] py-0 shadow-sm')}>
+          <div
+            className={cn(
+              'flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-4 sm:px-4',
+              '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+            )}
+          >
+            <p className="text-[0.9rem] leading-[1.5]" style={{ color: 'var(--text-secondary)' }}>
+              El tronco del curso es para todos; tu trabajo le suma sus propias escenas.
+            </p>
+            <JobPicker packs={JOB_PACKS} seleccionado={null} onPick={setJob} />
+            <button
+              type="button"
+              onClick={() => setPospuesto(true)}
+              className="mx-auto mt-auto cursor-pointer pt-1 text-[0.85rem] underline-offset-4 hover:underline"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Después elijo
+            </button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -162,7 +187,7 @@ export default function App() {
             ) : view === 'a1' ? (
               <OficinaView />
             ) : (
-              <VistaPendiente view={view} />
+              <StoryView />
             )}
           </main>
 

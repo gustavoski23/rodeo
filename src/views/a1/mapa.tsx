@@ -1,9 +1,12 @@
 import { useMemo } from 'react';
 import { motion } from 'motion/react';
-import { ArrowRight, Check, LifeBuoy, Lock, Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, LifeBuoy, Lock, Star } from 'lucide-react';
 
 import { BorderBeam } from '@/components/magicui/border-beam';
+import { Card } from '@/components/ui/card';
 import type { A1Unit, JobPack } from '@/content/a1/tipos';
+import { cn } from '@/lib/utils';
+import { useApp } from '@/stores/app';
 import {
   dominioUnidad,
   estaDesbloqueada,
@@ -17,7 +20,7 @@ import {
   TOPE_VENCIDOS,
 } from '@/stores/a1';
 
-import { AlfredBloque, Barra, ENTRADA, Eyebrow } from './alfred';
+import { AlfredBloque, Barra, Eyebrow } from './alfred';
 
 /* MAPA DE UNIDADES — port de homeHTML/unitCardHTML/greetingHTML/metricHTML/
    ctaHTML/hookHTML (public/js/a1-office.js:255-460).
@@ -34,7 +37,22 @@ import { AlfredBloque, Barra, ENTRADA, Eyebrow } from './alfred';
    unidad. La presentación de cada situación —companionSetup_es— es de Alfred
    también, pero va donde tiene sentido: en la portada que se abre al tocar una
    unidad sin estrenar (./portada.tsx). Mezclarlas en el mapa haría que Alfred
-   presente siete situaciones a la vez a alguien que todavía no eligió ninguna. */
+   presente siete situaciones a la vez a alguien que todavía no eligió ninguna.
+
+   SHELL AL PATRÓN CANÓNICO (el de src/views/slang/index.tsx y el de la sesión
+   de charla): barra de sección con el ← redondo + título mono en --accent, y
+   TODO el contenido dentro de una <Card> de 640 px que hace de scroller sin
+   pintar barra. Se fue el héroe "TU PRIMERA SEMANA." con su blur aurora: el
+   título de la vista ahora vive en la barra mono, como en el resto de la app.
+   El orden y el contenido de adentro no cambian, ni la firma de <Mapa/>
+   (a1/index.tsx lo monta igual). Los ← internos de portada/sesión/tarea siguen
+   siendo suyos: llevan al mapa, no a la casa. */
+
+/* Las mismas dos constantes que SLANG y CHARLA, redeclaradas acá a propósito
+   (convención del repo): la vista es una COLUMNA, y el scroll funciona sin
+   pintar barra. */
+const COLUMNA = 'mx-auto w-full max-w-[640px]';
+const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
 /** cardTheme del contenido → token de card. Nunca coral: en RODEO ese color
     significa error, y una situación de la oficina no es un castigo. */
@@ -208,6 +226,7 @@ export function Mapa({
   const unidades = useA1((s) => s.unidades);
   const tronco = useA1((s) => s.tronco);
   const nGuardadas = useA1((s) => s.guardadas.length);
+  const setView = useApp((s) => s.setView);
 
   /* Los cálculos leen el store por getState(), no por argumento: las deps son
      los datos que MIRAN (SRS, progreso, catálogo), aunque no aparezcan dentro.
@@ -244,154 +263,157 @@ export function Mapa({
   const delPack = unidades.slice(tronco);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pb-4">
-      {/* ── Hero. El resplandor aurora es el mismo de la puerta de la app: al
-          entrar a OFICINA seguís en RODEO, no en otro producto. ── */}
-      <motion.div {...ENTRADA} className="relative shrink-0 overflow-hidden pt-1">
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ── Barra de sección: el ← de la vista y su nombre en mono ── */}
+      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-3')}>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.94 }}
+          onClick={() => setView('home')}
+          aria-label="Volver al inicio"
+          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+        >
+          <ArrowLeft size={17} strokeWidth={2} />
+        </motion.button>
         <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-16 -left-10 h-48 w-64 rounded-full opacity-45 blur-3xl"
-          style={{
-            background:
-              'radial-gradient(circle at 30% 40%, var(--aurora-1), transparent 62%), radial-gradient(circle at 70% 60%, var(--aurora-2), transparent 58%)',
-          }}
-        />
-        <div className="relative flex flex-col gap-2.5">
-          <Eyebrow acento>Oficina · con Alfred</Eyebrow>
-          <p className="font-display text-[clamp(2.1rem,10vw,3rem)] leading-[0.92] font-extrabold tracking-[-0.04em]">
-            TU PRIMERA
-            <br />
-            SEMANA
-            <span style={{ color: 'var(--accent)' }}>.</span>
-          </p>
-          <p className="max-w-[340px] text-[0.92rem] leading-[1.5]" style={{ color: 'var(--text-secondary)' }}>
-            Frase por frase. Sin miedo. Alfred te dice qué decir el lunes a las 8.
-          </p>
-        </div>
-      </motion.div>
-
-      {/* ── Métrica estrella: capacidad, no puntos ── */}
-      <div className="flex shrink-0 flex-col gap-2">
-        <Barra pct={pct} />
-        <p className="text-[0.82rem]" style={{ color: 'var(--text-secondary)' }}>
-          {datos.m.salen > 0 ? (
-            <>
-              Ya te salen solas: <strong style={{ color: 'var(--text-primary)' }}>{datos.m.salen}</strong>
-            </>
-          ) : (
-            'Apenas arrancás — pronto se te van saliendo solas.'
-          )}
-        </p>
+          className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
+          style={{ color: 'var(--accent)' }}
+        >
+          Oficina · con Alfred
+        </span>
       </div>
 
-      <AlfredBloque lineas={[saludo]} />
-
-      {/* ── UNA acción del día ── */}
-      <div className="flex shrink-0 flex-col gap-2.5">
-        {datos.due > 0 ? (
-          <CtaGrande
-            conHaz
-            eyebrow="Repaso de pasillo"
-            principal={`${n}${n === 1 ? ' frase lista' : ' frases listas'} pa' refrescar`}
-            accion="Repasar →"
-            onClick={onRepaso}
-          />
-        ) : datos.hayNuevos ? (
-          <CtaGrande
-            conHaz
-            eyebrow="Todo fresco"
-            principal="Nada que repasar — arranquemos algo nuevo"
-            accion="Arrancar →"
-            onClick={onRepaso}
-          />
-        ) : null}
-
-        {datos.retomar && (
-          <CtaGrande
-            eyebrow="Seguí donde ibas"
-            principal={`${datos.retomar.unit.title_es} · escena ${datos.retomar.sceneNum}/${datos.retomar.sceneTotal}`}
-            accion="Seguir →"
-            onClick={onSeguir}
-          />
-        )}
-      </div>
-
-      {/* ── Ganchos ── */}
-      <div className="flex shrink-0 flex-col gap-2.5">
-        <Eyebrow>¿Sabés decir…?</Eyebrow>
-        <div className="flex flex-wrap gap-2">
-          {GANCHOS.filter((g) => unidades.some((u) => u.id === g.unit)).map((g) => {
-            const abierta = estaDesbloqueada(g.unit);
-            return (
-              <motion.button
-                key={g.unit}
-                type="button"
-                whileTap={{ scale: 0.96 }}
-                onClick={() => onUnidad(g.unit)}
-                className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-[0.82rem]"
-                style={{
-                  borderColor: 'var(--borde-sutil)',
-                  background: 'var(--chip-bg)',
-                  color: abierta ? 'var(--text-primary)' : 'var(--text-muted)',
-                }}
-              >
-                {g.q}
-                {!abierta && <Lock className="size-3" strokeWidth={2} aria-hidden="true" />}
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── Catálogo ── */}
-      <div className="flex shrink-0 flex-col gap-2.5">
-        <Eyebrow>Elegí por dónde arrancar</Eyebrow>
-        {delTronco.map((u) => (
-          <UnidadCard key={u.id} u={u} onAbrir={onUnidad} />
-        ))}
-      </div>
-
-      {/* ── Lo del trabajo elegido (A1.2). Va después del tronco a propósito:
-          primero sobrevivís la oficina, después hablás de lo tuyo. ── */}
-      {delPack.length > 0 && (
-        <div className="flex shrink-0 flex-col gap-2.5">
-          <Eyebrow acento>{pack ? `Lo tuyo · ${pack.nombre_es}` : 'Lo tuyo'}</Eyebrow>
-          {pack && (
-            <p className="text-[0.85rem] leading-[1.45]" style={{ color: 'var(--text-secondary)' }}>
-              {pack.promesa_es}
+      {/* ── La tarjeta: un solo scroller para todo el mapa ── */}
+      <Card className={cn(COLUMNA, 'relative min-h-0 flex-1 gap-0 overflow-hidden rounded-[22px] py-0 shadow-sm')}>
+        <div
+          tabIndex={0}
+          className={cn('flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-4 sm:px-4', SIN_BARRA)}
+        >
+          {/* ── Métrica estrella: capacidad, no puntos ── */}
+          <div className="flex shrink-0 flex-col gap-2">
+            <Barra pct={pct} />
+            <p className="text-[0.82rem]" style={{ color: 'var(--text-secondary)' }}>
+              {datos.m.salen > 0 ? (
+                <>
+                  Ya te salen solas: <strong style={{ color: 'var(--text-primary)' }}>{datos.m.salen}</strong>
+                </>
+              ) : (
+                'Apenas arrancás — pronto se te van saliendo solas.'
+              )}
             </p>
-          )}
-          {delPack.map((u) => (
-            <UnidadCard key={u.id} u={u} onAbrir={onUnidad} />
-          ))}
-        </div>
-      )}
+          </div>
 
-      {/* ── Pie: lo guardado y el salvavidas ── */}
-      <div className="flex shrink-0 flex-col gap-2.5 pt-1">
-        <button
-          type="button"
-          onClick={onGuardadas}
-          className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border text-[0.88rem] font-semibold"
-          style={{ borderColor: 'var(--borde-sutil)', color: 'var(--text-secondary)' }}
-        >
-          <Star className="size-4" strokeWidth={2} aria-hidden="true" />
-          Mis frases{nGuardadas ? ` · ${nGuardadas}` : ''}
-        </button>
-        <button
-          type="button"
-          onClick={onPanico}
-          className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border px-4 text-[0.88rem] font-semibold"
-          style={{
-            borderColor: 'color-mix(in oklch, var(--accent) 40%, transparent)',
-            background: 'var(--accent-dim)',
-            color: 'var(--accent)',
-          }}
-        >
-          <LifeBuoy className="size-4" strokeWidth={2.2} aria-hidden="true" />
-          No entiendo — las frases que me salvan
-        </button>
-      </div>
+          <AlfredBloque lineas={[saludo]} />
+
+          {/* ── UNA acción del día ── */}
+          <div className="flex shrink-0 flex-col gap-2.5">
+            {datos.due > 0 ? (
+              <CtaGrande
+                conHaz
+                eyebrow="Repaso de pasillo"
+                principal={`${n}${n === 1 ? ' frase lista' : ' frases listas'} pa' refrescar`}
+                accion="Repasar →"
+                onClick={onRepaso}
+              />
+            ) : datos.hayNuevos ? (
+              <CtaGrande
+                conHaz
+                eyebrow="Todo fresco"
+                principal="Nada que repasar — arranquemos algo nuevo"
+                accion="Arrancar →"
+                onClick={onRepaso}
+              />
+            ) : null}
+
+            {datos.retomar && (
+              <CtaGrande
+                eyebrow="Seguí donde ibas"
+                principal={`${datos.retomar.unit.title_es} · escena ${datos.retomar.sceneNum}/${datos.retomar.sceneTotal}`}
+                accion="Seguir →"
+                onClick={onSeguir}
+              />
+            )}
+          </div>
+
+          {/* ── Ganchos ── */}
+          <div className="flex shrink-0 flex-col gap-2.5">
+            <Eyebrow>¿Sabés decir…?</Eyebrow>
+            <div className="flex flex-wrap gap-2">
+              {GANCHOS.filter((g) => unidades.some((u) => u.id === g.unit)).map((g) => {
+                const abierta = estaDesbloqueada(g.unit);
+                return (
+                  <motion.button
+                    key={g.unit}
+                    type="button"
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => onUnidad(g.unit)}
+                    className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-full border px-3.5 text-[0.82rem]"
+                    style={{
+                      borderColor: 'var(--borde-sutil)',
+                      background: 'var(--chip-bg)',
+                      color: abierta ? 'var(--text-primary)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {g.q}
+                    {!abierta && <Lock className="size-3" strokeWidth={2} aria-hidden="true" />}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Catálogo ── */}
+          <div className="flex shrink-0 flex-col gap-2.5">
+            <Eyebrow>Elegí por dónde arrancar</Eyebrow>
+            {delTronco.map((u) => (
+              <UnidadCard key={u.id} u={u} onAbrir={onUnidad} />
+            ))}
+          </div>
+
+          {/* ── Lo del trabajo elegido (A1.2). Va después del tronco a propósito:
+              primero sobrevivís la oficina, después hablás de lo tuyo. ── */}
+          {delPack.length > 0 && (
+            <div className="flex shrink-0 flex-col gap-2.5">
+              <Eyebrow acento>{pack ? `Lo tuyo · ${pack.nombre_es}` : 'Lo tuyo'}</Eyebrow>
+              {pack && (
+                <p className="text-[0.85rem] leading-[1.45]" style={{ color: 'var(--text-secondary)' }}>
+                  {pack.promesa_es}
+                </p>
+              )}
+              {delPack.map((u) => (
+                <UnidadCard key={u.id} u={u} onAbrir={onUnidad} />
+              ))}
+            </div>
+          )}
+
+          {/* ── Pie: lo guardado y el salvavidas ── */}
+          <div className="flex shrink-0 flex-col gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={onGuardadas}
+              className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border text-[0.88rem] font-semibold"
+              style={{ borderColor: 'var(--borde-sutil)', color: 'var(--text-secondary)' }}
+            >
+              <Star className="size-4" strokeWidth={2} aria-hidden="true" />
+              Mis frases{nGuardadas ? ` · ${nGuardadas}` : ''}
+            </button>
+            <button
+              type="button"
+              onClick={onPanico}
+              className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border px-4 text-[0.88rem] font-semibold"
+              style={{
+                borderColor: 'color-mix(in oklch, var(--accent) 40%, transparent)',
+                background: 'var(--accent-dim)',
+                color: 'var(--accent)',
+              }}
+            >
+              <LifeBuoy className="size-4" strokeWidth={2.2} aria-hidden="true" />
+              No entiendo — las frases que me salvan
+            </button>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { ArrowLeft, Play, RefreshCw, SendHorizontal, Volume2, VolumeX } from 'lu
 import { MicButton } from '@/components/rodeo/mic-button';
 import { PillButton } from '@/components/rodeo/pill-button';
 import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { repetirUltimo, replayUltimo, toggleTts, useTts } from '@/lib/speech';
 import { useApp } from '@/stores/app';
 import { useEscenas } from '@/stores/escenas';
@@ -24,7 +26,17 @@ import { closeRoleplay, rpDebrief, rpTurn } from './rp-turn';
      línea es tan legítimo como decirla, y el teclado no se esconde detrás de
      un botón.
    · No hay bombilla. La ayuda en escena es el CONSEJO del narrador, que llega
-     dentro del turno; pedir una respuesta-ejemplo rompería la ficción. */
+     dentro del turno; pedir una respuesta-ejemplo rompería la ficción.
+
+   Del patrón canónico se toma SOLO el chasis: la COLUMNA de 640 px compartida
+   por barra, tarjeta y dock, y el log dentro de una Card con su scroller
+   interno sin barra a la vista. El dock de voz NO migra a ConversationBar —
+   el rediseño profundo de ESCENAS es otra entrega; MicButton, campo y enviar
+   se quedan exactamente como estaban. */
+
+/* Las dos constantes del patrón, redeclaradas aquí (convención del repo). */
+const COLUMNA = 'mx-auto w-full max-w-[640px]';
+const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
 export function EscenasSession() {
   const sc = useEscenas((s) => s.session?.scenario);
@@ -76,7 +88,7 @@ export function EscenasSession() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* ── Barra de sesión ── */}
-      <div className="flex shrink-0 flex-col gap-2 pb-3">
+      <div className={cn(COLUMNA, 'flex shrink-0 flex-col gap-2 pb-3')}>
         <div className="flex items-center gap-2">
           <motion.button
             type="button"
@@ -138,23 +150,30 @@ export function EscenasSession() {
         </div>
       </div>
 
-      {/* ── Escena ── */}
-      <div
-        ref={scrollRef}
-        data-rp-scroll
-        className="scroll-area flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-2"
-      >
-        {log.map((b) => (
-          <RpFila key={b.id} b={b} />
-        ))}
-      </div>
+      {/* ── Escena ──────────────────────────────────────────────────────────
+          El log pasa a vivir dentro de la Card del patrón. El scroller REAL es
+          el div interno: ahí bajan el ref, el data-rp-scroll (marca heredada de
+          #rp-scroll) y por tanto el autoscroll del efecto — la Card es solo el
+          marco y no scrollea. */}
+      <Card className={cn(COLUMNA, 'relative min-h-0 flex-1 gap-0 overflow-hidden rounded-[22px] py-0 shadow-sm')}>
+        <div
+          ref={scrollRef}
+          data-rp-scroll
+          tabIndex={0}
+          className={cn('flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-3 py-3 sm:px-4', SIN_BARRA)}
+        >
+          {log.map((b) => (
+            <RpFila key={b.id} b={b} />
+          ))}
+        </div>
+      </Card>
 
       {/* La onda en vivo mientras hablas. */}
-      <OndaDictado g={dictado} className="shrink-0 px-10 pt-2" height={32} />
+      <OndaDictado g={dictado} className={cn(COLUMNA, 'shrink-0 px-10 pt-2')} height={32} />
 
       {/* ── Dock: siempre visible. Deshabilitar DE VERDAD mientras el narrador
               vuela — bajar la opacidad no impide el clic (§8 trampa 14). ── */}
-      <div className="flex shrink-0 items-center gap-2 pt-3">
+      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pt-3')}>
         <MicButton
           ctx="rp"
           recording={grabando}
