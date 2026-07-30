@@ -1,20 +1,24 @@
 import { AnimatedThemeToggler } from '@/components/magicui/animated-theme-toggler';
-import { MenuToggle } from '@/components/rodeo/menu-toggle';
-import { aplicarTema } from '@/lib/theme';
-import { store } from '@/lib/storage';
+import { MenuFlotante } from '@/components/rodeo/menu-flotante';
+import { SIGUIENTE_TEMA, temaVisual } from '@/lib/theme';
 import { useApp } from '@/stores/app';
 
-/* Header global: menú (☰↔✕) · marca · toggler de tema.
-   La mascota line-art y el logo vienen del diseño actual de la app. */
-export function Header({ menuOpen, onMenuToggle }: { menuOpen: boolean; onMenuToggle: () => void }) {
+/* Header global: menú líquido · marca · toggler de tema.
+   La mascota line-art y el logo vienen del diseño actual de la app.
+
+   El MenuToggle redondo (☰↔✕) dejó su sitio a la píldora "Menu ≡" del
+   liquid-morph (MenuFlotante). La píldora mide 150px contra los 40 del botón
+   viejo: para que la fila siga entrando en 390px, la coletilla "tu inglés
+   24/7" y la mascota se guardan hasta `sm`. El wordmark RODEO no se toca. */
+export function Header({ onPersonalizar, menuOculto = false }: { onPersonalizar: () => void; menuOculto?: boolean }) {
   const tema = useApp((s) => s.tema);
-  const setTema = useApp((s) => s.setTema);
+  const cambiarTema = useApp((s) => s.cambiarTema);
 
   return (
     <header className="flex shrink-0 items-center justify-between px-5 pt-5 pb-3">
-      <div className="flex items-center gap-2.5">
-        <MenuToggle open={menuOpen} onToggle={onMenuToggle} />
-        <span aria-hidden="true" className="inline-flex">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <MenuFlotante onPersonalizar={onPersonalizar} oculto={menuOculto} />
+        <span aria-hidden="true" className="hidden sm:inline-flex">
           {/* mascot-mark RODEO: carita line-art lima (círculo + ojos + sonrisa wonky) */}
           <svg
             width="30"
@@ -44,7 +48,7 @@ export function Header({ menuOpen, onMenuToggle }: { menuOpen: boolean; onMenuTo
               RODEO<span className="text-brand">.</span>
             </h1>
           </button>
-          <span className="font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase">
+          <span className="hidden font-mono text-[0.62rem] tracking-[0.14em] text-muted-foreground uppercase sm:inline">
             tu inglés 24/7
           </span>
         </div>
@@ -53,17 +57,15 @@ export function Header({ menuOpen, onMenuToggle }: { menuOpen: boolean; onMenuTo
       {/* AnimatedThemeToggler (Magic UI, verbatim) en modo controlado: RODEO es
           dueño de la persistencia — data-theme en <html>, clave rodeo_tema y
           meta theme-color, igual que la app original. */}
+      {/* Mismo ciclo de TRES que el Home (día → noche → gradiente → día): el
+          toggler es binario y verbatim, así que se le ignora lo que reporta y
+          el siguiente tema lo decide SIGUIENTE_TEMA. */}
       <AnimatedThemeToggler
-        theme={tema === 'claro' ? 'light' : 'dark'}
+        theme={temaVisual(tema)}
         duration={700}
-        onThemeChange={(t) => {
-          const nuevo = t === 'light' ? 'claro' : 'oscuro';
-          aplicarTema(nuevo);
-          store.set('rodeo_tema', nuevo);
-          setTema(nuevo);
-        }}
-        aria-label="Cambiar entre tema claro y oscuro"
-        className="border-border bg-transparent text-foreground inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border [&_svg]:size-5"
+        onThemeChange={() => cambiarTema(SIGUIENTE_TEMA[tema])}
+        aria-label="Cambiar de tema: día, noche o gradiente"
+        className="border-border bg-transparent text-foreground inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border [&_svg]:size-5"
       />
     </header>
   );

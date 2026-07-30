@@ -878,3 +878,199 @@
   background: oklch(20% 0.012 265 / 0.66);
   color: oklch(94% 0.004 265);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   MENÚ FLOTANTE (liquid-morph) RE-ANCLADO ARRIBA-IZQUIERDA
+   El componente de components/ui es VERBATIM y no expone posición: su raíz
+   trae `fixed bottom-10 left-1/2` + transform inline x:-50%. Estas dos reglas
+   son todo el ajuste, y solo tocan ESA raíz (hijo directo). Ver el comentario
+   largo en components/rodeo/menu-flotante.tsx.
+   ══════════════════════════════════════════════════════════════════════ */
+.menu-flotante {
+  /* Reserva en flujo la caja de la píldora CERRADA (medidas del propio
+     componente): así ocupa el hueco que dejó el MenuToggle y el resto de la
+     fila no se recoloca. Abierto, el panel desborda esta caja por encima del
+     contenido — nadie le pone overflow:hidden en el camino. */
+  position: relative;
+  z-index: 60;
+  width: 150px;
+  height: 48px;
+  flex-shrink: 0;
+  transition: opacity 0.18s ease;
+}
+/* Con una capa a pantalla completa encima —la hoja del personalizador
+   (`fixed inset-0 z-50`) o la vitrina del carrusel (`.aurora-carrusel`, z-40)—
+   el menú se APARTA: se desvanece con el mismo tiempo que el velo, baja por
+   debajo de esa capa y deja de recibir puntero. El z-index cae a 0 (no a 40)
+   para quedar por debajo de AMBAS sin depender del orden del DOM para
+   desempatar con el carrusel. El `visibility:hidden` (retrasado hasta el final
+   del fundido, e inmediato al volver) es el cinturón: garantiza que no haya
+   hit-test aunque un contexto de apilado intermedio le diera la vuelta al
+   z-index. La caja en flujo de 150×48 se queda, así que la fila del Header no
+   se recoloca al abrir ni al cerrar. */
+.menu-flotante--oculto {
+  z-index: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s linear 0.18s;
+}
+.menu-flotante > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  /* Inevitable: motion escribe el x:-50% como transform inline y solo el
+     !important lo gana. Coste: la entrada pierde su y:20→0 (queda el fundido).
+     El morph NO se ve afectado — sus transforms viven en hijos más profundos. */
+  transform: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TEMA GRADIENTE — capa de fondo del Home
+   ══════════════════════════════════════════════════════════════════════ */
+/* SOLO con el tema gradiente el shell crea contexto de apilado, para que la
+   capa de burbujas (z-index:-1) quede por ENCIMA de su propio background
+   #14161a y por DEBAJO de todo el contenido en flujo, sin tener que tocar el
+   z-index de una sola pieza del Home. Va scopeado a [data-fondo='gradiente']
+   a propósito: en claro/oscuro el apilado del Home queda EXACTAMENTE como
+   estaba (el chevron fijo z-50 sobre la capa del carrusel z-40 incluidos). */
+:root[data-fondo='gradiente'] .aurora-shell {
+  position: relative;
+  z-index: 0;
+}
+.aurora-fondo-gradiente {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+/* Velo medido: las burbujas goo llegan a rosas y limas muy claros y el
+   "¿Qué quieres practicar hoy?" blanco perdía contraste sobre ellas. Un
+   oscurecido plano del 38% con un refuerzo radial en el centro (donde vive el
+   copy) deja el texto por encima de 7:1 sin apagar el color del fondo. */
+.aurora-fondo-gradiente__velo {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 48%, oklch(8% 0.01 265 / 0.42), transparent 70%),
+    oklch(8% 0.01 265 / 0.38);
+  pointer-events: none;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PERSONALIZADOR · sección TEMA
+   ══════════════════════════════════════════════════════════════════════ */
+.aurora-customizer__temas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.aurora-tema-card {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 10px 6px 9px;
+  border: 1px solid oklch(94% 0.008 265 / 0.12);
+  border-radius: 16px;
+  background: oklch(100% 0 0 / 0.03);
+  color: oklch(72% 0.01 265);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.aurora-tema-card:hover {
+  border-color: oklch(94% 0.008 265 / 0.26);
+  color: oklch(92% 0.006 265);
+}
+.aurora-tema-card[aria-pressed='true'] {
+  border-color: #d99c66;
+  background: oklch(72% 0.12 55 / 0.14);
+  color: oklch(96% 0.006 265);
+}
+.aurora-tema-card__preview {
+  width: 100%;
+  height: 42px;
+  border-radius: 11px;
+  border: 1px solid oklch(94% 0.008 265 / 0.14);
+  overflow: hidden;
+}
+/* Miniaturas ESTÁTICAS a puro CSS: montar un BubbleBackground de 42px de alto
+   por una previsualización sería un segundo árbol de motion + filtro goo
+   corriendo dentro de una hoja modal. */
+.aurora-tema-card__preview[data-tema='claro'] {
+  background: linear-gradient(160deg, #fdfcf9, #efece3);
+}
+.aurora-tema-card__preview[data-tema='oscuro'] {
+  background: linear-gradient(160deg, #1b1e24, #0a0a0e);
+}
+.aurora-tema-card__preview[data-tema='gradiente'] {
+  background:
+    radial-gradient(circle at 72% 28%, rgba(221, 74, 255, 0.75), transparent 55%),
+    radial-gradient(circle at 26% 72%, rgba(0, 220, 255, 0.6), transparent 55%),
+    linear-gradient(135deg, #4c1d95, #1e3a8a);
+}
+.aurora-tema-card__check {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.aurora-tema-card[aria-pressed='true'] .aurora-tema-card__check {
+  opacity: 1;
+  color: #e8b183;
+}
+
+/* ── El personalizador en tema CLARO ──────────────────────────────────────
+   HALLAZGO (no lo trae esta ronda, es previo): `.aurora-customizer` fija
+   `color: oklch(94% …)` sin condición, y la hoja se pinta sobre
+   var(--bg-elevated) — que en claro es oklch(94.5%). O sea texto casi blanco
+   sobre papel casi blanco: el título "Personalizar aurora", los nombres de las
+   paletas y las etiquetas de los sliders son ILEGIBLES en día. Se veía ya
+   antes de añadir la sección TEMA; se arregla aquí porque la sección nueva
+   heredaba el mismo problema y no tiene sentido dejar media hoja legible.
+   Solo se tocan COLORES DE TEXTO, y solo bajo [data-theme='light']: en oscuro
+   y en gradiente la hoja queda byte a byte como estaba. */
+:root[data-theme='light'] .aurora-customizer {
+  color: oklch(22% 0.012 265);
+}
+:root[data-theme='light'] .aurora-customizer h2,
+:root[data-theme='light'] .aurora-customizer h3 {
+  color: oklch(18% 0.012 265);
+}
+:root[data-theme='light'] .aurora-customizer__eyebrow,
+:root[data-theme='light'] .aurora-customizer__note,
+:root[data-theme='light'] .aurora-customizer__motion label {
+  color: oklch(44% 0.014 265);
+}
+:root[data-theme='light'] .aurora-customizer__motion output {
+  color: oklch(30% 0.012 265);
+}
+:root[data-theme='light'] .aurora-preset__name {
+  color: oklch(30% 0.012 265);
+}
+
+/* Las tarjetas de TEMA sobre papel: mismo dibujo, tinta oscura. */
+:root[data-theme='light'] .aurora-tema-card {
+  border-color: oklch(22% 0.012 265 / 0.16);
+  background: oklch(22% 0.012 265 / 0.03);
+  color: oklch(40% 0.014 265);
+}
+:root[data-theme='light'] .aurora-tema-card:hover {
+  border-color: oklch(22% 0.012 265 / 0.34);
+  color: oklch(20% 0.012 265);
+}
+:root[data-theme='light'] .aurora-tema-card[aria-pressed='true'] {
+  border-color: oklch(52% 0.13 55);
+  background: oklch(72% 0.12 55 / 0.18);
+  color: oklch(18% 0.012 265);
+}
+:root[data-theme='light'] .aurora-tema-card[aria-pressed='true'] .aurora-tema-card__check {
+  color: oklch(45% 0.13 55);
+}

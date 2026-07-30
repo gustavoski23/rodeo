@@ -3,7 +3,6 @@ import { MotionConfig } from 'motion/react';
 
 import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
 import { Header } from '@/components/rodeo/header';
-import { MenuSheet } from '@/components/rodeo/menu-sheet';
 import { Toaster } from '@/components/rodeo/toaster';
 import { JOB_PACKS, JobPicker } from '@/content/a1/jobs';
 import { cn } from '@/lib/utils';
@@ -86,7 +85,11 @@ function OficinaView() {
 }
 
 export default function App() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  /* El menú ☰ ya no es un estado del shell: la píldora liquid-morph
+     (MenuFlotante) se abre y se cierra sola, así que `menuOpen`/`onMenuToggle`
+     desaparecieron de App, Home y Header. Lo único que sigue viviendo aquí es
+     el personalizador, porque su hoja la monta App y el menú solo la pide.
+     MenuSheet y MenuToggle siguen en el repo, sin montarse. */
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const view = useApp((s) => s.view);
   // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
@@ -127,12 +130,12 @@ export default function App() {
       {view === 'home' ? (
         /* El Home aurora va a pantalla completa: sin header de marca, sin
            tab bar, sin divisoria — solo su hamburguesa. Es la puerta. */
-        <HomeView menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
+        <HomeView onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen} />
       ) : (
         <>
           {!charlaPantallaCompleta && (
             <>
-              <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
+              <Header onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen} />
               <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
             </>
           )}
@@ -169,7 +172,6 @@ export default function App() {
         </>
       )}
 
-      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} onPersonalizar={() => setCustomizerOpen(true)} />
       <AuroraCustomizer open={customizerOpen} onClose={() => setCustomizerOpen(false)} />
       <Toaster />
     </MotionConfig>

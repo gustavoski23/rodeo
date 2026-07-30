@@ -2,12 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
+import { ETIQUETA_TEMA, type Tema } from '@/lib/theme';
+import { useApp } from '@/stores/app';
 import {
   AURORA_HEX,
   AURORA_PRESETS,
   isAuroraDefault,
   useAurora,
 } from '@/stores/aurora';
+
+/* Los tres temas de la app, en el orden del ciclo del toggler. Las
+   miniaturas son CSS estático (aurora.css, .aurora-tema-card__preview):
+   montar un BubbleBackground de 42px para previsualizar el gradiente sería
+   un segundo árbol animado corriendo dentro de una hoja modal. */
+const TEMAS: Tema[] = ['claro', 'oscuro', 'gradiente'];
 
 /* Personalizar aurora — port 1:1 de openAuroraCustomizer
    (codex/home-aurora-production-review, index.html:2703-2799). Preview real
@@ -81,6 +89,10 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
   const reset = useAurora((s) => s.reset);
   const swapEnds = useAurora((s) => s.swapEnds);
   const applyPreset = useAurora((s) => s.applyPreset);
+  const tema = useApp((s) => s.tema);
+  // MISMO camino que el toggler del Home/Header: cambiarTema pinta <html>,
+  // persiste rodeo_tema y avisa. Nada de rutas paralelas.
+  const cambiarTema = useApp((s) => s.cambiarTema);
 
   return (
     <AnimatePresence>
@@ -118,6 +130,33 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
                   ×
                 </button>
               </div>
+
+              {/* TEMA va PRIMERO: es lo que decide el lienzo sobre el que se
+                  ve todo lo demás (incluida la preview del aurora de abajo). */}
+              <section className="aurora-customizer__map" aria-labelledby="aurora-tema-title">
+                <div className="aurora-customizer__map-heading">
+                  <div>
+                    <p className="aurora-customizer__eyebrow">El lienzo de la app</p>
+                    <h3 id="aurora-tema-title">Tema</h3>
+                  </div>
+                </div>
+
+                <div className="aurora-customizer__temas" role="group" aria-label="Tema de la app">
+                  {TEMAS.map((t) => (
+                    <button
+                      key={t}
+                      className="aurora-tema-card"
+                      type="button"
+                      aria-pressed={tema === t}
+                      onClick={() => cambiarTema(t)}
+                    >
+                      <span className="aurora-tema-card__preview" data-tema={t} aria-hidden="true" />
+                      <span>{ETIQUETA_TEMA[t]}</span>
+                      <span className="aurora-tema-card__check">{tema === t ? '● activo' : '○'}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
 
               <div className="aurora-customizer__preview">
                 <AuroraPillButton demo>Conversación libre</AuroraPillButton>
