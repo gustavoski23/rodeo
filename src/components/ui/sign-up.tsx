@@ -13,7 +13,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 // Importing icons from lucide-react
 import { ArrowRight, Mail, Gem, Lock, Eye, EyeOff, ArrowLeft, X, AlertCircle, PartyPopper, Loader } from "lucide-react";
 // Importing animation components from framer-motion
-import { AnimatePresence, motion, useInView, Variants, Transition } from "framer-motion";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import type { Variants, Transition } from "framer-motion";
 
 // --- CONFETTI LOGIC ---
 import type { ReactNode } from "react"

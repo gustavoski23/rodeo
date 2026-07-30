@@ -1,396 +1,256 @@
-import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion } from 'motion/react';
+import { useEffect, useRef, useState } from 'react';
+import { ArrowRight, Mail } from 'lucide-react';
 
-import { GradienteOrbita } from '@/components/rodeo/gradiente-orbita';
+import {
+  AppleIcon,
+  BlurFade,
+  GlassButton,
+  GlassStyles,
+  GoogleIcon,
+  GradientBackground,
+  XIcon,
+} from '@/components/ui/sign-up';
+import { store } from '@/lib/storage';
 import { useAuth } from '@/stores/auth';
-import type { RectCard } from './losa-vidrio';
-
-import './liquid-glass-macos.css';
+import { toast } from '@/stores/toast';
 
 /* GATE — la puerta: lo primero que se ve al abrir la app.
 
-   Tres capas, las tres del spec de Gus:
-   0. La gradiente "Orbit Sweep" (21st.dev) girando por rAF — en DOM, siempre
-      presente: es el fallback si no hay WebGL o si el usuario pidió menos
-      movimiento.
-   1. FluidGlass (React Bits) en modo lens: un lente 3D que sigue el puntero y
-      refracta la misma gradiente + el wordmark. Va lazy en su propio chunk
-      (three pesa) y solo se monta con WebGL disponible. En la misma escena va
-      la LOSA: el vidrio 3D de la card (ver losa-vidrio.tsx).
-   2. El formulario: Login · Email · Password · Register+Login · Skip centrado.
-      Con WebGL, la card NO pone vidrio propio — el vidrio es la losa 3D que
-      está detrás, medida contra este mismo rectángulo; la card solo aporta el
-      contenido. Sin WebGL (o si el 3D se cae) recupera el vidrio líquido CSS
-      de macOS (lucasromerodb), que es el fallback.
+   Rediseñado al LOOK OBJETIVO que aprobó Gus (la captura "Get started with
+   Us"): fondo CLARO y cálido, columna centrada con la estética "glass" del
+   componente sign-up.tsx. Ya NO hay mundo 3D (FluidGate/losa-vidrio/
+   GradienteOrbita quedan en el repo pero no se importan aquí): esta puerta
+   tiene su propio look claro y NO depende del tema de la app.
 
-   El gate ya no depende del tema de la app (la gradiente ES el fondo), así
-   que no fuerza data-theme.
+   El vidrio (botones e input) viene VERBATIM del componente sign-up.tsx —
+   GlassStyles (todo el CSS del vidrio), GlassButton y las clases .glass-input-*
+   — para que el borde helado y el brillo especular sean EXACTOS, no un óvalo
+   plano reinventado.
 
-   "Skip" no es un botón de segunda: es la salida honesta. RODEO funciona
-   entera sin cuenta, y quien no quiera registrarse pasa igual. */
+   El problema de tokens que hay que resolver: el CSS del vidrio usa
+   `var(--background)` y `var(--foreground)` CRUDOS, y la GradientBackground usa
+   `var(--color-chart-1..5)` + `var(--color-primary/-secondary/-accent/
+   -destructive)`. En RODEO esos nombres no existen tal cual (usamos
+   --bg-void/--text-primary con un puente --color-*, y en tema oscuro). Solución:
+   un tema CLARO y cálido SCOPEADO al contenedor del gate (.gate-tema) que
+   define esas variables reales — sin tocar el tema global de la app. Ahí también
+   re-mapeamos el puente Tailwind (--color-foreground, --color-muted-foreground,
+   --color-border) a valores oscuros para que el texto se lea sobre el papel. */
 
-const FluidGate = lazy(() => import('./fluid-gate'));
-
-/* Si el mundo 3D falla (glb que no carga, WebGL que muere a mitad), el gate
-   NO puede caerse con él: la capa 0 (gradiente DOM) + la card son la misma
-   pantalla sin lente. Sin este muro, un error dentro de Suspense desmonta la
-   app entera. */
-class MuroLente extends Component<{ children: ReactNode; onRoto?: () => void }, { roto: boolean }> {
-  state = { roto: false };
-  static getDerivedStateFromError() {
-    return { roto: true };
-  }
-  componentDidCatch() {
-    /* silencioso: el fallback ya está en pantalla. Solo avisa al gate para que
-       la card recupere su vidrio CSS: si el 3D murió, la losa no está y una
-       card transparente se quedaría sin vidrio ninguno. */
-    this.props.onRoto?.();
-  }
-  render() {
-    return this.state.roto ? null : this.props.children;
-  }
-}
-
-function hayWebGL(): boolean {
-  try {
-    const c = document.createElement('canvas');
-    return !!(c.getContext('webgl2') || c.getContext('webgl'));
-  } catch {
-    return false;
-  }
-}
-
-const REDUCED = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-type Accion = 'login' | 'register' | null;
+/* ¿Correo con pinta de válido? Mismo criterio laxo del gate anterior: formato,
+   no existencia. El login con contraseña llega después; aquí solo abrimos la
+   puerta recordando el correo. */
+const CORREO_OK = /\S+@\S+\.\S+/;
 
 export function GateView() {
-  const login = useAuth((s) => s.login);
-  const register = useAuth((s) => s.register);
   const skip = useAuth((s) => s.skip);
 
   const [email, setEmail] = useState('');
-  const [pass, setPass] = useState('');
-  const [cargando, setCargando] = useState<Accion>(null);
   const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
-  // Decidido una vez al montar: el soporte WebGL no cambia en vivo.
-  const [conLente] = useState(() => hayWebGL() && !REDUCED());
 
   const emailRef = useRef<HTMLInputElement>(null);
 
-  /* ── Sincronía card DOM ↔ losa 3D ──────────────────────────────────────
-     La losa tiene que caer EXACTAMENTE detrás de este rectángulo, así que la
-     medida sale del DOM (única fuente de verdad) y viaja como prop al chunk
-     3D. El ref va en un envoltorio SIN animación: la motion.div de dentro
-     lleva un translateY de entrada y getBoundingClientRect lo incluiría,
-     dejando la losa 14 px desplazada durante el primer medio segundo. */
-  const cajaRef = useRef<HTMLDivElement>(null);
-  const [rectCard, setRectCard] = useState<RectCard | null>(null);
-  const [losaLista, setLosaLista] = useState(false);
-  const [lenteRoto, setLenteRoto] = useState(false);
-
-  useEffect(() => {
-    const el = cajaRef.current;
-    if (!conLente || !el) return;
-    const medir = () => {
-      const r = el.getBoundingClientRect();
-      setRectCard((prev) =>
-        prev && prev.x === r.left && prev.y === r.top && prev.w === r.width && prev.h === r.height
-          ? prev // mismo rect: no re-renderizar el 3D por nada
-          : { x: r.left, y: r.top, w: r.width, h: r.height },
-      );
-    };
-    medir();
-    // ResizeObserver coge también los cambios de alto de la card (el aviso de
-    // "te mandé un correo" ocupa varias líneas); resize coge el giro/teclado.
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    window.addEventListener('resize', medir);
-    return () => {
-      ro.disconnect();
-      window.removeEventListener('resize', medir);
-    };
-  }, [conLente]);
-
-  /* El vidrio CSS solo se apaga cuando el de verdad ya está en pantalla: entre
-     el primer paint y el chunk 3D cargado la card sigue siendo de vidrio, y si
-     el 3D se cae vuelve a serlo. */
-  const conLosa = conLente && losaLista && !lenteRoto;
-
   // Foco inicial en Email: al abrir la puerta, el cursor ya está donde se
-  // empieza. (Sin autoFocus en el JSX para no pelear con el montaje doble de
-  // StrictMode ni con el teclado de iOS al primer paint.)
+  // empieza. (En useEffect, no autoFocus, para no pelear con el montaje doble
+  // de StrictMode.)
   useEffect(() => {
     emailRef.current?.focus();
   }, []);
 
-  const ocupado = cargando !== null;
-
-  async function correr(accion: Exclude<Accion, null>) {
-    if (ocupado) return;
-    setError(null);
-    setAviso(null);
-
-    // Validación local antes de gastar un viaje al servidor: los errores de
-    // formato los sabemos aquí y el mensaje llega al instante.
+  /* Email + flecha/Enter: si el correo es válido lo recordamos y pasamos con
+     skip() (misma salida honesta que el botón Skip). Si no, aviso corto. */
+  function entrarConEmail() {
     const correo = email.trim();
-    if (correo.indexOf('@') < 1) {
+    if (!CORREO_OK.test(correo)) {
       setError('Escribe un correo válido.');
       emailRef.current?.focus();
       return;
     }
-    if (accion === 'register' ? pass.length < 6 : pass.length === 0) {
-      setError(accion === 'register' ? 'La contraseña necesita al menos 6 caracteres.' : 'Escribe tu contraseña.');
-      return;
-    }
-
-    setCargando(accion);
-    const r = accion === 'login' ? await login(correo, pass) : await register(correo, pass);
-    setCargando(null);
-
-    if (!r.ok) {
-      setError(r.mensaje);
-      return;
-    }
-    /* Registro OK pero sin sesión: Supabase mandó el correo de confirmación.
-       No lo dejamos atrapado esperando — el aviso apunta a Skip. */
-    if (r.confirmar) {
-      setPass('');
-      setAviso(`Te mandé un correo a ${correo}. Confirma el enlace y entra con Login. Mientras tanto puedes seguir con Skip.`);
-    }
-    // Éxito con sesión: el store ya apagó gateNecesario y esta vista se va.
+    setError(null);
+    store.set('rodeo_email', correo);
+    skip();
   }
 
+  // Sociales: por ahora solo visuales. No rompen nada; avisan que llegan pronto.
+  const proximamente = () => toast('Pronto lo activamos');
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" style={{ background: '#FF5F6D' }}>
-      {/* Capa 0: la órbita en DOM — visible al instante y fallback sin WebGL. */}
-      <GradienteOrbita className="absolute inset-0" />
+    /* .gate-tema: tema claro cálido scopeado. `fixed inset-0 z-50` encima de la
+       app; overflow oculto para que las manchas borrosas no generen scroll. */
+    <div className="gate-tema fixed inset-0 z-50 flex items-center justify-center overflow-hidden">
+      <GlassStyles />
+      <GateTema />
 
-      {/* Capa 1: el lente. Suspense sin placeholder: mientras carga el chunk
-          3D ya se ve la gradiente de la capa 0 (mismo dibujo, sin salto). */}
-      {conLente && (
-        <div className="absolute inset-0">
-          <MuroLente onRoto={() => setLenteRoto(true)}>
-            <Suspense fallback={null}>
-              <FluidGate rect={rectCard} onLosaLista={() => setLosaLista(true)} />
-            </Suspense>
-          </MuroLente>
-        </div>
-      )}
-
-      {/* Wordmark "RODEO." — texto DOM (Alan Sans), no dentro del canvas 3D:
-          drei <Text> lo dibujaba con troika, que instancia WebAssembly, y el
-          sandbox del artifact prohíbe WASM (CSP sin unsafe-eval) → el logo
-          desaparecía ahí. En DOM se ve en todos lados, crisp, sin depender del
-          motor 3D. Encima de la gradiente, arriba, sin robar toques. */}
-      <div className="pointer-events-none absolute inset-x-0 top-[max(24px,env(safe-area-inset-top))] flex justify-center px-5 sm:top-[8%]">
-        <span
-          className="font-display text-[clamp(3rem,17vw,7rem)] leading-none font-extrabold tracking-[-0.04em] text-white/95"
-          style={{ textShadow: '0 2px 24px rgb(0 0 0 / 0.28)' }}
-        >
-          RODEO<span style={{ color: 'var(--accent)' }}>.</span>
-        </span>
+      {/* Fondo: manchas de color borrosas (SVG del componente) sobre papel
+          cálido. La animación float1/float2 la trae la propia GradientBackground. */}
+      <div className="absolute inset-0 z-0">
+        <GradientBackground />
       </div>
 
-      {/* Capa 2: el formulario. Con losa 3D detrás va sin vidrio propio.
+      {/* Columna centrada, ~media pantalla, ancho contenido. */}
+      <div className="relative z-10 flex w-full max-w-[340px] flex-col items-center gap-6 px-6">
+        <BlurFade delay={0.25 * 1} className="w-full">
+          {/* whitespace-nowrap: el título vive en UNA línea (como en el
+              componente original), aunque la columna esté acotada a 340px —
+              desborda centrado, que es el look de la captura. */}
+          <h1 className="gate-titulo whitespace-nowrap text-center font-serif text-4xl font-light tracking-tight sm:text-5xl">
+            Get started with Us
+          </h1>
+        </BlurFade>
 
-          `pointer-events-none` en la capa y `pointer-events-auto` SOLO en lo
-          que se toca: esta capa es un `absolute inset-0` encima del canvas y
-          se estaba comiendo TODOS los eventos de puntero, así que el lente del
-          FluidGlass no recibía `pointer` y se quedaba clavado en el centro de
-          la pantalla — un cuenco de borde oscuro estampado sobre el input de
-          Email. Ahora el lente sigue al puntero (que es su gesto) y los
-          campos y botones siguen siendo pulsables. */}
-      <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-5 pt-[max(20px,env(safe-area-inset-top))] pb-[max(20px,env(safe-area-inset-bottom))]">
-        {/* Este div es el que se MIDE: mismo box que la card y sin transform. */}
-        <div ref={cajaRef} className="w-full max-w-[360px]">
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 30 }}
-            className="w-full"
-          >
-            <div className={`glassContainer gate-card${conLosa ? ' gate-card--losa' : ''}`}>
-            <form
-              className="relative z-10 flex flex-col gap-4"
-              aria-busy={ocupado}
-              noValidate
-              onSubmit={(e) => {
-                e.preventDefault();
-                void correr('login');
-              }}
+        <BlurFade delay={0.25 * 2}>
+          <p className="gate-muted text-sm font-medium">Continue with</p>
+        </BlurFade>
+
+        {/* Fila de botones sociales vidrio: iguales (size icon), uno al lado del
+            otro, centrados. Google conserva sus colores de marca; Apple y X van
+            en color foreground (currentColor). SIN GitHub. */}
+        <BlurFade delay={0.25 * 3}>
+          <div className="flex items-center justify-center gap-4">
+            <GlassButton
+              type="button"
+              size="icon"
+              onClick={proximamente}
+              aria-label="Continuar con Google"
             >
-              <h1
-                className="font-display text-[1.75rem] leading-none font-extrabold tracking-[-0.03em] text-white"
-                style={{ textShadow: '0 1px 12px rgb(0 0 0 / 0.35)' }}
-              >
-                Login
-              </h1>
+              <GoogleIcon />
+            </GlassButton>
+            <GlassButton
+              type="button"
+              size="icon"
+              onClick={proximamente}
+              aria-label="Continuar con Apple"
+              contentClassName="gate-icono"
+            >
+              <AppleIcon />
+            </GlassButton>
+            <GlassButton
+              type="button"
+              size="icon"
+              onClick={proximamente}
+              aria-label="Continuar con X"
+              contentClassName="gate-icono"
+            >
+              <XIcon />
+            </GlassButton>
+          </div>
+        </BlurFade>
 
-              <div className="flex flex-col gap-1.5">
-                {/* Etiquetas a blanco pleno + sombra propia: con la losa detrás
-                    el fondo de la card ya NO lleva velo oscuro y puede tocarle
-                    crema o amarillo claro, donde un blanco al 80 % sin sombra
-                    se lee a duras penas. */}
-                <label
-                  htmlFor="gate-email"
-                  className="pointer-events-auto font-mono text-[11px] tracking-[0.08em] text-white uppercase"
-                  style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.6), 0 0 10px rgb(0 0 0 / 0.45)' }}
-                >
-                  Email
-                </label>
-                <input
-                  ref={emailRef}
-                  id="gate-email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  /* 16 px reales: por debajo, iOS hace zoom al enfocar el campo. */
-                  className="pointer-events-auto w-full rounded-[14px] px-4 py-3 text-[16px]"
-                />
+        {/* Separador OR con líneas finas a los lados. */}
+        <BlurFade delay={0.25 * 4} className="w-full">
+          <div className="flex w-full items-center gap-3">
+            <span className="gate-linea h-px flex-1" />
+            <span className="gate-muted text-xs font-semibold">OR</span>
+            <span className="gate-linea h-px flex-1" />
+          </div>
+        </BlurFade>
+
+        {/* Input Email vidrio (píldora) con icono de sobre y flecha de envío. */}
+        <BlurFade delay={0.25 * 5} className="w-full">
+          <div className="glass-input-wrap w-full">
+            <div className="glass-input">
+              <span className="glass-input-text-area" />
+              <div className="relative z-10 flex w-10 flex-shrink-0 items-center justify-center pl-2">
+                <Mail className="gate-icono h-5 w-5 flex-shrink-0" aria-hidden="true" />
               </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor="gate-pass"
-                  className="pointer-events-auto font-mono text-[11px] tracking-[0.08em] text-white uppercase"
-                  style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.6), 0 0 10px rgb(0 0 0 / 0.45)' }}
-                >
-                  Password
-                </label>
-                <input
-                  id="gate-pass"
-                  type="password"
-                  autoComplete="current-password"
-                  value={pass}
-                  onChange={(e) => setPass(e.target.value)}
-                  className="pointer-events-auto w-full rounded-[14px] px-4 py-3 text-[16px]"
-                />
-              </div>
-
-              {/* Register a la izquierda, Login a la derecha (captura del dueño).
-                  Login es el submit: Enter desde cualquier campo entra. Los dos
-                  son .glassBtn del efecto macOS — el vidrio es el botón. */}
-              <div className="flex gap-2.5 pt-1">
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.97 }}
-                  disabled={ocupado}
-                  aria-busy={cargando === 'register'}
-                  onClick={() => void correr('register')}
-                  className="glassBtn gate-btn pointer-events-auto text-[15px] font-medium text-white disabled:cursor-default disabled:opacity-45"
-                  style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.4)' }}
-                >
-                  Register
-                </motion.button>
-                <motion.button
-                  type="submit"
-                  whileTap={{ scale: 0.97 }}
-                  disabled={ocupado}
-                  aria-busy={cargando === 'login'}
-                  className="glassBtn gate-btn pointer-events-auto text-[15px] font-semibold text-white disabled:cursor-default disabled:opacity-45"
-                  style={{ textShadow: '0 1px 8px rgb(0 0 0 / 0.4)' }}
-                >
-                  Login
-                </motion.button>
-              </div>
-
-              {/* Hueco reservado para "Continuar con Google" (lo pidió Gus para
-                  después). Ojo al portarlo: signInWithOAuth NO valida el provider
-                  en el cliente, así que el botón solo debe pintarse si
-                  /auth/v1/settings dice external.google === true — si no, el
-                  usuario aterriza en el JSON crudo "provider is not enabled"
-                  (la historia completa está en public/js/supabase-sync.js). */}
-
-              {/* Región viva única: error, aviso y "un momento" comparten sitio
-                  para que el lector de pantalla anuncie uno solo por vez y la
-                  card no salte de alto con cada estado. */}
-              <p
-                role="status"
-                aria-live="polite"
-                className="min-h-[1.05rem] text-center text-[12.5px] leading-[1.45]"
-                style={{
-                  color: error ? '#ffd7d7' : 'rgb(255 255 255 / 0.85)',
-                  textShadow: '0 1px 6px rgb(0 0 0 / 0.45)',
+              <input
+                ref={emailRef}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-label="Email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    entrarConEmail();
+                  }
                 }}
-              >
-                {error ?? aviso ?? (ocupado ? 'Un momento…' : '')}
-              </p>
-
-              {/* Skip: centrado y discreto, justo donde lo puso Gus. */}
-              <div className="flex justify-center">
-                <button
+                /* 16 px reales: por debajo, iOS hace zoom al enfocar el campo.
+                   Color/placeholder salen del puente re-mapeado en .gate-tema. */
+                className="gate-input relative z-10 h-full w-0 flex-grow bg-transparent py-3 text-[16px] focus:outline-none"
+              />
+              <div className="relative z-10 w-10 flex-shrink-0 pr-1">
+                <GlassButton
                   type="button"
-                  onClick={skip}
-                  className="pointer-events-auto cursor-pointer rounded-full px-3 py-1.5 text-[13px] text-white underline underline-offset-4 transition-colors hover:text-white"
-                  style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.65), 0 0 10px rgb(0 0 0 / 0.45)' }}
+                  size="icon"
+                  onClick={entrarConEmail}
+                  aria-label="Entrar con este correo"
+                  contentClassName="gate-icono"
                 >
-                  Skip
-                </button>
+                  <ArrowRight className="h-5 w-5" />
+                </GlassButton>
               </div>
-            </form>
             </div>
-          </motion.div>
-        </div>
-      </div>
+          </div>
+        </BlurFade>
 
-      {/* Filtros del vidrio macOS — el contenido del filtro es el del repo
-          (feTurbulence → feDisplacementMap), registrado bajo los DOS ids que
-          usa el CSS pegado por Gus (su versión los llamaba #container-glass y
-          #btn-glass; el repo hoy trae uno solo, #glass-distortion — misma
-          receta, ids duplicados aquí para que su CSS quede intacto). */}
-      <svg style={{ display: 'none' }} aria-hidden="true">
-        <filter id="container-glass" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
-          <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="1" seed="5" result="turbulence" />
-          <feComponentTransfer in="turbulence" result="mapped">
-            <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5" />
-            <feFuncG type="gamma" amplitude="0" exponent="1" offset="0" />
-            <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5" />
-          </feComponentTransfer>
-          <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
-          <feSpecularLighting
-            in="softMap"
-            surfaceScale="5"
-            specularConstant="1"
-            specularExponent="100"
-            lightingColor="white"
-            result="specLight"
-          >
-            <fePointLight x="-200" y="-200" z="300" />
-          </feSpecularLighting>
-          <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage" />
-          <feDisplacementMap in="SourceGraphic" in2="softMap" scale="150" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-        <filter id="btn-glass" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
-          <feTurbulence type="fractalNoise" baseFrequency="0.01 0.01" numOctaves="1" seed="5" result="turbulence" />
-          <feComponentTransfer in="turbulence" result="mapped">
-            <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5" />
-            <feFuncG type="gamma" amplitude="0" exponent="1" offset="0" />
-            <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5" />
-          </feComponentTransfer>
-          <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
-          <feSpecularLighting
-            in="softMap"
-            surfaceScale="5"
-            specularConstant="1"
-            specularExponent="100"
-            lightingColor="white"
-            result="specLight"
-          >
-            <fePointLight x="-200" y="-200" z="300" />
-          </feSpecularLighting>
-          <feComposite in="specLight" operator="arithmetic" k1="0" k2="1" k3="1" k4="0" result="litImage" />
-          <feDisplacementMap in="SourceGraphic" in2="softMap" scale="150" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </svg>
+        {/* Aviso corto (solo cuando hay error de formato). Región viva única. */}
+        <p role="status" aria-live="polite" className="gate-error min-h-[1.05rem] text-center text-[12.5px]">
+          {error ?? ''}
+        </p>
+
+        {/* Skip: vidrio, píldora, centrado, JUSTO DEBAJO del Email. La salida
+            honesta — marca rodeo_gate_skip y entra al Home; no reaparece. */}
+        <BlurFade delay={0.25 * 6}>
+          <GlassButton type="button" size="sm" onClick={skip}>
+            <span className="gate-titulo font-medium">Skip</span>
+          </GlassButton>
+        </BlurFade>
+      </div>
     </div>
   );
 }
+
+/* Tema CLARO y cálido de la puerta, SCOPEADO a .gate-tema. Define:
+   · --background/--foreground CRUDOS que consume el CSS del vidrio (GlassStyles).
+   · --color-chart-1..5 + --color-primary/-secondary/-accent/-destructive que
+     consume la GradientBackground para pintar las manchas de la captura:
+       - amber/ámbar arriba-derecha  (grad2: secondary + chart-1 + chart-4)
+       - durazno/coral abajo-derecha (grad3: destructive + chart-5)
+       - gris-azulado frío a la izquierda (accent arriba-izq + grad1 abajo-izq:
+         primary + chart-3)
+   · re-mapeo del puente Tailwind (--color-foreground/-muted-foreground/-border)
+     a tintas oscuras para que el texto se lea sobre el papel — sin esto,
+     text-foreground heredaría el blanco del tema oscuro global y no se vería. */
+const GateTema = () => (
+  <style>{`
+    .gate-tema {
+      color-scheme: light;
+      background: oklch(97.5% 0.012 85);
+
+      /* Crudos para el vidrio */
+      --background: oklch(97% 0.014 85);
+      --foreground: oklch(25% 0.02 265);
+
+      /* Manchas de la captura */
+      --color-primary: oklch(84% 0.045 255);      /* gris-azulado frío (izq) */
+      --color-secondary: oklch(83% 0.10 72);       /* ámbar (arriba-der) */
+      --color-accent: oklch(86% 0.05 250);         /* gris-azulado frío (arriba-izq) */
+      --color-destructive: oklch(80% 0.10 32);     /* coral (abajo-der) */
+      --color-chart-1: oklch(85% 0.09 78);         /* ámbar cálido */
+      --color-chart-2: oklch(84% 0.09 60);
+      --color-chart-3: oklch(88% 0.035 250);       /* azul-gris suave */
+      --color-chart-4: oklch(82% 0.11 62);         /* naranja/ámbar */
+      --color-chart-5: oklch(86% 0.075 45);        /* durazno */
+
+      /* Puente Tailwind re-mapeado (tintas oscuras sobre papel) */
+      --color-foreground: var(--foreground);
+      --color-muted-foreground: oklch(48% 0.015 265);
+      --color-border: oklch(25% 0.02 265 / 0.14);
+    }
+    .gate-titulo { color: var(--foreground); }
+    .gate-muted { color: oklch(48% 0.015 265); }
+    .gate-linea { background: oklch(25% 0.02 265 / 0.16); }
+    .gate-icono { color: oklch(from var(--foreground) l c h / 82%); }
+    .gate-input { color: var(--foreground); }
+    .gate-input::placeholder { color: oklch(from var(--foreground) l c h / 55%); }
+    .gate-error { color: oklch(52% 0.18 28); }
+  `}</style>
+);
 
 export default GateView;
