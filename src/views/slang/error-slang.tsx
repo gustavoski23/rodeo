@@ -29,11 +29,14 @@ export function ErrorSlang({ mensaje, onReintentar }: { mensaje: string; onReint
       <p className="text-[0.9rem] leading-[1.5]" style={{ color: 'var(--text-primary)' }}>
         {mensaje}
       </p>
+      {/* REDISEÑO: el reintento pasa de enlace subrayado a píldora con borde,
+          para hablar el mismo idioma que los mandos del chat (mismo alto de 44,
+          mismo radio redondo) sin dejar de ser el rojo del error. */}
       <button
         type="button"
         onClick={onReintentar}
-        className="min-h-11 cursor-pointer bg-transparent p-0 text-[0.85rem] font-bold underline underline-offset-[3px]"
-        style={{ color: 'var(--danger)' }}
+        className="mt-0.5 inline-flex min-h-11 cursor-pointer items-center rounded-full border bg-transparent px-4 text-[0.8rem] font-bold"
+        style={{ color: 'var(--danger)', borderColor: 'color-mix(in oklch, var(--danger) 44%, transparent)' }}
       >
         Intentar de nuevo
       </button>

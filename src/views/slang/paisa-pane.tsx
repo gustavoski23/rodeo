@@ -1,105 +1,146 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { motion } from 'motion/react';
 
 import { PencilLoader } from '@/components/rodeo/pencil-loader';
+import { Card } from '@/components/ui/card';
 import { useSlang } from '@/stores/slang';
 
 import { ErrorSlang } from './error-slang';
 import { PaisaCardView } from './paisa-card';
 
-/* Pane PAISA → GRINGO — port de #slang-paisa-area (L2732-2747) y de
-   translatePaisa (L4858-4917).
+/* Pane PAISA → GRINGO — REDISEÑO al lenguaje del chat de CHARLA.
 
-   El input se limpia SOLO cuando la traducción sale bien: si el modelo falla,
-   la frase sigue ahí para reintentar sin volver a escribirla. Los resultados se
-   apilan con el más nuevo ARRIBA (el `prepend` del viejo) — al revés que el
-   feed de jerga, y es intencional: aquí lo que acabas de preguntar manda. */
-export function PaisaPane() {
+   La vista se parte en dos como el chat: los resultados viven en la tarjeta
+   (arriba) y el compositor —input + botón de enviar— baja a la barra inferior,
+   donde la charla tiene su ConversationBar. El héroe de landing pasa a estado
+   vacío centrado dentro de la tarjeta.
+
+   Comportamiento intacto: el input se limpia SOLO cuando la traducción sale
+   bien (si el modelo falla, la frase sigue ahí para reintentar sin volver a
+   escribirla) y los resultados se apilan con el más nuevo ARRIBA (el `prepend`
+   del viejo) — al revés que el feed de jerga, y es intencional: aquí lo que
+   acabas de preguntar manda.
+
+   El texto del input lo sostiene la vista (index.tsx) con este hook, porque el
+   campo y el botón "Intentar de nuevo" del error viven en dos sitios distintos
+   del layout nuevo y tienen que compartir la misma frase. */
+export function usePaisaInput() {
   const [texto, setTexto] = useState('');
+  const traducir = useSlang((s) => s.traducir);
+  const traduciendo = useSlang((s) => s.traduciendo);
+
+  const enviar = useCallback(async () => {
+    const ok = await traducir(texto);
+    if (ok) setTexto('');
+  }, [texto, traducir]);
+
+  return { texto, setTexto, enviar, traduciendo };
+}
+
+export type PaisaCtrl = ReturnType<typeof usePaisaInput>;
+
+export function PaisaPane({ onReintentar }: { onReintentar: () => void }) {
   const paisa = useSlang((s) => s.paisa);
   const traduciendo = useSlang((s) => s.traduciendo);
   const errorPaisa = useSlang((s) => s.errorPaisa);
-  const traducir = useSlang((s) => s.traducir);
 
-  async function enviar() {
-    const ok = await traducir(texto);
-    if (ok) setTexto('');
-  }
+  const vacio = paisa.length === 0 && !traduciendo && !errorPaisa;
 
   return (
-    <div className="flex flex-col gap-4 pt-2">
-      <div>
-        <p
-          className="mb-3 flex items-center gap-2.5 font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
-          style={{ color: 'var(--accent)' }}
-        >
-          <span className="h-0.5 w-6 shrink-0 rounded-sm bg-current" />
-          Paisa → gringo
-        </p>
-        <p className="font-display mb-3 text-[clamp(2.3rem,9.5vw,3.4rem)] leading-[0.92] font-extrabold tracking-[-0.035em]">
-          ¿CÓMO DIGO
-          <br />
-          <span style={{ color: 'var(--accent)' }}>ESO EN INGLÉS?</span>
-        </p>
-        <p className="max-w-[330px] text-[0.92rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
-          Tu frase paisa, dicha como gringo de verdad.
-        </p>
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void enviar();
-          }}
-          placeholder={'"qué chimba", "está mamando gallo"...'}
-          aria-label="Expresión en español"
-          className="min-h-[46px] flex-1 rounded-full border px-[18px] text-[0.95rem] outline-none"
-          style={{
-            background: 'var(--chip-bg)',
-            borderColor: 'var(--borde-sutil)',
-            color: 'var(--text-primary)',
-          }}
-        />
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.94 }}
-          onClick={() => void enviar()}
-          disabled={traduciendo || !texto.trim()}
-          aria-label="Traducir expresión"
-          className="flex size-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 disabled:cursor-default disabled:opacity-[0.45]"
-          style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
+    /* `shrink-0` por lo mismo que en DropPane: sin él, el reparto de flex del
+       scroller comprime el pane y corta las tarjetas (overflow:hidden). */
+    <div className="flex min-h-full shrink-0 flex-col gap-4">
+      {vacio && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-2 py-9 text-center">
+          <p
+            className="flex items-center gap-2.5 font-mono text-[0.62rem] font-bold tracking-[0.16em] uppercase"
+            style={{ color: 'var(--accent)' }}
           >
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </motion.button>
-      </div>
+            <span className="h-0.5 w-5 shrink-0 rounded-sm bg-current" />
+            Paisa → gringo
+            <span className="h-0.5 w-5 shrink-0 rounded-sm bg-current" />
+          </p>
+          <p
+            className="font-display text-[1.55rem] leading-[1.06] font-extrabold tracking-[-0.025em] uppercase"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            ¿Cómo digo eso <span style={{ color: 'var(--accent)' }}>en inglés?</span>
+          </p>
+          <p className="max-w-[340px] text-[0.9rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
+            Escribe tu frase paisa abajo y te la devuelvo dicha como gringo de verdad.
+          </p>
+        </div>
+      )}
 
-      <div className="flex flex-col gap-4 pb-6">
-        {traduciendo && (
-          <div className="flex justify-center py-4" role="status" aria-live="polite">
-            <PencilLoader size={4} label="Traduciendo" />
-          </div>
-        )}
-        {!traduciendo && errorPaisa && <ErrorSlang mensaje={errorPaisa} onReintentar={() => void enviar()} />}
-        {paisa.map((card) => (
-          <PaisaCardView key={card.id} card={card} />
-        ))}
-      </div>
+      {traduciendo && (
+        <div
+          className="flex items-center gap-3 rounded-[18px] border px-4 py-3.5"
+          role="status"
+          aria-live="polite"
+          style={{ borderColor: 'var(--borde-sutil)', background: 'var(--superficie-t)' }}
+        >
+          <PencilLoader size={3.4} label="Traduciendo" />
+          <p className="font-mono text-[0.75rem]" style={{ color: 'var(--text-muted)' }}>
+            traduciendo…
+          </p>
+        </div>
+      )}
+      {!traduciendo && errorPaisa && <ErrorSlang mensaje={errorPaisa} onReintentar={onReintentar} />}
+      {paisa.map((card) => (
+        <PaisaCardView key={card.id} card={card} />
+      ))}
     </div>
+  );
+}
+
+/* ── La barra de abajo de PAISA ────────────────────────────────────────────
+   Misma silueta que la ConversationBar: Card baja, campo a la izquierda y el
+   botón redondo de enviar a la derecha. Enter sigue enviando. */
+export function PaisaBar({ ctrl }: { ctrl: PaisaCtrl }) {
+  const { texto, setTexto, enviar, traduciendo } = ctrl;
+
+  return (
+    <Card className="w-full flex-row items-center gap-2 rounded-[22px] p-2 shadow-lg">
+      <input
+        type="text"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') void enviar();
+        }}
+        placeholder={'"qué chimba", "está mamando gallo"...'}
+        aria-label="Expresión en español"
+        className="min-h-[46px] min-w-0 flex-1 rounded-full border-0 bg-transparent px-3 text-[0.95rem] outline-none placeholder:text-[0.9rem]"
+        style={{ color: 'var(--text-primary)' }}
+      />
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.94 }}
+        onClick={() => void enviar()}
+        disabled={traduciendo || !texto.trim()}
+        aria-label="Traducir expresión"
+        className="flex size-[46px] shrink-0 cursor-pointer items-center justify-center rounded-full border-0 disabled:cursor-default disabled:opacity-[0.45]"
+        style={{
+          background: 'var(--accent)',
+          color: 'var(--accent-ink)',
+          boxShadow: '0 3px 18px color-mix(in oklch, var(--accent) 26%, transparent)',
+        }}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      </motion.button>
+    </Card>
   );
 }

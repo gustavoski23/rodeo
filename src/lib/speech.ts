@@ -23,19 +23,38 @@ export const NOTA_STT_BILINGUE =
 
 /* ═══════════════════ TTS ═══════════════════ */
 
-/* Voz seleccionable. Dos opciones por ahora. NO se persiste: Helena es
-   SIEMPRE el punto de partida al cargar y Draco es un cambio por sesión, para
-   que "predeterminada = Helena" se cumpla en cada visita y el botón no se
-   quede pegado en Draco tras una prueba (L4523-4531). */
+/* Voz seleccionable. Dos opciones por ahora.
+
+   CAMBIO (pedido de Gus, 2026-07-30): la voz elegida SÍ se persiste, en
+   `rodeo_voz`, igual que rodeo_tts. Antes era deliberadamente efímera (Helena
+   en cada carga), pero ahora el nombre del coach es la etiqueta de la barra de
+   la charla y se toca para cambiarlo: si al recargar volvía a Helena, el
+   usuario veía deshacerse una elección que acababa de hacer a mano. Helena
+   sigue siendo el arranque por defecto de quien nunca eligió. */
 export const VOCES = {
   'aura-2-helena-en': 'Helena', // US, femenina, cálida
   'aura-2-draco-en': 'Draco', // UK, masculino, barítono
 } as const;
 export type VozId = keyof typeof VOCES;
 
-let voz: VozId = 'aura-2-helena-en';
+/** Acento de cada voz — solo para nombrarla en los avisos ("Draco (UK)"). */
+export const VOZ_ACENTO: Record<VozId, string> = {
+  'aura-2-helena-en': 'US',
+  'aura-2-draco-en': 'UK',
+};
+
+function vozGuardada(): VozId {
+  const v = store.get<string>('rodeo_voz', 'aura-2-helena-en');
+  return v in VOCES ? (v as VozId) : 'aura-2-helena-en';
+}
+
+let voz: VozId = vozGuardada();
 export function vozActual(): VozId {
   return voz;
+}
+/** Nombre + acento de la voz activa, tal como se muestra al usuario. */
+export function vozNombre(v: VozId = voz): string {
+  return `${VOCES[v]} (${VOZ_ACENTO[v]})`;
 }
 
 let audioActual: AudioBufferSourceNode | null = null;
@@ -271,8 +290,13 @@ export function toggleTts(): boolean {
 const vozSubs = new Set<() => void>();
 export function toggleVoz(): VozId {
   voz = voz === 'aura-2-helena-en' ? 'aura-2-draco-en' : 'aura-2-helena-en';
+  store.set('rodeo_voz', voz);
   vozSubs.forEach((fn) => fn());
-  toast('Voz: ' + VOCES[voz], 1500);
+  // El aviso lo da AQUÍ y no quien llama: toggleVoz se toca desde la etiqueta
+  // de la barra de charla y desde cualquier otro mando futuro, y dos toasts
+  // por un mismo cambio serían ruido. Lleva el acento porque elegir voz es
+  // elegir acento (Helena US / Draco UK).
+  toast('Voz del coach: ' + vozNombre(), 1800);
   if (ultimo) void speak(ultimo); // se oye el cambio al instante
   return voz;
 }

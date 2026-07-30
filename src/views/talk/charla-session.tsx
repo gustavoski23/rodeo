@@ -14,7 +14,16 @@ import { PillButton } from '@/components/rodeo/pill-button';
 import { useDictado } from '@/components/rodeo/onda-dictado';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { toggleTts, useTts, useUltimoHablado, replayUltimo, repetirUltimo } from '@/lib/speech';
+import {
+  toggleTts,
+  toggleVoz,
+  useTts,
+  useUltimoHablado,
+  useVoz,
+  replayUltimo,
+  repetirUltimo,
+  VOCES,
+} from '@/lib/speech';
 import { toast } from '@/stores/toast';
 import { useApp } from '@/stores/app';
 import { useTalk } from '@/stores/talk';
@@ -65,6 +74,12 @@ export function CharlaSession({ motor }: { motor: Motor }) {
   const cost = useApp((s) => s.cost);
   const { ttsOn } = useTts();
   const ultimo = useUltimoHablado();
+  /* La etiqueta del waveform dice QUIÉN te habla y se toca para cambiar de voz
+     (pedido de Gus): "Coach RODEO" era decoración, "Coach Helena" es un mando.
+     El re-render lo trae useVoz (useSyncExternalStore sobre el singleton de
+     speech.ts) — no hace falta estado local, y así cualquier otro sitio que
+     cambie la voz repinta esta etiqueta sola. El toast lo da toggleVoz. */
+  const voz = useVoz();
   const oscuro = useTemaOscuro();
 
   const volverRef = useRef<HTMLButtonElement>(null);
@@ -277,7 +292,9 @@ export function CharlaSession({ motor }: { motor: Motor }) {
           onMic={dictado.toggle}
           onEnviar={enviar}
           onColgar={motor.volver}
-          etiqueta="Coach RODEO"
+          etiqueta={'Coach ' + VOCES[voz]}
+          onEtiqueta={() => void toggleVoz()}
+          etiquetaLabel="Cambiar la voz del coach"
           alStreamListo={dictado.alStreamListo}
           alError={dictado.alError}
           alStreamFin={dictado.alStreamFin}

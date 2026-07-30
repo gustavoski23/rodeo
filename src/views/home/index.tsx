@@ -51,7 +51,12 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
   }
 
   return (
-    <div className="flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))]" style={{ background: '#14161a' }}>
+    /* `aurora-shell` (aurora.css) pone el fondo: en OSCURO es el mismo #14161a
+       literal de siempre; en CLARO, el papel de la app (var(--bg-void)). El
+       inline fijo se fue porque era justo lo que hacía invisible el barrido del
+       AnimatedThemeToggler: el círculo del View Transition barría un lienzo
+       idéntico al de antes y solo se veía cambiar el menú. */
+    <div className="aurora-shell flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))]">
       {/* Con la vitrina abierta, todo lo que queda DEBAJO de la capa opaca sale
           del orden de tabulación: la hamburguesa se veía tapada pero seguía
           siendo enfocable (un usuario de teclado aterrizaba en un botón que no
@@ -62,9 +67,15 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
       {/* Fila superior: hamburguesa a la izquierda y el toggler de tema a la
           DERECHA (posición pedida por Gus). Mismo AnimatedThemeToggler verbatim
           y mismo cableado controlado del Header: RODEO es dueño de la
-          persistencia (data-theme + rodeo_tema). El Home en sí siempre es
-          oscuro (#14161a, es su diseño): el toggle cambia el tema del RESTO de
-          la app, y aquí vive porque es la puerta. */}
+          persistencia (data-theme + rodeo_tema). El Home YA NO es siempre
+          oscuro: sigue el tema como el resto de la app (en oscuro, idéntico al
+          diseño aprobado; en claro, papel y tinta oscura) para que el barrido
+          circular del toggler tenga contraste que barrer.
+
+          Su borde/ícono se declaran con el par `x dark:x`: en OSCURO ganan
+          border-white/15 y text-white/85 —los valores de siempre, ni un píxel
+          distinto—, y en CLARO caen a negro translúcido para que el botón no
+          desaparezca sobre el papel. */}
       <div className="flex shrink-0 items-center justify-between" inert={carruselAbierto}>
         <MenuToggle open={menuOpen} onToggle={onMenuToggle} />
         <AnimatedThemeToggler
@@ -77,7 +88,7 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
             setTema(nuevo);
           }}
           aria-label="Cambiar entre tema claro y oscuro"
-          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-white/15 bg-transparent text-white/85 [&_svg]:size-5"
+          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-black/15 bg-transparent text-black/70 dark:border-white/15 dark:text-white/85 [&_svg]:size-5"
         />
       </div>
 

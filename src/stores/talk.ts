@@ -164,6 +164,15 @@ export function useEnSesion(): boolean {
   return useTalk((s) => s.session !== null || s.roleplayActivo);
 }
 
+/** ¿Hay una sesión de CHARLA viva? (no ESCENAS). La usa App para mandar la
+    charla a pantalla completa —sin Header de marca ni divisoria—, porque su
+    propia barra de sesión (← · título · Terminar) ya hace de header y el
+    wordmark de arriba era ruido duplicado (marcado en rojo por Gus). ESCENAS y
+    el resto de vistas se quedan con el Header de siempre. */
+export function useEnCharla(): boolean {
+  return useTalk((s) => s.talkMode === 'charla' && s.session !== null);
+}
+
 /* Memoria anti-repetición de aperturas (rodeo_openers, L4226): las últimas 8,
    recortadas a 140 caracteres, viajan al system prompt como "no abras así". */
 export function leerOpeners(): string[] {

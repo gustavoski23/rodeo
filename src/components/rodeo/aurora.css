@@ -6,6 +6,15 @@
    (que ocultaban el DOM viejo) no hacen falta.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* Lienzo del Home. El #14161a es el negro EXACTO de la referencia aprobada —
+   antes vivía como `style={{background:'#14161a'}}` en home/index.tsx, y ese
+   inline fijo es lo que dejaba el barrido del toggler de tema sin nada que
+   barrer. Aquí sigue siendo el mismo color en oscuro, y el bloque
+   "TEMA CLARO" del final lo cambia a papel cuando toca. */
+.aurora-shell {
+  background: #14161a;
+}
+
 .aurora-home {
   width: 100%;
   max-width: 760px;
@@ -801,4 +810,71 @@
   .cf-overlay__titulo { font-size: 2.5rem; }
   .cf-overlay__sub { font-size: 0.95rem; }
   .cf-overlay__linea { font-size: 0.82rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CLARO DEL HOME
+   Bloque NUEVO y AISLADO: todo cuelga de :root[data-theme='light'], así que el
+   Home OSCURO —el diseño aprobado por Gus— no cambia ni un píxel. Nada de
+   @media (prefers-color-scheme): el tema de RODEO es el atributo data-theme,
+   punto (lo pone aplicarTema en lib/theme.ts).
+
+   Por qué existe: el AnimatedThemeToggler del Home hace su barrido circular
+   sobre ::view-transition-new(root). Con el Home clavado en negro y con el copy
+   en blanco, ese círculo recortaba un lienzo IDÉNTICO al de debajo — Gus tocaba
+   el botón y "solo cambiaba el color del menú". El toggler no tenía nada roto:
+   le faltaba contraste que revelar. Ahora en claro el Home es papel con tinta
+   oscura y el barrido se ve.
+
+   Lo que NO sigue al tema, a propósito:
+   · La píldora aurora: su gradiente oscuro ES el soporte de la aurora (las
+     masas de color están calculadas sobre ese negro). Sobre papel funciona
+     como un objeto oscuro apoyado en la hoja, que es el efecto buscado.
+   · La capa del carrusel: las cartas viven sobre negro por diseño. Se queda
+     negra en los dos temas — y por eso el chevron, que cuando esa capa está
+     abierta va fijo ENCIMA de ella, recupera aquí abajo su piel oscura.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root[data-theme='light'] .aurora-shell {
+  /* Papel de la app, el mismo --bg-void que usa el body en claro: el Home deja
+     de ser una isla y el barrido del toggler cruza sin costura. */
+  background: var(--bg-void);
+}
+
+:root[data-theme='light'] .aurora-home__greeting {
+  color: var(--text-secondary);
+}
+:root[data-theme='light'] .aurora-home__question {
+  color: var(--text-primary);
+}
+
+/* Chevron ⌄ del Home (cerrado): en claro el aro y el glifo blancos al 9-70%
+   eran invisibles sobre papel. Pasa a los tokens de borde/tinta de la app. */
+:root[data-theme='light'] .aurora-more {
+  border-color: var(--borde-medio);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+}
+:root[data-theme='light'] .aurora-more:hover,
+:root[data-theme='light'] .aurora-more:focus-visible {
+  border-color: var(--borde-medio);
+  background: var(--chip-bg-fuerte);
+  color: var(--text-primary);
+}
+
+/* …pero con el carrusel ABIERTO ese mismo chevron está fijo sobre la capa
+   negra (position: fixed, z-index 50, ver el bloque del carrusel). Ahí la piel
+   clara sería tinta oscura sobre negro: el mando de cerrar desaparecería. Se le
+   devuelven los valores oscuros originales. Va DESPUÉS de las reglas de arriba
+   y con un selector más específico, así que gana sin !important. */
+:root[data-theme='light'] .aurora-home--con-carrusel .aurora-more {
+  border-color: oklch(94% 0.008 265 / 0.09);
+  background: oklch(18% 0.012 265 / 0.38);
+  color: oklch(70% 0.008 265);
+}
+:root[data-theme='light'] .aurora-home--con-carrusel .aurora-more:hover,
+:root[data-theme='light'] .aurora-home--con-carrusel .aurora-more:focus-visible {
+  border-color: oklch(94% 0.008 265 / 0.18);
+  background: oklch(20% 0.012 265 / 0.66);
+  color: oklch(94% 0.004 265);
 }

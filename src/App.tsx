@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useA1 } from '@/stores/a1';
 import { useAuth } from '@/stores/auth';
-import { useEnSesion } from '@/stores/talk';
+import { useEnCharla, useEnSesion } from '@/stores/talk';
 import HomeView from '@/views/home';
 import TalkView from '@/views/talk';
 import SlangView from '@/views/slang';
@@ -92,6 +92,15 @@ export default function App() {
   // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
   // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
   const enSesion = useEnSesion();
+  /* La SESIÓN DE CHARLA va a pantalla completa, como el Home: sin Header de
+     marca ni divisoria. Su barra de sesión (← · título · Terminar) ya es el
+     header de esa pantalla, y el wordmark RODEO + hamburguesa encima sobraban.
+     Solo la charla: ESCENAS (roleplayActivo) y las demás vistas siguen igual.
+     Al cerrar la sesión el flag se apaga y el Header vuelve solo.
+     El hook va SUELTO, nunca dentro del `&&`: cortocircuitarlo lo saltaría en
+     los renders de otras vistas y rompería el orden de hooks. */
+  const enCharla = useEnCharla();
+  const charlaPantallaCompleta = view === 'talk' && enCharla;
 
   /* El gate de login es LO PRIMERO que se ve (pedido de Gus): antes que el
      Home aurora. `listo` evita el flash — hasta resolver getSession no se
@@ -121,12 +130,21 @@ export default function App() {
         <HomeView menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
       ) : (
         <>
-          <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
-          <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
+          {!charlaPantallaCompleta && (
+            <>
+              <Header menuOpen={menuOpen} onMenuToggle={() => setMenuOpen((v) => !v)} />
+              <div className="mx-5 h-px shrink-0 bg-gradient-to-r from-transparent via-[var(--borde-medio)] to-transparent" />
+            </>
+          )}
 
           <main
             className={cn(
-              'flex min-h-0 flex-1 flex-col px-5 pt-5',
+              'flex min-h-0 flex-1 flex-col px-5',
+              /* Sin Header, el techo del main es el techo de la ventana: hace
+                 falta el hueco del notch que antes ponía el header (mismo
+                 max(14px, safe-area) del Home). Con Header, el pt-5 de
+                 siempre. El pb no se toca: en sesión ya era el corto. */
+              charlaPantallaCompleta ? 'pt-[max(14px,env(safe-area-inset-top))]' : 'pt-5',
               enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
             )}
           >

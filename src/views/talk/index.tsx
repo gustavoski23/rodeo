@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { motion } from 'motion/react';
 
 import { onCostChange } from '@/lib/api';
+import { pedirPermisoMic } from '@/lib/permisos';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useTalk, type TalkMode } from '@/stores/talk';
@@ -38,6 +39,15 @@ export default function TalkView() {
      updateCostTicker(); aquí la capa de API avisa y el store de la app guarda
      el total (rodeo_cost lo escribe api.ts, esto solo lo refleja). */
   useEffect(() => onCostChange((total) => useApp.getState().setCost(total)), []);
+
+  /* El permiso de micrófono se pide AL ENTRAR (CHARLA y ESCENAS hablan las
+     dos), no al primer toque del mic: así el navegador pregunta cuando el
+     usuario acaba de decidir que quiere practicar hablando, y para cuando
+     llega al botón el permiso ya está resuelto. Fire-and-forget: no bloquea el
+     render ni la primera respuesta del coach. */
+  useEffect(() => {
+    void pedirPermisoMic();
+  }, []);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

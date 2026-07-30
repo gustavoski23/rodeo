@@ -15,7 +15,14 @@
    · startSession/endSession→ prop `onColgar` (el teléfono/X cierra la sesión)
    · sendUserMessage        → prop `onEnviar(texto)`
    · sendContextualUpdate   → eliminado (no existe en nuestro motor)
-   · "Customer Support"     → prop `etiqueta` (default "Coach RODEO")
+   · "Customer Support"     → prop `etiqueta` (default "Coach RODEO"), y prop
+                              NUEVA `onEtiqueta`: si llega, esa etiqueta del
+                              waveform en reposo se pinta como <button> en vez
+                              de <span> para poder TOCARLA (en RODEO cambia la
+                              voz del coach). Mismas clases exactas
+                              (text-[10px] font-medium text-foreground/50): el
+                              aspecto es idéntico, solo cambia el elemento.
+                              Sin la prop, sigue siendo el <span> verbatim.
    · El LiveWaveform necesita el stream del mic: se pasan los tres callbacks
      de la grabadora (alStreamListo/alError/alStreamFin), igual que en
      OndaDictado. `procesando` = transcribiendo (estado processing). */
@@ -53,6 +60,10 @@ export interface ConversationBarProps {
   onColgar?: () => void
   /** Texto del hueco del waveform cuando está en reposo. */
   etiqueta?: string
+  /** Si llega, la etiqueta es un botón y esto es lo que hace al tocarla. */
+  onEtiqueta?: () => void
+  /** aria-label del botón de la etiqueta (solo con `onEtiqueta`). */
+  etiquetaLabel?: string
   /** Callbacks de la grabadora hacia el LiveWaveform (identidad estable). */
   alStreamListo?: (stream: MediaStream) => void
   alError?: (e: Error | React.SyntheticEvent) => void
@@ -77,6 +88,8 @@ export const ConversationBar = React.forwardRef<
       onEnviar,
       onColgar,
       etiqueta = "Coach RODEO",
+      onEtiqueta,
+      etiquetaLabel,
       alStreamListo,
       alError,
       alStreamFin,
@@ -165,9 +178,20 @@ export const ConversationBar = React.forwardRef<
                         />
                         {enReposo && (
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-foreground/50 text-[10px] font-medium">
-                              {etiqueta}
-                            </span>
+                            {onEtiqueta ? (
+                              <button
+                                type="button"
+                                onClick={onEtiqueta}
+                                aria-label={etiquetaLabel}
+                                className="text-foreground/50 cursor-pointer text-[10px] font-medium"
+                              >
+                                {etiqueta}
+                              </button>
+                            ) : (
+                              <span className="text-foreground/50 text-[10px] font-medium">
+                                {etiqueta}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

@@ -1,6 +1,7 @@
-import { useLayoutEffect, useState, type ComponentType } from 'react';
+import { useEffect, useLayoutEffect, useState, type ComponentType } from 'react';
 
 import type { A1Scene, A1Unit, JobPack, PasoVozProps } from '@/content/a1/tipos';
+import { pedirPermisoMic } from '@/lib/permisos';
 import {
   construirColaRepaso,
   escenasHechas,
@@ -67,6 +68,14 @@ export default function A1View({
   useLayoutEffect(() => {
     useA1.getState().setPackUnits(pack?.units ?? []);
   }, [pack]);
+
+  /* Permiso de micrófono al ENTRAR a OFICINA: el paso de producción hablada
+     (A1.3) dicta, y pedirlo recién al tocar el mic dejaba al usuario con un
+     "no me diste permiso" sin que el navegador hubiera preguntado nunca.
+     Fire-and-forget (ver lib/permisos.ts): no bloquea el render del mapa. */
+  useEffect(() => {
+    void pedirPermisoMic();
+  }, []);
 
   /* ── Abrir una unidad (a1AbrirUnidad, L487) ──
      Reanuda por la primera escena sin terminar. Si ya terminó todas pero le
