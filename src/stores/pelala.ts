@@ -9,6 +9,24 @@ import { DECK, type SlangTerm } from '@/content/pelala/deck';
 
 export type PelalaMode = 'picker' | 'muro' | 'reto';
 
+/* Términos guardados — persistidos a localStorage (patrón manual de Rodeo). */
+const GUARDADOS_KEY = 'pelala_guardados';
+function leerGuardados(): string[] {
+  try {
+    const raw = localStorage.getItem(GUARDADOS_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+function escribirGuardados(ids: string[]): void {
+  try {
+    localStorage.setItem(GUARDADOS_KEY, JSON.stringify(ids));
+  } catch {
+    /* almacenamiento no disponible: se ignora en silencio */
+  }
+}
+
 /* Baraja determinista-por-sesión sin Math.random en import (evita rarezas de
    SSR/estabilidad): rota el mazo por un offset fijo. Se re-baraja al entrar. */
 function rotated<T>(arr: T[], offset: number): T[] {
@@ -41,6 +59,11 @@ type PelalaState = {
   responder: (correcto: boolean) => void; // marca el intento (dispara el peel si correcto)
   retoSiguiente: () => void; // tras el peel de recompensa
   reiniciarReto: () => void;
+
+  /* ----- Guardados (bookmark tipo Instagram) ----- */
+  guardados: string[];
+  estaGuardado: (id: string) => boolean;
+  toggleGuardar: (id: string) => void;
 };
 
 export const usePelala = create<PelalaState>((set, get) => ({
@@ -79,4 +102,15 @@ export const usePelala = create<PelalaState>((set, get) => ({
       intento: 'idle',
     })),
   reiniciarReto: () => set({ retoIndex: 0, aciertos: 0, fallos: 0, intento: 'idle' }),
+
+  guardados: leerGuardados(),
+  estaGuardado: (id) => get().guardados.includes(id),
+  toggleGuardar: (id) =>
+    set((s) => {
+      const next = s.guardados.includes(id)
+        ? s.guardados.filter((x) => x !== id)
+        : [...s.guardados, id];
+      escribirGuardados(next);
+      return { guardados: next };
+    }),
 }));

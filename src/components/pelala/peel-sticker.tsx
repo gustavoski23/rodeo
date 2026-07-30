@@ -43,6 +43,7 @@ type StickerForgeEl = HTMLElement & {
   setSource: (source: StickerSource) => Promise<void>;
   setOptions: (options: Partial<StickerOptions>) => void;
   setPeelProgress: (progress: number) => void;
+  setBackgroundRemovalEffect: (active: boolean) => void;
   reset: () => void;
   reappear: () => void;
 };
@@ -56,6 +57,8 @@ export type PeelStickerHandle = {
   reset: () => void;
   /** Pela el sticker programáticamente (recompensa al acertar en Pélala). */
   peelOff: () => void;
+  /** Barrido holográfico rosado (el mismo de la entrada) sobre el sticker actual. */
+  sweep: () => void;
   /** El elemento crudo, por si el padre necesita algo puntual. */
   el: () => StickerForgeEl | null;
 };
@@ -106,6 +109,7 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       setSource: (s) => void elRef.current?.setSource(s),
       reset: () => elRef.current?.reset(),
       peelOff: () => elRef.current?.setPeelProgress(1),
+      sweep: () => elRef.current?.setBackgroundRemovalEffect(true),
       el: () => elRef.current,
     }));
 
