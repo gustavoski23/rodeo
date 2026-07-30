@@ -506,3 +506,122 @@
 @media (max-width: 600px) {
   .aurora-home { justify-content: center; gap: clamp(34px, 7vh, 54px); padding-top: 8px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   carrusel de features
+   Bloque NUEVO (nada de arriba se toca). Vive aquí porque es piel del Home:
+   la capa que abre el chevron ⌄ y el overlay de las cartas del abanico.
+   Todo lo que reposiciona el Home cuelga de .aurora-home--con-carrusel, así
+   que el Home CERRADO no cambia ni un píxel.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Capa del carrusel: se come la pantalla con el mismo negro del Home (#14161a)
+   para que el abanico quede como la captura — cartas flotando sobre negro, sin
+   el saludo ni la píldora compitiendo. overflow:hidden porque el abanico se
+   sale por los flancos a propósito y no queremos scroll horizontal. */
+.aurora-carrusel {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  background: #14161a;
+}
+
+/* Con el carrusel abierto el chevron es el mando de cerrar: se va al pie,
+   centrado y por encima de la capa (ya gira 180° por su [aria-expanded]).
+   La píldora aurora y cualquier otro hijo de las acciones se ocultan: están
+   debajo de la capa opaca y solo estorbarían al foco. */
+.aurora-home--con-carrusel .aurora-home__actions {
+  position: fixed;
+  z-index: 50;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 50%;
+  width: auto;
+  transform: translateX(-50%);
+}
+.aurora-home--con-carrusel .aurora-home__actions > :not(.aurora-more) { display: none; }
+
+/* Overlay de las cartas ───────────────────────────────────────────────────
+   Va encima de la foto: velo oscuro desde abajo para que el texto blanco se
+   lea sobre cualquier gradiente, y el texto apoyado en la base de la carta. */
+.cf-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 18px 16px 20px;
+  background: linear-gradient(
+    to top,
+    oklch(8% 0.012 265 / 0.86) 0%,
+    oklch(8% 0.012 265 / 0.62) 26%,
+    oklch(8% 0.012 265 / 0.12) 56%,
+    transparent 78%
+  );
+  color: oklch(98% 0 0);
+  text-align: left;
+  text-shadow: 0 1px 12px oklch(6% 0.012 265 / 0.55);
+  pointer-events: none;
+}
+.cf-overlay__eyebrow {
+  margin: 0 0 2px;
+  color: oklch(92% 0.004 265 / 0.72);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.cf-overlay__titulo {
+  margin: 0;
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: 1.72rem;
+  font-variation-settings: 'wght' 780;
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.034em;
+}
+.cf-overlay__sub {
+  margin: 0;
+  color: oklch(97% 0.003 265 / 0.9);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: 0.78rem;
+  font-variation-settings: 'wght' 640;
+  letter-spacing: -0.008em;
+}
+.cf-overlay__linea {
+  margin: 4px 0 0;
+  max-width: 21ch;
+  color: oklch(95% 0.003 265 / 0.7);
+  font-size: 0.7rem;
+  line-height: 1.42;
+}
+/* Placeholder: solo la eyebrow, centrada abajo y muy discreta — la carta se
+   sostiene por su gradiente, no por texto inventado. */
+.cf-overlay--pronto {
+  align-items: center;
+  padding-bottom: 18px;
+  background: linear-gradient(
+    to top,
+    oklch(8% 0.012 265 / 0.6) 0%,
+    oklch(8% 0.012 265 / 0.22) 34%,
+    transparent 62%
+  );
+}
+.cf-overlay--pronto .cf-overlay__eyebrow {
+  margin: 0;
+  color: oklch(95% 0.004 265 / 0.62);
+  letter-spacing: 0.2em;
+}
+
+@media (min-width: 768px) {
+  .cf-overlay { gap: 6px; padding: 24px 22px 26px; }
+  .cf-overlay__titulo { font-size: 2.5rem; }
+  .cf-overlay__sub { font-size: 0.95rem; }
+  .cf-overlay__linea { font-size: 0.82rem; }
+}

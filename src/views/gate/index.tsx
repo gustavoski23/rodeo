@@ -227,22 +227,37 @@ const GateTema = () => (
       --background: oklch(97% 0.014 85);
       --foreground: oklch(25% 0.02 265);
 
-      /* Manchas de la captura */
-      --color-primary: oklch(84% 0.045 255);      /* gris-azulado frío (izq) */
-      --color-secondary: oklch(83% 0.10 72);       /* ámbar (arriba-der) */
-      --color-accent: oklch(86% 0.05 250);         /* gris-azulado frío (arriba-izq) */
-      --color-destructive: oklch(80% 0.10 32);     /* coral (abajo-der) */
-      --color-chart-1: oklch(85% 0.09 78);         /* ámbar cálido */
-      --color-chart-2: oklch(84% 0.09 60);
-      --color-chart-3: oklch(88% 0.035 250);       /* azul-gris suave */
-      --color-chart-4: oklch(82% 0.11 62);         /* naranja/ámbar */
-      --color-chart-5: oklch(86% 0.075 45);        /* durazno */
+      /* Manchas de la captura — VIVAS (ronda "gradiente intensa" de Gus): el
+         lavado tímido de antes (chroma .035–.11) subió a .11–.22 manteniendo
+         la luminosidad alta (70–80%), así el papel sigue claro y el título
+         oscuro se lee, pero el ámbar es ámbar, el coral es coral y el azulado
+         tiene cuerpo en vez de ser gris. */
+      --color-primary: oklch(74% 0.135 252);       /* azulado con cuerpo (izq) */
+      --color-secondary: oklch(78% 0.175 70);      /* ámbar (arriba-der) */
+      --color-accent: oklch(77% 0.125 248);        /* azulado (arriba-izq) */
+      --color-destructive: oklch(71% 0.195 30);    /* coral (abajo-der) */
+      --color-chart-1: oklch(80% 0.165 80);        /* ámbar cálido */
+      --color-chart-2: oklch(78% 0.165 58);
+      --color-chart-3: oklch(79% 0.115 246);       /* azul con presencia */
+      --color-chart-4: oklch(75% 0.185 56);        /* naranja/ámbar */
+      --color-chart-5: oklch(79% 0.155 42);        /* durazno */
 
       /* Puente Tailwind re-mapeado (tintas oscuras sobre papel) */
       --color-foreground: var(--foreground);
       --color-muted-foreground: oklch(48% 0.015 265);
       --color-border: oklch(25% 0.02 265 / 0.14);
     }
+    /* Velocidad al DOBLE. Los dos <g> de la GradientBackground llevan la
+       animación INLINE ("float1 20s" y "float2 25s"), y el estilo inline gana
+       a cualquier hoja: el único override posible es !important, y hay que
+       distinguirlos por posición porque ninguno tiene clase.
+         primer <g>  → float1: 20s → 10s
+         último <g>  → float2: 25s → 12.5s
+       Solo se toca la duración; la curva y el keyframe siguen siendo los del
+       componente sign-up (que NO se edita). */
+    .gate-tema svg g:first-of-type { animation-duration: 10s !important; }
+    .gate-tema svg g:last-of-type { animation-duration: 12.5s !important; }
+
     .gate-titulo { color: var(--foreground); }
     .gate-muted { color: oklch(48% 0.015 265); }
     .gate-linea { background: oklch(25% 0.02 265 / 0.16); }
