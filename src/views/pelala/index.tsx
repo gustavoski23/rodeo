@@ -1,16 +1,13 @@
-/* Entrada de Pélala — el sub-feature de stickers peel dentro de SLANG.
-   Un solo componente que el wiring montará bajo SLANG (diferido a la integración).
-   Alterna picker → El Muro | Pélala según el store. */
+/* Entrada del sticker peel dentro de SLANG.
+   Decisión de Gus: la tarjeta (revelar contexto + guardar + pelar para avanzar)
+   ES la experiencia y reemplaza a El Muro como modo separado. Se abre directo.
 
-import { usePelala } from '@/stores/pelala';
+   muro.tsx y picker.tsx quedan en disco sin rutear (por si "el después" los
+   rescata); no se importan aquí. El wiring dentro de SLANG (deferido) montará
+   este componente y conectará el "← Volver". */
 
-import { ElMuro } from './muro';
 import { Pelala } from './reto';
-import { PelalaPicker } from './picker';
 
 export default function PelalaView() {
-  const mode = usePelala((s) => s.mode);
-  if (mode === 'muro') return <ElMuro />;
-  if (mode === 'reto') return <Pelala />;
-  return <PelalaPicker />;
+  return <Pelala />;
 }
