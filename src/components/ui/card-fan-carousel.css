@@ -28,14 +28,40 @@
    la carta central .5·alto → sobresale 7.3rem − .0585·alto. De ahí la fórmula
    del padding-bottom (con ~.3rem de colchón para la sombra).
 
-   Y el alto de la carta vuelve a ser GRANDE — es una vitrina, la protagonista
-   manda — pero acotado con dvh para que en pantallas cortas siga entrando el
-   conjunto caja + flechas + puntos sin recortes. */
+   Paso 3 (ronda 4, el HOVER): faltaba la holgura de ARRIBA. Al pasar el ratón,
+   el componente sube la carta 2.5rem·hMult (≈37px) y la escala a 1.08, lo que
+   añade otro 4% del alto por el borde superior (≈18px): pide unos 55-60px de
+   aire sobre la carta en reposo. La capa (.aurora-carrusel) es fixed con
+   overflow:hidden, así que lo que falta no desborda: se CORTA. Medido antes de
+   este arreglo: a 1280×800 la carta quedaba a 2px del techo y a partir de 780px
+   de alto se comía las esquinas (4px a 1366×768, 15px a 1280×700).
+
+   El arreglo son las dos reglas de abajo, y van juntas:
+   a) padding-top = --cf-holgura. Con box-sizing: content-box y las cartas
+      centradas por el flex, el padding-top SÍ las baja (a diferencia del
+      padding-bottom): el centrado es respecto al content box. Ojo, la capa
+      centra la sección entera, así que la mitad de ese padding se la come el
+      recentrado — el aire neto que gana la carta es la mitad… salvo que no
+      haya holgura sobrante, y ahí el padding es lo único que la sostiene.
+   b) --cf-alto deja de ser un % de la pantalla y pasa a ser LO QUE SOBRA: se
+      resta el cromo fijo (chevron de cerrar 72px + paddings de la sección +
+      flechas y puntos + la caída del abanico + la holgura de hover + 12px de
+      colchón) y lo que queda se reparte entre la carta y su padding-bottom,
+      que depende del propio alto → de ahí el factor 1.062 (= 1/0.9415).
+      Así el conjunto ENTERO cabe siempre, con o sin hover, y el tope por
+      breakpoint sigue mandando en pantallas altas. */
 
 .fan-layout {
-  --cf-alto: min(26rem, 50dvh);
+  /* Aire reservado ARRIBA para el levantamiento del hover. */
+  --cf-holgura: 3.25rem;
+  /* Cromo fijo que NO es la carta: 88px de la sección (paddings + mandos) +
+     72px del chevron de cerrar + 52px de holgura + 121.6px de caída + 12px. */
+  --cf-cromo: 21.6rem;
+  --cf-tope: 26rem;
+  --cf-alto: clamp(14rem, calc((100dvh - var(--cf-cromo)) * 1.062), var(--cf-tope));
   box-sizing: content-box;
   height: var(--cf-alto);
+  padding-top: var(--cf-holgura);
   /* 7.3rem de caída del flanco − lo que ya sobresale la carta central. */
   padding-bottom: calc(7.6rem - var(--cf-alto) * 0.0585);
 }
@@ -53,15 +79,17 @@
 }
 
 @media (min-width: 640px) {
-  .fan-layout { --cf-alto: min(27rem, 52dvh); }
+  .fan-layout { --cf-tope: 27rem; }
 }
 
+/* A partir de 768px la sección pasa a mt-6 y flechas de 48px: +16px de cromo. */
 @media (min-width: 768px) {
-  .fan-layout { --cf-alto: min(28rem, 54dvh); }
+  .fan-layout { --cf-tope: 28rem; --cf-cromo: 22.6rem; }
   .fan-card { border-radius: 1.5rem; }
 }
 
+/* A partir de 1024px la sección pasa de py-4 a py-8: +32px de cromo. */
 @media (min-width: 1024px) {
-  .fan-layout { --cf-alto: min(30rem, 56dvh); }
+  .fan-layout { --cf-tope: 30rem; --cf-cromo: 24.6rem; }
   .fan-card { border-radius: 1.75rem; }
 }

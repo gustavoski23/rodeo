@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
+import { AnimatedThemeToggler } from '@/components/magicui/animated-theme-toggler';
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
 import { CarruselFeatures } from '@/components/rodeo/carrusel-features';
 import { MenuToggle } from '@/components/rodeo/menu-toggle';
+import { aplicarTema } from '@/lib/theme';
+import { store } from '@/lib/storage';
 import { useApp } from '@/stores/app';
 import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
 
@@ -25,6 +28,8 @@ import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
 export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean; onMenuToggle: () => void }) {
   const nombre = useApp((s) => s.nombre);
   const setView = useApp((s) => s.setView);
+  const tema = useApp((s) => s.tema);
+  const setTema = useApp((s) => s.setTema);
   const [carruselAbierto, setCarruselAbierto] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
 
@@ -54,8 +59,26 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
           sin mover un píxel; la píldora ya salía por el display:none de
           .aurora-home--con-carrusel, y el chevron ⌄ se queda fuera porque es
           el mando de cerrar. */}
-      <div className="shrink-0" inert={carruselAbierto}>
+      {/* Fila superior: hamburguesa a la izquierda y el toggler de tema a la
+          DERECHA (posición pedida por Gus). Mismo AnimatedThemeToggler verbatim
+          y mismo cableado controlado del Header: RODEO es dueño de la
+          persistencia (data-theme + rodeo_tema). El Home en sí siempre es
+          oscuro (#14161a, es su diseño): el toggle cambia el tema del RESTO de
+          la app, y aquí vive porque es la puerta. */}
+      <div className="flex shrink-0 items-center justify-between" inert={carruselAbierto}>
         <MenuToggle open={menuOpen} onToggle={onMenuToggle} />
+        <AnimatedThemeToggler
+          theme={tema === 'claro' ? 'light' : 'dark'}
+          duration={700}
+          onThemeChange={(t) => {
+            const nuevo = t === 'light' ? 'claro' : 'oscuro';
+            aplicarTema(nuevo);
+            store.set('rodeo_tema', nuevo);
+            setTema(nuevo);
+          }}
+          aria-label="Cambiar entre tema claro y oscuro"
+          className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-white/15 bg-transparent text-white/85 [&_svg]:size-5"
+        />
       </div>
 
       {/* --con-carrusel solo existe con la vitrina abierta: manda el chevron al
@@ -81,7 +104,10 @@ export default function HomeView({ menuOpen, onMenuToggle }: { menuOpen: boolean
             type="button"
             aria-label={carruselAbierto ? 'Ocultar las features' : 'Ver las features'}
             aria-expanded={carruselAbierto}
-            aria-controls="aurora-carrusel"
+            /* aria-controls SOLO cuando la capa existe: cerrada no está montada
+               (AnimatePresence la desmonta) y apuntar a un id ausente es una
+               referencia colgante en el árbol de accesibilidad. */
+            aria-controls={carruselAbierto ? 'aurora-carrusel' : undefined}
             onClick={() => setCarruselAbierto((v) => !v)}
           >
             <svg

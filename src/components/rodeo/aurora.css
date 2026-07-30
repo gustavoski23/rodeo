@@ -604,9 +604,11 @@
    central, y en móvil pierde casi toda la carta. Con el texto completo en
    todas, la de STORY se leía "TORY / do historia / hriller por capítulos…":
    palabras partidas, que parecen un fallo y no un diseño.
-   Por eso TODO el texto del overlay —la eyebrow incluida— SOLO aparece en la
-   carta CENTRADA, que es la única que nunca está tapada; las demás se quedan
-   con su gradiente y nada más.
+   Por eso el bloque RICO (título display + subtítulo + la línea en español) y
+   la eyebrow que lo acompaña SOLO aparecen en la carta CENTRADA, que es la
+   única que nunca está tapada. La eyebrow suelta de los placeholders es otra
+   historia y se resuelve más abajo (ronda 4): cabe entera en los flancos si se
+   pone ARRIBA, así que ahí sí se enciende siempre en escritorio.
    (Ronda 3: en la ronda 2 esta regla se aplicó solo al bloque rico y la
    eyebrow se seguía pintando en las seis cartas de los flancos, donde el
    solape la troceaba en «PRÓXIMAN», «ÓXIMAMENTE», «IMAMENTE»… el mismo fallo
@@ -624,11 +626,19 @@
   justify-content: flex-end;
   gap: 5px;
   padding: 18px 16px 20px;
+  /* El velo por defecto (carta NO centrada) es flojo A PROPÓSITO (ronda 4).
+     Estaba en 0.72, heredado de cuando todas las cartas llevaban texto: un
+     scrim de lectura debajo de un texto que ya no existe. Con siete cartas en
+     abanico, siete scrims inferiores dibujaban una "V" oscura bajo el conjunto.
+     Lo que queda —0.3— ya no es scrim sino asiento: apoya la carta sobre el
+     negro del Home y evita que el gradiente de la imagen llegue crudo al borde
+     inferior. El scrim de verdad (1) lo enciende solo la carta centrada, que es
+     la única con texto que leer. */
   background: linear-gradient(
     to top,
-    oklch(8% 0.012 265 / calc(0.86 * var(--cf-velo, 0.72))) 0%,
-    oklch(8% 0.012 265 / calc(0.62 * var(--cf-velo, 0.72))) 26%,
-    oklch(8% 0.012 265 / calc(0.12 * var(--cf-velo, 0.72))) 56%,
+    oklch(8% 0.012 265 / calc(0.86 * var(--cf-velo, 0.3))) 0%,
+    oklch(8% 0.012 265 / calc(0.62 * var(--cf-velo, 0.3))) 26%,
+    oklch(8% 0.012 265 / calc(0.12 * var(--cf-velo, 0.3))) 56%,
     transparent 78%
   );
   color: oklch(98% 0 0);
@@ -661,6 +671,36 @@
   --cf-texto: block;
   --cf-align: flex-start;
   --cf-velo: 1;
+  /* Centrada manda el bloque grande: el rótulo micro de arriba sobra. */
+  --cf-tag: none;
+}
+
+/* Rótulo micro del borde SUPERIOR (solo cartas de feature). Es el nombre de la
+   feature —SLANG, STORY—, no una invención: sin él, la única carta muda del
+   abanico sería justo la que SÍ navega, rodeada de "Próximamente". Va arriba
+   por la misma razón geométrica que el del placeholder (cada carta solo la tapa
+   su vecina interior, y la rotación aleja el borde de arriba), y se apaga en la
+   carta centrada, donde ya hay un título de 2.5rem diciendo lo mismo.
+   Trae su propio velo superior: así el degradado solo existe donde hay texto. */
+.cf-overlay__tag {
+  position: absolute;
+  inset: 0 0 auto;
+  display: var(--cf-tag, none);
+  margin: 0;
+  padding: 15px 12px 26px;
+  background: linear-gradient(
+    to bottom,
+    oklch(8% 0.012 265 / 0.52) 0%,
+    oklch(8% 0.012 265 / 0.2) 32%,
+    transparent 100%
+  );
+  color: oklch(95% 0.004 265 / 0.62);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
 }
 .cf-overlay__eyebrow {
   margin: 0 0 2px;
@@ -695,22 +735,65 @@
   font-size: 0.7rem;
   line-height: 1.42;
 }
-/* Placeholder: solo la eyebrow, centrada abajo y muy discreta — la carta se
-   sostiene por su gradiente, no por texto inventado. */
+/* Placeholder: solo la eyebrow, muy discreta y ARRIBA de la carta — la carta se
+   sostiene por su gradiente, no por texto inventado.
+
+   Por qué arriba y no abajo (ronda 4). El encargo pide que las cartas 3ª-10ª
+   lleven su "Próximamente"; la ronda 3 acabó escondiéndolo en todas menos en la
+   centrada para no repetir el texto troceado de la ronda 2. La salida no era
+   elegir entre las dos cosas, era MOVER el texto: en el abanico cada carta solo
+   la tapa su vecina INTERIOR (las de fuera van con z-index menor), y como las
+   cartas están rotadas hacia fuera, su borde SUPERIOR se aleja del centro
+   mientras el inferior se acerca. Medido a 1280×800 sobre la vecina derecha
+   (rot 7°, escala .935): el centro de la eyebrow cae en x≈198 puesta arriba y
+   en x≈154 puesta abajo, contra un borde de la carta central en x=123 — arriba
+   la palabra entra ENTERA (35px de margen), abajo se comía la "P".
+   Y de paso el velo deja de ser un scrim inferior sin texto debajo. */
 .cf-overlay--pronto {
   align-items: center;
-  padding-bottom: 18px;
+  justify-content: flex-start;
+  padding: 15px 12px 18px;
   background: linear-gradient(
-    to top,
-    oklch(8% 0.012 265 / 0.6) 0%,
-    oklch(8% 0.012 265 / 0.22) 34%,
-    transparent 62%
+    to bottom,
+    oklch(8% 0.012 265 / 0.52) 0%,
+    oklch(8% 0.012 265 / 0.2) 32%,
+    transparent 60%
   );
 }
 .cf-overlay--pronto .cf-overlay__eyebrow {
   margin: 0;
   color: oklch(95% 0.004 265 / 0.62);
   letter-spacing: 0.2em;
+}
+
+/* Y con el sitio despejado, el "Próximamente" se enciende en TODOS los flancos
+   —lo que pedía el encargo— pero solo de 1024px en adelante. Debajo de ese
+   ancho el propio componente encoge el despliegue del abanico (el multiplicador
+   horizontal cae de 1.0 a .75/.5/.38/.28) y las cartas dejan de solaparse "un
+   cuarto" para taparse casi enteras: a 390px de ancho la vecina pierde el 81%
+   de su superficie y ni el borde de arriba se salva. Ahí sigue mandando la
+   regla de la ronda 3 —habla solo la carta centrada— porque media palabra
+   asomando por detrás de otra carta parece un fallo, no un diseño. */
+@media (min-width: 1024px) {
+  .cf-overlay--pronto .cf-overlay__eyebrow { display: block; }
+  .cf-overlay__tag { display: var(--cf-tag, block); }
+
+  /* …y se apartan mientras levantas una carta. Al hacer hover el componente no
+     solo sube la carta: EMPUJA a las vecinas hacia fuera (hasta 7.5rem ≈ 120px
+     si levantas la central), y ese desplazamiento sí monta unas cartas sobre
+     otras lo bastante como para partir un rótulo por la mitad ("PRÓXIMAME…").
+     En vez de aguantar el texto roto durante la interacción, los rótulos de las
+     cartas que NO tienes bajo el cursor se apagan en 0.22s: la carta que tocas
+     se queda con la palabra, el resto se convierte en color. El :has() acota el
+     apagado al momento en que el puntero está de verdad sobre una carta. */
+  .cf-overlay--pronto .cf-overlay__eyebrow,
+  .cf-overlay__tag {
+    transition: opacity 0.22s ease;
+  }
+  .fan-layout:has(.fan-card:hover) .fan-card:not(:hover) .cf-overlay--pronto .cf-overlay__eyebrow,
+  .fan-layout:has(.fan-card:hover) .fan-card:not(:hover) .cf-overlay__tag {
+    opacity: 0;
+  }
 }
 
 @media (min-width: 768px) {

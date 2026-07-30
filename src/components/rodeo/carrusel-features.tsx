@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import SocialCards, { type CardItem } from '@/components/ui/card-fan-carousel';
 import { useApp } from '@/stores/app';
+import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
 
 import './aurora.css';
 
@@ -20,18 +21,23 @@ import './aurora.css';
    al frente es SLANG, que es lo que pide la vitrina. Los índices 0-2 y 5-9 son
    los "Próximamente", que es donde tienen que estar: en los flancos.
 
-   Las imágenes son las 10 de /public/carrusel (400×700, paletas aurora de la
-   app): 01 para SLANG, 02 para STORY, 03…10 para los placeholders. */
+   Las imágenes de las 4 features REALES son las ilustraciones de Gus
+   (public/carrusel/{slang,story,conversacion,oficina}.jpg, 800×1400, set
+   coherente con acentos lima); los placeholders usan las gradientes aurora
+   (05…10.jpg, 400×700, paletas del personalizador). */
 
 /** Índice de la carta centrada al abrir: el HALF del componente. */
 const CENTRO_INICIAL = 3;
 
-/* Overlay de una feature real: gradiente oscuro desde abajo + eyebrow mono y,
-   SOLO cuando la carta está centrada, el bloque de texto (título display,
-   subtítulo y la línea en español). Ese "solo cuando está centrada" lo decide
-   el CSS con el data-centro del lienzo: en el abanico las cartas laterales
-   están tapadas por la central y el texto se leería cortado a media palabra
-   (ver el comentario de .cf-overlay en aurora.css). */
+/* Overlay de una feature real. Dos registros según dónde esté la carta:
+   - CENTRADA: gradiente oscuro desde abajo + eyebrow mono + el bloque de texto
+     (título display, subtítulo y la línea en español).
+   - EN UN FLANCO: solo el rótulo micro de arriba con el nombre de la feature.
+     El bloque rico no cabe — en el abanico las cartas laterales están tapadas
+     por la central y el texto se leería cortado a media palabra (ver el
+     comentario de .cf-overlay en aurora.css) — pero el nombre en el borde
+     superior sí, que es la parte de la carta que ninguna vecina alcanza.
+   Quién manda lo decide el CSS con el data-centro del lienzo. */
 function OverlayFeature({
   titulo,
   subtitulo,
@@ -43,6 +49,7 @@ function OverlayFeature({
 }) {
   return (
     <div className="cf-overlay">
+      <p className="cf-overlay__tag">{titulo}</p>
       <p className="cf-overlay__eyebrow">FEATURE</p>
       <div className="cf-overlay__texto">
         <h3 className="cf-overlay__titulo">{titulo}</h3>
@@ -54,7 +61,7 @@ function OverlayFeature({
 }
 
 /* Overlay de placeholder: sutil, sin título grande y SIN nombre inventado.
-   Solo la eyebrow, que es lo honesto: todavía no existe. */
+   Solo la eyebrow "Próximamente" arriba, que es lo honesto: todavía no existe. */
 function OverlayProximamente() {
   return (
     <div className="cf-overlay cf-overlay--pronto">
@@ -63,7 +70,7 @@ function OverlayProximamente() {
   );
 }
 
-const IMG_PRONTO = ['03', '04', '05', '06', '07', '08', '09', '10'];
+const IMG_PRONTO = ['05', '06', '07', '08', '09', '10'];
 
 export function CarruselFeatures() {
   const setView = useApp((s) => s.setView);
@@ -97,8 +104,10 @@ export function CarruselFeatures() {
     return () => observador.disconnect();
   }, []);
 
-  // Los ocho placeholders, repartidos: tres a la izquierda de la protagonista
-  // (índices 0-2) y cinco a su derecha (índices 5-9).
+  // Los seis placeholders, repartidos: tres a la izquierda de la protagonista
+  // (índices 0-2) y tres al final (índices 7-9). Las CUATRO features reales
+  // quedan contiguas (3-6): paginando a la derecha desde SLANG se recorren
+  // STORY → CONVERSACIÓN → OFICINA sin placeholders en medio.
   const pronto: CardItem[] = IMG_PRONTO.map((n) => ({
     imgUrl: `/carrusel/${n}.jpg`,
     alt: 'Feature en camino',
@@ -108,7 +117,7 @@ export function CarruselFeatures() {
   const cards: CardItem[] = [
     ...pronto.slice(0, 3),
     {
-      imgUrl: '/carrusel/01.jpg',
+      imgUrl: '/carrusel/slang.jpg',
       alt: 'SLANG · Phrasal verbs y jerga real',
       onClick: () => setView('slang'),
       contenido: (
@@ -120,7 +129,7 @@ export function CarruselFeatures() {
       ),
     },
     {
-      imgUrl: '/carrusel/02.jpg',
+      imgUrl: '/carrusel/story.jpg',
       alt: 'STORY · Modo historia',
       onClick: () => setView('story'),
       contenido: (
@@ -128,6 +137,35 @@ export function CarruselFeatures() {
           titulo="STORY"
           subtitulo="Modo historia"
           linea="Un thriller por capítulos donde practicas sin darte cuenta."
+        />
+      ),
+    },
+    {
+      imgUrl: '/carrusel/conversacion.jpg',
+      alt: 'CONVERSACIÓN · Habla 24/7 con tu coach',
+      onClick: () => {
+        // El mismo viaje que la píldora aurora del Home: sesión libre lista
+        // ANTES de navegar, para no aterrizar en la vista vieja de escenarios.
+        lanzarLibreAurora({ focoVolver: false });
+        setView('talk');
+      },
+      contenido: (
+        <OverlayFeature
+          titulo="CONVERSACIÓN"
+          subtitulo="Habla 24/7 con tu coach"
+          linea="Practica hablando con la voz, como con un amigo."
+        />
+      ),
+    },
+    {
+      imgUrl: '/carrusel/oficina.jpg',
+      alt: 'OFICINA · Inglés de trabajo con Alfred',
+      onClick: () => setView('a1'),
+      contenido: (
+        <OverlayFeature
+          titulo="OFICINA"
+          subtitulo="Inglés de trabajo con Alfred"
+          linea="Desde cero y con packs por profesión."
         />
       ),
     },
