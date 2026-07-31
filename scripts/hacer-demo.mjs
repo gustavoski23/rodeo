@@ -112,8 +112,10 @@ const bootstrap = `
    shimmear la red antes de que los stores se hidraten. */
 (function () {
   var S = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
-  // Salta el gate de login sin red (auth.ts: si saltado() es true, gate off).
-  S('rodeo_gate_skip', '1');
+  // El gate de login DEBE aparecer SIEMPRE (Gus lo muestra en sus demos). En vez
+  // de saltarlo, se BORRA el flag de "skip" en cada carga: así el login reaparece
+  // aunque en una visita anterior se haya pulsado "Skip" (que persiste el flag).
+  try { localStorage.removeItem('rodeo_gate_skip'); } catch (e) {}
   S('rodeo_nombre', 'Gustavo');
   S('rodeo_tts', false);            // sin llamadas a /api/tts en el opener
   S('rodeo_pass', 'demo');          // por si el gate del PIN saltara

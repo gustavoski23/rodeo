@@ -22,9 +22,17 @@ import { useApp } from '@/stores/app';
        siguiente tema lo decide RODEO (SIGUIENTE_TEMA: día → noche →
        gradiente → día). Se le pasa el tema VISUAL para que el icono no mienta
        (gradiente se dibuja como noche, porque sus tokens son los oscuros).
-     · Sus colores van con el par `x dark:x`: en OSCURO ganan border-white/15 y
-       text-white/85 —los valores de siempre—, y en CLARO caen a negro
-       translúcido para que el botón no desaparezca sobre el papel.
+     · REGLA OBLIGATORIA (pedido de Gus): el botón de tema tiene que VERSE en
+       TODAS las pantallas y en los TRES temas. El look "transparente + icono
+       negro al 70%" era casi INVISIBLE sobre el papel del tema claro (parecía
+       faltar). Por eso ahora lleva SUPERFICIE + BORDE + ICONO por tokens del
+       tema —los MISMOS que el botón ← canónico (--bg-surface / --borde-sutil /
+       --text-primary)—, que garantizan contraste en claro, oscuro y gradiente.
+       Al ir por tokens se adapta solo: no vuelve a "desaparecer" en ningún tema.
+
+   ESTA fila es la ÚNICA cabecera y DEBE montarse en toda pantalla: el Home la
+   pone dentro de su aurora-shell y App la renderiza para TODAS las vistas que no
+   son Home (App.tsx). No añadir vistas que la salten.
 
    El PADDING lo pone el consumidor: el Home la mete dentro de su
    `aurora-shell` (que ya trae px-5 y el hueco del notch) y App le da el suyo.
@@ -56,7 +64,7 @@ export function FilaSuperior({
         duration={700}
         onThemeChange={() => cambiarTema(SIGUIENTE_TEMA[tema])}
         aria-label="Cambiar de tema: día, noche o gradiente"
-        className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-black/15 bg-transparent text-black/70 dark:border-white/15 dark:text-white/85 [&_svg]:size-5"
+        className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-[var(--borde-sutil)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm [&_svg]:size-5"
       />
     </div>
   );

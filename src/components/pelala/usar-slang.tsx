@@ -15,6 +15,7 @@ import { motion } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Mic, Send, Sparkles } from 'lucide-react';
 
+import { BorderBeam } from '@/components/magicui/border-beam';
 import type { SlangTerm } from '@/content/pelala/deck';
 import { evaluarUso, type Veredicto } from '@/lib/pelala/coach';
 
@@ -92,7 +93,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   return (
     <div
       ref={hostRef}
-      className="mt-3 rounded-[22px] p-4"
+      className="relative mt-3 overflow-hidden rounded-[22px] p-4"
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)', boxShadow: 'var(--sticker-shadow)' }}
     >
       {/* Intro (solo si aún no hay turnos). */}
@@ -196,6 +197,11 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           <Send size={16} />
         </motion.button>
       </div>
+
+      {/* Borde animado (BorderBeam de magicui, verbatim — mismo patrón que
+          a1/portada.tsx). Colores en tokens aurora para un acento colorido, NO
+          verde. Va como hijo absoluto dentro del contenedor relative+overflow. */}
+      <BorderBeam size={160} duration={7} borderWidth={2} colorFrom="var(--aurora-1)" colorTo="var(--aurora-2)" />
     </div>
   );
 }

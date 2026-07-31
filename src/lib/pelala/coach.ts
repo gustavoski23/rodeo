@@ -40,7 +40,7 @@ export function evaluarUsoLocal(term: SlangTerm, frase: string): Veredicto {
   }
   return {
     estado: 'bien',
-    mensaje: '¡Perfecto! Así lo diría un nativo. 🎉',
+    mensaje: '¡Perfecto! Así lo diría un nativo.',
   };
 }
 

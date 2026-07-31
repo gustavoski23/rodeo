@@ -33,6 +33,8 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { usePelala } from '@/stores/pelala';
 
+import { ICONO_TERMINO, ICONO_FALLBACK } from './term-iconos';
+
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
 const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
@@ -99,12 +101,15 @@ export function Pelala() {
   const term = orden[retoIndex % orden.length];
   if (!term) return null;
   const guardado = guardados.includes(term.id);
-  const progreso = (retoIndex + 1) / orden.length;
+  const Icono = ICONO_TERMINO[term.id] ?? ICONO_FALLBACK;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ── Barra de sección canónica (misma que SLANG) ──────────────────── */}
-      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-2')}>
+      {/* ── Barra de sección: SOLO el ← + un rótulo quieto y NEUTRO. Fuera el
+          contador y la barra de progreso, y el rótulo deja de ir en la lima
+          (--accent): Gus los marcó como "verde AI slop" de la versión básica de
+          producción. La fila Menu + toggler de tema la pone el shell arriba. ── */}
+      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-3')}>
         <motion.button
           type="button"
           whileTap={{ scale: 0.94 }}
@@ -116,30 +121,11 @@ export function Pelala() {
           <ArrowLeft size={17} strokeWidth={2} />
         </motion.button>
         <span
-          className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
-          style={{ color: 'var(--accent)' }}
+          className="min-w-0 flex-1 truncate font-mono text-[0.62rem] font-semibold tracking-[0.14em] uppercase"
+          style={{ color: 'var(--text-muted)' }}
         >
           Slang · pélala y aprende
         </span>
-        <span
-          className="shrink-0 rounded-full px-2.5 py-1 font-mono text-[0.62rem] font-bold tracking-[0.08em] tabular-nums"
-          style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)', border: '1px solid var(--borde-sutil)' }}
-        >
-          {retoIndex + 1}/{orden.length}
-        </span>
-      </div>
-
-      {/* Barra de progreso fina del mazo. */}
-      <div className={cn(COLUMNA, 'shrink-0 pb-3')}>
-        <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: 'var(--chip-bg)' }}>
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: 'var(--accent)' }}
-            initial={false}
-            animate={{ width: `${Math.round(progreso * 100)}%` }}
-            transition={{ type: 'spring', stiffness: 260, damping: 32 }}
-          />
-        </div>
       </div>
 
       {/* ── Scroller: sticker flotante + significado + mini-chat ──────────── */}
@@ -167,18 +153,18 @@ export function Pelala() {
         >
           {/* Caption anclada a la tarjeta, alineada a la izquierda como el cuerpo. */}
           <p className="mb-3 text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
-            Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente ✌️
+            Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente
           </p>
 
-          {/* Cabecera: emoji (en badge, para que se lea intencional) + término
-              dominante + chip de tipo · guardar. */}
+          {/* Cabecera: ICONO DE LÍNEA (no emoji) en badge + término dominante +
+              chip de tipo · guardar. */}
           <div className="flex items-center gap-2.5">
             <span
               aria-hidden="true"
-              className="flex size-9 shrink-0 items-center justify-center rounded-xl text-xl leading-none"
-              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)' }}
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
             >
-              {term.emoji}
+              <Icono size={19} strokeWidth={2} />
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[1.15rem] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
