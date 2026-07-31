@@ -9,7 +9,6 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/elevenlabs/conversation';
-import { Backlight } from '@/components/magicui/backlight';
 import { IconMorph } from '@/components/rodeo/pill-button';
 import { useDictado } from '@/components/rodeo/onda-dictado';
 import { Card } from '@/components/ui/card';
@@ -30,7 +29,6 @@ import { useTalk } from '@/stores/talk';
 
 import { BurbujaChat } from './bubbles';
 import { OrbAvatar } from './orb-avatar';
-import { useTemaOscuro } from './use-tema-oscuro';
 import type { useCoachTurn } from './use-coach-turn';
 
 /* Sesión de CHARLA — REDISEÑO al look que pidió Gus (imágenes 2 y 3):
@@ -117,7 +115,6 @@ export function CharlaSession({ motor }: { motor: Motor }) {
      speech.ts) — no hace falta estado local, y así cualquier otro sitio que
      cambie la voz repinta esta etiqueta sola. El toast lo da toggleVoz. */
   const voz = useVoz();
-  const oscuro = useTemaOscuro();
 
   const volverRef = useRef<HTMLButtonElement>(null);
   const barraRef = useRef<HTMLDivElement>(null);
@@ -346,31 +343,24 @@ export function CharlaSession({ motor }: { motor: Motor }) {
       </div>
 
       {/* ── El chat ──────────────────────────────────────────────────────────
-          En OSCURO la Card va dentro del Backlight de Magic UI: el filtro SVG
-          desenfoca y satura una copia de la propia tarjeta por debajo, y eso es
-          el halo. En CLARO no: sobre papel el mismo filtro es una mancha gris.
-          Las utilidades [&>div] estiran el div interno del Backlight (el que
-          lleva el filter) para que la Card siga siendo la que reparte el alto;
-          el componente es verbatim y no expone className para ese div.
+          Capa OPACA y limpia, SIN ningún filtro. Antes la Card colgaba de un
+          <Backlight> (magicui) cuyo filtro SVG —feGaussianBlur(40) + saturate(4)
+          compuesto por debajo— pintaba una copia desenfocada y sobre-saturada de
+          la propia tarjeta que rebosaba ~40px FUERA de su borde: ése era el halo
+          de color que marcó Gus (el rojo/magenta del orb a la izquierda y la
+          banda clara de arriba) en oscuro y en gradiente. En claro ya se anulaba,
+          pero el efecto no aporta nada y la petición es que NINGÚN tema tenga
+          manchas ni bandas alrededor del panel, así que el Backlight se retira
+          entero (el componente verbatim no se toca; solo se deja de usar). El
+          gradiente del fondo —capa `fixed` a pantalla completa (aurora.css)—
+          queda continuo, y la tarjeta se apoya encima sin desenfocarlo.
 
-          El Backlight se monta SIEMPRE, en los dos temas, y lo que cambia es si
-          el filtro está puesto o no. Montarlo solo en oscuro cambiaba el TIPO
-          del nodo padre al tocar el toggle, y React desmontaba la Card entera:
-          las burbujas nacían de cero, el texto ya asentado del coach se volvía
-          a animar y las glosas se perdían hasta que el barrido acababa otra vez
-          (lo cazó la auditoría r2). Ahora el árbol no se mueve. */}
-      <Backlight
-        blur={40}
-        className={cn(
-          COLUMNA,
-          'flex min-h-0 flex-1 flex-col [&>div]:flex [&>div]:min-h-0 [&>div]:flex-1 [&>div]:flex-col',
-          // En CLARO se apaga el halo anulando el filtro. La clase lleva `!`
-          // porque el componente verbatim pinta `filter` como estilo INLINE.
-          !oscuro && '[&>div]:[filter:none]!',
-        )}
-      >
-        {tarjeta}
-      </Backlight>
+          Es un <div> plano montado SIEMPRE (no cambia con el toggle de tema): el
+          árbol no se mueve al cambiar de tema, así que la Card no se re-monta —lo
+          que en su día perdía burbujas y re-animaba el texto (auditoría r2)—. La
+          profundidad la sigue dando el shadow-sm neutro de la propia Card, que no
+          es un halo de color. */}
+      <div className={cn(COLUMNA, 'flex min-h-0 flex-1 flex-col')}>{tarjeta}</div>
 
       {/* ── La barra de abajo (imagen 3) ──────────────────────────────────────
           El envoltorio no es decorativo: es lo que se mide para colocar el tip
