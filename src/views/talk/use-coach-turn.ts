@@ -102,6 +102,11 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
   useTalk.getState().setTalkMode('charla');
   useTalk.getState().abrirSesion(sesion, [{ tipo: 'pensando' }]);
   useTalk.getState().setFocoVolver(!!opts.focoVolver);
+  /* Este es el ÚNICO camino que entra a una sesión sin pasar por la portada de
+     TALK (la píldora aurora del Home). Se marca el origen para que el ← de la
+     sesión devuelva al Home y no a una portada por la que nunca se pasó; todas
+     las demás entradas se quedan con el 'talk' que deja `abrirSesion`. */
+  useTalk.getState().setOrigen('home');
 
   setTimeout(() => {
     const st = useTalk.getState();
