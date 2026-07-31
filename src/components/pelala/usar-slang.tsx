@@ -64,16 +64,26 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
     if (v.estado === 'bien') celebrar();
   };
 
-  /* Felicitación pequeña y CONTENIDA: burst breve cerca de la parte baja del chat,
-     para no cruzar por encima de la definición ni del sticker (auditoría). */
+  /* Felicitación CONTENIDA: burst denso y corto que cae rápido (ticks bajos +
+     gravity alta + poca velocidad de salida) y se origina en la parte baja del
+     chat, para que no se quede flotando sobre el texto de las burbujas ni suba
+     hasta la definición/sticker (auditoría). */
   const celebrar = () => {
     const host = hostRef.current;
-    const opts: confetti.Options = { particleCount: 32, spread: 46, scalar: 0.55, ticks: 90, startVelocity: 22 };
+    const opts: confetti.Options = {
+      particleCount: 55,
+      spread: 58,
+      scalar: 0.7,
+      ticks: 55,
+      startVelocity: 18,
+      gravity: 1.8,
+      decay: 0.92,
+    };
     if (host) {
       const r = host.getBoundingClientRect();
       opts.origin = {
         x: (r.left + r.width / 2) / window.innerWidth,
-        y: (r.bottom - r.height * 0.2) / window.innerHeight,
+        y: (r.bottom - r.height * 0.12) / window.innerHeight,
       };
     }
     void confetti(opts);

@@ -17,7 +17,7 @@ import { ArrowDownLeft } from 'lucide-react';
 export function CornerHint() {
   return (
     <div
-      className="pointer-events-none absolute right-[7%] top-[15%] z-20 flex items-center gap-0.5"
+      className="pointer-events-none absolute right-[26%] top-[20%] z-20 flex items-center gap-0.5"
       aria-hidden="true"
     >
       <span

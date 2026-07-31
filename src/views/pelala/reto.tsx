@@ -144,9 +144,10 @@ export function Pelala() {
 
       {/* ── Scroller: sticker flotante + significado + mini-chat ──────────── */}
       <div className={cn(COLUMNA, 'flex min-h-0 flex-1 flex-col overflow-y-auto', SIN_BARRA)}>
-        {/* El sticker, flotando sobre el fondo del tema (compacto: menos canvas
-            vacío alrededor del gráfico → columna cohesionada). */}
-        <div className="relative aspect-[2/1] w-full shrink-0 select-none">
+        {/* El sticker (hero), flotando sobre el fondo del tema. El wrapper se pega
+            a la tarjeta con -mb para cerrar el canvas vacío de abajo sin encoger
+            el gráfico (auditoría: que el hero domine, sin banda muerta). */}
+        <div className="relative -mb-6 aspect-[16/10] w-full shrink-0 select-none">
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -161,17 +162,24 @@ export function Pelala() {
 
         {/* ── Tarjeta de significado (revelable + guardable) ──────────────── */}
         <div
-          className="mt-1 rounded-[22px] p-4"
+          className="rounded-[22px] p-4"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)', boxShadow: 'var(--sticker-shadow)' }}
         >
-          {/* Caption anclada arriba de la tarjeta (ya no flota huérfana). */}
-          <p className="mb-3 text-center text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
+          {/* Caption anclada a la tarjeta, alineada a la izquierda como el cuerpo. */}
+          <p className="mb-3 text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
             Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente ✌️
           </p>
 
-          {/* Cabecera: emoji + término (dominante) + chip de tipo · guardar. */}
-          <div className="flex items-start gap-2.5">
-            <span aria-hidden="true" className="mt-0.5 text-2xl leading-none">{term.emoji}</span>
+          {/* Cabecera: emoji (en badge, para que se lea intencional) + término
+              dominante + chip de tipo · guardar. */}
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl text-xl leading-none"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)' }}
+            >
+              {term.emoji}
+            </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[1.15rem] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
                 {term.term}
@@ -200,50 +208,50 @@ export function Pelala() {
             </motion.button>
           </div>
 
-          {/* Pozo del significado: --bg-deep + borde (hundido consistente en los
-              3 temas). El texto oculto se cubre con FROST real (backdrop-blur del
-              overlay), no con blur sobre el propio texto. */}
+          {/* Pozo del significado: --bg-deep + borde (hundido consistente en los 3
+              temas). OCULTO = skeleton bars + pastilla (insinúa que hay texto sin
+              filtrarlo borroso por los cantos, que leía como glitch). REVELADO =
+              definición + ejemplo con el término resaltado. */}
           <div
             className="relative mt-3 overflow-hidden rounded-2xl"
             style={{ background: 'var(--bg-deep)', border: '1px solid var(--borde-sutil)' }}
           >
-            <div className="px-4 py-3.5">
-              <p className="text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-                {term.gloss_es}
-              </p>
-              <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                “{resaltarTermino(term.context_en, term.target)}”
-              </p>
-            </div>
-
-            {/* Overlay de revelar (frost uniforme sobre el texto). */}
-            {!revelado && (
+            {revelado ? (
+              <div className="relative px-4 py-3.5">
+                <p className="pr-8 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  {term.gloss_es}
+                </p>
+                <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  “{resaltarTermino(term.context_en, term.target)}”
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRevelado(false)}
+                  aria-label="Ocultar el significado"
+                  className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full transition-colors"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
+                >
+                  <EyeOff size={15} />
+                </button>
+              </div>
+            ) : (
               <button
                 type="button"
                 onClick={() => setRevelado(true)}
                 aria-label="Revelar el significado"
-                className="absolute inset-0 flex items-center justify-center backdrop-blur-md"
-                style={{ background: 'color-mix(in oklch, var(--bg-deep) 45%, transparent)' }}
+                className="relative flex w-full items-center justify-center px-4 py-5"
               >
+                {/* Skeleton: insinúa que hay texto oculto, limpio y contenido. */}
+                <div aria-hidden="true" className="absolute inset-0 flex flex-col justify-center gap-2 px-4">
+                  <span className="h-3.5 w-3/5 rounded-full" style={{ background: 'var(--borde-medio)' }} />
+                  <span className="h-2.5 w-5/6 rounded-full" style={{ background: 'var(--borde-sutil)' }} />
+                </div>
                 <span
-                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-semibold shadow-lg"
+                  className="relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-semibold shadow-lg"
                   style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-medio)', color: 'var(--text-primary)' }}
                 >
                   <Eye size={16} /> toca para ver el significado
                 </span>
-              </button>
-            )}
-
-            {/* Ocultar de nuevo (cuando está revelado). */}
-            {revelado && (
-              <button
-                type="button"
-                onClick={() => setRevelado(false)}
-                aria-label="Ocultar el significado"
-                className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full transition-colors"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
-              >
-                <EyeOff size={15} />
               </button>
             )}
           </div>
