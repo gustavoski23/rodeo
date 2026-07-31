@@ -126,7 +126,12 @@ export default function SlangView() {
                 role="tab"
                 id={idTab(modo)}
                 aria-selected={activa}
-                aria-controls={idPanel(modo)}
+                /* aria-controls SOLO en la pestaña activa: el tabpanel es uno
+                   solo y lleva el id del modo vivo, así que el id del modo
+                   inactivo no existe en el DOM — referencia colgante en el
+                   árbol de accesibilidad. Mismo criterio que home/index.tsx:122
+                   y que las tabs de TALK. */
+                aria-controls={activa ? idPanel(modo) : undefined}
                 tabIndex={activa ? 0 : -1}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => setMode(modo)}

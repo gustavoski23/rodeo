@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
@@ -37,6 +37,18 @@ const idPanel = (m: TalkMode) => `rd-talk-panel-${m}`;
    de ser una sábana y comparte ancho y centro con lo que hay debajo. Se
    redeclara aquí a propósito (convención del repo: cada fichero la suya). */
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
+
+/* Mismo helper que charla-session/charla-empty: el <div> envoltorio de
+   GlassButton (sign-up.tsx, INTOCABLE) reenvía el click con button.click()
+   cuando el target es el <span> interior, así que el handler de React corre
+   DOS veces por toque. En las tabs es inocuo (setTalkMode es idempotente),
+   pero se blinda igual para que el patrón sea uno solo en toda la vista. */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fn();
+  };
 
 export default function TalkView() {
   const talkMode = useTalk((s) => s.talkMode);
@@ -127,17 +139,17 @@ export default function TalkView() {
               activa se marca tipográficamente (negrita + subrayado en
               var(--accent)), que es lo que distingue sin romper el material.
 
-              El wrapper de GlassButton mete un <div> entre el tablist y cada
-              <button role="tab">, así que la relación ARIA se declara con
-              aria-owns: el patrón de tabs sigue siendo válido (tablist → tabs)
-              aunque el DOM tenga el envoltorio del vidrio en medio. El
-              onKeyDown sigue en el contenedor: los eventos de teclado de los
-              botones burbujean hasta aquí igual que antes. */}
+              El wrapper de GlassButton mete un <div> genérico entre el tablist
+              y cada <button role="tab">. La relación ARIA aguanta: los
+              "owned elements" de un rol son sus DESCENDIENTES en el árbol de
+              accesibilidad, y un div sin rol no interrumpe la cadena
+              tablist → tab (por eso NO hace falta aria-owns). El onKeyDown
+              sigue en el contenedor: los eventos de teclado de los botones
+              burbujean hasta aquí igual que antes. */}
           <div
             ref={tablistRef}
             role="tablist"
             aria-label="Modo de Talk"
-            aria-owns={TABS.map((t) => idTab(t.modo)).join(' ')}
             onKeyDown={porTeclado}
             className="flex shrink-0 flex-wrap items-center gap-3"
           >
@@ -151,9 +163,13 @@ export default function TalkView() {
                   role="tab"
                   id={idTab(modo)}
                   aria-selected={activa}
-                  aria-controls={idPanel(modo)}
+                  /* aria-controls SOLO en la pestaña activa: el pane inactivo
+                     no está montado (abajo se pinta uno u otro), y apuntar a un
+                     id ausente deja una referencia colgante en el árbol de
+                     accesibilidad. Mismo criterio que home/index.tsx:122. */
+                  aria-controls={activa ? idPanel(modo) : undefined}
                   tabIndex={activa ? 0 : -1}
-                  onClick={() => setTalkMode(modo)}
+                  onClick={unSoloClick(() => setTalkMode(modo))}
                   contentClassName={cn(
                     /* `!` porque .glass-button-text trae tracking-tighter de
                        serie y aquí el rótulo es mono espaciado. */

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Lightbulb, Play, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 
@@ -10,9 +10,10 @@ import {
   ConversationScrollButton,
 } from '@/components/elevenlabs/conversation';
 import { Backlight } from '@/components/magicui/backlight';
-import { PillButton } from '@/components/rodeo/pill-button';
+import { IconMorph } from '@/components/rodeo/pill-button';
 import { useDictado } from '@/components/rodeo/onda-dictado';
 import { Card } from '@/components/ui/card';
+import { GlassButton } from '@/components/ui/sign-up';
 import { cn } from '@/lib/utils';
 import {
   toggleTts,
@@ -25,7 +26,6 @@ import {
   VOCES,
 } from '@/lib/speech';
 import { toast } from '@/stores/toast';
-import { useApp } from '@/stores/app';
 import { useTalk } from '@/stores/talk';
 
 import { BurbujaChat } from './bubbles';
@@ -47,14 +47,31 @@ import type { useCoachTurn } from './use-coach-turn';
      componentes siguen en el repo — ESCENAS y OFICINA los usan). La barra ya
      trae su propio waveform, su teclado plegable y su botón de colgar.
 
-   · La barra de SESIÓN de arriba se queda (volver / título / Terminar y la fila
-     de audio con el coste). La BOMBILLA se muda ahí, junto a las píldoras de
-     audio: es meta-ayuda del mismo rango que "repetir", no una acción de la
-     barra de entrada, y en la ConversationBar no hay hueco que no rompa el
-     visual verbatim de la imagen 3.
+   · La barra de SESIÓN de arriba se queda (volver / Terminar y la fila de
+     audio). La BOMBILLA se muda ahí, junto a los botones de audio: es
+     meta-ayuda del mismo rango que "repetir", no una acción de la barra de
+     entrada, y en la ConversationBar no hay hueco que no rompa el visual
+     verbatim de la imagen 3.
+
+   · REGLA 7 del contrato — «donde te raye en rojo quitalo, porque eso es el
+     verde de produccion»: se fueron el título mono en var(--accent)
+     ("DIBUJO LIBRE") y el contador $0.0000 (con ellos, las suscripciones a
+     `session.title` y a `useApp.cost`; el ticker de coste lo sigue llevando
+     talk/index.tsx, que es quien lo alimenta desde la capa de API — aquí solo
+     se dejaba de pintar). Y «cambia los botones por unos con el mismo material
+     glass del login»: los cuatro mandos de audio son GlassButton size="icon" y
+     Terminar es GlassButton size="sm", con los MISMOS iconos, aria-labels y
+     acciones. El ← redondo canónico NO se toca (es el de toda la app) y el
+     PillButton compartido tampoco: ESCENAS y OFICINA lo siguen usando.
+
+   El vidrio necesita dos cosas que ya pone el ancestro (talk/index.tsx:90-95):
+   la clase `vidrio-tema` (declara --background/--foreground crudas por tema) y
+   <GlassStyles/> montado una vez. Aquí se repite `vidrio-tema` en la raíz —
+   son dos variables CSS, anidarla es inocuo — para que la sesión no dependa de
+   que nadie más lo recuerde; el <style> NO se duplica.
 
    La barra de sesión sigue en DOS filas a propósito: en 390 px no caben ← +
-   título + píldoras + Terminar + coste en una sola. */
+   Terminar + los cuatro mandos de audio en una sola. */
 
 type Motor = ReturnType<typeof useCoachTurn>;
 
@@ -67,11 +84,31 @@ const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
    barra comparten ancho y centro (en móvil ocupan todo, que es el caso real). */
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
 
+/* ── UN solo disparo por toque en los botones de vidrio ────────────────────
+   GlassButton (sign-up.tsx, INTOCABLE) envuelve el <button> en un <div> con su
+   propio onClick "click fix": si el evento no viene del botón exacto, llama a
+   `button.click()`. Como el toque real cae SIEMPRE en el <span> interior
+   (.glass-button-text) o en el icono, ese evento burbujea al botón —el handler
+   corre— y sigue hasta el div, que vuelve a disparar el botón: DOS ejecuciones
+   por toque. En el gate no se nota (abrir un paso dos veces es idempotente) y
+   en las pestañas de TALK tampoco, pero aquí sería fatal: el mute se apagaría y
+   se encendería en el mismo toque (verificado en la primera tanda de capturas:
+   aria-pressed no cambiaba), "Terminar" cerraría la sesión dos veces y la
+   bombilla gastaría dos llamadas.
+
+   Cortamos la propagación en el propio botón: el div nunca recibe el evento, su
+   "fix" no llega a correr, y el toque que cae en el margen del envoltorio sigue
+   funcionando como siempre (ahí el fix sí es útil). No toca sign-up.tsx. */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fn();
+  };
+
 export function CharlaSession({ motor }: { motor: Motor }) {
-  const titulo = useTalk((s) => s.session?.title ?? '');
   const displayLog = useTalk((s) => s.displayLog);
   const busy = useTalk((s) => s.busy);
-  const cost = useApp((s) => s.cost);
   const { ttsOn } = useTts();
   const ultimo = useUltimoHablado();
   /* La etiqueta del waveform dice QUIÉN te habla y se toca para cambiar de voz
@@ -89,6 +126,11 @@ export function CharlaSession({ motor }: { motor: Motor }) {
      la misma frase vuelva a caer en el campo: la barra compara valores y con
      el mismo string no se enteraría del segundo dictado. */
   const [transcript, setTranscript] = useState('');
+  /* El giro de "repetir" (0° ⇄ 180°) lo hacía PillButton por dentro; con el
+     botón de vidrio el gesto se conserva aquí, con los mismos valores de
+     muelle. Es del botón, no del estado de la app: alterna y se queda donde
+     cae. */
+  const [girado, setGirado] = useState(false);
 
   useEffect(() => {
     if (!transcript) return;
@@ -183,12 +225,16 @@ export function CharlaSession({ motor }: { motor: Motor }) {
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    /* `vidrio-tema` (aurora.css) declara las crudas --background/--foreground
+       que consume el CSS del vidrio; el ancestro de TALK ya la trae, y
+       repetirla aquí es inocuo (son dos variables) pero deja la sesión sin
+       depender de que nadie la mantenga arriba. */
+    <div className="vidrio-tema flex min-h-0 flex-1 flex-col">
       {/* ── Barra de sesión ──────────────────────────────────────────────────
           Va en la MISMA columna que la Card y la barra de abajo. Sin esto, en
           escritorio los mandos se estiraban a todo el ancho mientras lo que
-          controlan se ceñía a 640 px: el ← y el título en el borde izquierdo, el
-          "Terminar" y el coste en el derecho, y la tarjeta flotando en medio sin
+          controlan se ceñía a 640 px: el ← en el borde izquierdo, el
+          "Terminar" en el derecho, y la tarjeta flotando en medio sin
           relación con ninguno (auditoría r1). */}
       <div className={cn(COLUMNA, 'flex shrink-0 flex-col gap-2 pb-3')}>
         <div className="flex items-center gap-2">
@@ -203,52 +249,99 @@ export function CharlaSession({ motor }: { motor: Motor }) {
           >
             <ArrowLeft size={17} strokeWidth={2} />
           </motion.button>
-          <span
-            className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
-            style={{ color: 'var(--accent)' }}
-          >
-            {titulo}
-          </span>
-          <button
+          {/* El hueco que dejó el título mono lo ocupa un espaciador: el ←
+              sigue pegado a la izquierda y Terminar a la derecha, sin que la
+              fila se colapse al centro. */}
+          <span className="min-w-0 flex-1" />
+          <GlassButton
             type="button"
-            onClick={() => void motor.terminar()}
+            size="sm"
+            onClick={unSoloClick(() => void motor.terminar())}
             disabled={busy}
-            className="inline-flex min-h-9 shrink-0 cursor-pointer items-center justify-center rounded-full border px-[13px] py-2 text-[0.75rem] font-semibold transition-colors disabled:cursor-default disabled:opacity-40"
-            style={{ borderColor: 'var(--borde-medio)', background: 'transparent', color: 'var(--text-primary)' }}
+            className={cn('shrink-0', busy && 'pointer-events-none opacity-40')}
+            contentClassName="text-[0.75rem] font-semibold tracking-normal! whitespace-nowrap"
           >
             Terminar
-          </button>
+          </GlassButton>
         </div>
 
+        {/* ── Mandos de audio, en el vidrio del login (regla 7) ───────────────
+            Mismos iconos, mismos aria-labels y mismas acciones que las píldoras
+            que había aquí; lo que cambia es el material. El vidrio NO se tiñe
+            al activarse (no hay lima): el estado ON se lee en la tinta del
+            icono —var(--text-primary) encendido vs var(--text-muted) apagado—
+            y, para lectores de pantalla, en aria-pressed.
+
+            El `!` de las clases de color es obligatorio: .glass-button-text
+            fija `color` desde el <style> de GlassStyles, que se inyecta
+            DESPUÉS de la hoja de Tailwind y ganaría por orden.
+
+            Deshabilitado: además del atributo (que ya frena el click, también
+            el reenvío del wrapper de GlassButton), el envoltorio se apaga a
+            opacidad 40 y deja de recibir puntero — el vidrio no tiene estado
+            :disabled propio. */}
         <div className="flex items-center gap-2">
           {/* Volumen: morph altavoz ⇄ altavoz tachado (snippet 1) */}
-          <PillButton
-            morph={{ on: ttsOn, iconOn: <Volume2 className="size-4" />, iconOff: <VolumeX className="size-4" /> }}
-            active={ttsOn}
-            onClick={() => toast('Voz del coach: ' + (toggleTts() ? 'ON' : 'OFF'), 1500)}
+          <GlassButton
+            type="button"
+            size="icon"
+            onClick={unSoloClick(() => toast('Voz del coach: ' + (toggleTts() ? 'ON' : 'OFF'), 1500))}
             aria-label="Activar o desactivar voz del coach"
             aria-pressed={ttsOn}
-          />
+            contentClassName={ttsOn ? 'text-[var(--text-primary)]!' : 'text-[var(--text-muted)]!'}
+          >
+            <IconMorph
+              on={ttsOn}
+              iconOn={<Volume2 className="size-4" />}
+              iconOff={<VolumeX className="size-4" />}
+            />
+          </GlassButton>
           {/* Play: relee la última respuesta. Funciona con la voz apagada —
               sirve justo para probar cómo suena sin activarla en cada turno. */}
-          <PillButton
-            icon={<Play className="size-4" fill="currentColor" strokeWidth={0} />}
+          <GlassButton
+            type="button"
+            size="icon"
             disabled={!ultimo}
-            onClick={replayUltimo}
+            onClick={unSoloClick(replayUltimo)}
             aria-label="Escuchar la última respuesta"
-          />
+            className={cn(!ultimo && 'pointer-events-none opacity-40')}
+            contentClassName="text-[var(--text-primary)]!"
+          >
+            <Play className="size-4" fill="currentColor" strokeWidth={0} />
+          </GlassButton>
           {/* Repetir: misma acción, con su gesto — el icono da media vuelta */}
-          <PillButton spin icon={<RefreshCw className="size-4" />} disabled={!ultimo} onClick={repetirUltimo} aria-label="Repetir la última respuesta" />
+          <GlassButton
+            type="button"
+            size="icon"
+            disabled={!ultimo}
+            onClick={unSoloClick(() => {
+              setGirado((v) => !v);
+              repetirUltimo();
+            })}
+            aria-label="Repetir la última respuesta"
+            className={cn(!ultimo && 'pointer-events-none opacity-40')}
+            contentClassName="text-[var(--text-primary)]!"
+          >
+            <motion.span
+              aria-hidden="true"
+              className="inline-flex shrink-0 items-center justify-center"
+              animate={{ rotate: girado ? 180 : 0 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <RefreshCw className="size-4" />
+            </motion.span>
+          </GlassButton>
           {/* Bombilla: una respuesta-ejemplo. No bloquea el turno del coach. */}
-          <PillButton
-            icon={<Lightbulb className="size-4" />}
-            active={motor.ideaOn}
-            onClick={() => void motor.pedirIdea()}
+          <GlassButton
+            type="button"
+            size="icon"
+            onClick={unSoloClick(() => void motor.pedirIdea())}
             aria-label="Dame una idea de respuesta"
-          />
-          <span className="ml-auto shrink-0 font-mono text-[0.62rem] tracking-[0.06em]" style={{ color: 'var(--text-muted)' }}>
-            ${cost.toFixed(4)}
-          </span>
+            aria-pressed={motor.ideaOn}
+            contentClassName={motor.ideaOn ? 'text-[var(--text-primary)]!' : 'text-[var(--text-muted)]!'}
+          >
+            <Lightbulb className="size-4" />
+          </GlassButton>
         </div>
       </div>
 

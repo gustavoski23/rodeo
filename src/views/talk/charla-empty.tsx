@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
 
 import { TextAnimate } from '@/components/magicui/text-animate';
@@ -29,6 +29,25 @@ import { CHIPS, elegirRompehielos, type ScenarioKey } from './prompts';
 /* Las dos constantes del patrón, redeclaradas aquí (convención del repo). */
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
 const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+
+/* ── UN solo disparo por toque en el CTA de vidrio ─────────────────────────
+   Mismo helper que charla-session.tsx. GlassButton (sign-up.tsx, INTOCABLE)
+   envuelve el <button> en un <div> con un onClick "click fix": si el evento no
+   viene del botón exacto, llama a `button.click()`. El toque real cae SIEMPRE
+   en el <span> interior (.glass-button-text), así que el evento burbujea al
+   botón —el handler corre— y sigue hasta el div, que vuelve a dispararlo: DOS
+   ejecuciones por toque. Aquí eso arrancaba la sesión dos veces y duplicaba la
+   llamada de pago (medido: 2 POST /api/tts por un solo click).
+
+   Cortamos la propagación en el propio botón: el div nunca recibe el evento y
+   su "fix" no llega a correr; el toque que cae en el margen del envoltorio
+   sigue funcionando (ahí el fix sí es útil). No toca sign-up.tsx. */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fn();
+  };
 
 export function CharlaEmpty({
   onLibre,
@@ -102,7 +121,7 @@ export function CharlaEmpty({
                 El `!` es por el tracking-tighter que trae .glass-button-text. */}
             <GlassButton
               type="button"
-              onClick={() => onLibre(ice)}
+              onClick={unSoloClick(() => onLibre(ice))}
               contentClassName="text-[0.95rem] font-bold tracking-normal!"
             >
               Sígueme el hilo →
