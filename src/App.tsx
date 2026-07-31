@@ -15,7 +15,11 @@ import { useAuth } from '@/stores/auth';
 import { useEnCharla, useEnSesion } from '@/stores/talk';
 import HomeView from '@/views/home';
 import TalkView from '@/views/talk';
-import SlangView from '@/views/slang';
+// SLANG ahora ES la experiencia de sticker peel (Pélala) — decisión de Gus: la
+// carta SLANG del carrusel abre directo el sticker que se pela para aprender.
+// El SlangView clásico (CALLE/TRABAJO/PAISA) sigue en el repo (src/views/slang),
+// sin rutear, por si vuelve como sub-modo.
+import PelalaView from '@/views/pelala';
 import StoryView from '@/views/story';
 import LadderView from '@/views/ladder';
 import DnaView from '@/views/dna';
@@ -237,7 +241,7 @@ export default function App() {
             {view === 'talk' ? (
               <TalkView />
             ) : view === 'slang' ? (
-              <SlangView />
+              <PelalaView />
             ) : view === 'ladder' ? (
               <LadderView />
             ) : view === 'dna' ? (

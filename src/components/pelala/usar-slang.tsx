@@ -1,20 +1,38 @@
 /* Mini-chat "úsalo tú" — invita a usar el slang/phrasal verb en una frase propia
    y lo corrige: felicitación pequeña si suena natural, o explica por qué no.
    El juicio real lo hace la AI (api/chat.js) en la integración; aquí va el
-   evaluador local para el demo (ver @/lib/pelala/coach). */
+   evaluador local para el demo (ver @/lib/pelala/coach).
+
+   REDISEÑO al contrato visual: CERO colores crudos (neutral-x, dark:) — todo por
+   tokens del tema. Mismo lenguaje de superficie que la tarjeta de significado (rounded-[22px],
+   --bg-surface, --borde-sutil), botón de enviar en la lima de marca (--accent) y
+   veredictos con los tokens semánticos (--success / --warn / --danger). El mic es
+   stub declarado (se conecta a src/lib/speech.ts en el pendiente de STT). */
 
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 
 import confetti from 'canvas-confetti';
-import { Send } from 'lucide-react';
+import { Mic, Send } from 'lucide-react';
 
 import type { SlangTerm } from '@/content/pelala/deck';
 import { evaluarUso, type Veredicto } from '@/lib/pelala/coach';
 
-const BURBUJA: Record<Veredicto['estado'], string> = {
-  bien: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  forzado: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-  falta: 'border-rose-500/40 bg-rose-500/10 text-rose-600 dark:text-rose-300',
+/* Estilo de cada veredicto por token semántico (color-mix para el tinte del
+   fondo/borde; el texto va en --text-primary para leerse en cualquier tema). */
+const BURBUJA: Record<Veredicto['estado'], { bg: string; border: string }> = {
+  bien: {
+    bg: 'color-mix(in oklch, var(--success) 15%, transparent)',
+    border: 'color-mix(in oklch, var(--success) 38%, transparent)',
+  },
+  forzado: {
+    bg: 'color-mix(in oklch, var(--warn) 16%, transparent)',
+    border: 'color-mix(in oklch, var(--warn) 40%, transparent)',
+  },
+  falta: {
+    bg: 'var(--danger-dim)',
+    border: 'color-mix(in oklch, var(--danger) 34%, transparent)',
+  },
 };
 
 export function UsarSlang({ term }: { term: SlangTerm }) {
@@ -57,24 +75,26 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   return (
     <div
       ref={hostRef}
-      className="mt-3 rounded-2xl border border-neutral-200 bg-neutral-50 p-3 dark:border-neutral-800 dark:bg-neutral-900"
+      className="mt-3 rounded-[22px] p-4"
+      style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)' }}
     >
-      <p className="mb-2 text-xs font-medium text-neutral-500 dark:text-neutral-400">
-        Si quieres practicar, escribe{' '}
-        <span className="font-bold text-neutral-800 dark:text-neutral-100">
-          «{term.term}»
-        </span>{' '}
-        en una frase
+      <p className="mb-2.5 text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>
+        Ahora úsalo tú: escribe{' '}
+        <span className="font-bold" style={{ color: 'var(--text-primary)' }}>«{term.term}»</span>{' '}
+        en una frase y te digo si suena natural.
       </p>
 
       <div className="flex items-center gap-2">
+        {/* Mic — stub declarado: se conecta al STT (src/lib/speech.ts) en el
+            pendiente de voz. Estilado conforme para no romper el visual. */}
         <button
           type="button"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-muted)' }}
           aria-label="Hablar (próximamente)"
-          title="Hablar — se conecta al STT en la integración"
+          title="Hablar — se conecta al micrófono en la próxima entrega"
         >
-          🎤
+          <Mic size={17} />
         </button>
         <input
           value={frase}
@@ -82,31 +102,40 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') void enviar();
           }}
-          placeholder={`p. ej. usa "${term.term}"…`}
-          className="h-10 flex-1 rounded-full border border-neutral-300 bg-white px-4 text-sm text-neutral-900 outline-none transition focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50"
+          placeholder={`p. ej. usa “${term.term}”…`}
+          className="h-10 min-w-0 flex-1 rounded-full px-4 text-[0.9rem] outline-none transition placeholder:text-[var(--text-muted)]"
+          style={{ background: 'var(--bg-void)', border: '1px solid var(--borde-sutil)', color: 'var(--text-primary)' }}
         />
-        <button
+        <motion.button
           type="button"
+          whileTap={{ scale: 0.9 }}
           onClick={() => void enviar()}
           disabled={!frase.trim() || revisando}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(36,126,245)] text-white transition hover:opacity-90 disabled:opacity-40"
-          aria-label="Enviar"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40"
+          style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
+          aria-label="Enviar frase"
         >
           <Send size={16} />
-        </button>
+        </motion.button>
       </div>
 
       {revisando && (
-        <p className="mt-2 text-xs text-neutral-400">Revisando…</p>
+        <p className="mt-2.5 text-[0.78rem]" style={{ color: 'var(--text-muted)' }}>Revisando…</p>
       )}
       {veredicto && (
-        <div
-          className={
-            'mt-2 rounded-xl border px-3 py-2 text-sm ' + BURBUJA[veredicto.estado]
-          }
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+          className="mt-2.5 rounded-2xl px-3.5 py-2.5 text-[0.85rem] leading-snug"
+          style={{
+            background: BURBUJA[veredicto.estado].bg,
+            border: `1px solid ${BURBUJA[veredicto.estado].border}`,
+            color: 'var(--text-primary)',
+          }}
         >
           {veredicto.mensaje}
-        </div>
+        </motion.div>
       )}
     </div>
   );
