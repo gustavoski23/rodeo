@@ -27,3 +27,6 @@ Thumbs.db
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Scratchpad de sesión (tooling temporal: generador del demo, capturas, etc.)
+scratchpad/
