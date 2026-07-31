@@ -6,13 +6,21 @@
    (que ocultaban el DOM viejo) no hacen falta.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Lienzo del Home. El #14161a es el negro EXACTO de la referencia aprobada —
-   antes vivía como `style={{background:'#14161a'}}` en home/index.tsx, y ese
-   inline fijo es lo que dejaba el barrido del toggler de tema sin nada que
-   barrer. Aquí sigue siendo el mismo color en oscuro, y el bloque
-   "TEMA CLARO" del final lo cambia a papel cuando toca. */
+/* Lienzo del Home — regla 4: «QUIERO QUE EL FONDO SE VEA COMO EL DEL HOME,
+   TODOS LOS FONDOS DEBEN VERSE ASI». Para que eso sea literalmente cierto el
+   Home no puede tener lienzo propio: usa el MISMO token que el body, que la
+   capa del carrusel (.aurora-carrusel, línea ~550) y que toda vista de
+   feature. Hasta la ronda 5 aquí había un `#14161a` hardcodeado — el último
+   hex de lienzo sin token — y en OSCURO medía rgb(20,22,26) contra los
+   rgb(2,2,4) de las otras once pantallas: al abrir el abanico desde el Home el
+   fondo se oscurecía de golpe. Con var(--bg-void) los dos lienzos coinciden a
+   píxel en los tres temas (en claro el token ya era el papel, así que el
+   override `:root[data-theme='light'] .aurora-shell` sobraba y se fue; en
+   gradiente home/index.tsx sigue poniendo `transparent` inline para dejar ver
+   las burbujas del <FondoTema/>). Al no ser un color fijo, el barrido del
+   AnimatedThemeToggler sigue teniendo algo que barrer. */
 .aurora-shell {
-  background: #14161a;
+  background: var(--bg-void);
 }
 
 .aurora-home {
@@ -868,11 +876,10 @@
      abierta va fijo ENCIMA de ella, recupera aquí abajo su piel oscura.
    ══════════════════════════════════════════════════════════════════════════ */
 
-:root[data-theme='light'] .aurora-shell {
-  /* Papel de la app, el mismo --bg-void que usa el body en claro: el Home deja
-     de ser una isla y el barrido del toggler cruza sin costura. */
-  background: var(--bg-void);
-}
+/* (Aquí vivía `:root[data-theme='light'] .aurora-shell { background:
+   var(--bg-void) }`. Sobra desde que la regla base de .aurora-shell —arriba
+   del todo— ya declara var(--bg-void): el token cambia solo con el tema, así
+   que repetirlo en claro no aportaba nada.) */
 
 :root[data-theme='light'] .aurora-home__greeting {
   color: var(--text-secondary);
