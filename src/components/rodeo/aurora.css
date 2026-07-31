@@ -524,10 +524,19 @@
    que el Home CERRADO no cambia ni un píxel.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/* Capa del carrusel: se come la pantalla con el mismo negro del Home (#14161a)
-   para que el abanico quede como la captura — cartas flotando sobre negro, sin
-   el saludo ni la píldora compitiendo. overflow:hidden porque el abanico se
-   sale por los flancos a propósito y no queremos scroll horizontal. */
+/* Capa del carrusel: se come la pantalla para que el abanico quede como la
+   captura —cartas flotando sobre el lienzo, sin el saludo ni la píldora
+   compitiendo—, pero ese lienzo es EL DEL TEMA (regla 4), no un negro fijo.
+   Hasta la ronda 3 aquí había un `background: #14161a` hardcodeado: opaco al
+   100% en los TRES temas, así que en CLARO la app entera saltaba de papel a
+   negro al abrir la vitrina y en GRADIENTE la capa tapaba por completo las
+   burbujas (elementFromPoint sobre ellas devolvía .aurora-carrusel).
+   Ahora: var(--bg-void) —el mismo token de lienzo que usan el shell y el
+   body— en claro/oscuro, y TRANSPARENTE en gradiente, donde el lienzo lo pone
+   el <FondoTema/> global (mismo criterio que .aurora-shell, que ya se declara
+   transparente inline en gradiente desde views/home/index.tsx).
+   overflow:hidden porque el abanico se sale por los flancos a propósito y no
+   queremos scroll horizontal. */
 .aurora-carrusel {
   position: fixed;
   z-index: 40;
@@ -538,7 +547,20 @@
   overflow: hidden;
   /* Hueco reservado abajo para el chevron de cerrar, que va fijo al pie. */
   padding-bottom: calc(72px + env(safe-area-inset-bottom));
-  background: #14161a;
+  background: var(--bg-void);
+  /* Tinta de los MANDOS del abanico (flechas, puntos, aros de foco) y del ←
+     de la capa. Sobre lienzo oscuro son blancos translúcidos —los de
+     siempre—; sobre el papel claro se invierten a negro o desaparecerían.
+     Se publica como canal RGB para poder modular la alfa en cada uso. */
+  --cf-mando: 255 255 255;
+}
+:root[data-theme='light'] .aurora-carrusel {
+  --cf-mando: 0 0 0;
+}
+/* En gradiente el lienzo son las burbujas: la capa se quita de en medio para
+   dejarlas pasar (la del velo de .aurora-fondo-gradiente ya asegura contraste). */
+:root[data-fondo='gradiente'] .aurora-carrusel {
+  background: transparent;
 }
 
 /* Lienzo: solo existe para llevar `data-centro` (qué carta manda ahora) y
@@ -558,40 +580,51 @@
   transform: translateX(-50%);
 }
 .aurora-home--con-carrusel .aurora-home__actions > :not(.aurora-more) { display: none; }
+/* El saludo y la pregunta también se apagan con la vitrina abierta. Antes los
+   escondía el fondo opaco de la capa; en gradiente, que ahora es transparente
+   para dejar ver las burbujas, el «¿Qué quieres practicar hoy?» se leía POR
+   DETRÁS de las cartas (medido a 1280×800). Opacidad y no display: el bloque
+   sigue ocupando su sitio y vuelve con un fundido, sin saltos al cerrar. */
+.aurora-home--con-carrusel .aurora-home__copy {
+  opacity: 0;
+  transition: opacity .2s ease;
+}
 
 /* Mandos del abanico (flechas ‹ › y puntos) ───────────────────────────────
    ARREGLO DE CONTRASTE, no capricho. card-fan-carousel.tsx pinta sus mandos
    con pares de utilidades Tailwind `x dark:x` (bg-black/5 dark:bg-white/5,
    text-black/40 dark:text-white/55, punto activo bg-black/70 dark:bg-white/80).
-   La app corre con data-theme="light" y SIN clase `.dark`, así que siempre
-   gana la rama clara… encima de esta capa, que es negra (#14161a). Resultado
-   medido: glifo negro al 40% y punto activo negro al 70% sobre negro — los
+   El `dark:` del repo es `:root:not([data-theme='light'])` (tokens.css:17), o
+   sea que en OSCURO y GRADIENTE gana la rama blanca y en CLARO la negra. El
+   problema estaba en que esta capa era negra (#14161a) en los TRES temas: en
+   claro salía glifo negro al 40% y punto activo negro al 70% sobre negro — los
    mandos DESAPARECÍAN y el indicador de "estás aquí" era el píxel más oscuro
-   de la fila.
+   de la fila. Ahora que la capa lleva el lienzo del tema (arriba), la tinta se
+   decide con --cf-mando y sigue el fondo en vez de pelearse con él.
    Se corrige aquí y no en el .tsx (que no se toca): estos selectores son
    0-2-1 / 0-2-2 y ganan a las utilidades (0-1-0) sin necesidad de !important.
    El chevron es un <svg stroke="currentColor">, así que basta con `color`. */
 .aurora-carrusel button[aria-label='Previous'],
 .aurora-carrusel button[aria-label='Next'] {
-  border-color: rgb(255 255 255 / 0.16);
-  background: rgb(255 255 255 / 0.06);
-  color: rgb(255 255 255 / 0.62);
+  border-color: rgb(var(--cf-mando) / 0.16);
+  background: rgb(var(--cf-mando) / 0.06);
+  color: rgb(var(--cf-mando) / 0.62);
 }
 .aurora-carrusel button[aria-label='Previous']:hover,
 .aurora-carrusel button[aria-label='Next']:hover {
-  border-color: rgb(255 255 255 / 0.32);
-  background: rgb(255 255 255 / 0.1);
-  color: rgb(255 255 255 / 0.92);
+  border-color: rgb(var(--cf-mando) / 0.32);
+  background: rgb(var(--cf-mando) / 0.1);
+  color: rgb(var(--cf-mando) / 0.92);
 }
 .aurora-carrusel button[aria-label='Previous']:focus-visible,
 .aurora-carrusel button[aria-label='Next']:focus-visible {
-  outline: 2px solid rgb(255 255 255 / 0.6);
+  outline: 2px solid rgb(var(--cf-mando) / 0.6);
   outline-offset: 3px;
 }
 /* Puntos: inactivos apenas insinuados, el activo BLANCO (es el que marca
    dónde estás). El activo se reconoce por la utilidad scale-[1.3]. */
-.aurora-carrusel section > div:last-child > div > span { background: rgb(255 255 255 / 0.18); }
-.aurora-carrusel section > div:last-child > div > span[class*='scale-'] { background: rgb(255 255 255 / 0.85); }
+.aurora-carrusel section > div:last-child > div > span { background: rgb(var(--cf-mando) / 0.18); }
+.aurora-carrusel section > div:last-child > div > span[class*='scale-'] { background: rgb(var(--cf-mando) / 0.85); }
 
 /* Foco de teclado en una carta: la trae AL FRENTE además de dibujarle el aro.
    Sin esto, tabular hasta una carta lateral enfocaba algo que está debajo de
@@ -600,7 +633,7 @@
    hace falta !important. */
 .aurora-carrusel .fan-card:focus-visible {
   z-index: 30 !important;
-  outline: 2px solid rgb(255 255 255 / 0.85);
+  outline: 2px solid rgb(var(--cf-mando) / 0.85);
   outline-offset: 3px;
 }
 
@@ -862,22 +895,15 @@
   color: var(--text-primary);
 }
 
-/* …pero con el carrusel ABIERTO ese mismo chevron está fijo sobre la capa
-   negra (position: fixed, z-index 50, ver el bloque del carrusel). Ahí la piel
-   clara sería tinta oscura sobre negro: el mando de cerrar desaparecería. Se le
-   devuelven los valores oscuros originales. Va DESPUÉS de las reglas de arriba
-   y con un selector más específico, así que gana sin !important. */
-:root[data-theme='light'] .aurora-home--con-carrusel .aurora-more {
-  border-color: oklch(94% 0.008 265 / 0.09);
-  background: oklch(18% 0.012 265 / 0.38);
-  color: oklch(70% 0.008 265);
-}
-:root[data-theme='light'] .aurora-home--con-carrusel .aurora-more:hover,
-:root[data-theme='light'] .aurora-home--con-carrusel .aurora-more:focus-visible {
-  border-color: oklch(94% 0.008 265 / 0.18);
-  background: oklch(20% 0.012 265 / 0.66);
-  color: oklch(94% 0.004 265);
-}
+/* (Ronda 4) Aquí vivía la excepción contraria: con el carrusel abierto se le
+   devolvían al chevron los valores OSCUROS, porque la capa del carrusel se
+   pintaba negra (#14161a) también en tema claro. Ese negro se fue —la capa
+   lleva ahora var(--bg-void), el lienzo del tema—, así que forzar la piel
+   oscura dejaba un disco gris con el glifo casi invisible sobre el papel
+   (medido en claro, 390 y 1280). Sin excepción: en claro el chevron usa su
+   piel clara, esté la vitrina abierta o cerrada.
+   En gradiente no hace falta nada: el tema no lleva data-theme='light', así
+   que manda la piel oscura de arriba y el disco se apoya en el velo. */
 
 /* ══════════════════════════════════════════════════════════════════════
    MENÚ FLOTANTE (liquid-morph) RE-ANCLADO ARRIBA-IZQUIERDA

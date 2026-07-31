@@ -37,8 +37,8 @@ export function FirstTip() {
      ARRIBA en sesión y ABAJO fuera de ella (toaster.tsx), así que el tip hace
      exactamente lo contrario. Sin esto, cerrar una escena con el tip de 8 s
      todavía vivo devolvía el toaster abajo, justo encima del tip lavanda, y el
-     aviso quedaba medio tapado. Fuera de sesión el tip baja del header (no lo
-     pisa) en vez de irse al borde de arriba. */
+     aviso quedaba medio tapado. Fuera de sesión el tip baja de la cabecera (no
+     la pisa) en vez de irse al borde de arriba. */
   const enSesion = useEnSesion();
 
   useEffect(() => {
@@ -74,9 +74,18 @@ export function FirstTip() {
                recalibrar a ojo, quien monta una barra distinta publica su
                medida real en --rd-tip-abajo (ver charla-session.tsx) y aquí se
                usa si está; si no, manda el offset de siempre. */
+            /* Fuera de sesión valía lo mismo por arriba: el `80px` era el alto
+               del Header de MARCA que la regla 3 eliminó, así que sin header la
+               píldora aterrizaba sobre el ← redondo (medido 74..110 px), sobre
+               el rótulo «TALK · COACH EN VIVO» y a medias sobre la fila de
+               tabs. Misma solución que abajo: talk/index.tsx publica en
+               --rd-tip-arriba el borde inferior REAL de su barra de sección (+
+               10 px de respiro) y aquí se usa si está; el calc de siempre queda
+               solo como red de seguridad si el tip apareciera sin cabecera
+               medida. */
             enSesion
               ? 'bottom-[var(--rd-tip-abajo,calc(120px+env(safe-area-inset-bottom)))]'
-              : 'top-[calc(80px+env(safe-area-inset-top))]',
+              : 'top-[var(--rd-tip-arriba,calc(80px+env(safe-area-inset-top)))]',
           )}
           style={{
             background: 'var(--card-lavender)',

@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
 import { CarruselFeatures } from '@/components/rodeo/carrusel-features';
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
+import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
 
@@ -92,7 +93,14 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
         onPersonalizar={onPersonalizar}
         menuOculto={menuOculto}
         inerte={carruselAbierto}
-        className="pb-3"
+        /* Con la vitrina abierta la fila se APAGA además de quedar inerte. En
+           claro/oscuro da igual (la capa la tapa), pero en GRADIENTE la capa es
+           transparente para dejar ver las burbujas (regla 4) y el botón de tema
+           asomaba por encima del abanico: un mando visible que ya no responde
+           (inert), justo lo peor de los dos mundos. Se apaga con opacidad —no
+           con display— para no recolocar nada y para que vuelva con el mismo
+           fundido con el que se va. */
+        className={cn('pb-3 transition-opacity duration-200', carruselAbierto && 'opacity-0')}
       />
 
       {/* --con-carrusel solo existe con la vitrina abierta: manda el chevron al
@@ -158,11 +166,14 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
                 igual que hace Escape: el mando de "abrir" recupera el foco tras
                 cerrar, así el teclado no se queda huérfano en un botón que
                 acaba de desmontarse.
-                Colores FIJOS de capa oscura (blancos translúcidos), sin par
-                `dark:`: esta capa es #14161a en los TRES temas por diseño
-                (aurora.css:531-543), así que un ← que se adaptara al tema claro
-                se pintaría negro sobre negro. Es el mismo criterio que ya usan
-                aquí las flechas ‹ › y los puntos del abanico. */}
+                Colores POR TEMA (par `x dark:x`, que en este repo es
+                `:root:not([data-theme='light'])`, tokens.css:17). Hasta la
+                ronda 3 eran blancos fijos porque la capa se pintaba #14161a en
+                los TRES temas; ahora la capa lleva el lienzo del tema
+                (var(--bg-void), y transparente en gradiente para dejar pasar
+                las burbujas — regla 4), así que sobre el papel CLARO un ←
+                blanco desaparecía. Mismo criterio que ya siguen las flechas
+                ‹ › y los puntos del abanico, que se tiñen con --cf-mando. */}
             <button
               type="button"
               onClick={() => {
@@ -170,7 +181,7 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
                 moreRef.current?.focus();
               }}
               aria-label="Cerrar las features"
-              className="absolute top-[max(14px,env(safe-area-inset-top))] left-5 z-50 inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/85 transition-colors hover:border-white/30 hover:bg-white/10"
+              className="absolute top-[max(14px,env(safe-area-inset-top))] left-5 z-50 inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-black/15 bg-black/5 text-black/70 transition-colors hover:border-black/30 hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:text-white/85 dark:hover:border-white/30 dark:hover:bg-white/10"
             >
               <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
             </button>
