@@ -9,14 +9,14 @@ import { ArrowDownLeft } from 'lucide-react';
 export function CornerHint() {
   return (
     <div
-      className="pointer-events-none absolute right-2 top-2 z-20 flex items-center gap-1.5"
+      className="pointer-events-none absolute right-[7%] top-[15%] z-20 flex items-center gap-0.5"
       aria-hidden="true"
     >
-      <span className="pelala-hint-label rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-semibold text-white shadow-lg backdrop-blur-sm">
+      <span className="pelala-hint-label rounded-full bg-black/75 px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg backdrop-blur-sm">
         desliza aquí
       </span>
       <span className="pelala-hint-arrow text-white">
-        <ArrowDownLeft size={22} strokeWidth={2.75} />
+        <ArrowDownLeft size={18} strokeWidth={2.75} />
       </span>
       <style>{`
         @keyframes pelala-hint-drag {

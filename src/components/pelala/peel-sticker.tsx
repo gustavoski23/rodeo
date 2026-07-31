@@ -65,8 +65,10 @@ export type PeelStickerHandle = {
   peelOff: () => void;
   /** Barrido holográfico rosado (el mismo de la entrada) sobre el sticker actual. */
   sweep: () => void;
-  /** Pequeño auto-peel desde la esquina superior derecha y vuelve (pista 1ª vez). */
+  /** Auto-peel en bucle desde la esquina superior derecha (pista 1ª vez). */
   peelPreview: () => void;
+  /** Detiene el auto-peel en bucle. */
+  stopPeelPreview: () => void;
   /** El elemento crudo, por si el padre necesita algo puntual. */
   el: () => StickerForgeEl | null;
 };
@@ -123,20 +125,22 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
         const el = elRef.current;
         if (!el) return;
         cancelAnimationFrame(previewRafRef.current);
-        // Pela un poquito desde la esquina superior derecha y vuelve (sin(π·t): 0→1→0).
+        // Pela un poquito desde la esquina superior derecha, EN BUCLE: la esquina
+        // se queda subiendo y bajando hasta que el usuario pela por primera vez.
         const motion = { origin: { x: 0.9, y: 0.12 }, target: { x: 0.35, y: 0.72 } };
-        const dur = 1250;
-        const peak = 0.17;
+        const period = 1600; // ms por ciclo
+        const peak = 0.2;
         let start = 0;
         const step = (now: number) => {
           if (!start) start = now;
-          const t = Math.min(1, (now - start) / dur);
-          el.setPeelProgress(Math.sin(Math.PI * t) * peak, motion);
-          if (t < 1) previewRafRef.current = requestAnimationFrame(step);
-          else el.setPeelProgress(0, motion);
+          const phase = ((now - start) % period) / period; // 0..1
+          const eased = (1 - Math.cos(phase * Math.PI * 2)) / 2; // 0→1→0 suave
+          el.setPeelProgress(eased * peak, motion);
+          previewRafRef.current = requestAnimationFrame(step);
         };
         previewRafRef.current = requestAnimationFrame(step);
       },
+      stopPeelPreview: () => cancelAnimationFrame(previewRafRef.current),
       el: () => elRef.current,
     }));
 

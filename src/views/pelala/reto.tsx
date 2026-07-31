@@ -43,11 +43,15 @@ export function Pelala() {
     marcarPeelHintVisto(); // al pelar por primera vez, la pista ya no vuelve
   }, [marcarPeelHintVisto]);
 
-  /* Primera vez: tras la entrada, el sticker se auto-pela un poquito como pista. */
+  /* Primera vez: tras la entrada, el sticker se auto-pela en bucle desde la
+     esquina hasta que el usuario pela por primera vez (luego no vuelve). */
   useEffect(() => {
     if (peelHintVisto) return;
     const t = window.setTimeout(() => stickerRef.current?.peelPreview(), 1100);
-    return () => window.clearTimeout(t);
+    return () => {
+      window.clearTimeout(t);
+      stickerRef.current?.stopPeelPreview();
+    };
   }, [peelHintVisto]);
 
   /* Al despegar del todo: entra el siguiente término (blur reseteado). */
