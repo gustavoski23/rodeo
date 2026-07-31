@@ -8,7 +8,7 @@
    ese mismo barrido se dispara al empezar a pelar (sweep = setBackgroundRemovalEffect,
    que reusa el láser de la entrada — no se inventa nada). */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 
@@ -42,6 +42,13 @@ export function Pelala() {
     stickerRef.current?.sweep();
     marcarPeelHintVisto(); // al pelar por primera vez, la pista ya no vuelve
   }, [marcarPeelHintVisto]);
+
+  /* Primera vez: tras la entrada, el sticker se auto-pela un poquito como pista. */
+  useEffect(() => {
+    if (peelHintVisto) return;
+    const t = window.setTimeout(() => stickerRef.current?.peelPreview(), 1100);
+    return () => window.clearTimeout(t);
+  }, [peelHintVisto]);
 
   /* Al despegar del todo: entra el siguiente término (blur reseteado). */
   const onDetach = useCallback(() => {

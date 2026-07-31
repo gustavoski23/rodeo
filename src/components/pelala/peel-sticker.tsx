@@ -42,7 +42,13 @@ function ensureRegistered() {
 type StickerForgeEl = HTMLElement & {
   setSource: (source: StickerSource) => Promise<void>;
   setOptions: (options: Partial<StickerOptions>) => void;
-  setPeelProgress: (progress: number) => void;
+  setPeelProgress: (
+    progress: number,
+    motion?: {
+      origin: { x: number; y: number };
+      target: { x: number; y: number };
+    },
+  ) => void;
   setBackgroundRemovalEffect: (active: boolean) => void;
   reset: () => void;
   reappear: () => void;
@@ -59,6 +65,8 @@ export type PeelStickerHandle = {
   peelOff: () => void;
   /** Barrido holográfico rosado (el mismo de la entrada) sobre el sticker actual. */
   sweep: () => void;
+  /** Pequeño auto-peel desde la esquina superior derecha y vuelve (pista 1ª vez). */
+  peelPreview: () => void;
   /** El elemento crudo, por si el padre necesita algo puntual. */
   el: () => StickerForgeEl | null;
 };
@@ -94,6 +102,7 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
 
     const hostRef = useRef<HTMLDivElement | null>(null);
     const elRef = useRef<StickerForgeEl | null>(null);
+    const previewRafRef = useRef(0);
 
     /* Callbacks en refs: los listeners se montan una vez y siempre leen la
        versión fresca sin re-suscribir. */
@@ -110,6 +119,24 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       reset: () => elRef.current?.reset(),
       peelOff: () => elRef.current?.setPeelProgress(1),
       sweep: () => elRef.current?.setBackgroundRemovalEffect(true),
+      peelPreview: () => {
+        const el = elRef.current;
+        if (!el) return;
+        cancelAnimationFrame(previewRafRef.current);
+        // Pela un poquito desde la esquina superior derecha y vuelve (sin(π·t): 0→1→0).
+        const motion = { origin: { x: 0.9, y: 0.12 }, target: { x: 0.35, y: 0.72 } };
+        const dur = 1250;
+        const peak = 0.17;
+        let start = 0;
+        const step = (now: number) => {
+          if (!start) start = now;
+          const t = Math.min(1, (now - start) / dur);
+          el.setPeelProgress(Math.sin(Math.PI * t) * peak, motion);
+          if (t < 1) previewRafRef.current = requestAnimationFrame(step);
+          else el.setPeelProgress(0, motion);
+        };
+        previewRafRef.current = requestAnimationFrame(step);
+      },
       el: () => elRef.current,
     }));
 
@@ -132,12 +159,15 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       const onStartEvt = () => cb.current.onPeelStart?.();
       const onEndEvt = () => cb.current.onPeelEnd?.();
       const onReadyEvt = () => cb.current.onReady?.();
+      // Si el usuario toca el sticker, el preview automático cede al gesto real.
+      const onPointerDownEvt = () => cancelAnimationFrame(previewRafRef.current);
 
       el.addEventListener('detachcomplete', onDetachEvt);
       el.addEventListener('peelchange', onPeelEvt);
       el.addEventListener('peelstart', onStartEvt);
       el.addEventListener('peelend', onEndEvt);
       el.addEventListener('ready', onReadyEvt);
+      el.addEventListener('pointerdown', onPointerDownEvt);
 
       host.appendChild(el);
 
@@ -155,11 +185,13 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       if (options) el.setOptions(options);
 
       return () => {
+        cancelAnimationFrame(previewRafRef.current);
         el.removeEventListener('detachcomplete', onDetachEvt);
         el.removeEventListener('peelchange', onPeelEvt);
         el.removeEventListener('peelstart', onStartEvt);
         el.removeEventListener('peelend', onEndEvt);
         el.removeEventListener('ready', onReadyEvt);
+        el.removeEventListener('pointerdown', onPointerDownEvt);
         el.remove();
         elRef.current = null;
       };
