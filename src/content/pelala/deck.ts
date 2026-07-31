@@ -59,7 +59,7 @@ export const DECK: SlangTerm[] = [
     kind: 'slang',
     context_en: 'He ghosted me after two dates.',
     target: 'ghosted',
-    gloss_es: 'dejar en visto / desaparecer sin avisar',
+    gloss_es: 'desaparecer / cortar el contacto sin dar explicación',
     accept: ['ghost', 'ghosted', 'ghost me', 'ghosted me'],
     emoji: '👻',
     imagePrompt:

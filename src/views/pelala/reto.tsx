@@ -6,16 +6,21 @@
    · Sin header propio: la fila Menu + toggler la pone el shell (App/FilaSuperior).
      Aquí va la barra de sección CANÓNICA (misma que SLANG y la sesión de charla):
      ← circular (borde --borde-sutil sobre --bg-surface) + título mono uppercase en
-     --accent, y un contador mono a la derecha.
+     --accent + contador, y una barra de progreso fina del mazo.
    · CERO colores crudos (neutral-x, dark:) — todo por tokens del tema (claro/oscuro/gradiente).
-   · El ← vuelve AL ORIGEN: como toda vista, hace setView('home'); el Home reabre el
-     carrusel porque la carta dejó levantado `carruselAlVolver` (regla 5). No usa el
-     `toPicker` del store (el picker no se rutea en la integración).
+   · El ← vuelve AL ORIGEN: como toda vista hace setView('home'); el Home reabre el
+     carrusel porque la carta dejó levantado `carruselAlVolver` (regla 5).
 
-   El sticker FLOTA sobre el fondo del tema (más inmersivo que encajarlo en una
-   Card, y su propia sombra WebGL le da relieve); lo de abajo vive en superficies
-   con tokens. El barrido holográfico rosado (entrada y al empezar a pelar) es del
-   engine vendored — no se inventa nada. */
+   Segunda pasada tras auditoría adversarial de pulido/temas:
+   · El "pozo" del significado usa --bg-deep (no --bg-void): --bg-void sobre --bg-surface
+     casi no se distingue en claro y lee como agujero negro en oscuro. --bg-deep + borde
+     da un hundido consistente en los 3 temas.
+   · El significado oculto se cubre con un overlay de FROST real (backdrop-blur uniforme),
+     no con blur sobre el propio texto (que sangraba con bordes sucios).
+   · El término se resalta NEUTRO (negrita + --text-primary), no en --accent: el sticker
+     ya lo pinta AZUL, y usar la lima a pocos cm ponía la misma palabra en dos colores.
+   · Sticker más compacto + caption anclada + barra de progreso: menos aire muerto y una
+     columna cohesionada en vez de dos islas. */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
@@ -28,20 +33,20 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { usePelala } from '@/stores/pelala';
 
-/* Misma COLUMNA y SIN_BARRA que SLANG y la sesión de charla (convención del repo:
-   cada fichero la suya). */
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
 const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
 
-/* Resalta el término dentro de su frase de ejemplo (en --accent), para que la
-   vista enseñe DÓNDE cae el phrasal/slang en una oración real. */
+/* Resalta el término dentro de su frase de ejemplo. NEUTRO a propósito (negrita +
+   --text-primary, no --accent): el sticker ya pinta el término en AZUL y la lima
+   a pocos cm pondría la MISMA palabra en dos colores distintos (confunde). Un solo
+   tratamiento = "esta es la expresión que estás aprendiendo". */
 function resaltarTermino(context: string, target: string): ReactNode {
   const i = context.toLowerCase().indexOf(target.toLowerCase());
   if (i === -1) return context;
   return (
     <>
       {context.slice(0, i)}
-      <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{context.slice(i, i + target.length)}</span>
+      <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{context.slice(i, i + target.length)}</span>
       {context.slice(i + target.length)}
     </>
   );
@@ -60,9 +65,6 @@ export function Pelala() {
   const toggleGuardar = usePelala((s) => s.toggleGuardar);
   const peelHintVisto = usePelala((s) => s.peelHintVisto);
   const marcarPeelHintVisto = usePelala((s) => s.marcarPeelHintVisto);
-
-  const term = orden[retoIndex % orden.length];
-  const guardado = guardados.includes(term.id);
 
   const [revelado, setRevelado] = useState(false);
   const stickerRef = useRef<PeelStickerHandle>(null);
@@ -93,10 +95,16 @@ export function Pelala() {
     retoSiguiente();
   }, [retoSiguiente]);
 
+  // Mazo siempre poblado (el store arranca con DECK); guarda defensivo por si acaso.
+  const term = orden[retoIndex % orden.length];
+  if (!term) return null;
+  const guardado = guardados.includes(term.id);
+  const progreso = (retoIndex + 1) / orden.length;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* ── Barra de sección canónica (misma que SLANG) ──────────────────── */}
-      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-3')}>
+      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-2')}>
         <motion.button
           type="button"
           whileTap={{ scale: 0.94 }}
@@ -121,10 +129,24 @@ export function Pelala() {
         </span>
       </div>
 
+      {/* Barra de progreso fina del mazo. */}
+      <div className={cn(COLUMNA, 'shrink-0 pb-3')}>
+        <div className="h-1 w-full overflow-hidden rounded-full" style={{ background: 'var(--chip-bg)' }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: 'var(--accent)' }}
+            initial={false}
+            animate={{ width: `${Math.round(progreso * 100)}%` }}
+            transition={{ type: 'spring', stiffness: 260, damping: 32 }}
+          />
+        </div>
+      </div>
+
       {/* ── Scroller: sticker flotante + significado + mini-chat ──────────── */}
       <div className={cn(COLUMNA, 'flex min-h-0 flex-1 flex-col overflow-y-auto', SIN_BARRA)}>
-        {/* El sticker, flotando sobre el fondo del tema. */}
-        <div className="relative mt-1 aspect-[5/3] w-full shrink-0 select-none">
+        {/* El sticker, flotando sobre el fondo del tema (compacto: menos canvas
+            vacío alrededor del gráfico → columna cohesionada). */}
+        <div className="relative aspect-[2/1] w-full shrink-0 select-none">
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -137,23 +159,27 @@ export function Pelala() {
           {!peelHintVisto && <CornerHint />}
         </div>
 
-        <p className="mt-1 mb-3 text-center text-[0.78rem]" style={{ color: 'var(--text-muted)' }}>
-          Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente ✌️
-        </p>
-
         {/* ── Tarjeta de significado (revelable + guardable) ──────────────── */}
         <div
-          className="rounded-[22px] p-4"
+          className="mt-1 rounded-[22px] p-4"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)', boxShadow: 'var(--sticker-shadow)' }}
         >
-          {/* Cabecera: emoji + término + chip de tipo · guardar */}
-          <div className="flex items-center gap-2.5">
-            <span aria-hidden="true" className="text-2xl leading-none">{term.emoji}</span>
+          {/* Caption anclada arriba de la tarjeta (ya no flota huérfana). */}
+          <p className="mb-3 text-center text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
+            Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente ✌️
+          </p>
+
+          {/* Cabecera: emoji + término (dominante) + chip de tipo · guardar. */}
+          <div className="flex items-start gap-2.5">
+            <span aria-hidden="true" className="mt-0.5 text-2xl leading-none">{term.emoji}</span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[1.05rem] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+              <p className="truncate text-[1.15rem] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
                 {term.term}
               </p>
-              <span className="font-mono text-[0.6rem] font-bold tracking-[0.1em] uppercase" style={{ color: 'var(--text-muted)' }}>
+              <span
+                className="mt-1 inline-block rounded-full px-2 py-0.5 font-mono text-[0.55rem] font-bold tracking-[0.12em] uppercase"
+                style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
+              >
                 {ETIQUETA_KIND[term.kind]}
               </span>
             </div>
@@ -165,7 +191,7 @@ export function Pelala() {
               aria-pressed={guardado}
               className="flex size-10 shrink-0 items-center justify-center rounded-full border transition-colors"
               style={{
-                borderColor: guardado ? 'transparent' : 'var(--borde-sutil)',
+                borderColor: guardado ? 'transparent' : 'var(--borde-medio)',
                 background: guardado ? 'var(--accent-dim)' : 'var(--bg-elevated)',
                 color: guardado ? 'var(--accent)' : 'var(--text-secondary)',
               }}
@@ -174,33 +200,34 @@ export function Pelala() {
             </motion.button>
           </div>
 
-          {/* Cuerpo revelable: significado + ejemplo (con el término resaltado). */}
-          <div className="relative mt-3 overflow-hidden rounded-2xl" style={{ background: 'var(--bg-void)' }}>
-            <div
-              className={cn(
-                'px-4 py-3.5 transition-[filter,opacity] duration-300',
-                revelado ? 'opacity-100 blur-0' : 'pointer-events-none select-none opacity-70 blur-[7px]',
-              )}
-            >
-              <p className="text-[0.98rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+          {/* Pozo del significado: --bg-deep + borde (hundido consistente en los
+              3 temas). El texto oculto se cubre con FROST real (backdrop-blur del
+              overlay), no con blur sobre el propio texto. */}
+          <div
+            className="relative mt-3 overflow-hidden rounded-2xl"
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--borde-sutil)' }}
+          >
+            <div className="px-4 py-3.5">
+              <p className="text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
                 {term.gloss_es}
               </p>
-              <p className="mt-1.5 text-[0.85rem] leading-snug" style={{ color: 'var(--text-secondary)' }}>
+              <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
                 “{resaltarTermino(term.context_en, term.target)}”
               </p>
             </div>
 
-            {/* Overlay de revelar (cuando está oculto). */}
+            {/* Overlay de revelar (frost uniforme sobre el texto). */}
             {!revelado && (
               <button
                 type="button"
                 onClick={() => setRevelado(true)}
                 aria-label="Revelar el significado"
-                className="absolute inset-0 flex items-center justify-center"
+                className="absolute inset-0 flex items-center justify-center backdrop-blur-md"
+                style={{ background: 'color-mix(in oklch, var(--bg-deep) 45%, transparent)' }}
               >
                 <span
-                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-semibold shadow-lg backdrop-blur-sm"
-                  style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-primary)' }}
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-semibold shadow-lg"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-medio)', color: 'var(--text-primary)' }}
                 >
                   <Eye size={16} /> toca para ver el significado
                 </span>
@@ -213,8 +240,8 @@ export function Pelala() {
                 type="button"
                 onClick={() => setRevelado(false)}
                 aria-label="Ocultar el significado"
-                className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full backdrop-blur-sm"
-                style={{ background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: 'var(--text-secondary)' }}
+                className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full transition-colors"
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
               >
                 <EyeOff size={15} />
               </button>
