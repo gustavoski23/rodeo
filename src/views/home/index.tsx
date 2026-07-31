@@ -75,10 +75,10 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
       {/* FILA SUPERIOR — Menu ≡ a la izquierda y el botón de tema a la derecha
           (regla 3). Ya no se escribe aquí: es la pieza compartida
           `FilaSuperior`, la MISMA que monta App en el resto de las pantallas,
-          con el cableado verbatim que vivía en este fichero. `inerte` la apaga
-          con la vitrina abierta —la saca del orden de tabulación sin mover un
-          píxel— y de paso aparta el menú, que al ser `fixed` se pintaría por
-          encima de la capa opaca del carrusel.
+          con el cableado verbatim que vivía en este fichero. Con la vitrina
+          abierta solo se aparta el menú (`menuOculto`), que al ser `fixed` se
+          pintaría por encima de la capa del carrusel; el botón de tema sigue
+          ahí, visible y operativo.
 
           El FONDO DEL TEMA tampoco vive ya aquí: el <FondoTema/> de App monta
           las burbujas una sola vez, por detrás de TODAS las vistas (regla 4).
@@ -91,16 +91,24 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
           aurora.css no es de este dueño (ver informe). */}
       <FilaSuperior
         onPersonalizar={onPersonalizar}
-        menuOculto={menuOculto}
-        inerte={carruselAbierto}
-        /* Con la vitrina abierta la fila se APAGA además de quedar inerte. En
-           claro/oscuro da igual (la capa la tapa), pero en GRADIENTE la capa es
-           transparente para dejar ver las burbujas (regla 4) y el botón de tema
-           asomaba por encima del abanico: un mando visible que ya no responde
-           (inert), justo lo peor de los dos mundos. Se apaga con opacidad —no
-           con display— para no recolocar nada y para que vuelva con el mismo
-           fundido con el que se va. */
-        className={cn('pb-3 transition-opacity duration-200', carruselAbierto && 'opacity-0')}
+        /* Con la vitrina abierta se aparta SOLO la pastilla Menu: el hueco
+           arriba-izquierda es del ← del carrusel (regla 2) y su raíz `fixed`
+           se pintaría encima de la capa. El BOTÓN DE TEMA se queda —visible y
+           funcional— porque la regla 3/4 lo exige «en todas y cada una de las
+           pantallas», y el carrusel abierto es una de las 12.
+           En r4 la fila entera iba `inert` + `opacity-0`: apagaba también el
+           toggler y lo dejaba en opacidad efectiva 0. Ahora la fila NO es
+           inerte (el toggler tabula y responde) y se eleva por encima de la
+           capa del carrusel (.aurora-carrusel es fixed z-40): `relative z-50`
+           sobre la caja en flujo, sin mover un píxel del layout.
+           La fila ocupa TODO el ancho, así que elevarla entera dejaba su caja
+           vacía tragándose los clics de la banda superior de la capa —el ← del
+           carrusel, que vive justo debajo, quedaba inalcanzable (verificado:
+           Playwright reportaba «div.flex shrink-0 … intercepts pointer
+           events»)—. Por eso el contenedor no recibe puntero y solo el BOTÓN
+           hijo (el toggler) lo recupera. */
+        menuOculto={menuOculto || carruselAbierto}
+        className={cn('pb-3', carruselAbierto && 'relative z-50 pointer-events-none [&>button]:pointer-events-auto')}
       />
 
       {/* --con-carrusel solo existe con la vitrina abierta: manda el chevron al
