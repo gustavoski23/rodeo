@@ -182,7 +182,9 @@ export default function App() {
      Skip previo, el gate no existe. */
   const authListo = useAuth((s) => s.listo);
   const gateNecesario = useAuth((s) => s.gateNecesario);
-  if (!authListo) return <div className="min-h-dvh" style={{ background: '#14161a' }} />;
+  {/* El placeholder pre-auth también va con el lienzo del tema: era el último
+      #14161a suelto (regla 4 del contrato — todos los fondos iguales). */}
+  if (!authListo) return <div className="min-h-dvh" style={{ background: 'var(--bg-void)' }} />;
   if (gateNecesario) {
     return (
       <MotionConfig reducedMotion="user">
