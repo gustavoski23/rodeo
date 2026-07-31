@@ -4,9 +4,9 @@
 
    REDISEÑO al contrato visual de RODEO (encargo de Gus, integración en SLANG):
    · Sin header propio: la fila Menu + toggler la pone el shell (App/FilaSuperior).
-     Aquí va la barra de sección CANÓNICA (misma que SLANG y la sesión de charla):
-     ← circular (borde --borde-sutil sobre --bg-surface) + título mono uppercase en
-     --accent + contador, y una barra de progreso fina del mazo.
+     Aquí va la barra de sección: ← circular (borde --borde-sutil sobre --bg-surface)
+     + un rótulo mono NEUTRO (--text-muted). Sin contador, sin barra de progreso y
+     SIN lima — REGLA 7 del contrato (el verde es "el de producción / AI-slop").
    · CERO colores crudos (neutral-x, dark:) — todo por tokens del tema (claro/oscuro/gradiente).
    · El ← vuelve AL ORIGEN: como toda vista hace setView('home'); el Home reabre el
      carrusel porque la carta dejó levantado `carruselAlVolver` (regla 5).
@@ -185,9 +185,12 @@ export function Pelala() {
               aria-pressed={guardado}
               className="flex size-10 shrink-0 items-center justify-center rounded-full border transition-colors"
               style={{
-                borderColor: guardado ? 'transparent' : 'var(--borde-medio)',
-                background: guardado ? 'var(--accent-dim)' : 'var(--bg-elevated)',
-                color: guardado ? 'var(--accent)' : 'var(--text-secondary)',
+                /* Guardado sin lima (REGLA 7): el estado ON se lee en la tinta
+                   encendida (--text-primary) + borde más fuerte y el icono relleno
+                   (BookmarkCheck), no en verde. */
+                borderColor: guardado ? 'var(--borde-medio)' : 'var(--borde-sutil)',
+                background: 'var(--bg-elevated)',
+                color: guardado ? 'var(--text-primary)' : 'var(--text-secondary)',
               }}
             >
               {guardado ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}

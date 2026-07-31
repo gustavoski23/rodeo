@@ -9,22 +9,31 @@
    y el input se vacía al enviar. Antes era un input + una caja de validación a
    ancho completo, que parecía un formulario, no un chat. */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
 
 import confetti from 'canvas-confetti';
 import { Mic, Send, Sparkles } from 'lucide-react';
 
 import { BorderBeam } from '@/components/magicui/border-beam';
+import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import type { SlangTerm } from '@/content/pelala/deck';
 import { evaluarUso, type Veredicto } from '@/lib/pelala/coach';
+import { cn } from '@/lib/utils';
 
 /* Tinte de la burbuja del tutor por token semántico (color-mix para fondo/borde;
-   el texto va en --text-primary para leerse en cualquier tema). */
+   el texto va en --text-primary para leerse en cualquier tema).
+
+   REGLA 7 del contrato (pedido de Gus, ya aplicada en la sesión de charla): el
+   verde lima es "el verde de producción / AI-slop" y NO va en NINGUNA parte. El
+   estado 'bien' usaba var(--success) —que es la MISMA lima que --accent— así que
+   pasa a un tinte NEUTRO premium (film de --text-primary): "correcto" se celebra
+   con el confeti y el mensaje, no con verde. 'forzado' (ámbar) y 'falta' (coral)
+   se quedan: no son verdes y su semántica de aviso/error es estándar. */
 const TINTE: Record<Veredicto['estado'], { bg: string; border: string }> = {
   bien: {
-    bg: 'color-mix(in oklch, var(--success) 15%, transparent)',
-    border: 'color-mix(in oklch, var(--success) 38%, transparent)',
+    bg: 'color-mix(in oklch, var(--text-primary) 9%, transparent)',
+    border: 'color-mix(in oklch, var(--text-primary) 22%, transparent)',
   },
   forzado: {
     bg: 'color-mix(in oklch, var(--warn) 16%, transparent)',
@@ -35,6 +44,18 @@ const TINTE: Record<Veredicto['estado'], { bg: string; border: string }> = {
     border: 'color-mix(in oklch, var(--danger) 34%, transparent)',
   },
 };
+
+/* GlassButton (sign-up.tsx, INTOCABLE) envuelve el <button> en un <div> con un
+   onClick "click fix" que, si el evento no nace del botón exacto, vuelve a
+   dispararlo — DOS ejecuciones por toque. Enviar dos veces duplicaría el turno
+   del usuario. Se corta la propagación en el propio botón (mismo patrón que la
+   sesión de charla): el div nunca recibe el evento y su fix no corre. */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fn();
+  };
 
 type Mensaje =
   | { rol: 'user'; texto: string }
@@ -79,6 +100,10 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
       startVelocity: 18,
       gravity: 1.8,
       decay: 0.92,
+      /* Paleta AURORA (rosa/durazno/crema/blanco), NO la de canvas-confetti por
+         defecto —que incluye lima #88ff5a y amarillo-verde #fcff42—: REGLA 7,
+         cero verde ni siquiera en el confeti. Hace juego con el BorderBeam. */
+      colors: ['#B85D8A', '#D99C66', '#EBE0C5', '#ffffff'],
     };
     if (host) {
       const r = host.getBoundingClientRect();
@@ -93,9 +118,15 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   return (
     <div
       ref={hostRef}
-      className="relative mt-3 overflow-hidden rounded-[22px] p-4"
+      className="vidrio-tema relative mt-3 overflow-hidden rounded-[22px] p-4"
       style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)', boxShadow: 'var(--sticker-shadow)' }}
     >
+      {/* Material glass del login para los mandos (mic/enviar): el CSS del vidrio
+          (.glass-button*, @property) se monta una vez aquí y `vidrio-tema` (en la
+          raíz) declara las crudas --background/--foreground por tema. Misma receta
+          que TALK — REGLA 7 del contrato. */}
+      <GlassStyles />
+
       {/* Intro (solo si aún no hay turnos). */}
       {mensajes.length === 0 && (
         <p className="mb-3 text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>
@@ -131,7 +162,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
                 <span
                   aria-hidden="true"
                   className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full"
-                  style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
                 >
                   <Sparkles size={14} />
                 </span>
@@ -149,7 +180,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
               <span
                 aria-hidden="true"
                 className="flex size-7 shrink-0 items-center justify-center rounded-full"
-                style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
               >
                 <Sparkles size={14} />
               </span>
@@ -162,18 +193,19 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
       {/* Compositor. */}
       <div className="flex items-center gap-2">
         {/* Mic — stub declarado: se conecta al STT (src/lib/speech.ts) en el
-            pendiente de voz. Marcado como no disponible para AT. */}
-        <button
+            pendiente de voz. En el vidrio del login (REGLA 7), apagado. */}
+        <GlassButton
           type="button"
+          size="icon"
           disabled
           aria-disabled="true"
-          className="flex size-10 shrink-0 items-center justify-center rounded-full opacity-60"
-          style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-muted)' }}
+          className="pointer-events-none shrink-0 opacity-40"
+          contentClassName="text-[var(--text-muted)]!"
           aria-label="Hablar (próximamente)"
           title="Hablar — se conecta al micrófono en la próxima entrega"
         >
           <Mic size={17} />
-        </button>
+        </GlassButton>
         <input
           value={frase}
           onChange={(e) => setFrase(e.target.value)}
@@ -185,17 +217,19 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           className="h-10 min-w-0 flex-1 rounded-full px-4 text-[0.9rem] outline-none transition placeholder:text-[var(--text-muted)]"
           style={{ background: 'var(--bg-deep)', border: '1px solid var(--borde-sutil)', color: 'var(--text-primary)' }}
         />
-        <motion.button
+        {/* Enviar en el vidrio del login (REGLA 7): mismo material que el gate,
+            cero lima. `unSoloClick` evita el doble disparo del wrapper. */}
+        <GlassButton
           type="button"
-          whileTap={{ scale: 0.9 }}
-          onClick={() => void enviar()}
+          size="icon"
+          onClick={unSoloClick(() => void enviar())}
           disabled={!frase.trim() || revisando}
-          className="flex size-10 shrink-0 items-center justify-center rounded-full transition disabled:opacity-40"
-          style={{ background: 'var(--accent)', color: 'var(--accent-ink)' }}
           aria-label="Enviar frase"
+          className={cn('shrink-0', (!frase.trim() || revisando) && 'pointer-events-none opacity-40')}
+          contentClassName="text-[var(--text-primary)]!"
         >
           <Send size={16} />
-        </motion.button>
+        </GlassButton>
       </div>
 
       {/* Borde animado (BorderBeam de magicui, verbatim — mismo patrón que
