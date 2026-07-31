@@ -85,20 +85,11 @@ type TalkState = {
   /** Al entrar desde el Home por TECLADO, el foco debe caer en "Volver a los
       escenarios" (brief del Home aurora). La sesión lo consume y lo apaga. */
   focoVolver: boolean;
-  /** DE DÓNDE se lanzó la sesión viva, para que el ← vuelva al ORIGEN (regla 5
-      del contrato). 'talk' = se lanzó desde dentro de la vista (portada de
-      TALK: "Sígueme el hilo →", un escenario, …) y el ← devuelve a esa portada.
-      'home' = píldora aurora del Home, la única entrada que salta la portada,
-      y el ← devuelve al Home. `abrirSesion` lo deja siempre en 'talk': el
-      origen Home lo marca explícitamente `lanzarLibreAurora`. */
-  origen: 'home' | 'talk';
-
   setTalkMode: (m: TalkMode) => void;
   setBusy: (v: boolean) => void;
   setRoleplayActivo: (v: boolean) => void;
   setDebrief: (d: Debrief | null) => void;
   setFocoVolver: (v: boolean) => void;
-  setOrigen: (o: 'home' | 'talk') => void;
 
   abrirSesion: (s: TalkSession, iniciales?: BurbujaNueva[]) => void;
   cerrarSesion: () => void;
@@ -120,17 +111,15 @@ export const useTalk = create<TalkState>((set, get) => ({
   roleplayActivo: false,
   debrief: null,
   focoVolver: false,
-  origen: 'talk',
 
   setTalkMode: (talkMode) => set({ talkMode }),
   setBusy: (busy) => set({ busy }),
   setRoleplayActivo: (roleplayActivo) => set({ roleplayActivo }),
   setDebrief: (debrief) => set({ debrief }),
   setFocoVolver: (focoVolver) => set({ focoVolver }),
-  setOrigen: (origen) => set({ origen }),
 
   abrirSesion: (session, iniciales = []) =>
-    set({ session, displayLog: iniciales.map((b) => ({ ...b, id: ++seqBurbuja }) as Burbuja), origen: 'talk' }),
+    set({ session, displayLog: iniciales.map((b) => ({ ...b, id: ++seqBurbuja }) as Burbuja) }),
 
   /* closeSession (L4342): la sesión muere, la voz calla y el chat se vacía
      para que la próxima no herede burbujas. El mic lo aborta el dock al
@@ -138,28 +127,20 @@ export const useTalk = create<TalkState>((set, get) => ({
      vacío al montarse (era refrescarRompehielos()). */
   cerrarSesion: () => {
     stopSpeak();
-    const { origen } = get();
-    set({ session: null, displayLog: [], origen: 'talk' });
-    /* ← AL ORIGEN (regla 5 del contrato: «Sesión → ← portada TALK»). Ya no se
-       navega incondicionalmente al Home: eso era de cuando la portada de TALK
-       estaba oculta (decisión del 2026-07-29, ANTERIOR a la portada nueva) y
-       hacía que salir de la sesión saltara dos niveles de golpe.
+    set({ session: null, displayLog: [] });
+    /* Regla 5 del contrato, al pie de la letra: «Sesión → ← portada TALK».
+       SIEMPRE, venga la sesión de donde venga — también de la píldora aurora
+       del Home, la única entrada que salta la portada (la ronda 3 encontró que
+       ese caso volvía al Home y contradecía el contrato; el campo `origen` que
+       lo distinguía se ha retirado). Ya no se navega al Home nunca: eso era de
+       cuando la portada de TALK estaba oculta (decisión del 2026-07-29,
+       ANTERIOR a la portada nueva) y hacía que salir de la sesión saltara dos
+       niveles de golpe.
 
-       · origen 'talk' (portada: "Sígueme el hilo →", un escenario…): se vuelve
-         a la portada. La vista ya ES 'talk', pero se deja explícito para que el
-         destino no dependa de que nadie la haya movido mientras tanto.
-       · origen 'home' (píldora aurora, la única entrada que salta la portada):
-         se vuelve al Home, y se BAJA `carruselAlVolver` porque ese Home tiene
-         que aparecer limpio. La marca podía seguir en alto desde una carta de
-         la vitrina anterior y reabría el carrusel al aterrizar.
-
-       Cubre volver, terminar (<3 turnos) y el cierre del debrief en un punto. */
-    if (origen === 'home') {
-      useApp.getState().setCarruselAlVolver(false);
-      useApp.getState().setView('home');
-    } else {
-      useApp.getState().setView('talk');
-    }
+       La vista ya ES 'talk' en casi todos los caminos, pero se deja explícito
+       para que el destino no dependa de que nadie la haya movido mientras
+       tanto. Cubre volver, terminar (<3 turnos) y el cierre del debrief. */
+    useApp.getState().setView('talk');
   },
 
   addBubble: (b) => {

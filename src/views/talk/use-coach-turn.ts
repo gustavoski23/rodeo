@@ -103,10 +103,10 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
   useTalk.getState().abrirSesion(sesion, [{ tipo: 'pensando' }]);
   useTalk.getState().setFocoVolver(!!opts.focoVolver);
   /* Este es el ÚNICO camino que entra a una sesión sin pasar por la portada de
-     TALK (la píldora aurora del Home). Se marca el origen para que el ← de la
-     sesión devuelva al Home y no a una portada por la que nunca se pasó; todas
-     las demás entradas se quedan con el 'talk' que deja `abrirSesion`. */
-  useTalk.getState().setOrigen('home');
+     TALK (la píldora aurora del Home). Aun así, el ← de la sesión devuelve a la
+     PORTADA de TALK, no al Home: lo manda la regla 5 del contrato («Sesión → ←
+     portada TALK») y desde ahí el ← de la portada sigue llevando al Home. La
+     marca de origen que hacía la excepción se retiró en la ronda 3. */
 
   setTimeout(() => {
     const st = useTalk.getState();
