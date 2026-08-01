@@ -59,6 +59,39 @@ const ETIQUETA_KIND: Record<'phrasal' | 'slang', string> = {
   slang: 'slang',
 };
 
+/* Pista de que HAY MÁS ABAJO (mismo patrón que App/useDesborde). El scroller
+   oculta su barra (SIN_BARRA), así que en una ventana de PC corta el input de
+   "úsalo tú" queda bajo el pliegue sin ninguna señal. Devuelve true solo
+   mientras quede recorrido por debajo: el velo aparece al desbordar y se apaga
+   al llegar al fondo. Se recalcula al cambiar de término, al revelar y al
+   redimensionar (ResizeObserver sobre el scroller y sus hijos). */
+function useDesborde() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hayMas, setHayMas] = useState(false);
+
+  const medir = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setHayMas(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    window.addEventListener('resize', medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+  }, [medir]);
+
+  return { ref, hayMas, medir };
+}
+
 export function Pelala() {
   const orden = usePelala((s) => s.orden);
   const retoIndex = usePelala((s) => s.retoIndex);
@@ -70,6 +103,7 @@ export function Pelala() {
 
   const [revelado, setRevelado] = useState(false);
   const stickerRef = useRef<PeelStickerHandle>(null);
+  const scroller = useDesborde();
 
   /* ← AL ORIGEN: como toda vista, vuelve al Home, que reabre el carrusel. */
   const volver = useCallback(() => useApp.getState().setView('home'), []);
@@ -121,19 +155,29 @@ export function Pelala() {
           <ArrowLeft size={17} strokeWidth={2} />
         </motion.button>
         <span
-          className="min-w-0 flex-1 truncate font-mono text-[0.62rem] font-semibold tracking-[0.14em] uppercase"
+          className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold tracking-[0.14em] uppercase"
           style={{ color: 'var(--text-muted)' }}
         >
           Slang · pélala y aprende
         </span>
       </div>
 
-      {/* ── Scroller: sticker flotante + significado + mini-chat ──────────── */}
-      <div className={cn(COLUMNA, 'flex min-h-0 flex-1 flex-col overflow-y-auto', SIN_BARRA)}>
-        {/* El sticker (hero), flotando sobre el fondo del tema. El wrapper se pega
-            a la tarjeta con -mb para cerrar el canvas vacío de abajo sin encoger
-            el gráfico (auditoría: que el hero domine, sin banda muerta). */}
-        <div className="relative -mb-6 aspect-[16/10] w-full shrink-0 select-none">
+      {/* ── Scroller: sticker flotante + significado + mini-chat ──────────────
+          Envuelto en un contenedor `relative` (la COLUMNA) para colgar el velo
+          de "sigue abajo": en una ventana de PC corta el chat cae bajo el
+          pliegue y, sin barra visible, no había ninguna señal. ── */}
+      <div className={cn(COLUMNA, 'relative flex min-h-0 flex-1 flex-col')}>
+        <div
+          ref={scroller.ref}
+          onScroll={scroller.medir}
+          className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto', SIN_BARRA)}
+        >
+        {/* El sticker (hero), flotando sobre el fondo del tema. ALTURA FLUIDA
+            (clamp por vh, no aspect fijo): en pantallas cortas cede altura para
+            que el significado y el chat entren completos en el viewport, en vez
+            de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
+            para cerrar el aire de abajo sin encoger el gráfico. */}
+        <div className="relative -mb-6 h-[clamp(165px,31vh,330px)] w-full shrink-0 select-none">
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -171,7 +215,7 @@ export function Pelala() {
                 {term.term}
               </p>
               <span
-                className="mt-1 inline-block rounded-full px-2 py-0.5 font-mono text-[0.55rem] font-bold tracking-[0.12em] uppercase"
+                className="mt-1 inline-block rounded-full px-2 py-0.5 text-[0.55rem] font-bold tracking-[0.12em] uppercase"
                 style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
               >
                 {ETIQUETA_KIND[term.kind]}
@@ -250,6 +294,19 @@ export function Pelala() {
         <UsarSlang term={term} />
 
         <div className="h-2 shrink-0" />
+        </div>
+
+        {/* Velo de "sigue abajo": desvanece el último renglón contra el borde
+            para que se lea como contenido cortado, no terminado. Solo mientras
+            quede recorrido. */}
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
+          style={{ background: 'linear-gradient(to top, var(--bg-void), transparent)' }}
+          initial={false}
+          animate={{ opacity: scroller.hayMas ? 1 : 0 }}
+          transition={{ duration: 0.18 }}
+        />
       </div>
     </div>
   );
