@@ -202,7 +202,14 @@ html = html.replace(/<head>/, () => '<head>' + bootstrap);
 // y el <style> en "</style", pase lo que pase. En un string/regex de JS,
 // "<\/script" es idéntico a "</script" (el \/ es sólo "/"), así que es inocuo.
 const safeJs = js.replace(/<\/script/gi, '<\\/script');
-const safeCss = (fontsCss + '\n' + css).replace(/<\/style/gi, '<\\/style');
+/* Override SIN @layer al FINAL del CSS: el visor de artifacts envuelve la
+   página y mete su propio `body{font:14px -apple-system…}` sin capa. La fuente
+   de RODEO vive en @layer base y CUALQUIER regla sin capa le gana — por eso el
+   artifact caía a la fuente del sistema aunque Alan Sans estuviera cargada
+   (documentado: Gus lo vio dos veces). Sin capa + al final = gana siempre. */
+const fontOverride =
+  "\nbody{font-family:'Alan Sans','Familjen Grotesk',ui-sans-serif,system-ui,sans-serif}\n";
+const safeCss = (fontsCss + '\n' + css + fontOverride).replace(/<\/style/gi, '<\\/style');
 const styleBlock = `<style>${safeCss}</style>`;
 const scriptBlock = `<script type="module">${safeJs}</script>`;
 html = html.replace(/<\/head>/, () => `${styleBlock}\n${scriptBlock}\n</head>`);
