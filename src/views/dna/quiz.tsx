@@ -147,7 +147,7 @@ MATERIAL:\n${materialDe(pool)}`,
         {q && (
           <div
             className="rounded-2xl border px-4 py-3.5"
-            style={{ background: 'var(--bg-surface)', borderColor: 'oklch(87% 0.21 128 / 0.3)' }}
+            style={{ background: 'var(--bg-surface)', borderColor: 'oklch(82% 0.125 68 / 0.3)' }}
           >
             <div className="mb-2 font-mono text-[0.68rem] tracking-[0.16em] uppercase" style={{ color: 'var(--text-muted)' }}>
               {i + 1} / {quiz!.length}
@@ -217,7 +217,7 @@ MATERIAL:\n${materialDe(pool)}`,
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
             className="rounded-2xl border px-4 py-3.5"
-            style={{ background: 'var(--bg-surface)', borderColor: 'oklch(87% 0.21 128 / 0.4)' }}
+            style={{ background: 'var(--bg-surface)', borderColor: 'oklch(82% 0.125 68 / 0.4)' }}
           >
             <div className="font-display text-[2rem] font-extrabold tracking-[-0.03em]">
               {score}/{quiz!.length}

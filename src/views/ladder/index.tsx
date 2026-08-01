@@ -431,7 +431,7 @@ function BarraB2C1({ pct, dias }: { pct: number; dias: number }) {
               aria-hidden="true"
               className="pointer-events-none absolute inset-y-0 left-0 w-full"
               style={{
-                background: 'linear-gradient(90deg, transparent, oklch(98% 0.05 128 / 0.85), transparent)',
+                background: 'linear-gradient(90deg, transparent, oklch(96% 0.05 68 / 0.85), transparent)',
               }}
               initial={{ x: '-100%', opacity: 0.9 }}
               animate={{ x: '100%', opacity: 0 }}

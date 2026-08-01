@@ -35,7 +35,7 @@ const ROTS = [-1.2, 0.8, -0.6, 1.1, -0.9];
 /* Mapa exacto del veredicto → chip (L6998-7002). Cualquier otro valor: sin
    chip (el modelo a veces inventa una cuarta etiqueta). */
 const VCHIP: Record<string, { txt: string; bg: string; color: string }> = {
-  nailed: { txt: 'CLAVADO', bg: 'oklch(87% 0.21 128 / 0.3)', color: 'var(--swap-new)' },
+  nailed: { txt: 'CLAVADO', bg: 'oklch(82% 0.125 68 / 0.3)', color: 'var(--swap-new)' },
   close: { txt: 'CASI', bg: 'oklch(85% 0.16 95 / 0.4)', color: 'oklch(38% 0.11 92)' },
   off: { txt: 'BÁSICO', bg: 'oklch(66% 0.20 27 / 0.28)', color: 'oklch(34% 0.20 27)' },
 };

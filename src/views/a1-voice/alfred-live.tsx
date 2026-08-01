@@ -140,7 +140,7 @@ export function AlfredLive({
   const [teclado, setTeclado] = useState(false);
 
   const { ttsOn } = useTts();
-  const barColor = useColorToken('--accent', '#aced37');
+  const barColor = useColorToken('--accent', '#d99c66');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 

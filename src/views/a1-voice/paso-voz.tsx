@@ -52,7 +52,7 @@ type Fase =
 export function PasoVoz({ chunk, onResultado, onSaltar }: PasoVozProps) {
   const [fase, setFase] = useState<Fase>({ tipo: 'listo' });
   const intentosRef = useRef(0);
-  const barColor = useColorToken('--accent', '#aced37');
+  const barColor = useColorToken('--accent', '#d99c66');
 
   /* Los keyterms son las palabras de la frase objetivo: Deepgram Nova-3 las usa
      para inclinarse hacia ellas al transcribir. Es exactamente lo que queremos

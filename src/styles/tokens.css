@@ -41,10 +41,16 @@
   --text-secondary: oklch(68% 0.010 265);
   --text-muted:     oklch(62% 0.010 265);   /* L62 → ~4.6:1 sobre shell: pasa AA en labels pequeños */
 
-  /* ── Acento: LIMA CHARTREUSE. Color de éxito/C1/CTA. ── */
-  --accent:         oklch(87% 0.21 128);              /* #aced37 aprox — sobre shell = 14.6:1 */
-  --accent-dim:     oklch(87% 0.21 128 / 0.14);       /* fondos tenues de acento */
-  --accent-ink:     oklch(24% 0.05 128);              /* texto OSCURO sobre botón lima (11.5:1) */
+  /* ── Acento: DURAZNO AURORA. Color de éxito/C1/CTA. ──
+     Antes era LIMA CHARTREUSE (hue 128). Gus marcó el verde como "el de
+     producción / AI-slop" y pidió sacarlo de TODA la app (REGLA 7). El acento se
+     mueve al durazno del aurora del Home (~#D99C66, hue 66) — cálido, premium y
+     que hace juego con el fondo. Todo lo que consume var(--accent)/bg-primary/
+     --success/--texto-bien/--swap-new sigue este token, así que el recolor es de
+     un solo sitio. */
+  --accent:         oklch(82% 0.125 68);              /* durazno cálido — sobre shell = alto contraste */
+  --accent-dim:     oklch(82% 0.125 68 / 0.14);       /* fondos tenues de acento */
+  --accent-ink:     oklch(30% 0.05 68);               /* texto OSCURO sobre botón durazno (>7:1) */
 
   /* ── Glass (tab bar, sheets) ── */
   --glass-bg:       oklch(15% 0.015 265 / 0.62);
@@ -63,12 +69,15 @@
   --card-ink:        oklch(24% 0.03 265);   /* texto primario sobre card  (>=7.7:1) */
   --card-ink-soft:   oklch(32% 0.03 265);   /* texto secundario/nota sobre card (>=4.5:1) */
 
-  /* SWAP (LEVEL UP) — tintas hue-locked oscuras que leen sobre CUALQUIER card */
-  --swap-new:        oklch(34% 0.16 132);   /* lima entintada (el upgrade C1) — >=5.2:1 en toda card */
+  /* SWAP (LEVEL UP) — tintas hue-locked oscuras que leen sobre CUALQUIER card.
+     --swap-new pasó de lima a durazno entintado: es OSCURO (L40), así que contra
+     las cards pastel claras contrasta por LUMINANCIA, no por tono — legible
+     aunque el durazno sea de familia cálida como algunas cards. */
+  --swap-new:        oklch(40% 0.12 66);    /* durazno entintado (el upgrade C1) — contrasta por L en toda card */
   --swap-old:        oklch(38% 0.20 27);    /* rojo entintado (el B2 tachado)  — >=4.5:1 en toda card */
 
   /* ── Semántica viva (sobre SHELL oscuro, no sobre cards) ── */
-  --success:        oklch(87% 0.21 128);   /* = accent lima */
+  --success:        oklch(82% 0.125 68);   /* = accent durazno */
   --danger:         oklch(66% 0.20 27);    /* coral vivo: error, HEAT, "básico" */
   --danger-dim:     oklch(66% 0.20 27 / 0.16);
   --warn:           oklch(84% 0.16 92);    /* amarillo: aviso, glosa, empate */
@@ -95,7 +104,7 @@
   --borde-medio:    oklch(96% 0.004 265 / 0.22);
   --superficie-t:   oklch(96% 0.004 265 / 0.07);   /* fondos translúcidos (burbujas) */
   --texto-mal:      oklch(80% 0.16 27);            /* la cita incorrecta (tachada) */
-  --texto-bien:     oklch(87% 0.21 128);           /* el fix de la corrección: lima sobre coral apagado */
+  --texto-bien:     oklch(82% 0.125 68);           /* el fix de la corrección: durazno sobre coral apagado */
   --texto-obst:     oklch(80% 0.13 40);            /* el obstáculo del roleplay */
   --texto-es:       oklch(80% 0.14 55);            /* chip ES del micrófono */
 
@@ -133,10 +142,10 @@
   --text-secondary: oklch(44% 0.014 265);
   --text-muted:     oklch(52% 0.014 265);   /* L52 sobre papel → ~4.7:1: pasa AA */
 
-  /* Lima profunda: legible como texto Y como relleno */
-  --accent:         oklch(50% 0.17 132);
-  --accent-dim:     oklch(50% 0.17 132 / 0.13);
-  --accent-ink:     oklch(99% 0.01 128);    /* tinta CLARA sobre la lima profunda */
+  /* Durazno profundo: legible como texto Y como relleno sobre papel */
+  --accent:         oklch(54% 0.13 60);
+  --accent-dim:     oklch(54% 0.13 60 / 0.13);
+  --accent-ink:     oklch(99% 0.012 68);    /* tinta CLARA sobre el durazno profundo */
 
   --glass-bg:       oklch(100% 0 0 / 0.78);
   --glass-border:   oklch(22% 0.012 265 / 0.10);
@@ -153,10 +162,10 @@
   --card-ink:       oklch(21% 0.03 265);
   --card-ink-soft:  oklch(35% 0.03 265);
 
-  --swap-new:       oklch(38% 0.16 132);
+  --swap-new:       oklch(44% 0.13 60);
   --swap-old:       oklch(42% 0.20 27);
 
-  --success:        oklch(52% 0.17 145);
+  --success:        oklch(54% 0.13 60);
   --danger:         oklch(52% 0.20 27);
   --danger-dim:     oklch(52% 0.20 27 / 0.12);
   --warn:           oklch(47% 0.13 72);     /* el amarillo brillante no lee sobre papel */
@@ -177,10 +186,9 @@
   --borde-medio:    oklch(22% 0.012 265 / 0.24);
   --superficie-t:   oklch(22% 0.012 265 / 0.05);
   --texto-mal:      oklch(48% 0.19 27);
-  /* Baja de L50 (la lima de --accent) a L45: sobre el coral de --danger-dim
-     compuesto (rgb 244,223,222) la lima de acento se queda en 4,4:1 y el fix
-     va a 13,6 px en negrita — que NO es texto grande para AA. A L45 da 5,5:1. */
-  --texto-bien:     oklch(45% 0.17 132);
+  /* Igual que con la lima: baja respecto a --accent (L54) para dar AA en negrita
+     ~13,6 px sobre el coral compuesto de --danger-dim. A L48 el durazno da ~5,5:1. */
+  --texto-bien:     oklch(48% 0.13 60);
   --texto-obst:     oklch(46% 0.15 40);
   --texto-es:       oklch(46% 0.14 55);
 }
@@ -189,10 +197,10 @@
    PUENTE Tailwind v4 + shadcn — cualquier componente instalado con
    `npx shadcn add` o el MCP de Magic UI sale YA con la piel de RODEO.
 
-   OJO nomenclatura: en clases Tailwind, la lima de marca es `primary`
+   OJO nomenclatura: en clases Tailwind, el durazno de marca es `primary`
    (bg-primary / text-primary-foreground). El `accent` de shadcn es su
    superficie sutil de hover (dropdowns, menús) → va a bg-elevated. La
-   variable CSS var(--accent) sigue siendo la lima, como siempre.
+   variable CSS var(--accent) sigue siendo el acento de marca (hoy durazno).
    ══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
   --font-sans: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
