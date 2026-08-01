@@ -161,6 +161,11 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
                referencia colgante en el árbol de accesibilidad. */
             aria-controls={carruselAbierto ? 'aurora-carrusel' : undefined}
             onClick={() => setCarruselAbierto((v) => !v)}
+            /* Un centímetro más abajo (pedido de Gus, r3). ≈38px al DPR de
+               referencia; se suma al `gap: 16px` de .aurora-home__actions. Va
+               inline y no como clase Tailwind porque aurora.css maneja este
+               contenedor y prefiero no rozar sus reglas. */
+            style={{ marginTop: '38px' }}
           />
         </div>
       </div>

@@ -20,16 +20,20 @@
      2.3 a 0.6 porque el textLength=477 (= la circunferencia del path, 2π·76)
      sigue fijo: con la letra más grande, el espaciado natural pasaba de 477 y
      lengthAdjust="spacing" lo COMPRIMÍA hasta pegar los glifos.
+   · UNA SOLA VELOCIDAD (pedido de Gus, r3): «que no se mueva más rápido, solo
+     como se mueve suavecito por default». Fuera el easing de playbackRate en
+     hover/focus (el useEffect que subía a 4.25× al engancharse) y los refs
+     hoveringRef/focusingRef/animationFrameRef/playbackRateRef que solo servían
+     para eso. Los handlers on{MouseEnter,Leave,Focus,Blur} se conservan como
+     pass-through de la API pública. La animación @keyframes 18s linear sigue
+     tal cual; ahora es la única velocidad del anillo.
 
    El componente es autocontenido (React + TS + Tailwind; sin shadcn/Radix/lucide
    ni imágenes): sus estilos de superficie y la animación viven en el <style>
    interno para que sea portable. */
 import {
   forwardRef,
-  useEffect,
   useId,
-  useRef,
-  useState,
   type ButtonHTMLAttributes,
   type CSSProperties,
 } from "react";
@@ -219,50 +223,12 @@ export const TryMeButton = forwardRef<HTMLButtonElement, TryMeButtonProps>(
     ref,
   ) {
     const pathId = `hablarte-try-me-path-${useId().replace(/:/g, "")}`;
-    const orbitRef = useRef<HTMLSpanElement>(null);
-    const animationFrameRef = useRef<number | null>(null);
-    const playbackRateRef = useRef(1);
-    const hoveringRef = useRef(false);
-    const focusingRef = useRef(false);
-    const [isEngaged, setIsEngaged] = useState(false);
 
     const visualLabel = label.trim() || "TRY ME";
     const cssSize = typeof size === "number" ? `${size}px` : size;
     const ringCopy = makeRingCopy(visualLabel);
     const accessibleLabel = nativeAriaLabel ?? ariaLabel ?? visualLabel;
     const buttonStyle: CSSProperties = { width: cssSize, height: cssSize, ...style };
-
-    useEffect(() => {
-      const orbit = orbitRef.current;
-      if (!orbit || disabled || typeof window === "undefined") return;
-
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-      if (reduceMotion.matches) return;
-
-      const animation = orbit.getAnimations()[0];
-      if (!animation) return;
-
-      const targetRate = isEngaged ? 4.25 : 1;
-      window.cancelAnimationFrame(animationFrameRef.current ?? 0);
-
-      const easePlaybackRate = () => {
-        const delta = targetRate - playbackRateRef.current;
-        const nextRate = playbackRateRef.current + delta * 0.14;
-
-        playbackRateRef.current = Math.abs(delta) < 0.01 ? targetRate : nextRate;
-        animation.playbackRate = playbackRateRef.current;
-
-        if (playbackRateRef.current !== targetRate) {
-          animationFrameRef.current = window.requestAnimationFrame(easePlaybackRate);
-        }
-      };
-
-      animationFrameRef.current = window.requestAnimationFrame(easePlaybackRate);
-
-      return () => {
-        window.cancelAnimationFrame(animationFrameRef.current ?? 0);
-      };
-    }, [disabled, isEngaged]);
 
     return (
       <button
@@ -279,26 +245,10 @@ export const TryMeButton = forwardRef<HTMLButtonElement, TryMeButtonProps>(
         )}
         style={buttonStyle}
         onClick={onClick}
-        onMouseEnter={(event) => {
-          hoveringRef.current = true;
-          setIsEngaged(true);
-          onMouseEnter?.(event);
-        }}
-        onMouseLeave={(event) => {
-          hoveringRef.current = false;
-          setIsEngaged(focusingRef.current);
-          onMouseLeave?.(event);
-        }}
-        onFocus={(event) => {
-          focusingRef.current = true;
-          setIsEngaged(true);
-          onFocus?.(event);
-        }}
-        onBlur={(event) => {
-          focusingRef.current = false;
-          setIsEngaged(hoveringRef.current);
-          onBlur?.(event);
-        }}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onFocus={onFocus}
+        onBlur={onBlur}
       >
         <style>{orbitStyles}</style>
 
@@ -312,7 +262,6 @@ export const TryMeButton = forwardRef<HTMLButtonElement, TryMeButtonProps>(
         />
 
         <span
-          ref={orbitRef}
           aria-hidden="true"
           className="hablarte-try-me__orbit pointer-events-none absolute inset-0"
         >
