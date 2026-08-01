@@ -21,9 +21,11 @@
    Copiados VERBATIM de la app original (public/legacy.html). NO renombrar:
    --accent, --bg-*, --text-*, --card-* los consumen las islas legacy y todo
    el CSS portado. Valores oklch verificados WCAG: texto de card AA >= 4.5:1.
-     · Archivo (600-900)        → DISPLAY grotesca pesada ancha
-     · Familjen Grotesk (400-700, italic) → BODY + énfasis
-     · Space Mono (400/700)     → labels, eyebrows, contadores
+     · Alan Sans (100-900, variable) → BODY + UI en TODA la app (pedido de Gus:
+       la redondeada del Home aurora ahora es la fuente de cuerpo de todo)
+     · Archivo (600-900)        → DISPLAY grotesca pesada ancha (titulares puntuales)
+     · Familjen Grotesk (400-700, italic) → respaldo de cuerpo si Alan no carga
+     · Space Mono (400/700)     → labels, eyebrows, contadores (acento mono)
    ══════════════════════════════════════════════════════════════════════ */
 :root {
   /* El navegador debe saber qué tema está activo: sin esto, el Auto Dark de
@@ -203,7 +205,7 @@
    variable CSS var(--accent) sigue siendo el acento de marca (hoy durazno).
    ══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
-  --font-sans: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Alan Sans', 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Archivo', 'Familjen Grotesk', ui-sans-serif, sans-serif;
   --font-mono: 'Space Mono', ui-monospace, monospace;
 
