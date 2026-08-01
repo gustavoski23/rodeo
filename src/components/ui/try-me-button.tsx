@@ -1,12 +1,25 @@
 /* try-me-button.tsx — botón "TRY ME" con anillo giratorio (referencia pegada por
-   Gus, hablarte). VERBATIM salvo UNA adaptación declarada:
+   Gus, hablarte). VERBATIM salvo las adaptaciones declaradas abajo:
 
    · REGLA 7 (cero verde en la app): el "status dot" del anillo venía en LIMA
      (--orbit-status: #c5ed24 / #c8ed23 / #caed24 en los tres temas) con un glow
-     verde. Se retinta al acento de marca —var(--accent), hoy durazno— para que el
-     punto siga al color de RODEO y NO reintroduzca el verde que quitamos de toda
-     la app. Es el ÚNICO cambio: la geometría, la animación, las sombras y la
-     estructura quedan idénticas al original.
+     verde. Se retintó al acento de marca —var(--accent), hoy durazno—.
+   · PUNTO FUERA (pedido de Gus, r2): «quítale el puntito naranja que tiene». El
+     `<span class="…__status">` y su bloque CSS se eliminan. La variable
+     --orbit-status SE QUEDA porque el anillo de foco (:focus-visible) se pinta
+     con ella: sin el punto, sigue siendo el único acento del componente.
+   · TIPOGRAFÍA DEL ANILLO (pedido de Gus, r2): «que el "TRY ME" sea la misma
+     letra de Alan Sans que tiene el home de ¿Qué quieres practicar hoy?». El
+     <text> pasa de la pila "Avenir Next"/Satoshi a la MISMA de
+     .aurora-home__question (aurora.css:56-58): 'Alan Sans','Archivo',sans-serif
+     con font-variation-settings 'wght' 760 (Alan Sans es variable y el eje se
+     fija igual que en el Home; font-weight solo no llega a 760).
+   · DENSIDAD DEL ANILLO (pedido de Gus, r2): «solo déjale 4 TRY ME, agranda la
+     letra 2 tamaños hacia arriba». Las repeticiones bajan de 8 a 4 y el
+     font-size sube de 13 a 17 (dos escalones de 2px). El letter-spacing baja de
+     2.3 a 0.6 porque el textLength=477 (= la circunferencia del path, 2π·76)
+     sigue fijo: con la letra más grande, el espaciado natural pasaba de 477 y
+     lengthAdjust="spacing" lo COMPRIMÍA hasta pegar los glifos.
 
    El componente es autocontenido (React + TS + Tailwind; sin shadcn/Radix/lucide
    ni imágenes): sus estilos de superficie y la animación viven en el <style>
@@ -139,19 +152,6 @@ const orbitStyles = `
   will-change: transform;
 }
 
-.hablarte-try-me__status {
-  position: absolute;
-  top: 8.5%;
-  left: 50%;
-  width: 6.5%;
-  aspect-ratio: 1;
-  transform: translateX(-50%);
-  border: 1px solid rgba(20, 18, 13, 0.45);
-  border-radius: 9999px;
-  background: var(--orbit-status);
-  box-shadow: 0 0 0 2px rgba(255, 248, 228, 0.08), 0 0 10px rgba(217, 156, 102, 0.3);
-}
-
 .hablarte-try-me__center {
   width: 35%;
   aspect-ratio: 1;
@@ -195,7 +195,7 @@ function joinClassNames(...values: Array<string | undefined | false>) {
 }
 
 function makeRingCopy(label: string) {
-  return Array.from({ length: 8 }, () => `${label.toLocaleUpperCase()}  •  `).join("");
+  return Array.from({ length: 4 }, () => `${label.toLocaleUpperCase()}  •  `).join("");
 }
 
 export const TryMeButton = forwardRef<HTMLButtonElement, TryMeButtonProps>(
@@ -325,17 +325,17 @@ export const TryMeButton = forwardRef<HTMLButtonElement, TryMeButtonProps>(
             </defs>
             <text
               fill="var(--orbit-type)"
-              fontFamily={'"Avenir Next", "Satoshi", "Helvetica Neue", sans-serif'}
-              fontSize="13"
-              fontWeight="700"
-              letterSpacing="2.3"
+              fontFamily={'"Alan Sans", "Archivo", sans-serif'}
+              fontSize="17"
+              fontWeight="760"
+              letterSpacing="0.6"
+              style={{ fontVariationSettings: "'wght' 760" }}
             >
               <textPath href={`#${pathId}`} startOffset="1%" textLength="477" lengthAdjust="spacing">
                 {ringCopy}
               </textPath>
             </text>
           </svg>
-          <span className="hablarte-try-me__status" />
         </span>
 
         <span
