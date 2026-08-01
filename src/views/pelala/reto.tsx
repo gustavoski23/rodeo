@@ -27,6 +27,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 
 import { CornerHint } from '@/components/pelala/corner-hint';
+import { DockPractica } from '@/components/pelala/dock-practica';
 import { PeelSticker, slangTextSource, type PeelStickerHandle } from '@/components/pelala/peel-sticker';
 import { UsarSlang } from '@/components/pelala/usar-slang';
 import { cn } from '@/lib/utils';
@@ -92,6 +93,23 @@ function useDesborde() {
   return { ref, hayMas, medir };
 }
 
+/* Pulso del borde del dock: se enciende en interacción y se relaja solo. El
+   FOCO del input lo mantiene encendido mientras se escribe; una CHISPA puntual
+   (revelar el significado, enviar, recibir feedback) dura 2,4 s y se apaga. El
+   borde no está nunca activo "porque sí" — es respuesta a algo del usuario. */
+function usePulsoDock() {
+  const [foco, setFoco] = useState(false);
+  const [chispa, setChispa] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  const pulsar = useCallback(() => {
+    setChispa(true);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setChispa(false), 2400);
+  }, []);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  return { activo: foco || chispa, setFoco, pulsar };
+}
+
 export function Pelala() {
   const orden = usePelala((s) => s.orden);
   const retoIndex = usePelala((s) => s.retoIndex);
@@ -104,6 +122,7 @@ export function Pelala() {
   const [revelado, setRevelado] = useState(false);
   const stickerRef = useRef<PeelStickerHandle>(null);
   const scroller = useDesborde();
+  const pulso = usePulsoDock();
 
   /* ← AL ORIGEN: como toda vista, vuelve al Home, que reabre el carrusel. */
   const volver = useCallback(() => useApp.getState().setView('home'), []);
@@ -190,12 +209,15 @@ export function Pelala() {
           {!peelHintVisto && <CornerHint />}
         </div>
 
-        {/* ── Tarjeta de significado (revelable + guardable) ──────────────── */}
-        <div
-          className="rounded-[22px] p-4"
-          style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)', boxShadow: 'var(--sticker-shadow)' }}
-        >
-          {/* Caption anclada a la tarjeta, alineada a la izquierda como el cuerpo. */}
+        {/* ── DOCK ÚNICO: significado + práctica en UNA sola superficie glass.
+            Antes eran dos cajas idénticas apiladas (en oscuro "cajita dentro de
+            cajita", el fallo de la captura). Ahora un solo material continuo con
+            divisor interior y borde-pulso en interacción. ── */}
+        <DockPractica activo={pulso.activo}>
+        {/* Zona SIGNIFICADO (revelable + guardable) — ya sin caja propia: es
+            contenido con padding dentro del dock, no una isla con su borde. */}
+        <div className="p-4">
+          {/* Caption anclada arriba, alineada a la izquierda como el cuerpo. */}
           <p className="mb-3 text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
             Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente
           </p>
@@ -270,7 +292,10 @@ export function Pelala() {
             ) : (
               <button
                 type="button"
-                onClick={() => setRevelado(true)}
+                onClick={() => {
+                  setRevelado(true);
+                  pulso.pulsar(); // el borde responde al revelar
+                }}
                 aria-label="Revelar el significado"
                 className="relative flex w-full items-center justify-center px-4 py-5"
               >
@@ -290,8 +315,11 @@ export function Pelala() {
           </div>
         </div>
 
-        {/* ── Mini-chat "úsalo tú" ─────────────────────────────────────────── */}
-        <UsarSlang term={term} />
+        {/* ── Zona PRÁCTICA "úsalo tú": mismo material, separada por un hairline
+            interior (border-top), NO por otra caja. El foco/enviar/feedback
+            enciende el borde-pulso del dock. ── */}
+        <UsarSlang term={term} onFoco={pulso.setFoco} onActividad={pulso.pulsar} />
+        </DockPractica>
 
         <div className="h-2 shrink-0" />
         </div>

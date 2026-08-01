@@ -7,7 +7,14 @@
    tokens del tema. Segunda pasada (auditoría de pulido): se lee como CONVERSACIÓN
    —burbuja del usuario a la derecha, respuesta del tutor a la izquierda con avatar—
    y el input se vacía al enviar. Antes era un input + una caja de validación a
-   ancho completo, que parecía un formulario, no un chat. */
+   ancho completo, que parecía un formulario, no un chat.
+
+   AHORA es la ZONA DE PRÁCTICA del DockPractica: ya no trae caja propia (fondo,
+   borde ni sombra) — solo un divisor superior (border-top) que la separa del
+   significado dentro de la MISMA superficie glass. El borde animado dejó de ser
+   permanente: lo pinta el dock y solo pulsa en interacción (onFoco/onActividad).
+   Los mandos mic/enviar (GlassButton) se quedan EXACTOS: es el vidrio que Gus
+   marcó como bueno en la captura. */
 
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
@@ -15,7 +22,6 @@ import { motion } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { Mic, Send, Sparkles } from 'lucide-react';
 
-import { BorderBeam } from '@/components/magicui/border-beam';
 import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import type { SlangTerm } from '@/content/pelala/deck';
 import { evaluarUso, type Veredicto } from '@/lib/pelala/coach';
@@ -61,7 +67,17 @@ type Mensaje =
   | { rol: 'user'; texto: string }
   | { rol: 'tutor'; texto: string; estado: Veredicto['estado'] };
 
-export function UsarSlang({ term }: { term: SlangTerm }) {
+export function UsarSlang({
+  term,
+  onFoco,
+  onActividad,
+}: {
+  term: SlangTerm;
+  /* Enciende/apaga el borde-pulso del dock mientras se escribe (input enfocado). */
+  onFoco?: (activo: boolean) => void;
+  /* Chispa puntual del borde-pulso: al enviar y al recibir feedback. */
+  onActividad?: () => void;
+}) {
   const [frase, setFrase] = useState('');
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [revisando, setRevisando] = useState(false);
@@ -80,9 +96,11 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
     setMensajes((m) => [...m, { rol: 'user', texto: t }]);
     setFrase('');
     setRevisando(true);
+    onActividad?.(); // el usuario envió → el borde del dock responde
     const v = await evaluarUso(term, t);
     setMensajes((m) => [...m, { rol: 'tutor', texto: v.mensaje, estado: v.estado }]);
     setRevisando(false);
+    onActividad?.(); // llegó el feedback → un segundo pulso
     if (v.estado === 'bien') celebrar();
   };
 
@@ -102,7 +120,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
       decay: 0.92,
       /* Paleta AURORA (rosa/durazno/crema/blanco), NO la de canvas-confetti por
          defecto —que incluye lima #88ff5a y amarillo-verde #fcff42—: REGLA 7,
-         cero verde ni siquiera en el confeti. Hace juego con el BorderBeam. */
+         cero verde ni siquiera en el confeti. Hace juego con el borde-pulso. */
       colors: ['#B85D8A', '#D99C66', '#EBE0C5', '#ffffff'],
     };
     if (host) {
@@ -118,13 +136,16 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   return (
     <div
       ref={hostRef}
-      className="vidrio-tema relative mt-3 overflow-hidden rounded-[22px] p-4"
-      style={{ background: 'var(--bg-surface)', border: '1px solid var(--borde-sutil)', boxShadow: 'var(--sticker-shadow)' }}
+      className="relative p-4"
+      /* Sin caja propia: es la zona de práctica DENTRO del dock. El único borde
+         es el DIVISOR superior (hairline) que la separa del significado en la
+         misma superficie glass. El material del vidrio (vidrio-tema) y la sombra
+         los pone el DockPractica, que es ancestro. */
+      style={{ borderTop: '1px solid var(--borde-sutil)' }}
     >
-      {/* Material glass del login para los mandos (mic/enviar): el CSS del vidrio
-          (.glass-button*, @property) se monta una vez aquí y `vidrio-tema` (en la
-          raíz) declara las crudas --background/--foreground por tema. Misma receta
-          que TALK — REGLA 7 del contrato. */}
+      {/* CSS del vidrio del login para los mandos (mic/enviar): .glass-button* y
+          los @property se montan una vez aquí; las crudas --background/--foreground
+          por tema las declara `vidrio-tema` en el DockPractica ancestro. */}
       <GlassStyles />
 
       {/* Intro (solo si aún no hay turnos). */}
@@ -212,6 +233,8 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           onKeyDown={(e) => {
             if (e.key === 'Enter') void enviar();
           }}
+          onFocus={() => onFoco?.(true)}
+          onBlur={() => onFoco?.(false)}
           aria-label={`Escribe una frase usando ${term.term}`}
           placeholder={`p. ej. usa “${term.term}”…`}
           className="h-10 min-w-0 flex-1 rounded-full px-4 text-[0.9rem] outline-none transition placeholder:text-[var(--text-muted)]"
@@ -231,11 +254,9 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           <Send size={16} />
         </GlassButton>
       </div>
-
-      {/* Borde animado (BorderBeam de magicui, verbatim — mismo patrón que
-          a1/portada.tsx). Colores en tokens aurora para un acento colorido, NO
-          verde. Va como hijo absoluto dentro del contenedor relative+overflow. */}
-      <BorderBeam size={160} duration={7} borderWidth={2} colorFrom="var(--aurora-1)" colorTo="var(--aurora-2)" />
+      {/* El borde animado ya NO vive aquí: era un BorderBeam viajero SIEMPRE
+          activo. Ahora lo pinta el DockPractica y solo pulsa en interacción
+          (foco/enviar/feedback) — Parte 4 del encargo de Gus. */}
     </div>
   );
 }
