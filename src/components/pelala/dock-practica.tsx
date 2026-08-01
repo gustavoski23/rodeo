@@ -8,21 +8,25 @@
    El divisor entre significado y práctica es un hairline INTERIOR del mismo
    componente (lo pone la zona de práctica con su border-top), no otra caja.
 
-   Borde-pulso (no permanente): el borde interior respira cálido SOLO en
-   interacción — enfocar el input, revelar el significado, enviar o recibir
-   feedback. Tonos de marca (ciruela --aurora-1 → albaricoque --aurora-2),
-   intensidad baja y ritmo lento; en reposo es invisible. Respeta
-   prefers-reduced-motion (brillo quieto, sin respiración). Sustituye al
-   BorderBeam viajero que antes giraba SIEMPRE en el mini-chat.
+   BORDE ANIMADO: el BorderBeam del paquete npm `border-beam` (el código que
+   pegó Gus en su spec — components/ui/border-beam.tsx), NO el pulso casero de
+   la primera pasada, que era tan tenue que "no se veía nada". Es un wrapper:
+   envuelve el dock y dibuja el haz colorful alrededor. Queda SIEMPRE visible a
+   plena fuerza (como la referencia "Build anything…" que mandó Gus — la
+   primera pasada era tan tenue que "no se veía") y en interacción (foco del
+   input, revelar, enviar, feedback) sube el brillo. El paquete trae su propio soporte de reduced-motion y de tema; el
+   prop `theme` se alimenta del tema real de la app (claro→light; oscuro y
+   gradiente→dark, ambos son fondos oscuros).
 
    `vidrio-tema` (aurora.css) se declara aquí: es el ancestro de los GlassButton
    del compositor, así heredan las crudas --background/--foreground por tema y el
    vidrio del login se ve igual en claro/oscuro/gradiente. */
 
 import type { ReactNode } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
 
+import { BorderBeam } from '@/components/ui/border-beam';
 import { cn } from '@/lib/utils';
+import { useApp } from '@/stores/app';
 
 export function DockPractica({
   activo,
@@ -33,38 +37,27 @@ export function DockPractica({
   className?: string;
   children: ReactNode;
 }) {
-  const reduce = useReducedMotion();
+  const tema = useApp((s) => s.tema);
 
   return (
-    <div
-      className={cn('vidrio-tema relative overflow-hidden rounded-[22px]', className)}
-      style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--borde-sutil)',
-        boxShadow: 'var(--sticker-shadow)',
-      }}
+    <BorderBeam
+      size="md"
+      colorVariant="colorful"
+      theme={tema === 'claro' ? 'light' : 'dark'}
+      brightness={activo ? 1.7 : 1.3}
+      duration={4}
+      className={className}
     >
-      {children}
-
-      {/* Anillo interior cálido: 1px de tinta + un halo hacia dentro. Va como
-          hijo absoluto (rounded-[inherit]) para pintarse sobre el contenido sin
-          desplazarlo. La opacidad respira entre 0.3 y 0.6 solo cuando `activo`. */}
-      <motion.div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[inherit]"
+      <div
+        className={cn('vidrio-tema relative overflow-hidden rounded-[22px]')}
         style={{
-          boxShadow:
-            'inset 0 0 0 1px color-mix(in oklch, var(--aurora-1) 52%, transparent), ' +
-            'inset 0 0 24px -6px color-mix(in oklch, var(--aurora-2) 62%, transparent)',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--borde-sutil)',
+          boxShadow: 'var(--sticker-shadow)',
         }}
-        initial={{ opacity: 0 }}
-        animate={activo ? (reduce ? { opacity: 0.5 } : { opacity: [0.3, 0.6, 0.3] }) : { opacity: 0 }}
-        transition={
-          activo && !reduce
-            ? { duration: 2.6, ease: 'easeInOut', repeat: Infinity }
-            : { duration: 0.5, ease: 'easeOut' }
-        }
-      />
-    </div>
+      >
+        {children}
+      </div>
+    </BorderBeam>
   );
 }
