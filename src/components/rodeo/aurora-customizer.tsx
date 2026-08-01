@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
+import { BeamCustomizer } from '@/components/rodeo/beam-customizer';
 import { ETIQUETA_TEMA, type Tema } from '@/lib/theme';
 import { useApp } from '@/stores/app';
 import {
@@ -238,6 +239,11 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
                   </label>
                 </div>
               </section>
+
+              {/* Playground del border beam del dock de SLANG — convive con el
+                  aurora: se ve al hacer scroll y ajusta el borde real. */}
+              <BeamCustomizer />
+
               <p className="aurora-customizer__note">Se guarda hasta que cierres esta pestaña.</p>
             </div>
           </motion.div>

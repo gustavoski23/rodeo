@@ -75,7 +75,10 @@ export function aplicarTema(tema: Tema) {
    migración es no-op para quien ya tenía tema elegido. */
 export function hidratarTema(): Tema {
   const guardado = store.get<unknown>('rodeo_tema', null);
-  const tema: Tema = esTema(guardado) ? guardado : temaActual();
+  // Sin elección previa el default es GRADIENTE (pedido de Gus: el Home se
+  // abre en gradiente para todo el mundo). Quien ya eligió tema conserva el
+  // suyo — la migración es no-op para valores 'claro'/'oscuro'/'gradiente'.
+  const tema: Tema = esTema(guardado) ? guardado : 'gradiente';
   aplicarTema(tema);
   return tema;
 }

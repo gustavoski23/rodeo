@@ -8,15 +8,12 @@
    El divisor entre significado y práctica es un hairline INTERIOR del mismo
    componente (lo pone la zona de práctica con su border-top), no otra caja.
 
-   BORDE ANIMADO: el BorderBeam del paquete npm `border-beam` (el código que
-   pegó Gus en su spec — components/ui/border-beam.tsx), NO el pulso casero de
-   la primera pasada, que era tan tenue que "no se veía nada". Es un wrapper:
-   envuelve el dock y dibuja el haz colorful alrededor. Queda SIEMPRE visible a
-   plena fuerza (como la referencia "Build anything…" que mandó Gus — la
-   primera pasada era tan tenue que "no se veía") y en interacción (foco del
-   input, revelar, enviar, feedback) sube el brillo. El paquete trae su propio soporte de reduced-motion y de tema; el
-   prop `theme` se alimenta del tema real de la app (claro→light; oscuro y
-   gradiente→dark, ambos son fondos oscuros).
+   BORDE ANIMADO: el BorderBeam del paquete npm `border-beam` (components/ui).
+   Sus props salen del STORE `useBeam` — el default lo fijó Gus en el playground
+   (pulse-inner · colorful · 100% · brillo 1.1 · 10 s) y el personalizador (bajo
+   «Personalizar aurora») lo cambia en vivo. El `theme` sigue al tema real de la
+   app (claro→light; oscuro y gradiente→dark, ambos son fondos oscuros). El
+   paquete trae su propio soporte de prefers-reduced-motion.
 
    `vidrio-tema` (aurora.css) se declara aquí: es el ancestro de los GlassButton
    del compositor, así heredan las crudas --background/--foreground por tema y el
@@ -27,25 +24,23 @@ import type { ReactNode } from 'react';
 import { BorderBeam } from '@/components/ui/border-beam';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
+import { useBeam } from '@/stores/beam';
 
-export function DockPractica({
-  activo,
-  className,
-  children,
-}: {
-  activo: boolean;
-  className?: string;
-  children: ReactNode;
-}) {
+export function DockPractica({ className, children }: { className?: string; children: ReactNode }) {
   const tema = useApp((s) => s.tema);
+  const beam = useBeam((s) => s.appearance);
 
   return (
     <BorderBeam
-      size="md"
-      colorVariant="colorful"
+      /* key por tipo+tema: el paquete calcula presets al montar, así que un
+         cambio de tipo o de tema debe re-montar para tomar los valores nuevos. */
+      key={`${beam.size}-${tema}`}
+      size={beam.size}
+      colorVariant={beam.colorVariant}
       theme={tema === 'claro' ? 'light' : 'dark'}
-      brightness={activo ? 1.7 : 1.3}
-      duration={4}
+      strength={beam.strength}
+      brightness={beam.brightness}
+      duration={beam.duration}
       className={className}
     >
       <div

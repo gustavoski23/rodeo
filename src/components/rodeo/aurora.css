@@ -506,6 +506,49 @@
 .aurora-customizer__motion input[type='range'] { width: 100%; height: 20px; margin: 0; accent-color: #d99c66; cursor: pointer; }
 .aurora-customizer__note { margin: 12px 2px 0; color: oklch(59% 0.009 265); font-size: .66rem; text-align: center; }
 
+/* ── Personalizador del border beam (bajo el mapa de aurora) ──────────────── */
+.beam-preview { display: grid; place-items: center; padding: 20px 6px 8px; }
+.beam-preview__card {
+  width: min(330px, 100%);
+  height: 62px;
+  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde-sutil);
+  box-shadow: var(--sticker-shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+.beam-preview__dot {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 999px;
+  background: var(--bg-elevated); border: 1px solid var(--borde-sutil);
+}
+.beam-preview__line { height: 10px; flex: 1; border-radius: 999px; background: var(--borde-medio); }
+
+.beam-group-label {
+  margin: 14px 0 7px;
+  font-family: var(--font-mono);
+  font-size: .6rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.beam-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.beam-chip {
+  font-family: var(--font-sans);
+  font-size: .78rem; font-weight: 600;
+  padding: 6px 12px; border-radius: 10px; cursor: pointer;
+  color: var(--text-secondary);
+  background: var(--chip-bg);
+  border: 1px solid var(--borde-sutil);
+  transition: color .15s, background .15s, border-color .15s;
+}
+.beam-chip:hover { color: var(--text-primary); }
+.beam-chip[aria-pressed='true'] {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--borde-medio);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora-story-option { animation: none; }
   .aurora-more { transition: none; }

@@ -11,10 +11,10 @@
 
    AHORA es la ZONA DE PRÁCTICA del DockPractica: ya no trae caja propia (fondo,
    borde ni sombra) — solo un divisor superior (border-top) que la separa del
-   significado dentro de la MISMA superficie glass. El borde animado dejó de ser
-   permanente: lo pinta el dock y solo pulsa en interacción (onFoco/onActividad).
-   Los mandos mic/enviar (GlassButton) se quedan EXACTOS: es el vidrio que Gus
-   marcó como bueno en la captura. */
+   significado dentro de la MISMA superficie glass. El borde animado lo pinta el
+   dock (BorderBeam del paquete, config en el store useBeam). Los mandos
+   mic/enviar (GlassButton) se quedan EXACTOS: es el vidrio que Gus marcó como
+   bueno en la captura. */
 
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
@@ -67,17 +67,7 @@ type Mensaje =
   | { rol: 'user'; texto: string }
   | { rol: 'tutor'; texto: string; estado: Veredicto['estado'] };
 
-export function UsarSlang({
-  term,
-  onFoco,
-  onActividad,
-}: {
-  term: SlangTerm;
-  /* Enciende/apaga el borde-pulso del dock mientras se escribe (input enfocado). */
-  onFoco?: (activo: boolean) => void;
-  /* Chispa puntual del borde-pulso: al enviar y al recibir feedback. */
-  onActividad?: () => void;
-}) {
+export function UsarSlang({ term }: { term: SlangTerm }) {
   const [frase, setFrase] = useState('');
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [revisando, setRevisando] = useState(false);
@@ -96,11 +86,9 @@ export function UsarSlang({
     setMensajes((m) => [...m, { rol: 'user', texto: t }]);
     setFrase('');
     setRevisando(true);
-    onActividad?.(); // el usuario envió → el borde del dock responde
     const v = await evaluarUso(term, t);
     setMensajes((m) => [...m, { rol: 'tutor', texto: v.mensaje, estado: v.estado }]);
     setRevisando(false);
-    onActividad?.(); // llegó el feedback → un segundo pulso
     if (v.estado === 'bien') celebrar();
   };
 
@@ -233,8 +221,6 @@ export function UsarSlang({
           onKeyDown={(e) => {
             if (e.key === 'Enter') void enviar();
           }}
-          onFocus={() => onFoco?.(true)}
-          onBlur={() => onFoco?.(false)}
           aria-label={`Escribe una frase usando ${term.term}`}
           placeholder={`p. ej. usa “${term.term}”…`}
           className="h-10 min-w-0 flex-1 rounded-full px-4 text-[0.9rem] outline-none transition placeholder:text-[var(--text-muted)]"

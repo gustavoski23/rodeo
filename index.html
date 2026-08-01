@@ -30,14 +30,13 @@ try {
   if (JSON.parse(localStorage.getItem('rodeo_nivel') || 'null') === 'a1') {
     document.documentElement.classList.add('nivel-a1');
   }
-  // Tema: si no hay elección guardada se respeta la del sistema. Va aquí y no
-  // en el script principal porque un cambio de fondo después del primer paint
-  // es un fogonazo blanco (o negro) en la cara.
-  var t = JSON.parse(localStorage.getItem('rodeo_tema') || 'null');
-  if (t !== 'claro' && t !== 'oscuro') {
-    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'claro' : 'oscuro';
+  // Tema: sin elección guardada el default es GRADIENTE (pedido de Gus). Como
+  // gradiente = shell oscuro + fondo animado que monta React tras hidratar,
+  // aquí solo 'claro' pinta data-theme='light'; oscuro/gradiente/none dejan el
+  // shell oscuro. Así no hay fogonazo blanco antes del primer paint.
+  if (JSON.parse(localStorage.getItem('rodeo_tema') || 'null') === 'claro') {
+    document.documentElement.setAttribute('data-theme', 'light');
   }
-  if (t === 'claro') document.documentElement.setAttribute('data-theme', 'light');
 } catch (e) {}
 </script>
 </head>
