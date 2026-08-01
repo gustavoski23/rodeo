@@ -5,9 +5,19 @@ import { ArrowLeft } from 'lucide-react';
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
 import { CarruselFeatures } from '@/components/rodeo/carrusel-features';
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
+import { TryMeButton, type TryMeTheme } from '@/components/ui/try-me-button';
 import { cn } from '@/lib/utils';
+import type { Tema } from '@/lib/theme';
 import { useApp } from '@/stores/app';
 import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
+
+/* El TryMeButton trae sus propios tres temas (dark/light/alternate). Se mapea al
+   tema de RODEO: papel → light; oscuro y gradiente → dark (el botón es un pomo
+   oscuro que asienta sobre ambos fondos). Su punto de estado sigue a var(--accent)
+   —durazno—, así que ya va con la marca sin ramas aquí. */
+function temaTryMe(tema: Tema): TryMeTheme {
+  return tema === 'claro' ? 'light' : 'dark';
+}
 
 /* HOME — markup y comportamiento 1:1 de la referencia aprobada
    (codex/home-aurora-production-review, index.html:1972-2007 y 3955-4001).
@@ -50,7 +60,10 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       setCarruselAbierto(false);
-      moreRef.current?.focus();
+      // El TryMe queda display:none con la vitrina abierta (regla
+      // `:not(.aurora-more)` de aurora.css); se le devuelve el foco en el frame
+      // siguiente, ya montado y visible, para no perderlo en el <body>.
+      requestAnimationFrame(() => moreRef.current?.focus());
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -128,30 +141,27 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
         <div className="aurora-home__actions">
           <AuroraPillButton onLaunch={lanzar}>Conversación libre</AuroraPillButton>
 
-          <button
+          {/* El mando que ABRE la vitrina es ahora el botón TRY ME giratorio
+              (pedido de Gus): mismo toggle, misma ref, mismos aria-* y misma
+              acción que el chevron ⌄ que reemplaza; el chevron del CENTRO del
+              componente hace de "hay más abajo". NO lleva la clase .aurora-more a
+              propósito: con la vitrina abierta la regla `:not(.aurora-more)`
+              (aurora.css) lo oculta —queda tapado por la capa del carrusel— y se
+              cierra con el ← / Escape (regla 2). El tema del pomo sigue al de
+              RODEO y su punto de estado va en var(--accent) (durazno, REGLA 7). */}
+          <TryMeButton
             ref={moreRef}
-            className="aurora-more"
-            type="button"
-            aria-label={carruselAbierto ? 'Ocultar las features' : 'Ver las features'}
+            theme={temaTryMe(tema)}
+            size="clamp(128px, 34vw, 152px)"
+            label="TRY ME"
+            ariaLabel={carruselAbierto ? 'Ocultar las features' : 'Ver las features'}
             aria-expanded={carruselAbierto}
             /* aria-controls SOLO cuando la capa existe: cerrada no está montada
                (AnimatePresence la desmonta) y apuntar a un id ausente es una
                referencia colgante en el árbol de accesibilidad. */
             aria-controls={carruselAbierto ? 'aurora-carrusel' : undefined}
             onClick={() => setCarruselAbierto((v) => !v)}
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m7 10 5 5 5-5" />
-            </svg>
-          </button>
+          />
         </div>
       </div>
 
@@ -186,7 +196,7 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
               type="button"
               onClick={() => {
                 setCarruselAbierto(false);
-                moreRef.current?.focus();
+                requestAnimationFrame(() => moreRef.current?.focus());
               }}
               aria-label="Cerrar las features"
               className="absolute top-[max(14px,env(safe-area-inset-top))] left-5 z-50 inline-flex size-10 cursor-pointer items-center justify-center rounded-full border border-black/15 bg-black/5 text-black/70 transition-colors hover:border-black/30 hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:text-white/85 dark:hover:border-white/30 dark:hover:bg-white/10"
