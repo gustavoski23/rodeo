@@ -223,7 +223,7 @@ export default function TalkView() {
         session ? (
           <CharlaSession motor={motor} />
         ) : (
-          <CharlaEmpty onLibre={motor.startLibre} onScenario={motor.startSession} />
+          <CharlaEmpty onSend={motor.startLibreConTexto} />
         )
       ) : (
         <EscenasPane />

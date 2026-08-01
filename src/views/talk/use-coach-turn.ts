@@ -348,6 +348,32 @@ export function useCoachTurn() {
     else registrarHablado(ice);
   }, []);
 
+  /* ── Chat puro: el usuario abre escribiendo (portada de CHARLA) ───────────
+     Variante de startLibre para el compositor del estado vacío: NO siembra un
+     rompehielos del coach — abre una sesión libre y manda el texto del usuario
+     como PRIMER turno, y el coach responde. Reusa sendTurn tal cual (gasta una
+     llamada, como cualquier turno real). La sesión se abre sin displayLog: es
+     sendTurn quien pinta la burbuja del usuario y el lápiz. */
+  const startLibreConTexto = useCallback(
+    (texto: string) => {
+      const t = (texto || '').trim();
+      if (!t) return;
+      if (useTalk.getState().busy) return;
+      if (!premiumGate('talk')) return;
+
+      const sit = buildSituation();
+      useTalk.getState().abrirSesion({
+        scenario: 'free',
+        title: 'Dibujo libre',
+        situation: sit,
+        messages: [{ role: 'system', content: talkSystemPrompt(SCENARIOS.free.prompt, sit, leerOpeners()) }],
+      });
+      tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
+      void sendTurn(t); // el usuario abre; el coach responde
+    },
+    [sendTurn],
+  );
+
   /* ── Bombilla (#idea-btn, L4426) ──────────────────────────────────────
      Meta-ayuda: NO entra a session.messages ni usa state.busy. */
   const pedirIdea = useCallback(async () => {
@@ -448,5 +474,5 @@ export function useCoachTurn() {
     useTalk.getState().cerrarSesion();
   }, []);
 
-  return { sendTurn, startSession, startLibre, pedirIdea, ideaOn, terminar, volver };
+  return { sendTurn, startSession, startLibre, startLibreConTexto, pedirIdea, ideaOn, terminar, volver };
 }
