@@ -1,15 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
-import { CarruselFeatures } from '@/components/rodeo/carrusel-features';
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { TryMeButton, type TryMeTheme } from '@/components/ui/try-me-button';
 import { cn } from '@/lib/utils';
 import type { Tema } from '@/lib/theme';
 import { useApp } from '@/stores/app';
-import { lanzarLibreAurora } from '@/views/talk/use-coach-turn';
+const CarruselFeatures = lazy(() => import('@/components/rodeo/carrusel-features'));
 
 /* El TryMeButton trae sus propios tres temas (dark/light/alternate). Se mapea al
    tema de RODEO: papel → light; oscuro y gradiente → dark (el botón es un pomo
@@ -25,14 +24,13 @@ function temaTryMe(tema: Tema): TryMeTheme {
    hoy?", el AuroraPillButton "Conversación libre" y la flecha que ahora revela
    el CARRUSEL DE FEATURES (abanico de cartas).
 
-   "Conversación libre" NO navega al toque: la píldora se hunde 950ms y luego
-   entra al flujo de dibujo libre con la cápsula "Pensando" (ver
-   lanzarLibreAurora). Volver de la conversación regresa aquí (App).
+   "Conversación libre" responde al toque: conserva 120 ms de feedback visual
+   sin bloquear la entrada ni fingir que el opener local requiere IA.
 
    Lo que cambió respecto al original: el chevron ⌄ ya no abre la píldora
    "Modo historia" (STORY ahora es una carta del carrusel, así que esa píldora
    se retiró) sino la vitrina de features. El Home CERRADO es idéntico: mismo
-   saludo, misma pregunta, misma píldora, mismos tiempos. */
+   saludo, misma pregunta y misma píldora. */
 
 export default function HomeView({ onPersonalizar, menuOculto = false }: { onPersonalizar: () => void; menuOculto?: boolean }) {
   const nombre = useApp((s) => s.nombre);
@@ -69,7 +67,8 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
     return () => document.removeEventListener('keydown', onKey);
   }, [carruselAbierto]);
 
-  function lanzar(viaTeclado: boolean) {
+  async function lanzar(viaTeclado: boolean) {
+    const { lanzarLibreAurora } = await import('@/views/talk/use-coach-turn');
     if (lanzarLibreAurora({ focoVolver: viaTeclado })) setView('talk');
   }
 
@@ -209,7 +208,15 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
               <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" />
             </button>
 
-            <CarruselFeatures />
+            <Suspense
+              fallback={
+                <div className="flex h-full items-center justify-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Abriendo…
+                </div>
+              }
+            >
+              <CarruselFeatures />
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>

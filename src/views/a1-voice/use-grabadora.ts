@@ -209,7 +209,19 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
 
       try {
         const tipo = tipoSoportado();
-        const mr = new MediaRecorder(stream, tipo ? { mimeType: tipo } : undefined);
+        const opciones: MediaRecorderOptions = {
+          ...(tipo ? { mimeType: tipo } : {}),
+          // Speech remains clear for Deepgram while uploads stay small on 4G.
+          audioBitsPerSecond: 24_000,
+        };
+        let mr: MediaRecorder;
+        try {
+          mr = new MediaRecorder(stream, opciones);
+        } catch {
+          // Some older Safari builds reject bitrate hints. Recording is more
+          // important than the hint, so retry with only the supported MIME.
+          mr = new MediaRecorder(stream, tipo ? { mimeType: tipo } : undefined);
+        }
         mr.ondataavailable = (e) => {
           if (e.data.size) trozosRef.current.push(e.data);
         };
@@ -219,7 +231,7 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
           if (vivoRef.current) void transcribir(blob);
         };
         grabadorRef.current = mr;
-        mr.start();
+        mr.start(1_000);
 
         // Corte de seguridad: pasa por parar() y no por mr.stop() a secas, para
         // que la UI se entere y salga de "Escuchando". Se limpia en parar().

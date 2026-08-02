@@ -50,19 +50,14 @@ export type Burbuja =
   | { id: number; tipo: 'coach'; texto: string; glosses: Gloss[] | null; final: boolean; tw?: Maquina | null }
   | { id: number; tipo: 'correccion'; quote: string; fix: string; why: string }
   | { id: number; tipo: 'idea'; texto: string }
-  | { id: number; tipo: 'espera'; desde: number }
-  /* La cápsula `Pensando` de la apertura desde el Home aurora: temporización
-     local (620 ms), NO una espera de red — por eso es un tipo aparte y no
-     reusa 'espera' (que lleva lápiz y contador de segundos reales). */
-  | { id: number; tipo: 'pensando' };
+  | { id: number; tipo: 'espera'; desde: number };
 
 export type BurbujaNueva =
   | Omit<Extract<Burbuja, { tipo: 'user' }>, 'id'>
   | Omit<Extract<Burbuja, { tipo: 'coach' }>, 'id'>
   | Omit<Extract<Burbuja, { tipo: 'correccion' }>, 'id'>
   | Omit<Extract<Burbuja, { tipo: 'idea' }>, 'id'>
-  | Omit<Extract<Burbuja, { tipo: 'espera' }>, 'id'>
-  | Omit<Extract<Burbuja, { tipo: 'pensando' }>, 'id'>;
+  | Omit<Extract<Burbuja, { tipo: 'espera' }>, 'id'>;
 
 export type Debrief = {
   top_errors?: { quote?: string; fix?: string; why?: string }[];

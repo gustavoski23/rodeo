@@ -5,6 +5,7 @@ import { Message, MessageContent } from '@/components/elevenlabs/message';
 import { TextAnimate } from '@/components/magicui/text-animate';
 import { GlossText } from '@/components/rodeo/gloss-text';
 import { PencilLoader } from '@/components/rodeo/pencil-loader';
+import { MODO_LIGERO } from '@/lib/device';
 import { parseChunks } from '@/lib/gloss';
 import { REDUCED } from '@/lib/theme';
 import type { Burbuja } from '@/stores/talk';
@@ -167,7 +168,7 @@ function TextoCoach({ b }: { b: Extract<Burbuja, { tipo: 'coach' }> }) {
   const { porCaracter, swapMs } = useMemo(() => medirBarrido(clean.length), [clean.length]);
 
   const [glosado, setGlosado] = useState(false);
-  const animar = b.final && !glosado && !huboMaquina.current && !REDUCED && !!clean;
+  const animar = b.final && !glosado && !huboMaquina.current && !REDUCED && !MODO_LIGERO && !!clean;
 
   useEffect(() => {
     if (!animar) return;
@@ -202,16 +203,6 @@ export function BurbujaChat({ b, orbVivo = false }: { b: Burbuja; orbVivo?: bool
             {b.texto}
           </MessageContent>
         </Message>
-      </motion.div>
-    );
-  }
-
-  if (b.tipo === 'pensando') {
-    // Apertura desde el Home aurora — cápsula "Pensando" 1:1 de la referencia
-    // (addAssistantThinking, index.html:3691-3701). Estilos en aurora.css.
-    return (
-      <motion.div {...entrada} role="status" aria-live="polite" className="assistant-thinking my-3 ml-10 self-start">
-        <span className="assistant-thinking__surface">Pensando</span>
       </motion.div>
     );
   }

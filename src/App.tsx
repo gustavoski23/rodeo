@@ -1,34 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { MotionConfig, motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
-import { AuroraCustomizer } from '@/components/rodeo/aurora-customizer';
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { FondoTema } from '@/components/rodeo/fondo-tema';
 import { Toaster } from '@/components/rodeo/toaster';
 import { Card } from '@/components/ui/card';
 import { JOB_PACKS, JobPicker } from '@/content/a1/jobs';
+import { MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useA1 } from '@/stores/a1';
 import { useAuth } from '@/stores/auth';
 import { useEnCharla, useEnSesion } from '@/stores/talk';
 import HomeView from '@/views/home';
-import TalkView from '@/views/talk';
+import GateView from '@/views/gate';
 // SLANG ahora ES la experiencia de sticker peel (Pélala) — decisión de Gus: la
 // carta SLANG del carrusel abre directo el sticker que se pela para aprender.
 // El SlangView clásico (CALLE/TRABAJO/PAISA) sigue en el repo (src/views/slang),
 // sin rutear, por si vuelve como sub-modo.
-import PelalaView from '@/views/pelala';
-import StoryView from '@/views/story';
-import LadderView from '@/views/ladder';
-import DnaView from '@/views/dna';
-import A1View from '@/views/a1';
-import { PasoVoz } from '@/views/a1-voice/paso-voz';
-import PerfilView from '@/views/perfil';
-import GateView from '@/views/gate';
-import { SuscripcionOverlay } from '@/components/rodeo/suscripcion-overlay';
 import { useSuscripcion } from '@/stores/suscripcion';
+
+const TalkView = lazy(() => import('@/views/talk'));
+const PelalaView = lazy(() => import('@/views/pelala'));
+const StoryView = lazy(() => import('@/views/story'));
+const LadderView = lazy(() => import('@/views/ladder'));
+const DnaView = lazy(() => import('@/views/dna'));
+const A1View = lazy(() => import('@/views/a1'));
+const PasoVoz = lazy(() =>
+  import('@/views/a1-voice/paso-voz').then((m) => ({ default: m.PasoVoz })),
+);
+const PerfilView = lazy(() => import('@/views/perfil'));
+const AuroraCustomizer = lazy(() =>
+  import('@/components/rodeo/aurora-customizer').then((m) => ({ default: m.AuroraCustomizer })),
+);
+const SuscripcionOverlay = lazy(() =>
+  import('@/components/rodeo/suscripcion-overlay').then((m) => ({ default: m.SuscripcionOverlay })),
+);
 
 /* Shell: fila superior + vista activa + tab bar. El switch de vistas es el switchView
    del viejo (public/legacy.html:3641) sin el DOM: cada vista se monta y se
@@ -219,7 +227,7 @@ export default function App() {
   if (!authListo) return <div className="min-h-dvh" style={{ background: 'var(--bg-void)' }} />;
   if (gateNecesario) {
     return (
-      <MotionConfig reducedMotion="user">
+      <MotionConfig reducedMotion={MODO_LIGERO ? 'always' : 'user'}>
         <GateView />
         <Toaster />
       </MotionConfig>
@@ -231,7 +239,7 @@ export default function App() {
        del mic) para quien pidió menos movimiento en el sistema. Va en la raíz
        para no repetir la comprobación en cada componente — el CSS portado del
        viejo ya trae sus propias @media (prefers-reduced-motion). */
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={MODO_LIGERO ? 'always' : 'user'}>
       {/* FONDO DEL TEMA, una sola vez y por DETRÁS del switch: con el tema
           gradiente las burbujas quedan detrás de TODAS las vistas, no solo del
           Home (regla 4). Va aquí y no en el gate a propósito — el login tiene
@@ -266,21 +274,29 @@ export default function App() {
               enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
             )}
           >
-            {view === 'talk' ? (
-              <TalkView />
-            ) : view === 'slang' ? (
-              <PelalaView />
-            ) : view === 'ladder' ? (
-              <LadderView />
-            ) : view === 'dna' ? (
-              <DnaView />
-            ) : view === 'a1' ? (
-              <OficinaView />
-            ) : view === 'perfil' ? (
-              <PerfilView />
-            ) : (
-              <StoryView />
-            )}
+            <Suspense
+              fallback={
+                <div className="flex min-h-40 flex-1 items-center justify-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Abriendo…
+                </div>
+              }
+            >
+              {view === 'talk' ? (
+                <TalkView />
+              ) : view === 'slang' ? (
+                <PelalaView />
+              ) : view === 'ladder' ? (
+                <LadderView />
+              ) : view === 'dna' ? (
+                <DnaView />
+              ) : view === 'a1' ? (
+                <OficinaView />
+              ) : view === 'perfil' ? (
+                <PerfilView />
+              ) : (
+                <StoryView />
+              )}
+            </Suspense>
           </main>
 
           {/* Tab bar oculta por ahora: la app arranca minimal desde el Home
@@ -289,10 +305,18 @@ export default function App() {
         </>
       )}
 
-      <AuroraCustomizer open={customizerOpen} onClose={() => setCustomizerOpen(false)} />
+      {customizerOpen && (
+        <Suspense fallback={null}>
+          <AuroraCustomizer open onClose={() => setCustomizerOpen(false)} />
+        </Suspense>
+      )}
       {/* Suscripción: overlay global con fondo desenfocado, encima de la vista
           que esté activa. Lee su propio store — el menú lo abre desde donde sea. */}
-      <SuscripcionOverlay />
+      {suscripcionAbierta && (
+        <Suspense fallback={null}>
+          <SuscripcionOverlay />
+        </Suspense>
+      )}
       <Toaster />
     </MotionConfig>
   );

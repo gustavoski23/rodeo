@@ -182,7 +182,7 @@ const orbitStyles = `
   animation-play-state: paused;
 }
 
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (max-width: 767px), (pointer: coarse) {
   .hablarte-try-me,
   .hablarte-try-me__center {
     transition-duration: 1ms !important;

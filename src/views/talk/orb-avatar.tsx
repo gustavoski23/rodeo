@@ -1,6 +1,7 @@
 import { Suspense, lazy, useMemo, useSyncExternalStore } from 'react';
 
 import type { AgentState } from '@/components/elevenlabs/orb';
+import { MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import { useColorToken } from '@/views/a1-voice/use-grabadora';
 
@@ -212,7 +213,7 @@ export function OrbAvatar({
         className="absolute inset-0"
         style={{ background: disco.fondo, backgroundColor: disco.base, filter: 'blur(0.5px)' }}
       />
-      {vivo && (
+      {vivo && !MODO_LIGERO && (
         <Suspense fallback={null}>
           <Orb agentState={estado} colors={colores} className="absolute top-[-6%] left-[-6%] h-[112%] w-[112%]" />
         </Suspense>

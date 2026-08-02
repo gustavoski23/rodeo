@@ -14,12 +14,14 @@
    (tokens.css:17) y el espejo data-theme→.dark del Orb (talk/orb-avatar.tsx)
    siguen viendo exactamente lo mismo que en oscuro, sin tocar una línea. */
 
+import { MODO_LIGERO } from '@/lib/device';
 import { store } from '@/lib/storage';
 
 export type Tema = 'claro' | 'oscuro' | 'gradiente';
 
 export const REDUCED =
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  MODO_LIGERO ||
+  (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 /** Etiquetas de UI (toast del toggler, tarjetas del personalizador). */
 export const ETIQUETA_TEMA: Record<Tema, string> = {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { BubbleBackground } from '@/components/ui/components-backgrounds-bubble';
+import { MODO_LIGERO } from '@/lib/device';
 import { useApp } from '@/stores/app';
 
 // El CSS de la capa (.aurora-fondo-gradiente y su __velo) vive en aurora.css.
@@ -32,6 +33,14 @@ export function FondoTema() {
   );
 
   if (tema !== 'gradiente') return null;
+
+  if (MODO_LIGERO) {
+    return (
+      <div className="aurora-fondo-gradiente aurora-fondo-gradiente--estatico" aria-hidden="true">
+        <div className="aurora-fondo-gradiente__velo" />
+      </div>
+    );
+  }
 
   return (
     <div className="aurora-fondo-gradiente" aria-hidden="true">

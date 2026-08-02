@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { MODO_LIGERO } from '@/lib/device';
 
 /* Fondo "Orbit Sweep" — la gradiente Custom de 21st.dev que aprobó Gus, con
    SU receta de movimiento exacta (params del export: speed 81, amount 55,
@@ -34,7 +35,8 @@ function cssOrbita(deg: number): string {
 }
 
 const REDUCED = () =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  MODO_LIGERO ||
+  (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 /** Full-bleed DOM. Con reduced-motion queda el frame 0 (estático). */
 export function GradienteOrbita({ className }: { className?: string }) {

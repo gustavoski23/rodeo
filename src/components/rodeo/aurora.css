@@ -1023,6 +1023,13 @@
   inset: 0;
   z-index: -1;
 }
+.aurora-fondo-gradiente--estatico {
+  background:
+    radial-gradient(circle at 18% 22%, rgb(221 74 255 / 0.62), transparent 42%),
+    radial-gradient(circle at 82% 28%, rgb(0 220 255 / 0.5), transparent 44%),
+    radial-gradient(circle at 55% 82%, rgb(200 50 90 / 0.56), transparent 48%),
+    linear-gradient(145deg, #241044, #071d3c 56%, #260c2c);
+}
 /* Velo medido: las burbujas goo llegan a rosas y limas muy claros y el
    "¿Qué quieres practicar hoy?" blanco perdía contraste sobre ellas. Un
    oscurecido plano del 38% con un refuerzo radial en el centro (donde vive el
@@ -1034,6 +1041,14 @@
     radial-gradient(ellipse 90% 55% at 50% 48%, oklch(8% 0.01 265 / 0.42), transparent 70%),
     oklch(8% 0.01 265 / 0.38);
   pointer-events: none;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .aurora-pill__mass,
+  .assistant-thinking::before {
+    animation: none !important;
+    will-change: auto;
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════

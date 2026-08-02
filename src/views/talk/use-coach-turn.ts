@@ -64,17 +64,11 @@ type Correccion = { quote?: string; fix?: string; why?: string };
 
 /* ── Apertura desde el Home aurora ──────────────────────────────────────────
    Misma siembra que startLibre (el rompehielos ES la apertura, sin gastar
-   llamada), pero con el ritual del Home aprobado: cápsula `Pensando` durante
-   620 ms (180 con reduced motion) y el rompehielos revelándose COMPLETO de
-   una vez — sin tecleo simulado. Es temporización LOCAL: no finge una llamada
-   al modelo, escenifica la entrada.
+   llamada). Como ya está disponible localmente, se revela completo en el mismo
+   gesto de entrada: sin espera artificial ni estado `Pensando` falso.
 
    Función de módulo (no hook): el Home vive fuera de TalkView y solo necesita
-   los stores. Si Gus vuelve atrás durante `Pensando`, el guard por identidad
-   de sesión cancela la revelación — cero mensajes fantasma. */
-export const FREE_OPENING_THINK_MS = 620;
-const THINK_MS_REDUCED = 180;
-
+   los stores. */
 export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean {
   if (useTalk.getState().busy) return false;
   if (!premiumGate('talk')) return false;
@@ -100,7 +94,7 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
   };
 
   useTalk.getState().setTalkMode('charla');
-  useTalk.getState().abrirSesion(sesion, [{ tipo: 'pensando' }]);
+  useTalk.getState().abrirSesion(sesion, [{ tipo: 'coach', texto: ice, glosses: [], final: true }]);
   useTalk.getState().setFocoVolver(!!opts.focoVolver);
   /* Este es el ÚNICO camino que entra a una sesión sin pasar por la portada de
      TALK (la píldora aurora del Home). Aun así, el ← de la sesión devuelve a la
@@ -108,17 +102,9 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
      portada TALK») y desde ahí el ← de la portada sigue llevando al Home. La
      marca de origen que hacía la excepción se retiró en la ronda 3. */
 
-  setTimeout(() => {
-    const st = useTalk.getState();
-    if (st.session !== sesion) return; // volvió atrás durante Pensando: cancelado
-    const capsula = st.displayLog.find((b) => b.tipo === 'pensando');
-    if (capsula) st.removeBubble(capsula.id);
-    // Directa a fase 2, entera de una vez: sin stream, sin máquina de escribir.
-    st.addBubble({ tipo: 'coach', texto: ice, glosses: [], final: true });
-    tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
-    if (ttsActivo()) void speak(ice);
-    else registrarHablado(ice);
-  }, REDUCED ? THINK_MS_REDUCED : FREE_OPENING_THINK_MS);
+  tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
+  if (ttsActivo()) void speak(ice);
+  else registrarHablado(ice);
 
   return true;
 }

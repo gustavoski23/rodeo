@@ -10,6 +10,7 @@ import {
   GradientBackground,
   XIcon,
 } from '@/components/ui/sign-up';
+import { MODO_LIGERO } from '@/lib/device';
 import { store } from '@/lib/storage';
 import { useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
@@ -41,6 +42,7 @@ import { toast } from '@/stores/toast';
    no existencia. El login con contraseña llega después; aquí solo abrimos la
    puerta recordando el correo. */
 const CORREO_OK = /\S+@\S+\.\S+/;
+const PASO_ENTRADA = MODO_LIGERO ? 0 : 0.25;
 
 export function GateView() {
   const skip = useAuth((s) => s.skip);
@@ -89,7 +91,7 @@ export function GateView() {
 
       {/* Columna centrada, ~media pantalla, ancho contenido. */}
       <div className="relative z-10 flex w-full max-w-[340px] flex-col items-center gap-6 px-6">
-        <BlurFade delay={0.25 * 1} className="w-full">
+        <BlurFade delay={PASO_ENTRADA * 1} className="w-full">
           {/* whitespace-nowrap: el título vive en UNA línea (como en el
               componente original), aunque la columna esté acotada a 340px —
               desborda centrado, que es el look de la captura. */}
@@ -98,14 +100,14 @@ export function GateView() {
           </h1>
         </BlurFade>
 
-        <BlurFade delay={0.25 * 2}>
+        <BlurFade delay={PASO_ENTRADA * 2}>
           <p className="gate-muted text-sm font-medium">Continue with</p>
         </BlurFade>
 
         {/* Fila de botones sociales vidrio: iguales (size icon), uno al lado del
             otro, centrados. Google conserva sus colores de marca; Apple y X van
             en color foreground (currentColor). SIN GitHub. */}
-        <BlurFade delay={0.25 * 3}>
+        <BlurFade delay={PASO_ENTRADA * 3}>
           <div className="flex items-center justify-center gap-4">
             <GlassButton
               type="button"
@@ -137,7 +139,7 @@ export function GateView() {
         </BlurFade>
 
         {/* Separador OR con líneas finas a los lados. */}
-        <BlurFade delay={0.25 * 4} className="w-full">
+        <BlurFade delay={PASO_ENTRADA * 4} className="w-full">
           <div className="flex w-full items-center gap-3">
             <span className="gate-linea h-px flex-1" />
             <span className="gate-muted text-xs font-semibold">OR</span>
@@ -146,7 +148,7 @@ export function GateView() {
         </BlurFade>
 
         {/* Input Email vidrio (píldora) con icono de sobre y flecha de envío. */}
-        <BlurFade delay={0.25 * 5} className="w-full">
+        <BlurFade delay={PASO_ENTRADA * 5} className="w-full">
           <div className="glass-input-wrap w-full">
             <div className="glass-input">
               <span className="glass-input-text-area" />
@@ -196,7 +198,7 @@ export function GateView() {
 
         {/* Skip: vidrio, píldora, centrado, JUSTO DEBAJO del Email. La salida
             honesta — marca rodeo_gate_skip y entra al Home; no reaparece. */}
-        <BlurFade delay={0.25 * 6}>
+        <BlurFade delay={PASO_ENTRADA * 6}>
           <GlassButton type="button" size="sm" onClick={skip}>
             <span className="gate-titulo font-medium">Skip</span>
           </GlassButton>

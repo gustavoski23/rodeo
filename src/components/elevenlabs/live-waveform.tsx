@@ -193,37 +193,11 @@ export const LiveWaveform = ({
         }
       }
     } else if (!active && !processing) {
-      const hasData =
-        mode === "static"
-          ? staticBarsRef.current.length > 0
-          : historyRef.current.length > 0
-
-      if (hasData) {
-        let fadeProgress = 0
-        const fadeToIdle = () => {
-          fadeProgress += 0.03
-          if (fadeProgress < 1) {
-            if (mode === "static") {
-              staticBarsRef.current = staticBarsRef.current.map(
-                (value) => value * (1 - fadeProgress)
-              )
-            } else {
-              historyRef.current = historyRef.current.map(
-                (value) => value * (1 - fadeProgress)
-              )
-            }
-            needsRedrawRef.current = true
-            requestAnimationFrame(fadeToIdle)
-          } else {
-            if (mode === "static") {
-              staticBarsRef.current = []
-            } else {
-              historyRef.current = []
-            }
-          }
-        }
-        fadeToIdle()
-      }
+      // An inactive waveform must be truly idle. Clearing in one paint avoids
+      // keeping one requestAnimationFrame loop alive for an invisible fade.
+      staticBarsRef.current = []
+      historyRef.current = []
+      needsRedrawRef.current = true
     }
   }, [processing, active, barWidth, barGap, mode])
 
@@ -406,7 +380,6 @@ export const LiveWaveform = ({
 
       // Only redraw if needed
       if (!needsRedrawRef.current && !active) {
-        rafId = requestAnimationFrame(animate)
         return
       }
 
@@ -505,7 +478,7 @@ export const LiveWaveform = ({
 
       ctx.globalAlpha = 1
 
-      rafId = requestAnimationFrame(animate)
+      if (active || processing) rafId = requestAnimationFrame(animate)
     }
 
     rafId = requestAnimationFrame(animate)
