@@ -183,7 +183,17 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
       return;
     }
     let vivo = true;
-    void QRCode.toDataURL(intencion.payUri, { margin: 1, width: 320 })
+    // margin: 4 = la ZONA DE SILENCIO que exige la norma del QR. Estaba en 1,
+    // y un enlace de pago ronda los 190 caracteres → código de 57x57 módulos:
+    // denso y sin borde suficiente, los lectores de celular fallaban al
+    // escanearlo desde la pantalla del computador ("QR no reconocido").
+    // width: 640 para que al mostrarlo a ~240 px cada módulo tenga píxeles de
+    // sobra incluso con brillo y ángulo.
+    void QRCode.toDataURL(intencion.payUri, {
+      margin: 4,
+      width: 640,
+      errorCorrectionLevel: 'M',
+    })
       .then((url) => {
         if (vivo) setQr(url);
       })
@@ -293,10 +303,14 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
             {qr !== null && (
               <div className="mt-3 flex justify-center">
                 {/* El QR lleva dentro dirección, monto y referencia. */}
+                {/* w-60 (240 px) con max-w-full: lo más grande que cabe en el
+                    diálogo sin desbordar. El fondo blanco y el padding suman
+                    borde limpio alrededor — un QR sobre fondo de color o
+                    pegado al marco no se deja escanear. */}
                 <img
                   src={qr}
                   alt="Código QR para pagar"
-                  className="size-52 rounded-lg bg-white p-2"
+                  className="w-60 max-w-full rounded-lg bg-white p-2"
                 />
               </div>
             )}
