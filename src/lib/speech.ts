@@ -100,42 +100,16 @@ function pararAudio() {
   }
 }
 
-/* ── Fallback: el motor del sistema (robótico pero instantáneo) ─────────── */
-
-let voiceEN: SpeechSynthesisVoice | null = null;
-function pickVoice() {
-  const voices = speechSynthesis.getVoices();
-  voiceEN =
-    voices.find((v) => v.lang === 'en-US' && /natural|google|premium/i.test(v.name)) ||
-    voices.find((v) => v.lang === 'en-US') ||
-    voices.find((v) => v.lang.startsWith('en')) ||
-    null;
-}
-if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-  pickVoice();
-  speechSynthesis.onvoiceschanged = pickVoice;
-}
-
-function speakSistema(text: string) {
-  if (!('speechSynthesis' in window) || !text) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  if (voiceEN) u.voice = voiceEN;
-  u.lang = 'en-US';
-  u.rate = 1.0;
-  speechSynthesis.speak(u);
-}
-
-// Por qué la voz cayó al motor del sistema. Se avisa una vez, no en cada turno.
-function caerASistema(text: string, motivo: string, err?: unknown) {
-  (window as unknown as { __vozMotor?: string }).__vozMotor = 'sistema';
+// Si Deepgram falla, el coach queda en silencio. El usuario prefirió esto a que
+// Windows sustituya a Helena/Draco con una voz robótica sin pedir permiso.
+function avisarFalloVoz(motivo: string, err?: unknown) {
+  (window as unknown as { __vozMotor?: string }).__vozMotor = 'sin_voz';
   const detalle = err ? String((err as Error)?.message || err) : '';
-  console.warn('[voz] fallback al sistema —', motivo, err || '');
+  console.warn('[voz] Deepgram no disponible —', motivo, err || '');
   if (!avisoTTSDado) {
     avisoTTSDado = true;
-    toast('Voz del sistema — ' + motivo + (detalle ? ': ' + detalle.slice(0, 120) : ''), 6000);
+    toast('Voz no disponible — ' + motivo + (detalle ? ': ' + detalle.slice(0, 120) : ''), 6000);
   }
-  speakSistema(text);
 }
 
 // Pide el audio al proxy /api/tts (Deepgram). Devuelve un ArrayBuffer MP3.
@@ -188,7 +162,7 @@ export async function speak(
     ab = await pedirTTS(limpio, opts?.voz);
   } catch (e) {
     if (token !== speakToken) return; // salió a otra vista mientras pedíamos Deepgram
-    return caerASistema(limpio, 'falló la voz Deepgram', e);
+    return avisarFalloVoz('falló la voz Deepgram', e);
   }
   if (token !== speakToken) return; // otra respuesta la reemplazó
 
@@ -215,7 +189,7 @@ export async function speak(
     });
     if (audioActual === src) audioActual = null;
   } catch (e) {
-    if (token === speakToken) caerASistema(limpio, 'no pude reproducir el audio', e);
+    if (token === speakToken) avisarFalloVoz('no pude reproducir el audio', e);
   }
 }
 
@@ -226,7 +200,6 @@ export function stopSpeak(): void {
   // El episodio ilustrado encapsula sus fuentes en su IIFE y expone este hook.
   const w = window as unknown as { pararAudioShadow?: () => void };
   if (w.pararAudioShadow) w.pararAudioShadow();
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
 }
 
 /* ── ultimoHablado + repetir ────────────────────────────────────────────── */

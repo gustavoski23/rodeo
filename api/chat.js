@@ -1,38 +1,29 @@
 // RODEO — proxy serverless hacia OpenCode Zen
 // La API key vive SOLO aquí (env var OPENCODE_API_KEY), nunca en el frontend.
-// Modelos configurables: MODEL_CHAT (conversación, latencia baja) y MODEL_CREATIVE (generación).
+// Modelos configurables: MODEL_GO_CHAT y MODEL_GO_CREATIVE (con aliases legacy).
 
+import {
+  DEFAULT_GO_CHAT_MODEL,
+  DEFAULT_GO_CREATIVE_MODEL,
+  openCodeContent,
+  requestOpenCode,
+  resolveGoModel,
+} from './_opencode.js';
 import { registrarUso, usuarioDe } from './_uso.js';
 
-const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
-
-// chat: claude-haiku-4-5 en vez de kimi-k2.6. Kimi es un modelo razonador y
-// quemaba ~1200 tokens pensando antes de la primera palabra, dejando cada turno
-// de TALK en 9-19s. Medido con el prompt real: Haiku responde en 1.9-2.6s con
-// ~80 tokens, JSON siempre valido y correcciones bien formadas.
-// creative sigue en Kimi: SLANG/STORY/SUBE estan afinados a su salida.
-//
-// CADENAS con respaldo (pedido de Gus tras el CreditsError): si el primer
-// modelo falla EN EL PROVEEDOR (sin saldo, caído, desconocido) se prueba el
-// siguiente antes de rendirse. El caso real que lo motiva: claude-haiku se
-// cobra del SALDO de OpenCode Zen, mientras kimi entra en la suscripción Go —
-// con el saldo en cero, haiku muere con "Insufficient balance" pero kimi sigue
-// funcionando. MODEL_CHAT / MODEL_CREATIVE aceptan ahora una lista separada
-// por comas; lo que venga del env se antepone y los respaldos de fábrica se
-// quedan SIEMPRE al final como red de seguridad.
-const RESPALDO = {
-  chat: ['claude-haiku-4-5', 'kimi-k2.7-code'],
-  creative: ['kimi-k2.7-code', 'claude-haiku-4-5'],
+// Luna usa la cuota Go y no exige activar proveedores alojados en China. Es el
+// modelo accesible más económico con esa preferencia desactivada y responde con
+// latencia baja. Los aliases legacy solo ganan si son compatibles con Go.
+const MODELS = {
+  chat: resolveGoModel(
+    process.env.MODEL_GO_CHAT || process.env.MODEL_CHAT,
+    DEFAULT_GO_CHAT_MODEL,
+  ),
+  creative: resolveGoModel(
+    process.env.MODEL_GO_CREATIVE || process.env.MODEL_CREATIVE,
+    DEFAULT_GO_CREATIVE_MODEL,
+  ),
 };
-function cadenaDe(mode) {
-  const m = mode === 'creative' ? 'creative' : 'chat';
-  const env = m === 'creative' ? process.env.MODEL_CREATIVE : process.env.MODEL_CHAT;
-  const propios = String(env || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  return [...new Set([...propios, ...RESPALDO[m]])];
-}
 
 // Sin temperature explícita quedábamos con el default del proveedor. Subirla
 // ensancha el muestreo y ayuda a que TALK no caiga siempre en la misma frase.
@@ -91,87 +82,30 @@ export default async function handler(req, res) {
   // Kimi es razonador: el pensamiento consume tokens ANTES del JSON, así que el
   // techo debe ser holgado o el JSON se trunca. 8000 deja aire de sobra.
   const safeMaxTokens = Math.min(Number(max_tokens) || 2500, 8000);
-  const cadena = cadenaDe(mode);
-  // Medición para el panel /uso: quién llama y cuánto tarda.
+  const model = MODELS[mode] || MODELS.chat;
   const quien = usuarioDe(req);
   const t0 = Date.now();
 
   try {
-    /* La cadena se recorre en orden y gana el primer modelo que responda OK.
-       El intento fallido se anota (modelo, status, cuerpo) para el diagnóstico.
-       Un 401 corta la cadena: es la KEY la rechazada, ningún otro modelo va a
-       arreglar eso y probarlos solo suma latencia. El fallback ocurre ANTES de
-       escribir cabeceras, así que aplica igual al camino streaming. */
-    let upstream = null;
-    let model = cadena[0];
-    const fallos = [];
-    /* Los cuerpos de error del proveedor pueden acabar en el toast del
-       usuario: por paranoia, si algún intermediario llegara a reflejar
-       cabeceras, la key jamás debe viajar en un `detail`. */
-    const sinClave = (s) => String(s).split(apiKey).join('[key]');
-    for (const candidato of cadena) {
-      model = candidato;
-      let r;
-      try {
-        r = await fetch(OPENCODE_URL, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: candidato,
-            max_tokens: safeMaxTokens,
-            temperature: TEMPS[mode] ?? TEMPS.chat,
-            stream: wantsStream === true,
-            messages: safeMessages,
-          }),
-        });
-      } catch (err) {
-        // Red caída / socket cortado: ESTE candidato falló, no la cadena.
-        fallos.push({ modelo: candidato, status: 0, detail: 'red: ' + String(err && err.message).slice(0, 200) });
-        continue;
-      }
-      if (r.ok) {
-        upstream = r;
-        break;
-      }
-      const detail = await r.text();
-      fallos.push({ modelo: candidato, status: r.status, detail: sinClave(detail).slice(0, 500) });
-      /* Medido en vivo: OpenCode responde el "sin saldo" (CreditsError) con
-         HTTP 401, no 402. Un 401 SIN pinta de CreditsError sí es la key
-         rechazada y corta la cadena; con CreditsError se sigue probando (el
-         siguiente modelo puede estar cubierto por otra bolsa de facturación). */
-      if (r.status === 401 && !/CreditsError|Insufficient balance/i.test(detail)) break;
-    }
+    const requestBody = {
+      model,
+      max_tokens: safeMaxTokens,
+      temperature: TEMPS[mode] ?? TEMPS.chat,
+      stream: wantsStream === true,
+      messages: safeMessages,
+    };
+    const { response: upstream, model: servedModel, protocol } = await requestOpenCode(apiKey, requestBody);
 
-    if (!upstream) {
+    if (!upstream.ok) {
       await registrarUso({
-        servicio: 'opencode', modelo: fallos.map((f) => f.modelo).join('>') || cadena[0], modo: mode,
-        usuario: quien, ok: false, ms: Date.now() - t0,
+        servicio: 'opencode',
+        modelo: servedModel,
+        modo: mode,
+        usuario: quien,
+        ok: false,
+        ms: Date.now() - t0,
       });
-      /* El detail llega TAL CUAL al toast del usuario (lib/api.ts), así que el
-         caso conocido se traduce a humano en vez de volcar el JSON del
-         proveedor — eso era el chorizo {"type":"CreditsError"...} en pantalla. */
-      const sinSaldo = fallos.some((f) => /CreditsError|Insufficient balance/i.test(f.detail));
-      const ultimo = fallos[fallos.length - 1] || {};
-      res.statusCode = 502;
-      return res.end(
-        JSON.stringify(
-          sinSaldo
-            ? {
-                error: 'sin_saldo_ia',
-                detail: 'Se acabó el crédito de IA — recarga el saldo en opencode.ai (Facturación). Modelos probados: ' + fallos.map((f) => f.modelo).join(', '),
-                fallos: fallos.map((f) => ({ modelo: f.modelo, status: f.status })),
-              }
-            : {
-                error: 'upstream_error',
-                status: ultimo.status,
-                detail: String(ultimo.detail || 'upstream').slice(0, 300),
-                fallos: fallos.map((f) => ({ modelo: f.modelo, status: f.status })),
-              },
-        ),
-      );
+      return aiUnavailable(res);
     }
 
     // ── Modo streaming (SSE) ───────────────────────────────────────────────
@@ -210,6 +144,15 @@ export default async function handler(req, res) {
             if (!payload || payload === '[DONE]') continue;
             try {
               const j = JSON.parse(payload);
+              if (protocol === 'responses') {
+                if (j.type === 'response.output_text.delta' && j.delta) send({ delta: j.delta });
+                if (j.type === 'response.completed' && j.response) {
+                  finishReason = j.response.status === 'completed' ? 'stop' : j.response.status;
+                  usage = j.response.usage || usage;
+                }
+                if (j.cost) cost = j.cost;
+                continue;
+              }
               const choice = j.choices && j.choices[0];
               const delta = (choice && choice.delta) || {};
               if (delta.content) send({ delta: delta.content });
@@ -219,19 +162,27 @@ export default async function handler(req, res) {
             } catch { /* linea partida entre chunks: se completa en la siguiente vuelta */ }
           }
         }
-        // `model` es el que DE VERDAD respondió (puede ser un respaldo de la cadena).
-        send({ done: true, finish_reason: finishReason, cost, usage, model });
+        send({ done: true, finish_reason: finishReason, cost, usage, model: servedModel });
         await registrarUso({
-          servicio: 'opencode', modelo: model, modo: mode, usuario: quien,
+          servicio: 'opencode',
+          modelo: servedModel,
+          modo: mode,
+          usuario: quien,
           tokens_in: usage && (usage.prompt_tokens ?? usage.input_tokens),
           tokens_out: usage && (usage.completion_tokens ?? usage.output_tokens),
-          costo_usd: cost, ok: true, ms: Date.now() - t0,
+          costo_usd: cost,
+          ok: true,
+          ms: Date.now() - t0,
         });
       } catch (streamErr) {
         send({ done: true, error: 'stream_broken', detail: String(streamErr && streamErr.message).slice(0, 200) });
         await registrarUso({
-          servicio: 'opencode', modelo: model, modo: mode, usuario: quien,
-          ok: false, ms: Date.now() - t0,
+          servicio: 'opencode',
+          modelo: servedModel,
+          modo: mode,
+          usuario: quien,
+          ok: false,
+          ms: Date.now() - t0,
         });
       }
       res.write('data: [DONE]\n\n');
@@ -246,13 +197,19 @@ export default async function handler(req, res) {
     // Si Kimi consumió el presupuesto razonando y no dejó content, NO es un error:
     // devolvemos 200 con content vacío + finish_reason para que el cliente reintente
     // con más tokens (callJSON reintenta ante content no parseable).
-    const content = msg.content || '';
+    const content = openCodeContent(data, protocol);
+    const responseModel = data.model || servedModel;
 
     await registrarUso({
-      servicio: 'opencode', modelo: data.model || model, modo: mode, usuario: quien,
+      servicio: 'opencode',
+      modelo: responseModel,
+      modo: mode,
+      usuario: quien,
       tokens_in: data.usage && (data.usage.prompt_tokens ?? data.usage.input_tokens),
       tokens_out: data.usage && (data.usage.completion_tokens ?? data.usage.output_tokens),
-      costo_usd: data.cost, ok: true, ms: Date.now() - t0,
+      costo_usd: data.cost,
+      ok: true,
+      ms: Date.now() - t0,
     });
 
     res.statusCode = 200;
@@ -260,16 +217,26 @@ export default async function handler(req, res) {
     return res.end(
       JSON.stringify({
         content,
-        model: data.model,
-        finish_reason: choice && choice.finish_reason,
+        model: responseModel,
+        finish_reason: protocol === 'responses'
+          ? (data.status === 'completed' ? 'stop' : data.status)
+          : (choice && choice.finish_reason),
         cost: data.cost,
         usage: data.usage,
       })
     );
   } catch (err) {
-    res.statusCode = 502;
-    return res.end(JSON.stringify({ error: 'proxy_failed', detail: String(err && err.message).slice(0, 300) }));
+    return aiUnavailable(res);
   }
+}
+
+function aiUnavailable(res) {
+  res.statusCode = 503;
+  res.setHeader('Content-Type', 'application/json');
+  return res.end(JSON.stringify({
+    error: 'ai_temporarily_unavailable',
+    detail: 'La IA no está disponible en este momento. Intenta de nuevo en un minuto.',
+  }));
 }
 
 function readBody(req) {
