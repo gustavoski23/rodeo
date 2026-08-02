@@ -186,6 +186,27 @@ export default function App() {
      Skip previo, el gate no existe. */
   const authListo = useAuth((s) => s.listo);
   const gateNecesario = useAuth((s) => s.gateNecesario);
+
+  /* ENTRAR = SIEMPRE GRADIENTE (pedido de Gus): al pasar el gate —loguearse o
+     pulsar Skip— el shell se abre en gradiente, de Home en adelante, sea cual
+     sea el tema que quedara guardado. El gate tiene su propio tema claro
+     scopeado, así que solo forzamos cuando ya NO se necesita el gate. Se hace
+     UNA vez por entrada (el ref evita repetir en cada render): si el usuario
+     cambia el tema dentro de la sesión, su elección vive hasta que recargue o
+     vuelva a pasar por el gate, donde gradiente vuelve a mandar. Va ANTES de
+     los early-returns para no romper el orden de hooks. */
+  const cambiarTema = useApp((s) => s.cambiarTema);
+  const entrada = useRef(false);
+  useEffect(() => {
+    if (!authListo || gateNecesario) {
+      entrada.current = false; // salió/volvió al gate: rearmar para la próxima entrada
+      return;
+    }
+    if (entrada.current) return;
+    entrada.current = true;
+    cambiarTema('gradiente');
+  }, [authListo, gateNecesario, cambiarTema]);
+
   {/* El placeholder pre-auth también va con el lienzo del tema: era el último
       #14161a suelto (regla 4 del contrato — todos los fondos iguales). */}
   if (!authListo) return <div className="min-h-dvh" style={{ background: 'var(--bg-void)' }} />;
