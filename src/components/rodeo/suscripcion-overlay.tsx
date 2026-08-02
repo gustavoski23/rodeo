@@ -220,6 +220,9 @@ export function SuscripcionOverlay() {
           if (!open) irA('oferta');
         }}
         onSubscribe={() => irA('resumen')}
+        // Cripto no pasa por el Order Summary (esos campos son de tarjeta):
+        // "I've sent it" cobra directo, igual que Place Order en la pestaña Card.
+        onPagarCripto={pagar}
       />
     </>
   );
