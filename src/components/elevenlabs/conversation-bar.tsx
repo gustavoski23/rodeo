@@ -35,6 +35,7 @@ import {
   Mic,
   MicOff,
   PhoneIcon,
+  Square,
   XIcon,
 } from "lucide-react"
 
@@ -141,6 +142,7 @@ export const ConversationBar = React.forwardRef<
             <div>
               {keyboardOpen && <Separator />}
               <div className="flex items-center justify-between gap-2 p-2">
+                <div className="flex min-w-0 items-center gap-2">
                 <div className="h-8 w-[120px] md:h-10">
                   <div
                     className={cn(
@@ -197,6 +199,26 @@ export const ConversationBar = React.forwardRef<
                       </div>
                     </div>
                   </div>
+                </div>
+                {/* Botón de DETENER junto a la onda: la señal clara de
+                    "termina y transcribe" que pidió Gus, visible SOLO mientras
+                    grabas. Hace lo mismo que tocar el mic otra vez (onMic →
+                    parar → Deepgram transcribe → el texto cae al teclado para
+                    revisarlo antes de enviar). En móvil es un botón rojo con el
+                    cuadro de stop; desde sm añade el rótulo "Detener". */}
+                {grabando && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onMic}
+                    aria-label="Detener y transcribir"
+                    className="h-9 shrink-0 rounded-full bg-red-500 px-3 text-white hover:bg-red-600 hover:text-white"
+                  >
+                    <Square className="size-3.5" fill="currentColor" strokeWidth={0} />
+                    <span className="ml-1.5 hidden text-xs font-medium sm:inline">Detener</span>
+                  </Button>
+                )}
                 </div>
                 <div className="flex items-center">
                   <Button
