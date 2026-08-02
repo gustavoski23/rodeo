@@ -7,6 +7,7 @@ import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { TryMeButton, type TryMeTheme } from '@/components/ui/try-me-button';
 import { cn } from '@/lib/utils';
 import type { Tema } from '@/lib/theme';
+import { programarPrecargaConversacion } from '@/lib/preload';
 import { useApp } from '@/stores/app';
 const CarruselFeatures = lazy(() => import('@/components/rodeo/carrusel-features'));
 
@@ -50,6 +51,8 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
   useEffect(() => {
     useApp.getState().setCarruselAlVolver(false);
   }, []);
+
+  useEffect(() => programarPrecargaConversacion(), []);
 
   // Escape cierra el carrusel y devuelve el foco a la flecha (misma regla que
   // tenía la ruta secundaria en el original: index.html:3993-3998).

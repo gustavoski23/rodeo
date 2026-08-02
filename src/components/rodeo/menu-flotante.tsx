@@ -1,6 +1,5 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 
-import FloatingMenu from '@/components/ui/liquid-morph-floating-menu';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useSuscripcion } from '@/stores/suscripcion';
@@ -8,6 +7,20 @@ import { useSuscripcion } from '@/stores/suscripcion';
 // El re-anclaje vive en aurora.css. Se importa AQUÍ y no solo desde el Home
 // porque el Header también monta este menú y no arrastra esa hoja.
 import './aurora.css';
+
+const FloatingMenu = lazy(() => import('@/components/ui/liquid-morph-floating-menu'));
+
+function LanzadorMenu({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="menu-flotante__launcher" onClick={onClick} aria-label="Abrir menú">
+      <span>Menu</span>
+      <span className="menu-flotante__hamburger" aria-hidden="true">
+        <i />
+        <i />
+      </span>
+    </button>
+  );
+}
 
 /* MENÚ ☰ de RODEO — el liquid-morph FloatingMenu (verbatim, components/ui)
    re-anclado ARRIBA A LA IZQUIERDA.
@@ -68,6 +81,7 @@ export function MenuFlotante({
   oculto?: boolean;
   className?: string;
 }) {
+  const [cargado, setCargado] = useState(false);
   const setView = useApp((s) => s.setView);
   const setCarruselAlVolver = useApp((s) => s.setCarruselAlVolver);
   const abrirSuscripcion = useSuscripcion((s) => s.abrir);
@@ -100,7 +114,13 @@ export function MenuFlotante({
 
   return (
     <div className={cn('menu-flotante', oculto && 'menu-flotante--oculto', className)} aria-hidden={oculto || undefined}>
-      <FloatingMenu items={items} />
+      {cargado ? (
+        <Suspense fallback={<LanzadorMenu onClick={() => undefined} />}>
+          <FloatingMenu items={items} initialOpen />
+        </Suspense>
+      ) : (
+        <LanzadorMenu onClick={() => setCargado(true)} />
+      )}
     </div>
   );
 }

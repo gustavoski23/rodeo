@@ -974,6 +974,39 @@
   flex-shrink: 0;
   transition: opacity 0.18s ease;
 }
+.menu-flotante__launcher {
+  width: 150px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border: 1px solid #d1bb3b;
+  border-radius: 999px;
+  background: #ffe862;
+  color: #242424;
+  cursor: pointer;
+  font-family: 'Aeonik TRIAL', 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+.menu-flotante__hamburger {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+.menu-flotante__hamburger i {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #242424;
+}
+.menu-flotante__hamburger i:first-child { transform: translateY(-4px); }
+.menu-flotante__hamburger i:last-child { transform: translateY(2px); }
 /* Con una capa a pantalla completa encima —la hoja del personalizador
    (`fixed inset-0 z-50`) o la vitrina del carrusel (`.aurora-carrusel`, z-40)—
    el menú se APARTA: se desvanece con el mismo tiempo que el velo, baja por

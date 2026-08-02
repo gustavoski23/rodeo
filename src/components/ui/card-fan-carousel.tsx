@@ -310,9 +310,34 @@ export default function SocialCards({ cards }: SocialCardsProps) {
       <div className="flex items-center justify-center w-full max-w-[90rem]">
         <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem]">
           {cards.map((card, index) => {
+            const optimizable = card.imgUrl.startsWith('/carrusel/') && card.imgUrl.endsWith('.jpg');
+            const base = optimizable ? card.imgUrl.slice(0, -4) : '';
             const image = (
               <div className="relative w-full h-full overflow-hidden">
-                <img src={card.imgUrl} loading="lazy" alt={card.alt || `Card ${index}`} className="absolute inset-0 w-full h-full object-cover z-10" />
+                {optimizable ? (
+                  <picture className="absolute inset-0 z-10 block size-full">
+                    <source
+                      type="image/avif"
+                      srcSet={`${base}-400.avif 400w, ${base}.avif 800w`}
+                      sizes="(max-width: 479px) 128px, (max-width: 767px) 208px, 260px"
+                    />
+                    <source
+                      type="image/webp"
+                      srcSet={`${base}-400.webp 400w, ${base}.webp 800w`}
+                      sizes="(max-width: 479px) 128px, (max-width: 767px) 208px, 260px"
+                    />
+                    <img
+                      src={card.imgUrl}
+                      loading={index === centerIndex ? "eager" : "lazy"}
+                      fetchPriority={index === centerIndex ? "high" : "low"}
+                      decoding="async"
+                      alt={card.alt || `Card ${index}`}
+                      className="size-full object-cover"
+                    />
+                  </picture>
+                ) : (
+                  <img src={card.imgUrl} loading="lazy" decoding="async" alt={card.alt || `Card ${index}`} className="absolute inset-0 z-10 size-full object-cover" />
+                )}
                 {/* Adaptación RODEO: overlay de feature encima de la foto. */}
                 {card.contenido && <div className="absolute inset-0 z-20">{card.contenido}</div>}
               </div>

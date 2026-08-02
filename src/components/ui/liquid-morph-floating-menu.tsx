@@ -20,6 +20,7 @@ interface MenuItem {
 
 interface FloatingMenuProps {
   items?: MenuItem[];
+  initialOpen?: boolean;
 }
 
 function MenuButton({
@@ -117,8 +118,8 @@ function MenuButton({
   );
 }
 
-export default function FloatingMenu({ items }: FloatingMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function FloatingMenu({ items, initialOpen = false }: FloatingMenuProps) {
+  const [isOpen, setIsOpen] = useState(initialOpen);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const menuItems: MenuItem[] = items ?? [

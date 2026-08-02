@@ -63,12 +63,25 @@ export default function StoryView() {
           'relative min-h-0 flex-1 gap-0 overflow-hidden rounded-[22px] py-0 shadow-sm',
         )}
       >
-        <img
-          src="/carrusel/story.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 size-full object-cover"
-        />
+        <picture className="absolute inset-0 block size-full" aria-hidden="true">
+          <source
+            type="image/avif"
+            srcSet="/carrusel/story-400.avif 400w, /carrusel/story.avif 800w"
+            sizes="(max-width: 640px) calc(100vw - 40px), 640px"
+          />
+          <source
+            type="image/webp"
+            srcSet="/carrusel/story-400.webp 400w, /carrusel/story.webp 800w"
+            sizes="(max-width: 640px) calc(100vw - 40px), 640px"
+          />
+          <img
+            src="/carrusel/story.jpg"
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+            className="size-full object-cover"
+          />
+        </picture>
         {/* Velo de lectura, siempre oscuro (ver nota de arriba). Sube hasta el
             72% para que el eyebrow tampoco caiga sobre una zona clara de la
             ilustración. */}

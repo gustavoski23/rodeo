@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import test from 'node:test';
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -45,11 +45,47 @@ test('audio uploads and immutable assets are mobile-friendly', async () => {
 });
 
 test('feature-heavy screens are loaded on demand', async () => {
-  const [app, home] = await Promise.all([read('src/App.tsx'), read('src/views/home/index.tsx')]);
+  const [app, home, menu] = await Promise.all([
+    read('src/App.tsx'),
+    read('src/views/home/index.tsx'),
+    read('src/components/rodeo/menu-flotante.tsx'),
+  ]);
 
   for (const route of ['talk', 'pelala', 'story', 'ladder', 'dna', 'perfil']) {
     assert.match(app, new RegExp(`lazy\\(\\(\\) => import\\('@/views/${route}'\\)\\)`));
   }
+  assert.match(app, /lazy\(\(\) => import\('@\/views\/a1\/oficina'\)\)/);
+  assert.doesNotMatch(app, /JOB_PACKS|JobPicker/);
   assert.match(app, /import\('@\/components\/rodeo\/suscripcion-overlay'\)/);
   assert.match(home, /lazy\(\(\) => import\('@\/components\/rodeo\/carrusel-features'\)\)/);
+  assert.match(menu, /lazy\(\(\) => import\('@\/components\/ui\/liquid-morph-floating-menu'\)\)/);
+  assert.doesNotMatch(menu, /import FloatingMenu from/);
+});
+
+test('conversation is prefetched only while the connection can afford it', async () => {
+  const [home, preload] = await Promise.all([
+    read('src/views/home/index.tsx'),
+    read('src/lib/preload.ts'),
+  ]);
+
+  assert.match(home, /programarPrecargaConversacion\(\)/);
+  assert.match(preload, /saveData/);
+  assert.match(preload, /effectiveType === 'slow-2g'/);
+  assert.match(preload, /effectiveType === '2g'/);
+  assert.match(preload, /requestIdleCallback/);
+  assert.match(preload, /import\('@\/views\/talk'\)/);
+});
+
+test('carousel serves smaller modern images on phones with a jpeg fallback', async () => {
+  const carousel = await read('src/components/ui/card-fan-carousel.tsx');
+  assert.match(carousel, /type="image\/avif"/);
+  assert.match(carousel, /type="image\/webp"/);
+  assert.match(carousel, /-400\.avif/);
+  assert.match(carousel, /sizes="\(max-width: 479px\) 128px/);
+
+  const [jpg, avif] = await Promise.all([
+    stat(new URL('../public/carrusel/conversacion.jpg', import.meta.url)),
+    stat(new URL('../public/carrusel/conversacion-400.avif', import.meta.url)),
+  ]);
+  assert.ok(avif.size < jpg.size / 2, `expected ${avif.size} to be less than half of ${jpg.size}`);
 });
