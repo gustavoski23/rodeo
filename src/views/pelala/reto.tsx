@@ -26,7 +26,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'motion/react';
 import { ArrowLeft, Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
 
+import { CornerHint } from '@/components/pelala/corner-hint';
 import { DockPractica } from '@/components/pelala/dock-practica';
+import { PeelSticker, slangTextSource, type PeelStickerHandle } from '@/components/pelala/peel-sticker';
 import { UsarSlang } from '@/components/pelala/usar-slang';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -97,10 +99,11 @@ export function Pelala() {
   const retoSiguiente = usePelala((s) => s.retoSiguiente);
   const guardados = usePelala((s) => s.guardados);
   const toggleGuardar = usePelala((s) => s.toggleGuardar);
+  const peelHintVisto = usePelala((s) => s.peelHintVisto);
   const marcarPeelHintVisto = usePelala((s) => s.marcarPeelHintVisto);
 
   const [revelado, setRevelado] = useState(false);
-  const [peeling, setPeeling] = useState(false);
+  const stickerRef = useRef<PeelStickerHandle>(null);
   const scroller = useDesborde();
 
   /* ← AL ORIGEN: como toda vista, vuelve al Home, que reabre el carrusel. */
@@ -108,15 +111,24 @@ export function Pelala() {
 
   /* Al empezar a pelar: barrido holográfico (el mismo de la entrada). */
   const onPeelStart = useCallback(() => {
-    if (peeling) return;
-    setPeeling(true);
+    stickerRef.current?.sweep();
     marcarPeelHintVisto(); // al pelar por primera vez, la pista ya no vuelve
-  }, [marcarPeelHintVisto, peeling]);
+  }, [marcarPeelHintVisto]);
+
+  /* Primera vez: tras la entrada, el sticker se auto-pela en bucle desde la
+     esquina hasta que el usuario pela por primera vez (luego no vuelve). */
+  useEffect(() => {
+    if (peelHintVisto) return;
+    const t = window.setTimeout(() => stickerRef.current?.peelPreview(), 1100);
+    return () => {
+      window.clearTimeout(t);
+      stickerRef.current?.stopPeelPreview();
+    };
+  }, [peelHintVisto]);
 
   /* Al despegar del todo: entra el siguiente término (significado reseteado). */
   const onDetach = useCallback(() => {
     setRevelado(false);
-    setPeeling(false);
     retoSiguiente();
   }, [retoSiguiente]);
 
@@ -172,26 +184,17 @@ export function Pelala() {
             que el significado y el chat entren completos en el viewport, en vez
             de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
             para cerrar el aire de abajo sin encoger el gráfico. */}
-        <div className="relative -mb-4 flex h-[clamp(274px,39vh,362px)] w-full shrink-0 select-none items-center justify-center">
-          <motion.button
-            key={term.id}
-            type="button"
-            aria-label={`Pela ${term.term} para pasar al siguiente término`}
-            onClick={onPeelStart}
-            onAnimationComplete={() => { if (peeling) onDetach(); }}
-            initial={{ opacity: 0, scale: 0.92, y: 10 }}
-            animate={peeling ? { opacity: 0, scale: 0.86, x: 76, y: -26, rotate: 8 } : { opacity: 1, scale: 1, x: 0, y: 0, rotate: -3 }}
-            transition={{ type: 'spring', stiffness: 250, damping: 24 }}
-            className="pelala-paper relative grid aspect-square w-[min(73vw,310px)] cursor-grab place-items-center overflow-hidden rounded-[48%] border text-center active:cursor-grabbing"
-          >
-            <span aria-hidden="true" className="absolute inset-0 opacity-50" style={{ background: 'radial-gradient(circle at 35% 23%, oklch(50% 0.055 13 / .45), transparent 42%), repeating-linear-gradient(18deg, transparent 0 3px, oklch(100% 0 0 / .025) 4px)' }} />
-            <span aria-hidden="true" className="pelala-paper-fold" />
-            <span className="relative flex flex-col items-center px-7" style={{ color: 'oklch(83% 0.03 62)' }}>
-              <strong className="font-serif text-[clamp(3.75rem,15vw,5.7rem)] leading-[.72] tracking-[-.075em]">{term.term.split(' ')[0]}</strong>
-              {term.term.includes(' ') && <strong className="font-serif mt-4 text-[clamp(3.75rem,15vw,5.7rem)] leading-[.72] tracking-[-.075em]">{term.term.split(' ').slice(1).join(' ')}</strong>}
-              <span className="mt-7 text-[1.04rem] font-medium tracking-[-.025em] opacity-80">¿cómo se dice?</span>
-            </span>
-          </motion.button>
+        <div className="relative -mb-4 h-[clamp(245px,38vh,400px)] w-full shrink-0 select-none sm:h-[clamp(280px,42vh,460px)]">
+          <PeelSticker
+            ref={stickerRef}
+            key="reto"
+            source={slangTextSource(term.term, '¿cómo se dice?')}
+            sourceKey={term.id}
+            onPeelStart={onPeelStart}
+            onDetach={onDetach}
+            className="h-full w-full"
+          />
+          {!peelHintVisto && <CornerHint />}
         </div>
 
         {/* ── DOCK ÚNICO: significado + práctica en UNA sola superficie glass.
