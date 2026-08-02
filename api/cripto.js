@@ -95,9 +95,19 @@ export default async function handler(req, res) {
 
 /** Reenvía al receptor y normaliza la respuesta a { ok, ... }. */
 async function proxy(res, url, init) {
+  // Si la wallet tiene "Vercel Authentication" (SSO) activada, sus URLs
+  // *.vercel.app responden una página de login en vez del API. El token de
+  // "Protection Bypass for Automation" (Vercel → Settings → Deployment
+  // Protection) deja pasar la llamada servidor-a-servidor. Opcional: si no
+  // está, no se manda nada y todo funciona igual cuando el SSO no cubre la URL.
+  const bypass = String(process.env.PANGEA_BYPASS_TOKEN || '').trim();
+  const headers = bypass
+    ? { ...(init.headers || {}), 'x-vercel-protection-bypass': bypass }
+    : init.headers;
+
   let upstream;
   try {
-    upstream = await fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    upstream = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(TIMEOUT_MS) });
   } catch {
     // Red caída / timeout: transitorio. NO es "no pagó".
     return json(res, 502, {
@@ -111,10 +121,19 @@ async function proxy(res, url, init) {
   try {
     data = await upstream.json();
   } catch {
-    return json(res, 502, {
+    // El receptor no devolvió JSON. La causa típica es que el código todavía
+    // no está desplegado (404 del SPA) o que el SSO de la wallet está
+    // devolviendo su página de login. Se distingue para el diagnóstico.
+    const ct = upstream.headers.get('content-type') || '';
+    const esLogin = upstream.status === 401 || upstream.status === 403 || /text\/html/.test(ct);
+    return json(res, esLogin ? 503 : 502, {
       ok: false,
-      error: 'El servidor de pagos respondió raro. Intenta de nuevo en un momento.',
-      transitorio: true,
+      error: esLogin
+        ? 'El servidor de pagos está protegido y rechazó la conexión.'
+        : 'El servidor de pagos respondió raro. Intenta de nuevo en un momento.',
+      // 404/login = configuración pendiente → el frontend cae a modo demo.
+      motivo: esLogin || upstream.status === 404 ? 'sin_configurar' : undefined,
+      transitorio: !esLogin && upstream.status !== 404,
     });
   }
 
