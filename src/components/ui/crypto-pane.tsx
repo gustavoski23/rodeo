@@ -22,8 +22,20 @@ import QRCode from 'qrcode';
 
 import { Button } from '@/components/ui/button';
 
-export type PlanId = 'rodeo-monthly' | 'rodeo-yearly';
+export type PlanId = 'rodeo-monthly' | 'rodeo-yearly' | 'rodeo-test';
 type Red = 'solana' | 'stellar';
+
+/**
+ * MODO PRUEBA DE COBRO: con `?pagoprueba=1` en la URL, el cobro en cripto usa
+ * el plan de 0,10 USDC en vez del precio real. Sirve para validar el camino
+ * completo —escanear el QR con el teléfono y ver que la cadena lo confirma—
+ * sin mover 32 dólares. El monto lo sigue fijando el servidor: esto solo
+ * elige OTRO plan de su catálogo, no un monto arbitrario.
+ */
+function esModoPrueba(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('pagoprueba') === '1';
+}
 
 const REDES: { id: Red; nombre: string; ticker: string; claseIcono: string }[] = [
   {
@@ -88,6 +100,9 @@ function CajaCopiable({ valor, etiqueta }: { valor: string; etiqueta: string }) 
 }
 
 export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void }) {
+  // El modo prueba se decide UNA vez al montar: la URL no cambia sola.
+  const [prueba] = useState(esModoPrueba);
+  const planEfectivo: PlanId = prueba ? 'rodeo-test' : plan;
   const [red, setRed] = useState<Red>('solana');
   const [intencion, setIntencion] = useState<Intencion | null>(null);
   const [qr, setQr] = useState<string | null>(null);
@@ -113,7 +128,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
       const res = await fetch('/api/cripto', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action: 'intent', chain, plan }),
+        body: JSON.stringify({ action: 'intent', chain, plan: planEfectivo }),
       });
 
       /* Sin endpoint (404) o con respuesta que no es JSON: en `vite dev` las
@@ -152,7 +167,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
     } finally {
       if (peticionRef.current === miPeticion) setCargando(false);
     }
-  }, [plan]);
+  }, [planEfectivo]);
 
   // Una intención nueva por red elegida (y por plan).
   useEffect(() => {
@@ -269,6 +284,11 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
                 {REDES.find((r) => r.id === intencion.chain)?.nombre}
               </span>
             </p>
+            {prueba && (
+              <p className="mt-1 text-xs font-medium text-amber-700">
+                Modo prueba de cobro — monto reducido a propósito.
+              </p>
+            )}
 
             {qr !== null && (
               <div className="mt-3 flex justify-center">
@@ -276,7 +296,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
                 <img
                   src={qr}
                   alt="Código QR para pagar"
-                  className="size-40 rounded-lg bg-white p-1"
+                  className="size-52 rounded-lg bg-white p-2"
                 />
               </div>
             )}
