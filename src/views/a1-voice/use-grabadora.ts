@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type SyntheticEvent } from 'react';
 
+import { etiquetaUsuario } from '@/lib/api';
 import { store } from '@/lib/storage';
 
 /* La grabadora compartida del módulo de voz: el paso de producción y el chat de
@@ -127,6 +128,9 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
         // protegida, sin esta cabecera el proxy responde 401.
         const pass = store.get<string | null>('rodeo_pass', null);
         if (pass) cabeceras['x-rodeo-pass'] = pass;
+        // Etiqueta del tester: el panel /uso agrupa el gasto de voz por persona.
+        const quien = etiquetaUsuario();
+        if (quien) cabeceras['x-rodeo-user'] = quien;
 
         const res = await fetch('/api/stt', {
           method: 'POST',

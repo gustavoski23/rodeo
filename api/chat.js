@@ -2,6 +2,8 @@
 // La API key vive SOLO aquí (env var OPENCODE_API_KEY), nunca en el frontend.
 // Modelos configurables: MODEL_CHAT (conversación, latencia baja) y MODEL_CREATIVE (generación).
 
+import { registrarUso, usuarioDe } from './_uso.js';
+
 const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 
 // chat: claude-haiku-4-5 en vez de kimi-k2.6. Kimi es un modelo razonador y
@@ -72,6 +74,9 @@ export default async function handler(req, res) {
   // techo debe ser holgado o el JSON se trunca. 8000 deja aire de sobra.
   const safeMaxTokens = Math.min(Number(max_tokens) || 2500, 8000);
   const model = MODELS[mode] || MODELS.chat;
+  // Medición para el panel /uso: quién llama y cuánto tarda.
+  const quien = usuarioDe(req);
+  const t0 = Date.now();
 
   try {
     const upstream = await fetch(OPENCODE_URL, {
@@ -141,8 +146,18 @@ export default async function handler(req, res) {
           }
         }
         send({ done: true, finish_reason: finishReason, cost, usage, model: MODELS[mode] || model });
+        await registrarUso({
+          servicio: 'opencode', modelo: model, modo: mode, usuario: quien,
+          tokens_in: usage && (usage.prompt_tokens ?? usage.input_tokens),
+          tokens_out: usage && (usage.completion_tokens ?? usage.output_tokens),
+          costo_usd: cost, ok: true, ms: Date.now() - t0,
+        });
       } catch (streamErr) {
         send({ done: true, error: 'stream_broken', detail: String(streamErr && streamErr.message).slice(0, 200) });
+        await registrarUso({
+          servicio: 'opencode', modelo: model, modo: mode, usuario: quien,
+          ok: false, ms: Date.now() - t0,
+        });
       }
       res.write('data: [DONE]\n\n');
       return res.end();
@@ -157,6 +172,13 @@ export default async function handler(req, res) {
     // devolvemos 200 con content vacío + finish_reason para que el cliente reintente
     // con más tokens (callJSON reintenta ante content no parseable).
     const content = msg.content || '';
+
+    await registrarUso({
+      servicio: 'opencode', modelo: data.model || model, modo: mode, usuario: quien,
+      tokens_in: data.usage && (data.usage.prompt_tokens ?? data.usage.input_tokens),
+      tokens_out: data.usage && (data.usage.completion_tokens ?? data.usage.output_tokens),
+      costo_usd: data.cost, ok: true, ms: Date.now() - t0,
+    });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');

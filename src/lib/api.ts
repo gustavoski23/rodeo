@@ -26,7 +26,18 @@ function headersBase(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const pass = store.get<string | null>('rodeo_pass', null);
   if (pass) headers['x-rodeo-pass'] = pass;
+  const quien = etiquetaUsuario();
+  if (quien) headers['x-rodeo-user'] = quien;
   return headers;
+}
+
+/* Etiqueta del tester para el panel /uso: con varias personas probando, el
+   gasto agregado no dice nada — hay que poder separarlo por persona. Se manda
+   el nombre que ya guarda la app (rodeo_nombre). No es identidad ni auth: solo
+   una etiqueta para agrupar, y el servidor la recorta a 60 caracteres. */
+export function etiquetaUsuario(): string | null {
+  const nombre = store.get<string | null>('rodeo_nombre', null);
+  return typeof nombre === 'string' && nombre.trim() ? nombre.trim().slice(0, 60) : null;
 }
 
 function checkProtocol() {

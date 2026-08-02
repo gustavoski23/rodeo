@@ -9,6 +9,8 @@
 // resultado es basura ("I have 30 years" sale peor que eso). `language=multi`
 // hace code-switching real dentro de la misma toma.
 
+import { costoSTT, registrarUso, usuarioDe } from './_uso.js';
+
 const DEEPGRAM_URL = 'https://api.deepgram.com/v1/listen';
 
 // Grabación tope: 60s de opus (~24kbps) son ~180 KB — muy por debajo del
@@ -70,6 +72,11 @@ export default async function handler(req, res) {
   });
   for (const k of keyterms) qs.append('keyterm', k);
 
+  // Medición para el panel /uso. Deepgram cobra por SEGUNDO de audio, y su
+  // respuesta trae la duración exacta que facturó en metadata.duration.
+  const quien = usuarioDe(req);
+  const t0 = Date.now();
+
   try {
     const upstream = await fetch(`${DEEPGRAM_URL}?${qs.toString()}`, {
       method: 'POST',
@@ -90,6 +97,13 @@ export default async function handler(req, res) {
     const alt = data?.results?.channels?.[0]?.alternatives?.[0];
     const text = (alt?.transcript || '').trim();
     const confidence = typeof alt?.confidence === 'number' ? alt.confidence : null;
+
+    const segundos = Number(data?.metadata?.duration) || 0;
+    await registrarUso({
+      servicio: 'deepgram_stt', modelo: 'nova-3', usuario: quien,
+      unidades: segundos, costo_usd: costoSTT(segundos),
+      ok: true, ms: Date.now() - t0,
+    });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');

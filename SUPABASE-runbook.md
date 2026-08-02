@@ -102,3 +102,48 @@ pega Client ID + secret → Save. (Las Redirect URLs ya quedaron del Paso 3.)
   llenan un aparato vacío.
 - **Push** con debounce de 2.5 s tras cada cambio local (hook en `store.set`).
 - Sin sesión / sin red → la app funciona 100% local, igual que siempre.
+
+---
+
+# Panel de consumo en vivo (`/uso.html`)
+
+Mide cuánto gastan los testers en IA (OpenCode Zen) y en voz (Deepgram),
+por persona y en vivo. Hasta ahora el costo solo volvía al navegador de cada
+usuario y se acumulaba en su `localStorage`: no había forma de ver el conjunto.
+
+**Cómo funciona.** Las funciones serverless (`api/chat.js`, `api/tts.js`,
+`api/stt.js`) escriben una fila por llamada en `public.uso_ia` usando la
+`service_role` key. El navegador nunca toca esa tabla: el panel pide los datos
+ya agregados a `api/uso-datos.js`. La tabla tiene RLS activa y SIN policies a
+propósito — solo la service key entra.
+
+**Qué mide.** De OpenCode, el `cost` y los tokens que ya devuelve la API. De
+Deepgram, que no devuelve costo, las unidades reales que factura (caracteres
+sintetizados en TTS, segundos de audio en STT) multiplicadas por la tarifa;
+por eso el gasto de voz es **estimado** y se ajusta con `PRECIO_TTS_1K` y
+`PRECIO_STT_MIN` si cambia el plan.
+
+## Encenderlo
+
+1. **Reactivar el proyecto** si está pausado (Supabase → *Resume project*). El
+   free tier lo pausa solo tras un tiempo sin uso.
+2. **Correr la migración** `supabase/migrations/20260802000000_uso_ia.sql`
+   (se aplica sola al mergear a main, o pégala en el SQL Editor).
+3. **Variables en Vercel** (Project → Settings → Environment Variables):
+   - `SUPABASE_SERVICE_KEY` — *service_role* key (Supabase → Settings → API).
+     **Nunca** la pongas en el frontend: salta RLS por diseño.
+   - `PANEL_USO_TOKEN` — opcional pero recomendado: si está, el panel exige
+     `?token=…` en la URL. Sin él, cualquiera con el enlace ve el gasto.
+   - `SUPABASE_URL` — solo si algún día cambia el proyecto.
+4. Abrir **`/uso.html`** (`…vercel.app/uso.html?token=…`).
+
+Sin `SUPABASE_SERVICE_KEY` el registro es un **no-op silencioso**: la app se
+comporta igual y el panel lo dice en pantalla. Medir nunca puede tumbar una
+respuesta al usuario — si Supabase está pausado, caído o lento, la llamada del
+usuario sigue su curso.
+
+## Identificar a cada tester
+
+El frontend manda la cabecera `x-rodeo-user` con el nombre que ya guarda la app
+(`rodeo_nombre`). No es autenticación: es una etiqueta para agrupar el gasto.
+Quien no tenga nombre puesto aparece como `anónimo`.

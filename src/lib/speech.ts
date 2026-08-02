@@ -10,6 +10,7 @@
 
 import { useSyncExternalStore } from 'react';
 
+import { etiquetaUsuario } from './api';
 import { parseChunks } from './gloss';
 import { store } from './storage';
 import { toast } from '@/stores/toast';
@@ -144,6 +145,9 @@ export async function pedirTTS(text: string, modelOverride?: VozId): Promise<Arr
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const pass = store.get<string | null>('rodeo_pass', null);
   if (pass) headers['x-rodeo-pass'] = pass;
+  // Etiqueta del tester: el panel /uso agrupa el gasto de voz por persona.
+  const quien = etiquetaUsuario();
+  if (quien) headers['x-rodeo-user'] = quien;
   const r = await fetch('/api/tts', {
     method: 'POST',
     headers,

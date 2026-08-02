@@ -2,6 +2,8 @@
 // La API key vive SOLO aquí (env var DEEPGRAM_API_KEY), nunca en el frontend.
 // El navegador manda {text} y recibe el MP3 ya sintetizado.
 
+import { costoTTS, registrarUso, usuarioDe } from './_uso.js';
+
 const DEEPGRAM_URL = 'https://api.deepgram.com/v1/speak';
 // aura-2-helena-en = "Caring, Natural, Positive, Friendly, Raspy" (US femenina).
 // Voz por defecto elegida por el usuario. El frontend puede pedir otra (Draco)
@@ -47,6 +49,9 @@ export default async function handler(req, res) {
   // solo modelos Aura-2 en inglés, para que nadie inyecte un modelo arbitrario.
   const pedido = String(body.model || '').trim();
   const model = /^aura-2-[a-z]+-en$/.test(pedido) ? pedido : TTS_MODEL;
+  // Medición para el panel /uso. Deepgram cobra por CARACTER sintetizado.
+  const quien = usuarioDe(req);
+  const t0 = Date.now();
 
   try {
     // Sin encoding/container explícito, Deepgram devuelve MP3 (audio/mpeg),
@@ -67,6 +72,11 @@ export default async function handler(req, res) {
     }
 
     const audio = Buffer.from(await upstream.arrayBuffer());
+    await registrarUso({
+      servicio: 'deepgram_tts', modelo: model, usuario: quien,
+      unidades: text.length, costo_usd: costoTTS(text.length),
+      ok: true, ms: Date.now() - t0,
+    });
     res.statusCode = 200;
     res.setHeader('Content-Type', upstream.headers.get('content-type') || 'audio/mpeg');
     res.setHeader('Cache-Control', 'no-store');

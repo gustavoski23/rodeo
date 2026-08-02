@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>RODEO · consumo en vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Space+Mono:wght@400;700&family=Familjen+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Sin frameworks a propósito: este panel no debe poder romperse porque un
+     CDN de terceros no cargue (justo el fallo que tumbó la app en producción). */
+  :root{
+    --void:oklch(9% .008 265); --deep:oklch(13% .012 265); --surface:oklch(17% .015 265);
+    --line:oklch(96% .004 265/.12); --line2:oklch(96% .004 265/.22);
+    --txt:oklch(96% .004 265); --txt2:oklch(68% .01 265); --muted:oklch(62% .01 265);
+    --acc:oklch(82% .125 68); --danger:oklch(66% .2 27);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--void);color:var(--txt);font-family:'Familjen Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 18px 64px}
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;justify-content:space-between;margin-bottom:22px}
+  h1{font-family:'Archivo',sans-serif;font-weight:800;font-size:1.7rem;letter-spacing:-.02em;margin:0}
+  .eyebrow{font-family:'Space Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);margin:0 0 6px}
+  .controles{display:flex;gap:8px;align-items:center}
+  select,button{font:inherit;font-size:.82rem;color:var(--txt);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 12px;cursor:pointer}
+  button:hover,select:hover{border-color:var(--line2)}
+  .vivo{display:inline-flex;align-items:center;gap:7px;font-family:'Space Mono',monospace;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .punto{width:7px;height:7px;border-radius:99px;background:var(--acc);animation:late 2s ease-in-out infinite}
+  @keyframes late{0%,100%{opacity:.35}50%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.punto{animation:none;opacity:1}}
+  .tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:22px}
+  .kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px 17px}
+  .kpi h2{font-family:'Space Mono',monospace;font-size:.6rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
+  .kpi .v{font-family:'Archivo',sans-serif;font-size:1.75rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .kpi .sub{color:var(--txt2);font-size:.76rem;margin-top:6px}
+  section{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:14px}
+  section h3{font-family:'Archivo',sans-serif;font-size:1rem;font-weight:700;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;font-size:.84rem}
+  th{text-align:left;font-family:'Space Mono',monospace;font-size:.58rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:0 10px 8px 0;border-bottom:1px solid var(--line)}
+  td{padding:9px 10px 9px 0;border-bottom:1px solid var(--line);color:var(--txt2)}
+  td.n{font-family:'Space Mono',monospace;text-align:right;color:var(--txt)}
+  th.n{text-align:right}
+  tr:last-child td{border-bottom:0}
+  .barra{height:6px;border-radius:99px;background:var(--acc);min-width:2px}
+  .aviso{background:var(--deep);border:1px solid var(--line2);border-radius:14px;padding:15px 17px;color:var(--txt2);font-size:.87rem;line-height:1.6}
+  .aviso b{color:var(--txt)}
+  .aviso code{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--acc)}
+  .err{color:var(--danger)}
+  .vacio{color:var(--muted);font-size:.85rem;padding:6px 0}
+  .scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">RODEO · panel interno</p>
+      <h1>Consumo en vivo</h1>
+    </div>
+    <div class="controles">
+      <span class="vivo"><span class="punto"></span><span id="latido">conectando…</span></span>
+      <select id="dias">
+        <option value="1">24 h</option>
+        <option value="7" selected>7 días</option>
+        <option value="30">30 días</option>
+      </select>
+      <button id="refrescar" type="button">Refrescar</button>
+    </div>
+  </header>
+
+  <div id="estado"></div>
+
+  <div class="tarjetas">
+    <div class="kpi"><h2>Gasto total</h2><div class="v" id="k-total">—</div><div class="sub" id="k-total-sub">&nbsp;</div></div>
+    <div class="kpi"><h2>Llamadas</h2><div class="v" id="k-llamadas">—</div><div class="sub" id="k-errores">&nbsp;</div></div>
+    <div class="kpi"><h2>Testers</h2><div class="v" id="k-testers">—</div><div class="sub" id="k-top">&nbsp;</div></div>
+    <div class="kpi"><h2>Tokens IA</h2><div class="v" id="k-tokens">—</div><div class="sub" id="k-voz">&nbsp;</div></div>
+  </div>
+
+  <section><h3>Por tester</h3><div class="scroll"><table id="t-usuario"></table></div></section>
+  <section><h3>Por servicio</h3><div class="scroll"><table id="t-servicio"></table></div></section>
+  <section><h3>Por modelo</h3><div class="scroll"><table id="t-modelo"></table></div></section>
+  <section><h3>Últimas llamadas</h3><div class="scroll"><table id="t-ultimas"></table></div></section>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const usd = (n) => '$' + (Number(n) || 0).toFixed(4);
+const num = (n) => (Number(n) || 0).toLocaleString('es');
+const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+// El token viaja en la URL del panel (?token=…) y se reenvía a la API.
+const token = new URLSearchParams(location.search).get('token');
+
+function tabla(el, filas, cols) {
+  if (!filas || !filas.length) { el.innerHTML = '<tr><td class="vacio">Sin datos todavía.</td></tr>'; return; }
+  const max = Math.max(...filas.map((f) => Number(f.usd) || 0), 0.000001);
+  el.innerHTML =
+    '<tr>' + cols.map((c) => `<th class="${c.n ? 'n' : ''}">${esc(c.t)}</th>`).join('') + '</tr>' +
+    filas.map((f) => '<tr>' + cols.map((c) => {
+      if (c.k === '_barra') return `<td style="width:26%"><div class="barra" style="width:${Math.max(2, ((Number(f.usd) || 0) / max) * 100)}%"></div></td>`;
+      const v = c.fmt ? c.fmt(f) : f[c.k];
+      return `<td class="${c.n ? 'n' : ''}">${esc(v)}</td>`;
+    }).join('') + '</tr>').join('');
+}
+
+async function cargar() {
+  const dias = $('#dias').value;
+  const q = new URLSearchParams({ dias });
+  if (token) q.set('token', token);
+  try {
+    const r = await fetch('/api/uso-datos?' + q, { cache: 'no-store' });
+    const d = await r.json();
+
+    if (r.status === 401) return pintarAviso('<b>No autorizado.</b> Este panel está protegido: añade <code>?token=…</code> a la URL con el valor de <code>PANEL_USO_TOKEN</code>.');
+    if (d.sin_configurar) return pintarAviso('<b>El registro está apagado.</b> ' + esc(d.detalle) + '<br><br>Cuando reactives Supabase y configures la key, los datos empiezan a llegar solos — la app no necesita ningún otro cambio.');
+    if (d.error) return pintarAviso('<b class="err">Error consultando los datos.</b> ' + esc(d.detalle || d.error) + (d.status === 404 ? '<br><br>Un 404 aquí suele significar que falta correr la migración <code>uso_ia</code> en Supabase.' : ''));
+
+    $('#estado').innerHTML = '';
+    const s = d.resumen;
+    const voz = s.por_servicio.filter((x) => x.clave.startsWith('deepgram')).reduce((a, x) => a + x.usd, 0);
+    const ia = s.por_servicio.filter((x) => x.clave === 'opencode').reduce((a, x) => a + x.usd, 0);
+    const errores = s.por_usuario.reduce((a, x) => a + x.errores, 0);
+    const tokens = s.por_modelo.reduce((a, x) => a + x.tokens, 0);
+
+    $('#k-total').textContent = usd(s.total_usd);
+    $('#k-total-sub').textContent = `IA ${usd(ia)} · voz ${usd(voz)}`;
+    $('#k-llamadas').textContent = num(s.llamadas);
+    $('#k-errores').textContent = errores ? `${num(errores)} con error` : 'sin errores';
+    $('#k-testers').textContent = num(s.por_usuario.length);
+    $('#k-top').textContent = s.por_usuario[0] ? `top: ${s.por_usuario[0].clave}` : ' ';
+    $('#k-tokens').textContent = num(tokens);
+    $('#k-voz').textContent = `${d.dias} día(s)` + (d.truncado ? ' · muestra recortada' : '');
+
+    tabla($('#t-usuario'), s.por_usuario, [
+      { t: 'Tester', k: 'clave' }, { t: '', k: '_barra' },
+      { t: 'Gasto', n: true, fmt: (f) => usd(f.usd) },
+      { t: 'Llamadas', n: true, fmt: (f) => num(f.llamadas) },
+      { t: 'Tokens', n: true, fmt: (f) => num(f.tokens) },
+    ]);
+    tabla($('#t-servicio'), s.por_servicio, [
+      { t: 'Servicio', k: 'clave' }, { t: '', k: '_barra' },
+      { t: 'Gasto', n: true, fmt: (f) => usd(f.usd) },
+      { t: 'Llamadas', n: true, fmt: (f) => num(f.llamadas) },
+      { t: 'Unidades', n: true, fmt: (f) => (f.clave === 'deepgram_stt' ? Math.round(f.unidades) + ' s' : f.clave === 'deepgram_tts' ? num(Math.round(f.unidades)) + ' car' : '—') },
+    ]);
+    tabla($('#t-modelo'), s.por_modelo, [
+      { t: 'Modelo', k: 'clave' }, { t: '', k: '_barra' },
+      { t: 'Gasto', n: true, fmt: (f) => usd(f.usd) },
+      { t: 'Llamadas', n: true, fmt: (f) => num(f.llamadas) },
+      { t: 'Tokens', n: true, fmt: (f) => num(f.tokens) },
+    ]);
+    tabla($('#t-ultimas'), d.filas, [
+      { t: 'Hora', fmt: (f) => new Date(f.ts).toLocaleTimeString('es') },
+      { t: 'Tester', k: 'usuario' },
+      { t: 'Servicio', k: 'servicio' },
+      { t: 'Modelo', k: 'modelo' },
+      { t: 'Gasto', n: true, fmt: (f) => usd(f.costo_usd) },
+      { t: 'ms', n: true, fmt: (f) => num(f.ms) },
+    ]);
+
+    $('#latido').textContent = 'actualizado ' + new Date().toLocaleTimeString('es');
+  } catch (e) {
+    pintarAviso('<b class="err">No pude contactar la API del panel.</b> ' + esc(String(e && e.message)));
+  }
+}
+
+function pintarAviso(html) {
+  $('#estado').innerHTML = '<div class="aviso">' + html + '</div>';
+  $('#latido').textContent = 'sin datos';
+}
+
+$('#refrescar').addEventListener('click', cargar);
+$('#dias').addEventListener('change', cargar);
+cargar();
+setInterval(cargar, 15000); // en vivo: refresco cada 15 s
+</script>
+</body>
+</html>
