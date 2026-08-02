@@ -25,7 +25,10 @@ import LadderView from '@/views/ladder';
 import DnaView from '@/views/dna';
 import A1View from '@/views/a1';
 import { PasoVoz } from '@/views/a1-voice/paso-voz';
+import PerfilView from '@/views/perfil';
 import GateView from '@/views/gate';
+import { SuscripcionOverlay } from '@/components/rodeo/suscripcion-overlay';
+import { useSuscripcion } from '@/stores/suscripcion';
 
 /* Shell: fila superior + vista activa + tab bar. El switch de vistas es el switchView
    del viejo (public/legacy.html:3641) sin el DOM: cada vista se monta y se
@@ -165,6 +168,10 @@ export default function App() {
      el personalizador, porque su hoja la monta App y el menú solo la pide.
      MenuSheet y MenuToggle siguen en el repo, sin montarse. */
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  /* El overlay de Suscripción es hermano del personalizador: capa global
+     encima de la vista activa. Mientras esté abierto, el menú ☰ se aparta
+     igual que con la hoja del personalizador. */
+  const suscripcionAbierta = useSuscripcion((s) => s.abierto);
   const view = useApp((s) => s.view);
   // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
   // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
@@ -234,7 +241,7 @@ export default function App() {
       {view === 'home' ? (
         /* El Home aurora va a pantalla completa: sin header de marca, sin
            tab bar, sin divisoria — solo su hamburguesa. Es la puerta. */
-        <HomeView onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen} />
+        <HomeView onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen || suscripcionAbierta} />
       ) : (
         <>
           {/* La MISMA fila del Home, sin marca ni divisoria: Menu ≡ a la
@@ -243,7 +250,7 @@ export default function App() {
               main ya no necesita pt propio. */}
           <FilaSuperior
             onPersonalizar={() => setCustomizerOpen(true)}
-            menuOculto={customizerOpen}
+            menuOculto={customizerOpen || suscripcionAbierta}
             className={cn(
               'px-5 pt-[max(14px,env(safe-area-inset-top))]',
               // En sesión la Card es alta y a 390px pide todo el alto que
@@ -269,6 +276,8 @@ export default function App() {
               <DnaView />
             ) : view === 'a1' ? (
               <OficinaView />
+            ) : view === 'perfil' ? (
+              <PerfilView />
             ) : (
               <StoryView />
             )}
@@ -281,6 +290,9 @@ export default function App() {
       )}
 
       <AuroraCustomizer open={customizerOpen} onClose={() => setCustomizerOpen(false)} />
+      {/* Suscripción: overlay global con fondo desenfocado, encima de la vista
+          que esté activa. Lee su propio store — el menú lo abre desde donde sea. */}
+      <SuscripcionOverlay />
       <Toaster />
     </MotionConfig>
   );

@@ -220,7 +220,10 @@
   --color-primary-foreground: var(--accent-ink);
   --color-secondary: var(--bg-elevated);
   --color-secondary-foreground: var(--text-primary);
-  --color-muted: var(--bg-surface);
+  /* --muted-override no existe en el tema global (el fallback manda, cero
+     cambio); el scope claro de Suscripción (suscripcion.css) lo define para
+     separar muted (gris) de card (blanco) — en RODEO ambos son --bg-surface. */
+  --color-muted: var(--muted-override, var(--bg-surface));
   --color-muted-foreground: var(--text-muted);
   --color-accent: var(--bg-elevated);
   --color-accent-foreground: var(--text-primary);

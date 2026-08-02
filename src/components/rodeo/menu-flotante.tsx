@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import FloatingMenu from '@/components/ui/liquid-morph-floating-menu';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
+import { useSuscripcion } from '@/stores/suscripcion';
 
 // El re-anclaje vive en aurora.css. Se importa AQUÍ y no solo desde el Home
 // porque el Header también monta este menú y no arrastra esa hoja.
@@ -69,6 +70,7 @@ export function MenuFlotante({
 }) {
   const setView = useApp((s) => s.setView);
   const setCarruselAlVolver = useApp((s) => s.setCarruselAlVolver);
+  const abrirSuscripcion = useSuscripcion((s) => s.abrir);
 
   // Si el menú estuviera abierto al aparecer el modal, se cierra con su morph
   // inverso en vez de quedarse congelado como panel invisible detrás del velo.
@@ -76,18 +78,24 @@ export function MenuFlotante({
     if (oculto) cerrarMenu();
   }, [oculto]);
 
+  /* Orden pedido por Gus (2026-08-02): Inicio · Perfil · Personalizar ·
+     Suscripción. OFICINA salió del menú — sigue viva vía la carta de la
+     vitrina del Home (view 'a1'), solo perdió su atajo aquí. */
   const items = [
     /* INICIO es "llévame a la portada", no "vuelve por donde viniste": baja la
        marca de `carruselAlVolver` antes de navegar para que el Home aparezca
        CERRADO aunque el usuario hubiera entrado a esta vista por una carta de
        la vitrina. El ← de la vista sigue siendo el que reabre el carrusel. */
     { label: 'Inicio', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('home'); } },
-    /* Igual OFICINA: entrar por el menú NO es entrar por la vitrina, así que su
-       ← tiene que devolver el Home cerrado. Si no se limpiara aquí, la marca
-       que dejó una carta anterior sobreviviría al salto y el ← de OFICINA
-       reabriría un carrusel del que el usuario ya se había ido. */
-    { label: 'Oficina', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('a1'); } },
+    /* Igual PERFIL: entrar por el menú NO es entrar por la vitrina, así que su
+       ← tiene que devolver el Home cerrado (misma limpieza que hacía OFICINA). */
+    { label: 'Perfil', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('perfil'); } },
     { label: 'Personalizar', onClick: () => { cerrarMenu(); onPersonalizar(); } },
+    /* SUSCRIPCION no navega: abre el overlay encima de la pantalla actual
+       (el fondo se desenfoca), igual que hace Personalizar con su hoja. Va SIN
+       tilde a propósito: el roll de letras del FloatingMenu recorta a 1em cada
+       carácter y la Ó pierde el acento (y asoma el de la copia de abajo). */
+    { label: 'Suscripcion', onClick: () => { cerrarMenu(); abrirSuscripcion(); } },
   ];
 
   return (
