@@ -105,28 +105,39 @@ export default async function handler(req, res) {
     let upstream = null;
     let model = cadena[0];
     const fallos = [];
+    /* Los cuerpos de error del proveedor pueden acabar en el toast del
+       usuario: por paranoia, si algún intermediario llegara a reflejar
+       cabeceras, la key jamás debe viajar en un `detail`. */
+    const sinClave = (s) => String(s).split(apiKey).join('[key]');
     for (const candidato of cadena) {
       model = candidato;
-      const r = await fetch(OPENCODE_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: candidato,
-          max_tokens: safeMaxTokens,
-          temperature: TEMPS[mode] ?? TEMPS.chat,
-          stream: wantsStream === true,
-          messages: safeMessages,
-        }),
-      });
+      let r;
+      try {
+        r = await fetch(OPENCODE_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: candidato,
+            max_tokens: safeMaxTokens,
+            temperature: TEMPS[mode] ?? TEMPS.chat,
+            stream: wantsStream === true,
+            messages: safeMessages,
+          }),
+        });
+      } catch (err) {
+        // Red caída / socket cortado: ESTE candidato falló, no la cadena.
+        fallos.push({ modelo: candidato, status: 0, detail: 'red: ' + String(err && err.message).slice(0, 200) });
+        continue;
+      }
       if (r.ok) {
         upstream = r;
         break;
       }
       const detail = await r.text();
-      fallos.push({ modelo: candidato, status: r.status, detail: detail.slice(0, 500) });
+      fallos.push({ modelo: candidato, status: r.status, detail: sinClave(detail).slice(0, 500) });
       /* Medido en vivo: OpenCode responde el "sin saldo" (CreditsError) con
          HTTP 401, no 402. Un 401 SIN pinta de CreditsError sí es la key
          rechazada y corta la cadena; con CreditsError se sigue probando (el

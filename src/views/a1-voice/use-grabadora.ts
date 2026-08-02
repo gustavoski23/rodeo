@@ -186,7 +186,11 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
     const mr = grabadorRef.current;
     grabadorRef.current = null;
     if (mr && mr.state !== 'inactive') mr.stop();
-    setEstado(mr ? 'transcribiendo' : 'idle');
+    /* Doble parar en el mismo frame (mic + botón Detener disparados juntos):
+       la segunda llamada encuentra mr=null y NO debe pisar 'transcribiendo'
+       con 'idle' mientras el fetch a Deepgram sigue en vuelo. Solo se baja a
+       idle desde 'grabando' (el caso real: parar con el permiso aún abierto). */
+    setEstado((prev) => (mr ? 'transcribiendo' : prev === 'grabando' ? 'idle' : prev));
   }, []);
 
   const alStreamListo = useCallback(

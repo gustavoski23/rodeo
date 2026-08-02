@@ -103,6 +103,10 @@ export const ConversationBar = React.forwardRef<
   ) => {
     const [keyboardOpen, setKeyboardOpen] = React.useState(false)
     const [textInput, setTextInput] = React.useState("")
+    /* Al tocar «Detener» el propio botón se desmonta (solo existe grabando):
+       sin esto, el foco de teclado/lector de pantalla caería al <body>. Se
+       mueve al mic, que es el mando persistente de la misma acción. */
+    const micRef = React.useRef<HTMLButtonElement>(null)
 
     /* El transcript de Deepgram aterriza en el teclado (nunca se auto-envía:
        la lección de producción). Se abre el teclado para que se vea. */
@@ -143,7 +147,9 @@ export const ConversationBar = React.forwardRef<
               {keyboardOpen && <Separator />}
               <div className="flex items-center justify-between gap-2 p-2">
                 <div className="flex min-w-0 items-center gap-2">
-                <div className="h-8 w-[120px] md:h-10">
+                {/* min-w + shrink: en pantallas muy angostas (<345px) la onda
+                    cede ancho antes de que el botón Detener desborde la barra. */}
+                <div className="h-8 w-[120px] min-w-16 shrink md:h-10">
                   <div
                     className={cn(
                       "flex h-full items-center gap-2 rounded-md py-1",
@@ -211,7 +217,10 @@ export const ConversationBar = React.forwardRef<
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={onMic}
+                    onClick={() => {
+                      onMic?.()
+                      micRef.current?.focus()
+                    }}
                     aria-label="Detener y transcribir"
                     className="h-9 shrink-0 rounded-full bg-red-500 px-3 text-white hover:bg-red-600 hover:text-white"
                   >
@@ -222,6 +231,7 @@ export const ConversationBar = React.forwardRef<
                 </div>
                 <div className="flex items-center">
                   <Button
+                    ref={micRef}
                     variant="ghost"
                     size="icon"
                     onClick={onMic}

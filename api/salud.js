@@ -18,6 +18,8 @@
 //     rechaza; lo delatamos con metadatos seguros (largo, si trim la cambia).
 // Nunca se devuelve el valor de la key, solo su forma.
 
+import { registrarUso, usuarioDe } from './_uso.js';
+
 /* Cadenas de modelos — MISMA lógica que api/chat.js (duplicada a propósito:
    cada función serverless es un módulo aislado; si cambias una, cambia la otra). */
 const RESPALDO = {
@@ -81,11 +83,16 @@ async function pingDeepgram(apiKey) {
 async function pingOpenCode(apiKey) {
   const modelos = [...new Set([...cadenaDe('chat'), ...cadenaDe('creative')])];
   const out = [];
+  // La key viaja VERBATIM, igual que en api/chat.js: si tiene un salto de
+  // línea pegado, el ping debe fallar IGUAL que el chat (antes se trimeaba
+  // aquí y el ping podía decir "ok" con un chat roto). La radiografía
+  // (formaClave) del handler delata el porqué.
+  const sinClave = (s) => String(s).split(apiKey).join('[key]');
   for (const m of modelos) {
     try {
       const r = await fetch(OPENCODE_URL, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: m, max_tokens: 16, messages: [{ role: 'user', content: 'Say "ok".' }] }),
       });
       const cuerpo = await r.text();
@@ -94,7 +101,7 @@ async function pingOpenCode(apiKey) {
       else if (r.status === 401) diagnostico = 'key_rechazada';
       else if (r.status === 404 || /ModelNotFound|unknown model/i.test(cuerpo)) diagnostico = 'modelo_desconocido';
       else if (r.status === 429) diagnostico = 'limite_de_tasa';
-      out.push({ modelo: m, status: r.status, ok: r.ok, diagnostico, detalle: r.ok ? null : cuerpo.slice(0, 200) });
+      out.push({ modelo: m, status: r.status, ok: r.ok, diagnostico, detalle: r.ok ? null : sinClave(cuerpo).slice(0, 200) });
     } catch (err) {
       out.push({ modelo: m, alcanzado: false, error: String(err && err.message).slice(0, 150) });
     }
@@ -117,17 +124,20 @@ const TURNOS = [
   'Yesterday I runned five kilometers and now my legs is hurting so much',
 ];
 
-async function turnoDeHumo(apiKey, indice) {
+async function turnoDeHumo(apiKey, indice, quien) {
   const texto = TURNOS[indice] ?? TURNOS[0];
   const t0 = Date.now();
   for (const m of cadenaDe('chat')) {
     try {
       const r = await fetch(OPENCODE_URL, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: m,
-          max_tokens: 1200,
+          // 2500 como el piso del chat real: kimi quema ~1200 tokens RAZONANDO
+          // antes del primer carácter — con 1200 el turno saldría vacío justo
+          // en el escenario que este diagnóstico existe para probar.
+          max_tokens: 2500,
           temperature: 0.9,
           messages: [
             { role: 'system', content: TURNO_SYSTEM },
@@ -146,6 +156,14 @@ async function turnoDeHumo(apiKey, indice) {
         const b = s.lastIndexOf('}');
         if (a !== -1 && b !== -1) parsed = JSON.parse(s.slice(a, b + 1));
       } catch { /* se muestra el crudo */ }
+      // El turno de humo gasta crédito de verdad: al panel /uso como todo lo
+      // demás, para que un abuso del endpoint se VEA (etiqueta 'salud:turno').
+      await registrarUso({
+        servicio: 'opencode', modelo: data.model || m, modo: 'salud:turno', usuario: quien,
+        tokens_in: data.usage && (data.usage.prompt_tokens ?? data.usage.input_tokens),
+        tokens_out: data.usage && (data.usage.completion_tokens ?? data.usage.output_tokens),
+        costo_usd: data.cost, ok: true, ms: Date.now() - t0,
+      });
       return {
         modelo: data.model || m,
         ms: Date.now() - t0,
@@ -188,23 +206,39 @@ export default async function handler(req, res) {
     voz_por_defecto: process.env.TTS_MODEL || 'aura-2-helena-en',
   };
 
-  if (url.searchParams.get('ping') === 'deepgram') {
+  /* Los pings GASTAN dinero de verdad (poco, pero real) y este endpoint es un
+     GET sin auth: un bot que desenrolle el link (Slack, Discord, crawlers) o un
+     <img src=…> hostil lo dispararía gratis. Regla: si hay APP_PASS, todo lo
+     que cueste plata lo exige — por cabecera x-rodeo-pass o por &pass= (los
+     clientes GET-only, como el fetch del MCP de Vercel, no pueden mandar
+     cabeceras). Los booleanos de arriba siguen siendo públicos: no cuestan. */
+  const appPass = process.env.APP_PASS;
+  const pinOk = !appPass || req.headers?.['x-rodeo-pass'] === appPass || url.searchParams.get('pass') === appPass;
+  const ping = url.searchParams.get('ping');
+
+  if (ping === 'deepgram') {
     salida.deepgram_forma = formaClave(process.env.DEEPGRAM_API_KEY);
-    salida.deepgram_ping = voz
-      ? await pingDeepgram(process.env.DEEPGRAM_API_KEY)
-      : { alcanzado: false, error: 'no_hay_key_configurada' };
+    if (!pinOk) salida.deepgram_ping = { error: 'pin_requerido', detalle: 'Manda x-rodeo-pass o &pass= con el APP_PASS.' };
+    else
+      salida.deepgram_ping = voz
+        ? await pingDeepgram(process.env.DEEPGRAM_API_KEY)
+        : { alcanzado: false, error: 'no_hay_key_configurada' };
   }
 
-  if (url.searchParams.get('ping') === 'opencode') {
-    salida.opencode_ping = ia
-      ? await pingOpenCode(process.env.OPENCODE_API_KEY)
-      : { alcanzado: false, error: 'no_hay_key_configurada' };
-    // &turno=0..4: además del ping, UN turno real del coach para ver la
-    // respuesta genuina (solo si se pide explícito — cuesta unos centavos).
-    const turno = url.searchParams.get('turno');
-    if (ia && turno !== null) {
-      const idx = Math.min(4, Math.max(0, Number(turno) || 0));
-      salida.turno_de_humo = await turnoDeHumo(process.env.OPENCODE_API_KEY, idx);
+  if (ping === 'opencode') {
+    salida.opencode_forma = formaClave(process.env.OPENCODE_API_KEY);
+    if (!pinOk) salida.opencode_ping = { error: 'pin_requerido', detalle: 'Manda x-rodeo-pass o &pass= con el APP_PASS.' };
+    else {
+      salida.opencode_ping = ia
+        ? await pingOpenCode(process.env.OPENCODE_API_KEY)
+        : { alcanzado: false, error: 'no_hay_key_configurada' };
+      // &turno=0..4: además del ping, UN turno real del coach para ver la
+      // respuesta genuina (solo si se pide explícito — cuesta unos centavos).
+      const turno = url.searchParams.get('turno');
+      if (ia && turno !== null) {
+        const idx = Math.min(4, Math.max(0, Number(turno) || 0));
+        salida.turno_de_humo = await turnoDeHumo(process.env.OPENCODE_API_KEY, idx, usuarioDe(req) || 'salud');
+      }
     }
   }
 

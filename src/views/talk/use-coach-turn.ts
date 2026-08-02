@@ -193,7 +193,12 @@ export function useCoachTurn() {
           }
           pintor.pintar(stripChunksLive(partial));
         }));
-      } catch {
+      } catch (eStream) {
+        /* Sin crédito NO es "stream no disponible": reintentar por la ruta
+           clásica volvería a recorrer la cadena de modelos muerta — doble
+           gasto, doble espera, mismo error. Se re-lanza y el catch de afuera
+           muestra el mensaje humano de una vez. */
+        if ((eStream as Error & { code?: string }).code === 'sin_saldo_ia') throw eStream;
         /* Si el stream no está disponible (proxy que bufferea, red rara) se cae
            a la ruta clásica sin romperle la sesión al usuario. */
         pintor.cancelar();
@@ -458,9 +463,12 @@ export function useCoachTurn() {
       useTalk.getState().setDebrief(d);
     } catch (err) {
       // El fallo del debrief de CHARLA se lleva la sesión por delante (el de
-      // ESCENA no: ofrece reintentar). Asimetría del legacy, portada tal cual.
+      // ESCENA no: ofrece reintentar). Asimetría del legacy, portada tal cual —
+      // CON una excepción nueva: sin crédito el fallo es PERSISTENTE (no un
+      // blip), y cerrar la sesión destruiría la conversación entera de alguien
+      // que solo quería terminarla. En ese caso la charla se queda abierta.
       toast('Error en el debrief: ' + (err as Error).message);
-      useTalk.getState().cerrarSesion();
+      if ((err as Error & { code?: string }).code !== 'sin_saldo_ia') useTalk.getState().cerrarSesion();
     } finally {
       useTalk.getState().setBusy(false);
     }

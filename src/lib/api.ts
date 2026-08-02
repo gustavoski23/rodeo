@@ -74,10 +74,21 @@ export async function callAPI(
     throw new Error('Sin PIN no hay rodeo.');
   }
   const data = await res.json().catch(() => ({}) as Record<string, unknown>);
-  if (!res.ok) throw new Error((data.detail as string) || (data.error as string) || 'Error de conexión');
+  if (!res.ok) throw errorAPI(data);
 
   if (data.cost) addCost(parseFloat(String(data.cost)) || 0);
   return { content: data.content as string, finish: (data.finish_reason as string) ?? null };
+}
+
+/* Error con código legible por máquina: el mensaje humano va al toast, y
+   `code` (p.ej. 'sin_saldo_ia') deja que quien llama distinga un fallo
+   PERSISTENTE (sin crédito: reintentar por otra vía solo duplica el gasto y
+   la espera) de uno transitorio. */
+export type ErrorAPI = Error & { code?: string };
+function errorAPI(data: Record<string, unknown>): ErrorAPI {
+  const err = new Error((data.detail as string) || (data.error as string) || 'Error de conexión') as ErrorAPI;
+  if (typeof data.error === 'string') err.code = data.error;
+  return err;
 }
 
 // Igual que callAPI pero consumiendo SSE. `onDelta` recibe el contenido
@@ -106,7 +117,7 @@ export async function callStream(
   }
   if (!res.ok) {
     const d = await res.json().catch(() => ({}) as Record<string, unknown>);
-    throw new Error((d.detail as string) || (d.error as string) || 'Error de conexión');
+    throw errorAPI(d);
   }
   if (!res.body) throw new Error('sin_stream');
 
@@ -138,7 +149,7 @@ export async function callStream(
       }
       if (j.done) {
         finish = (j.finish_reason as string) ?? null;
-        if (j.error) throw new Error((j.detail as string) || (j.error as string));
+        if (j.error) throw errorAPI(j);
         if (j.cost) addCost(parseFloat(String(j.cost)) || 0);
       }
     }
