@@ -59,22 +59,39 @@ está prohibido inventar uno).
 
 ## Paso 2 — Apuntar RODEO al receptor
 
-En **Vercel → proyecto rodeo → Environment Variables**:
+**Normalmente no hay que hacer nada**: RODEO ya apunta por defecto a
+`https://pangea-wallet.vercel.app`. Solo si quieres probar contra otro
+despliegue (una vista previa, por ejemplo), pon en **Vercel → proyecto rodeo →
+Environment Variables**:
 
 | Variable | Valor |
 |---|---|
-| `PANGEA_PAYMENTS_URL` | La URL de tu Pangea Wallet, p. ej. `https://pangea-wallet.vercel.app` |
+| `PANGEA_PAYMENTS_URL` | La URL del receptor, p. ej. `https://pangea-wallet-xxxx.vercel.app` |
 
-Redeploy y listo: la pestaña "Crypto" deja el modo demostración y empieza a
-cobrar de verdad.
+## Paso 3 — La primera prueba real, por 10 centavos
 
-## Paso 3 — Probar sin arriesgar plata
+Hay un plan de prueba (`rodeo-test`, **0,10 USDC**) que recorre exactamente el
+mismo camino que un cobro de verdad. Se activa añadiendo `?pagoprueba=1` a la
+URL de RODEO:
 
-1. Deja Pangea en modo de prueba y pon direcciones tuyas de devnet.
-2. Consigue USDC de devnet en el faucet de Circle.
-3. En RODEO: menú → **Suscripcion** → *Get it now* → pestaña **Crypto**.
-4. Escanea el QR con una wallet en devnet y paga.
-5. La pantalla debe pasar sola al ticket en unos segundos.
+```
+https://TU-RODEO.vercel.app/?pagoprueba=1
+```
+
+1. Abre esa URL **en el computador** (para poder escanear el QR con el celular).
+2. Menú → **Suscripcion** → *Get it now* → pestaña **Crypto** → **Solana**.
+3. Debe decir "Envía **0.1 USDC**" y mostrar el aviso de modo prueba.
+4. Escanea el QR con tu wallet del celular y confirma el envío.
+5. En unos segundos la pantalla pasa **sola** al ticket.
+
+Como te lo pagas a ti mismo, el dinero vuelve a tu wallet; solo pierdes la
+comisión de red (fracciones de centavo en Solana).
+
+**Si no avanza**, mira los logs de la función en Vercel (proyecto rodeo →
+Logs → `/api/cripto`) y del receptor. Los sospechosos habituales: falta alguna
+variable en la wallet, la dirección de cobro no es la que recibió, o el pago
+se mandó sin la referencia (pasa si pagas copiando la dirección a mano en vez
+de escanear).
 
 ---
 

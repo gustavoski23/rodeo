@@ -30,8 +30,11 @@
 
 // Planes que este frontend puede pedir. La lista existe para no reenviar a
 // ciegas lo que mande el navegador; los montos viven en Pangea.
-const PLANES = new Set(['rodeo-monthly', 'rodeo-yearly']);
+const PLANES = new Set(['rodeo-monthly', 'rodeo-yearly', 'rodeo-test']);
 const REDES = new Set(['solana', 'stellar']);
+
+/** Wallet de Pangea (la nuestra). Sobrescribible con PANGEA_PAYMENTS_URL. */
+const PANGEA_URL_POR_DEFECTO = 'https://pangea-wallet.vercel.app';
 
 const TIMEOUT_MS = 15000;
 
@@ -40,7 +43,13 @@ export default async function handler(req, res) {
     return json(res, 405, { ok: false, error: 'method_not_allowed' });
   }
 
-  const base = String(process.env.PANGEA_PAYMENTS_URL || '').trim().replace(/\/+$/, '');
+  // Por defecto apunta a la wallet de Gus; PANGEA_PAYMENTS_URL lo sobrescribe
+  // (p. ej. para probar contra un despliegue de vista previa). Si esa wallet
+  // todavía no tiene el receptor desplegado o sin configurar, responde 404/503
+  // y el frontend cae solo al modo demostración: nada se rompe.
+  const base = String(process.env.PANGEA_PAYMENTS_URL || PANGEA_URL_POR_DEFECTO)
+    .trim()
+    .replace(/\/+$/, '');
   if (!base) {
     return json(res, 503, {
       ok: false,
