@@ -12,12 +12,13 @@
      monta en un portal fuera del árbol del overlay.
    · Los @types de react-payment-inputs no declaran el default export del
      build ES de /images: se entra por namespace y se castea UNA vez aquí.
-   · PESTAÑA "Crypto" (pedido de Gus, 2026-08-02): junto a Card, un método de
-     pago en Solana o Stellar — selector de red + dirección de recibo con
-     copiar. Las direcciones de abajo son PLACEHOLDER de demo (ver el
-     comentario de RECEPTOR_*): cuando haya backend real, se reemplazan por
-     las direcciones de cobro reales y "I've sent it" pasa a verificar el
-     pago on-chain en vez de marcar suscrito al toque. */
+   · PESTAÑA "Crypto" (pedido de Gus, 2026-08-02): junto a Card, el pago en
+     USDC por Solana o Stellar. Ya NO es de mentira: lo lleva CryptoPane
+     contra el receptor de cobros de Pangea Wallet (api/cripto.js →
+     /api/payments de la wallet). Pide una intención real, muestra QR y
+     enlace con la referencia dentro, y avanza SOLO cuando la cadena
+     confirma el pago. Si el receptor no está configurado, CryptoPane cae a
+     una demo visual y usa el mismo onPagarCripto de antes. */
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,56 +32,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Check, Copy, CreditCard, Store } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { CreditCard, Store } from "lucide-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { usePaymentInputs } from "react-payment-inputs";
 import * as cardImagesModule from "react-payment-inputs/images";
 import type { CardImages } from "react-payment-inputs/images";
 
+import { CryptoPane, type PlanId } from "@/components/ui/crypto-pane";
+
 const images = (cardImagesModule as unknown as { default: CardImages }).default;
-
-/* Direcciones de RECEPTOR — placeholders de demo, NO son direcciones reales.
-   pangea-wallet (gustavoski23/pangea-wallet) es hoy una wallet no-custodial
-   de SOLANA DEVNET sin API de cobros para terceros y SIN soporte de Stellar
-   — no hay todavía de dónde sacar una dirección real de cualquiera de las
-   dos redes. Pégalas aquí cuando exista un receptor real. */
-const RECEPTOR_SOLANA = 'DEM0SoLPLACEHoLDERxxxxxxxxxxxxxxxxxxxxxxxx';
-const RECEPTOR_STELLAR = 'GDEM0STELLARPLACEH0LDERXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-
-type Red = 'solana' | 'stellar';
-const REDES: { id: Red; nombre: string; ticker: string; addr: string; claseIcono: string }[] = [
-  { id: 'solana', nombre: 'Solana', ticker: 'SOL', addr: RECEPTOR_SOLANA, claseIcono: 'bg-gradient-to-br from-[#9945FF] to-[#14F195]' },
-  { id: 'stellar', nombre: 'Stellar', ticker: 'XLM', addr: RECEPTOR_STELLAR, claseIcono: 'bg-[#000000]' },
-];
-
-// Caja de dirección con botón de copiar — una por red, en la pestaña Crypto.
-function CajaDireccion({ addr }: { addr: string }) {
-  const [copiado, setCopiado] = useState(false);
-  return (
-    <div className="flex items-stretch gap-2">
-      <code className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-lg border border-input bg-background px-3 py-2 font-mono text-xs text-foreground shadow-sm shadow-black/5">
-        {addr}
-      </code>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        aria-label="Copy address"
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(addr);
-          } catch {
-            /* clipboard bloqueado (permiso/HTTP): no rompe el flujo demo */
-          }
-          setCopiado(true);
-          setTimeout(() => setCopiado(false), 1500);
-        }}
-      >
-        {copiado ? <Check size={16} strokeWidth={2} /> : <Copy size={16} strokeWidth={2} />}
-      </Button>
-    </div>
-  );
-}
 
 function PaymentDialog({
   open,
@@ -103,7 +63,6 @@ function PaymentDialog({
   const [couponCode, setCouponCode] = useState("");
   const [metodo, setMetodo] = useState<'card' | 'crypto'>('card');
   const [plan, setPlan] = useState<'monthly' | 'yearly'>('yearly');
-  const [red, setRed] = useState<Red>('solana');
 
   useEffect(() => {
     if (showCouponInput && couponInputRef.current) {
@@ -116,8 +75,10 @@ function PaymentDialog({
     if (open) setMetodo('card');
   }, [open]);
 
-  const monto = plan === 'monthly' ? '32.00' : '320.00';
-  const redActiva = REDES.find((r) => r.id === red) ?? REDES[0];
+  // El id de plan que entiende el receptor de cobros (catálogo del servidor).
+  const planId: PlanId = plan === 'monthly' ? 'rodeo-monthly' : 'rodeo-yearly';
+  // Estable entre renders: CryptoPane lo usa dentro de un efecto de sondeo.
+  const alPagar = useCallback(() => onPagarCripto(), [onPagarCripto]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -260,53 +221,17 @@ function PaymentDialog({
                 )}
               </>
             ) : (
-              <div className="space-y-3">
-                <RadioGroup
-                  className="grid-cols-2"
-                  value={red}
-                  onValueChange={(v) => setRed(v as Red)}
-                >
-                  {REDES.map((r) => (
-                    <label
-                      key={r.id}
-                      className="relative flex cursor-pointer items-center gap-2 rounded-lg border border-input px-3 py-2.5 shadow-sm shadow-black/5 outline-offset-2 transition-colors has-[[data-state=checked]]:border-ring has-[[data-state=checked]]:bg-accent has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring/70"
-                    >
-                      <RadioGroupItem
-                        id={`radio-red-${r.id}`}
-                        value={r.id}
-                        className="sr-only after:absolute after:inset-0"
-                      />
-                      <span
-                        className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white ${r.claseIcono}`}
-                        aria-hidden="true"
-                      >
-                        {r.ticker}
-                      </span>
-                      <span className="text-sm font-medium text-foreground">{r.nombre}</span>
-                    </label>
-                  ))}
-                </RadioGroup>
-
-                <div className="space-y-2 rounded-lg border border-input bg-muted/40 p-3">
-                  <p className="text-sm text-foreground">
-                    Send <span className="font-semibold">{monto} USDC</span> on{' '}
-                    <span className="font-medium">{redActiva.nombre}</span> to:
-                  </p>
-                  <CajaDireccion addr={redActiva.addr} />
-                  <p className="text-xs text-muted-foreground">
-                    Demo address — no real funds are sent here yet.
-                  </p>
-                </div>
-              </div>
+              /* El pago en cripto se gobierna solo: pide la intención al
+                 receptor, muestra QR/enlace y avanza cuando la cadena
+                 confirma. Por eso no cuelga del botón de abajo. */
+              <CryptoPane plan={planId} onPaid={alPagar} />
             )}
           </div>
-          <Button
-            type="button"
-            className="w-full"
-            onClick={metodo === 'card' ? onSubscribe : onPagarCripto}
-          >
-            {metodo === 'card' ? 'Subscribe' : "I've sent it"}
-          </Button>
+          {metodo === 'card' && (
+            <Button type="button" className="w-full" onClick={onSubscribe}>
+              Subscribe
+            </Button>
+          )}
         </form>
 
         <p className="text-center text-xs text-muted-foreground">
