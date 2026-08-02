@@ -127,7 +127,11 @@ export default async function handler(req, res) {
       }
       const detail = await r.text();
       fallos.push({ modelo: candidato, status: r.status, detail: detail.slice(0, 500) });
-      if (r.status === 401) break;
+      /* Medido en vivo: OpenCode responde el "sin saldo" (CreditsError) con
+         HTTP 401, no 402. Un 401 SIN pinta de CreditsError sí es la key
+         rechazada y corta la cadena; con CreditsError se sigue probando (el
+         siguiente modelo puede estar cubierto por otra bolsa de facturación). */
+      if (r.status === 401 && !/CreditsError|Insufficient balance/i.test(detail)) break;
     }
 
     if (!upstream) {
