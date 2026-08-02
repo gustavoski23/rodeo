@@ -288,7 +288,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
         <div className="space-y-3">
           <div className="rounded-lg border border-input bg-muted/40 p-3">
             <p className="text-sm text-foreground">
-              Envía{' '}
+              Envía exactamente{' '}
               <span className="font-semibold">{formatUsdc(intencion.amountBaseUnits)} USDC</span> por{' '}
               <span className="font-medium">
                 {REDES.find((r) => r.id === intencion.chain)?.nombre}
@@ -301,7 +301,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
             )}
 
             {qr !== null && (
-              <div className="mt-3 flex justify-center">
+              <div className="mt-3 flex flex-col items-center gap-1.5">
                 {/* El QR lleva dentro dirección, monto y referencia. */}
                 {/* w-60 (240 px) con max-w-full: lo más grande que cabe en el
                     diálogo sin desbordar. El fondo blanco y el padding suman
@@ -312,6 +312,9 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
                   alt="Código QR para pagar"
                   className="w-60 max-w-full rounded-lg bg-white p-2"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Escanéalo con la wallet de tu celular
+                </p>
               </div>
             )}
 
@@ -325,26 +328,37 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: () => void 
             )}
           </div>
 
-          <details className="rounded-lg border border-input p-3">
-            <summary className="cursor-pointer text-sm font-medium text-foreground">
-              O pagar a mano
-            </summary>
-            <div className="mt-3 space-y-3">
-              <CajaCopiable valor={intencion.payTo} etiqueta="Dirección" />
-              <CajaCopiable
-                valor={intencion.reference}
-                etiqueta={intencion.chain === 'stellar' ? 'Memo (obligatorio)' : 'Referencia'}
-              />
-              <div className="flex gap-2 rounded-lg bg-amber-50 p-2.5 text-amber-900">
-                <AlertTriangle size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
-                <p className="text-xs leading-relaxed">
-                  {intencion.chain === 'stellar'
-                    ? 'Incluye el memo o no podremos saber que el pago es tuyo. Sin memo, el dinero llega pero la suscripción no se activa sola.'
-                    : 'Lo más seguro es pagar con el botón o el QR: llevan la referencia dentro. Un envío suelto sin referencia no se detecta solo.'}
-                </p>
-              </div>
+          {/* Segundo camino, A LA VISTA (no escondido): copiar los datos para
+              pagar desde una wallet, un exchange o donde sea. Se detecta solo
+              igual que el QR, porque el monto pedido es único de este cobro. */}
+          <div className="space-y-3 rounded-lg border border-input p-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">O copia los datos</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Para pagar desde tu wallet, un exchange o cualquier app. Se activa solo
+                igual.
+              </p>
             </div>
-          </details>
+
+            <CajaCopiable valor={intencion.payTo} etiqueta="Dirección" />
+            <CajaCopiable
+              valor={formatUsdc(intencion.amountBaseUnits)}
+              etiqueta="Monto exacto (USDC)"
+            />
+            {intencion.chain === 'stellar' && (
+              <CajaCopiable valor={intencion.reference} etiqueta="Memo (recomendado)" />
+            )}
+
+            <div className="flex gap-2 rounded-lg bg-amber-50 p-2.5 text-amber-900">
+              <AlertTriangle size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
+              <p className="text-xs leading-relaxed">
+                Envía el <span className="font-semibold">monto exacto</span>, hasta el último
+                decimal: esos centésimos de centavo son lo que nos permite reconocer que el
+                pago es tuyo. Si lo mandas desde un exchange, revisa que la comisión no se
+                descuente del monto — lo que tiene que llegar exacto es lo que recibimos.
+              </p>
+            </div>
+          </div>
 
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Loader2 className="animate-spin" size={13} />

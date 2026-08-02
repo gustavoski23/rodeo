@@ -25,10 +25,14 @@ red confirma el pago.
   se activa solo     ◄────── /api/cripto      ──────► /api/payments/status
 ```
 
-Lo importante: **la referencia (o el memo)**. Es lo que permite decir "este
-pago es de esta compra". El QR y el botón "Abrir en mi wallet" la llevan
-dentro, por eso son el camino recomendado. Un envío suelto sin referencia
-llega igual, pero hay que resolverlo a mano.
+Lo importante: **saber que un pago concreto es de una compra concreta**. Hay
+dos maneras y las dos se detectan solas:
+
+1. **Escaneando el QR** (o "Abrir en mi wallet"): lleva dentro una referencia
+   única. Es el camino más robusto — tolera incluso que paguen de más.
+2. **Copiando la dirección** (wallet, exchange, lo que sea): ahí no viaja
+   ninguna referencia, así que el identificador es el **monto exacto**, al que
+   se le suman micro-unidades únicas por cobro. Tiene que llegar clavado.
 
 ---
 
@@ -81,7 +85,8 @@ https://TU-RODEO.vercel.app/?pagoprueba=1
 1. Abre esa URL **en el computador** (para poder escanear el QR con el celular).
 2. Menú → **Suscripcion** → *Get it now* → pestaña **Crypto** → **Solana**.
 3. Debe decir "Envía **0.1 USDC**" y mostrar el aviso de modo prueba.
-4. Escanea el QR con tu wallet del celular y confirma el envío.
+4. Paga de una de las dos formas: escanea el QR con la wallet del celular, o
+   copia la dirección y el **monto exacto** y mándalo desde donde quieras.
 5. En unos segundos la pantalla pasa **sola** al ticket.
 
 Como te lo pagas a ti mismo, el dinero vuelve a tu wallet; solo pierdes la
@@ -118,8 +123,16 @@ Para cambiarlos se cambia ese archivo y se despliega.
   recházala si ya la procesaste. (Hoy RODEO solo activa Premium en el
   navegador del comprador, así que no hay doble cobro posible; en cuanto
   actives Premium desde el servidor, implementa esa deduplicación.)
-- **Un pago sin referencia/memo no se detecta solo.** Llega el dinero, pero
-  hay que casarlo a mano. Por eso la UI empuja el QR y grita lo del memo.
+- **El monto que se pide NO es redondo, y es a propósito.** A cada cobro se le
+  suman unas micro-unidades únicas (menos de un centavo): 32 USDC se piden como
+  32,004211. Ese monto irrepetible es lo que permite reconocer un pago hecho
+  *copiando la dirección*, sin referencia ni memo — el caso de quien paga desde
+  un exchange. Si el monto llega distinto (una comisión descontada, por
+  ejemplo), no se detecta solo. El QR lo lleva dentro, así que por ahí es
+  invisible.
+- **Dos cobros vivos del mismo plan pueden sacar la misma marca** (1 entre
+  9999). Si pasa, un solo pago satisface a los dos. La defensa es la de
+  siempre: consumir `payment.txId` una única vez.
 - **Si la red no responde**, el estado devuelve "no pude comprobarlo", nunca
   "no pagó": la app reintenta sola en vez de negarle el acceso a alguien que sí
   pagó.
