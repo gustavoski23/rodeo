@@ -18,12 +18,20 @@
 //     rechaza; lo delatamos con metadatos seguros (largo, si trim la cambia).
 // Nunca se devuelve el valor de la key, solo su forma.
 
-const MODELS = {
-  chat: process.env.MODEL_CHAT || 'claude-haiku-4-5',
-  creative: process.env.MODEL_CREATIVE || 'kimi-k2.7-code',
+/* Cadenas de modelos — MISMA lógica que api/chat.js (duplicada a propósito:
+   cada función serverless es un módulo aislado; si cambias una, cambia la otra). */
+const RESPALDO = {
+  chat: ['claude-haiku-4-5', 'kimi-k2.7-code'],
+  creative: ['kimi-k2.7-code', 'claude-haiku-4-5'],
 };
+function cadenaDe(mode) {
+  const env = mode === 'creative' ? process.env.MODEL_CREATIVE : process.env.MODEL_CHAT;
+  const propios = String(env || '').split(',').map((s) => s.trim()).filter(Boolean);
+  return [...new Set([...propios, ...RESPALDO[mode]])];
+}
 
 const DEEPGRAM_URL = 'https://api.deepgram.com/v1/speak';
+const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 
 // Radiografía SEGURA de una key: nunca el valor, solo su forma. Sirve para
 // cazar el fallo más tonto y más común: pegarla con comillas o con un espacio
@@ -65,6 +73,92 @@ async function pingDeepgram(apiKey) {
   }
 }
 
+/* Ping real a OpenCode, modelo por modelo: distingue lo que el booleano
+   `opencode:true` no puede — la key existe pero ¿este modelo FUNCIONA? El caso
+   que lo motiva: claude-haiku se cobra del saldo Zen (que puede estar en $0)
+   mientras kimi entra en la suscripción Go — misma key, un modelo muere con
+   CreditsError y el otro anda. 16 tokens por modelo: centavos. */
+async function pingOpenCode(apiKey) {
+  const modelos = [...new Set([...cadenaDe('chat'), ...cadenaDe('creative')])];
+  const out = [];
+  for (const m of modelos) {
+    try {
+      const r = await fetch(OPENCODE_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: m, max_tokens: 16, messages: [{ role: 'user', content: 'Say "ok".' }] }),
+      });
+      const cuerpo = await r.text();
+      let diagnostico = r.ok ? 'ok' : 'error';
+      if (/CreditsError|Insufficient balance/i.test(cuerpo)) diagnostico = 'sin_saldo';
+      else if (r.status === 401) diagnostico = 'key_rechazada';
+      else if (r.status === 404 || /ModelNotFound|unknown model/i.test(cuerpo)) diagnostico = 'modelo_desconocido';
+      else if (r.status === 429) diagnostico = 'limite_de_tasa';
+      out.push({ modelo: m, status: r.status, ok: r.ok, diagnostico, detalle: r.ok ? null : cuerpo.slice(0, 200) });
+    } catch (err) {
+      out.push({ modelo: m, alcanzado: false, error: String(err && err.message).slice(0, 150) });
+    }
+  }
+  return out;
+}
+
+/* Turno de HUMO (&turno=0..4): un turno REAL del coach, con el contrato JSON de
+   la app y mensajes de usuario FIJOS (nada del querystring entra al prompt).
+   Es la única forma de ver una respuesta genuina del modelo desde fuera sin
+   navegador: GET puro. Los mensajes están elegidos para ejercitar lo que Gus
+   quiere verificar: corrección de errores reales, cómo-digo en espanglish y
+   conversación natural. Usa la MISMA cadena con respaldo que /api/chat. */
+const TURNO_SYSTEM = `You are Gus's English conversation partner inside RODEO, a personal English trainer. Gus is Venezuelan, lives in Medellín, level B2+ working toward C1. Natural contemporary English, 2-4 sentences, react like a friend (don't interview him). If he writes Spanish/Spanglish asking how to say something, hand him the exact natural English a native would use. OUTPUT — STRICT JSON only, exactly: {"reply":"your in-character reply","corrections":[{"quote":"his exact incorrect words","fix":"how a native says it","why":"por qué, en español, una línea"}],"glosses":[{"term":"exact phrase from your reply","es":"qué significa, natural"}]} — corrections only for REAL errors in his message ([] if clean); 0-2 glosses.`;
+const TURNOS = [
+  'the football cards from the worldcup album',
+  'I have 25 years and I work in a crypto startup in Medellin',
+  'oye cómo digo que me quedé sin saldo en la cuenta',
+  'Honestly I think the AI hype is a little bit too much, no? Everybody talks about that',
+  'Yesterday I runned five kilometers and now my legs is hurting so much',
+];
+
+async function turnoDeHumo(apiKey, indice) {
+  const texto = TURNOS[indice] ?? TURNOS[0];
+  const t0 = Date.now();
+  for (const m of cadenaDe('chat')) {
+    try {
+      const r = await fetch(OPENCODE_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: m,
+          max_tokens: 1200,
+          temperature: 0.9,
+          messages: [
+            { role: 'system', content: TURNO_SYSTEM },
+            { role: 'user', content: texto },
+          ],
+        }),
+      });
+      if (!r.ok) continue; // el ping ya cuenta el porqué; aquí solo importa quién responde
+      const data = await r.json();
+      const crudo = String(data.choices?.[0]?.message?.content || '');
+      // El modelo puede envolver el JSON en ```fences``` — mismo parseo defensivo del cliente.
+      let parsed = null;
+      try {
+        const s = crudo.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+        const a = s.indexOf('{');
+        const b = s.lastIndexOf('}');
+        if (a !== -1 && b !== -1) parsed = JSON.parse(s.slice(a, b + 1));
+      } catch { /* se muestra el crudo */ }
+      return {
+        modelo: data.model || m,
+        ms: Date.now() - t0,
+        mensaje_de_prueba: texto,
+        respuesta: parsed || null,
+        crudo: parsed ? null : crudo.slice(0, 600),
+        usage: data.usage || null,
+      };
+    } catch { /* siguiente modelo de la cadena */ }
+  }
+  return { error: 'ningun_modelo_respondio', mensaje_de_prueba: texto, ms: Date.now() - t0 };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
@@ -89,7 +183,8 @@ export default async function handler(req, res) {
       app_pass: hay(process.env.APP_PASS),
       supabase_service: hay(process.env.SUPABASE_SERVICE_KEY),
     },
-    modelos: MODELS,
+    // Cadenas completas: el primero es el titular, el resto respaldos en orden.
+    modelos: { chat: cadenaDe('chat'), creative: cadenaDe('creative') },
     voz_por_defecto: process.env.TTS_MODEL || 'aura-2-helena-en',
   };
 
@@ -98,6 +193,19 @@ export default async function handler(req, res) {
     salida.deepgram_ping = voz
       ? await pingDeepgram(process.env.DEEPGRAM_API_KEY)
       : { alcanzado: false, error: 'no_hay_key_configurada' };
+  }
+
+  if (url.searchParams.get('ping') === 'opencode') {
+    salida.opencode_ping = ia
+      ? await pingOpenCode(process.env.OPENCODE_API_KEY)
+      : { alcanzado: false, error: 'no_hay_key_configurada' };
+    // &turno=0..4: además del ping, UN turno real del coach para ver la
+    // respuesta genuina (solo si se pide explícito — cuesta unos centavos).
+    const turno = url.searchParams.get('turno');
+    if (ia && turno !== null) {
+      const idx = Math.min(4, Math.max(0, Number(turno) || 0));
+      salida.turno_de_humo = await turnoDeHumo(process.env.OPENCODE_API_KEY, idx);
+    }
   }
 
   res.statusCode = 200;

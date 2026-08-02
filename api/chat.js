@@ -11,10 +11,28 @@ const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 // de TALK en 9-19s. Medido con el prompt real: Haiku responde en 1.9-2.6s con
 // ~80 tokens, JSON siempre valido y correcciones bien formadas.
 // creative sigue en Kimi: SLANG/STORY/SUBE estan afinados a su salida.
-const MODELS = {
-  chat: process.env.MODEL_CHAT || 'claude-haiku-4-5',
-  creative: process.env.MODEL_CREATIVE || 'kimi-k2.7-code',
+//
+// CADENAS con respaldo (pedido de Gus tras el CreditsError): si el primer
+// modelo falla EN EL PROVEEDOR (sin saldo, caído, desconocido) se prueba el
+// siguiente antes de rendirse. El caso real que lo motiva: claude-haiku se
+// cobra del SALDO de OpenCode Zen, mientras kimi entra en la suscripción Go —
+// con el saldo en cero, haiku muere con "Insufficient balance" pero kimi sigue
+// funcionando. MODEL_CHAT / MODEL_CREATIVE aceptan ahora una lista separada
+// por comas; lo que venga del env se antepone y los respaldos de fábrica se
+// quedan SIEMPRE al final como red de seguridad.
+const RESPALDO = {
+  chat: ['claude-haiku-4-5', 'kimi-k2.7-code'],
+  creative: ['kimi-k2.7-code', 'claude-haiku-4-5'],
 };
+function cadenaDe(mode) {
+  const m = mode === 'creative' ? 'creative' : 'chat';
+  const env = m === 'creative' ? process.env.MODEL_CREATIVE : process.env.MODEL_CHAT;
+  const propios = String(env || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [...new Set([...propios, ...RESPALDO[m]])];
+}
 
 // Sin temperature explícita quedábamos con el default del proveedor. Subirla
 // ensancha el muestreo y ayuda a que TALK no caiga siempre en la misma frase.
@@ -73,31 +91,72 @@ export default async function handler(req, res) {
   // Kimi es razonador: el pensamiento consume tokens ANTES del JSON, así que el
   // techo debe ser holgado o el JSON se trunca. 8000 deja aire de sobra.
   const safeMaxTokens = Math.min(Number(max_tokens) || 2500, 8000);
-  const model = MODELS[mode] || MODELS.chat;
+  const cadena = cadenaDe(mode);
   // Medición para el panel /uso: quién llama y cuánto tarda.
   const quien = usuarioDe(req);
   const t0 = Date.now();
 
   try {
-    const upstream = await fetch(OPENCODE_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: safeMaxTokens,
-        temperature: TEMPS[mode] ?? TEMPS.chat,
-        stream: wantsStream === true,
-        messages: safeMessages,
-      }),
-    });
+    /* La cadena se recorre en orden y gana el primer modelo que responda OK.
+       El intento fallido se anota (modelo, status, cuerpo) para el diagnóstico.
+       Un 401 corta la cadena: es la KEY la rechazada, ningún otro modelo va a
+       arreglar eso y probarlos solo suma latencia. El fallback ocurre ANTES de
+       escribir cabeceras, así que aplica igual al camino streaming. */
+    let upstream = null;
+    let model = cadena[0];
+    const fallos = [];
+    for (const candidato of cadena) {
+      model = candidato;
+      const r = await fetch(OPENCODE_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: candidato,
+          max_tokens: safeMaxTokens,
+          temperature: TEMPS[mode] ?? TEMPS.chat,
+          stream: wantsStream === true,
+          messages: safeMessages,
+        }),
+      });
+      if (r.ok) {
+        upstream = r;
+        break;
+      }
+      const detail = await r.text();
+      fallos.push({ modelo: candidato, status: r.status, detail: detail.slice(0, 500) });
+      if (r.status === 401) break;
+    }
 
-    if (!upstream.ok) {
-      const detail = await upstream.text();
+    if (!upstream) {
+      await registrarUso({
+        servicio: 'opencode', modelo: fallos.map((f) => f.modelo).join('>') || cadena[0], modo: mode,
+        usuario: quien, ok: false, ms: Date.now() - t0,
+      });
+      /* El detail llega TAL CUAL al toast del usuario (lib/api.ts), así que el
+         caso conocido se traduce a humano en vez de volcar el JSON del
+         proveedor — eso era el chorizo {"type":"CreditsError"...} en pantalla. */
+      const sinSaldo = fallos.some((f) => /CreditsError|Insufficient balance/i.test(f.detail));
+      const ultimo = fallos[fallos.length - 1] || {};
       res.statusCode = 502;
-      return res.end(JSON.stringify({ error: 'upstream_error', status: upstream.status, detail: detail.slice(0, 500) }));
+      return res.end(
+        JSON.stringify(
+          sinSaldo
+            ? {
+                error: 'sin_saldo_ia',
+                detail: 'Se acabó el crédito de IA — recarga el saldo en opencode.ai (Facturación). Modelos probados: ' + fallos.map((f) => f.modelo).join(', '),
+                fallos: fallos.map((f) => ({ modelo: f.modelo, status: f.status })),
+              }
+            : {
+                error: 'upstream_error',
+                status: ultimo.status,
+                detail: String(ultimo.detail || 'upstream').slice(0, 300),
+                fallos: fallos.map((f) => ({ modelo: f.modelo, status: f.status })),
+              },
+        ),
+      );
     }
 
     // ── Modo streaming (SSE) ───────────────────────────────────────────────
@@ -145,7 +204,8 @@ export default async function handler(req, res) {
             } catch { /* linea partida entre chunks: se completa en la siguiente vuelta */ }
           }
         }
-        send({ done: true, finish_reason: finishReason, cost, usage, model: MODELS[mode] || model });
+        // `model` es el que DE VERDAD respondió (puede ser un respaldo de la cadena).
+        send({ done: true, finish_reason: finishReason, cost, usage, model });
         await registrarUso({
           servicio: 'opencode', modelo: model, modo: mode, usuario: quien,
           tokens_in: usage && (usage.prompt_tokens ?? usage.input_tokens),
