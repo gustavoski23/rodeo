@@ -87,12 +87,15 @@ https://TU-RODEO.vercel.app/?pagoprueba=1
 1. Abre esa URL **en el computador** (para poder escanear el QR con el celular).
 2. Menú → **Suscripcion** → *Get it now* → pestaña **Crypto** → **Solana**.
 3. Debe decir "Envía **0.1 USDC**" y mostrar el aviso de modo prueba.
-4. Paga de una de las dos formas: escanea el QR con la wallet del celular, o
-   copia la dirección y el **monto exacto** y mándalo desde donde quieras.
+4. Paga desde una cuenta Solana **distinta** de la dirección receptora: escanea
+   el QR con esa otra cuenta, o copia la dirección y el **monto exacto** y
+   mándalo desde un exchange u otra wallet.
 5. En unos segundos la pantalla pasa **sola** al ticket.
 
-Como te lo pagas a ti mismo, el dinero vuelve a tu wallet; solo pierdes la
-comisión de red (fracciones de centavo en Solana).
+No envíes desde la misma dirección que aparece como destino. Una transferencia
+de la cuenta hacia sí misma no aumenta el saldo recibido y, correctamente, no
+se confirma como cobro. El dinero termina en tu wallet receptora; además se
+paga la comisión de red de la cuenta emisora.
 
 `rodeo-test` se acepta únicamente en despliegues Vercel Preview (o con
 `CRYPTO_PAYMENT_TEST_MODE=1` en una prueba local explícita). Producción lo

@@ -320,6 +320,15 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
                 Modo prueba de cobro — monto reducido a propósito.
               </p>
             )}
+            {intencion.chain === 'solana' && (
+              <div className="mt-2 flex gap-2 rounded-lg bg-amber-50 p-2.5 text-amber-900">
+                <AlertTriangle size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
+                <p className="text-xs leading-relaxed">
+                  Paga desde una cuenta distinta de la dirección receptora. Un envío de esta
+                  wallet hacia sí misma no aumenta el saldo y no puede confirmarse como cobro.
+                </p>
+              </div>
+            )}
 
             {qr !== null && (
               <div className="mt-3 flex flex-col items-center gap-1.5">
@@ -332,7 +341,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
                 />
                 {intencion.chain === 'solana' ? (
                   <p className="text-center text-xs text-muted-foreground">
-                    Escanéalo en Decaf, elige USDC y escribe el monto exacto mostrado arriba.
+                    Escanéalo desde otra cuenta en Decaf, elige USDC y escribe el monto exacto.
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">Escanéalo con la wallet de tu celular</p>
