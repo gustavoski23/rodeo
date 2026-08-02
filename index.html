@@ -177,6 +177,16 @@ body {
   border: 1px solid var(--glass-border);
 }
 
+/* RED DE SEGURIDAD — `hidden` la pone Tailwind, que se carga por CDN EN RUNTIME
+   (cdn.tailwindcss.com, arriba). Si ese CDN no llega —bloqueador, shields del
+   navegador, caída del CDN, red mala— la clase se queda sin estilos y el
+   #overlay (que vive con class="overlay hidden", fondo casi negro al 85% +
+   blur 20px + z-index 150) NUNCA se oculta: se planta sobre la app entera y el
+   usuario ve una pantalla negra borrosa que además se come los clics. Pasó en
+   producción justo al cerrar el onboarding de intereses. Declararla aquí, en
+   nuestro propio CSS, hace que ocultar deje de depender de una red ajena. */
+.hidden { display: none !important; }
+
 .view { display: none; }
 .view.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 
