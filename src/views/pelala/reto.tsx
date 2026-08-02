@@ -139,13 +139,7 @@ export function Pelala() {
   const Icono = ICONO_TERMINO[term.id] ?? ICONO_FALLBACK;
 
   return (
-    <div
-      className="pelala-premium flex min-h-0 flex-1 flex-col"
-      style={{
-        background:
-          'radial-gradient(ellipse 75% 40% at 100% 72%, oklch(52% 0.09 34 / 0.11), transparent 68%), radial-gradient(ellipse 66% 32% at 0% 44%, oklch(39% 0.06 308 / 0.10), transparent 70%)',
-      }}
-    >
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* ── Barra de sección: SOLO el ← + un rótulo quieto y NEUTRO. Fuera el
           contador y la barra de progreso, y el rótulo deja de ir en la lima
           (--accent): Gus los marcó como "verde AI slop" de la versión básica de
@@ -184,7 +178,7 @@ export function Pelala() {
             que el significado y el chat entren completos en el viewport, en vez
             de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
             para cerrar el aire de abajo sin encoger el gráfico. */}
-        <div className="relative -mb-4 h-[clamp(245px,38vh,400px)] w-full shrink-0 select-none sm:h-[clamp(280px,42vh,460px)]">
+        <div className="relative -mb-6 h-[clamp(165px,31vh,330px)] w-full shrink-0 select-none">
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -201,7 +195,7 @@ export function Pelala() {
             Antes eran dos cajas idénticas apiladas (en oscuro "cajita dentro de
             cajita", el fallo de la captura). Ahora un solo material continuo con
             divisor interior y el border beam (paquete, config en el store). ── */}
-        <DockPractica className="mb-2">
+        <DockPractica>
         {/* Zona SIGNIFICADO (revelable + guardable) — ya sin caja propia: es
             contenido con padding dentro del dock, no una isla con su borde. */}
         <div className="p-4">

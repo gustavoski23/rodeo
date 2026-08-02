@@ -20,9 +20,7 @@ const BEAM_SESSION_KEY = 'rodeo_beam';
 /* Marcado por Gus: Pulse dentro · Colorful · 100% · brillo 1.1 · 10 s. */
 export const BEAM_DEFAULT: BeamAppearance = {
   size: 'pulse-inner',
-  // El color del borde de Pélala lo aporta su propia piel ciruela/ascua.
-  // El preset Sunset del paquete introduce verde en algunos frames.
-  colorVariant: 'mono',
+  colorVariant: 'colorful',
   strength: 1,
   brightness: 1.1,
   duration: 10,

@@ -36,9 +36,7 @@ export function DockPractica({ className, children }: { className?: string; chil
          cambio de tipo o de tema debe re-montar para tomar los valores nuevos. */
       key={`${beam.size}-${tema}`}
       size={beam.size}
-      /* El paquete no ofrece una variante estrictamente ciruela/ascua: sunset
-         mete verde, por eso el pulso queda mono y el color vive en esta piel. */
-      colorVariant="mono"
+      colorVariant={beam.colorVariant}
       theme={tema === 'claro' ? 'light' : 'dark'}
       strength={beam.strength}
       brightness={beam.brightness}
@@ -46,10 +44,9 @@ export function DockPractica({ className, children }: { className?: string; chil
       className={className}
     >
       <div
-        className={cn('vidrio-tema relative overflow-hidden rounded-[28px]')}
+        className={cn('vidrio-tema relative overflow-hidden rounded-[22px]')}
         style={{
-          background:
-            'linear-gradient(135deg, color-mix(in oklch, var(--bg-surface) 92%, oklch(48% 0.045 310)) 0%, var(--bg-surface) 55%, color-mix(in oklch, var(--bg-surface) 92%, oklch(62% 0.08 50)) 100%)',
+          background: 'var(--bg-surface)',
           border: '1px solid var(--borde-sutil)',
           boxShadow: 'var(--sticker-shadow)',
         }}
