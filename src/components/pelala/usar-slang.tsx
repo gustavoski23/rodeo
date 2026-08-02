@@ -208,12 +208,15 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           size="icon"
           disabled
           aria-disabled="true"
-          className="pointer-events-none shrink-0 opacity-40"
-          contentClassName="text-[var(--text-muted)]!"
+          className="pelala-lamp-button pointer-events-none shrink-0 opacity-100"
+          contentClassName="text-[var(--accent)]!"
           aria-label="Hablar (próximamente)"
           title="Hablar — se conecta al micrófono en la próxima entrega"
         >
-          <Mic size={17} />
+          <span className="relative flex size-7 items-center justify-center">
+            <Mic size={19} strokeWidth={1.7} />
+            <span aria-hidden="true" className="pelala-lamp-dot" />
+          </span>
         </GlassButton>
         <input
           value={frase}
@@ -223,7 +226,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           }}
           aria-label={`Escribe una frase usando ${term.term}`}
           placeholder={`p. ej. usa “${term.term}”…`}
-          className="h-10 min-w-0 flex-1 rounded-full px-4 text-[0.9rem] outline-none transition placeholder:text-[var(--text-muted)]"
+          className="h-12 min-w-0 flex-1 rounded-full px-5 text-[0.9rem] outline-none transition placeholder:text-[var(--text-muted)]"
           style={{ background: 'var(--bg-deep)', border: '1px solid var(--borde-sutil)', color: 'var(--text-primary)' }}
         />
         {/* Enviar en el vidrio del login (REGLA 7): mismo material que el gate,
@@ -234,10 +237,13 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           onClick={unSoloClick(() => void enviar())}
           disabled={!frase.trim() || revisando}
           aria-label="Enviar frase"
-          className={cn('shrink-0', (!frase.trim() || revisando) && 'pointer-events-none opacity-40')}
-          contentClassName="text-[var(--text-primary)]!"
+          className={cn('pelala-lamp-button shrink-0', (!frase.trim() || revisando) && 'pointer-events-none opacity-100')}
+          contentClassName="text-[var(--accent)]!"
         >
-          <Send size={16} />
+          <span className="relative flex size-7 items-center justify-center">
+            <Send size={18} strokeWidth={1.7} />
+            <span aria-hidden="true" className="pelala-lamp-dot" />
+          </span>
         </GlassButton>
       </div>
       {/* El borde animado ya NO vive aquí: era un BorderBeam viajero SIEMPRE

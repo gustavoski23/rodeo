@@ -322,3 +322,46 @@
   animation: none;
   mix-blend-mode: normal;
 }
+
+/* Pélala: el gesto de voz/envío conserva el vidrio del gate, pero el icono
+   deja de ser una línea opaca. Es una luz cálida mínima dentro del material:
+   visible en claro, oscuro y aurora sin introducir verde ni un CTA extra. */
+.pelala-lamp-button .glass-button-text {
+  color: var(--accent) !important;
+  text-shadow:
+    0 0 5px color-mix(in oklch, var(--accent) 82%, transparent),
+    0 0 15px color-mix(in oklch, var(--accent) 44%, transparent) !important;
+}
+
+.pelala-lamp-button .glass-button {
+  box-shadow:
+    inset 0 1px 1px oklch(from var(--foreground) l c h / 5%),
+    inset 0 -2px 4px oklch(from var(--background) l c h / 50%),
+    0 5px 12px oklch(0% 0 0 / 0.16),
+    0 0 18px color-mix(in oklch, var(--accent) 18%, transparent) !important;
+}
+
+.pelala-lamp-dot {
+  position: absolute;
+  bottom: -1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--warn);
+  box-shadow: 0 0 7px color-mix(in oklch, var(--warn) 80%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pelala-lamp-button .glass-button-text {
+    animation: pelala-lamp-breathe 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes pelala-lamp-breathe {
+  50% {
+    filter: brightness(1.16);
+    text-shadow:
+      0 0 7px color-mix(in oklch, var(--accent) 90%, transparent),
+      0 0 20px color-mix(in oklch, var(--accent) 54%, transparent);
+  }
+}

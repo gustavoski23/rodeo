@@ -16,6 +16,9 @@ export default defineConfig({
     : undefined,
   server: {
     port: 5173,
+    // En Windows, el navegador de pruebas puede resolver el directorio por su
+    // alias 8.3; sin esta excepción Vite responde 403 aunque sea este proyecto.
+    fs: { strict: false },
     // Las funciones serverless viven en /api (Vercel). En dev las sirve
     // dev-server.mjs en el 4870 (npm run api en otra terminal).
     proxy: { '/api': 'http://localhost:4870' },
