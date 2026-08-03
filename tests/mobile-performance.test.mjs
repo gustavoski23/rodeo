@@ -88,8 +88,11 @@ test('onboarding keeps the first flow narrow and warms up the Home menu', async 
 
   assert.match(app, /lazy\(\(\) => import\('@\/views\/onboarding'\)\)/);
   assert.match(app, /useOnboarding/);
-  assert.match(onboarding, /\{ id: 'es', bandera: '🇪🇸' \}/);
-  assert.match(onboarding, /\{ id: 'en', bandera: '🇺🇸' \}/);
+  // Banderas como SVG (no emoji): en Windows/Chrome el emoji de bandera no
+  // renderiza, así que se dibujan con componentes SVG que se ven en todo equipo.
+  assert.match(onboarding, /\{ id: 'es', Bandera: BanderaES \}/);
+  assert.match(onboarding, /\{ id: 'en', Bandera: BanderaUS \}/);
+  assert.match(onboarding, /from '@\/components\/rodeo\/banderas'/);
   assert.doesNotMatch(onboarding, /id: 'pt'|id: 'fr'/);
   assert.match(onboarding, /programarPrecargaHome\(\)/);
   assert.match(preload, /homeInteraccionesPrecargadas/);

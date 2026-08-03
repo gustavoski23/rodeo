@@ -1,26 +1,31 @@
 import { create } from 'zustand';
 import type { User } from '@supabase/supabase-js';
 
-import { store } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 
 /* Gate de login — el estado de la puerta, no de la cuenta.
 
-   La app entera funciona sin cuenta (mejora progresiva pura, igual que el sync
-   legacy): por eso el gate NO es un muro. `gateNecesario` solo pregunta dos
-   cosas — ¿hay sesión de Supabase? ¿el usuario ya dijo "Skip" alguna vez? — y
-   con que una sea sí, la puerta no se pinta. Quien saltó una vez no la vuelve
-   a ver hasta que borre datos del navegador.
+   La app entera funciona sin cuenta (mejora progresiva pura), pero la PUERTA es
+   ahora lo PRIMERO que se ve SIEMPRE que no haya sesión (pedido de Gus): cada
+   vez que abres o recargas la app sin haber iniciado sesión con Google (o
+   cuenta), el gate aparece. `gateNecesario` pregunta lo esencial — ¿hay sesión
+   de Supabase? — y si no la hay, la puerta se pinta.
 
-   La persistencia va por `store` (@/lib/storage) y no por el middleware
-   `persist` de zustand: envolvería el valor en {state,version} y rompería el
-   formato rodeo_* que comparte con el resto de la app. */
+   "Skip" sigue siendo el escape para entrar SIN cuenta, pero ya NO se persiste
+   en disco: vale solo para ESTA carga de la app. Al reabrir o recargar (arranque
+   en frío del PWA o del navegador) el gate vuelve a estar primero. Antes "Skip"
+   guardaba `rodeo_gate_skip` en localStorage para siempre, y por eso la app a
+   veces abría directo al Home y a veces (tras borrar caché) mostraba el login:
+   esa inconsistencia es justo lo que se elimina aquí. */
 
-const CLAVE_SKIP = 'rodeo_gate_skip';
+// "Skip" en memoria: vive lo que dure esta carga del módulo y se reinicia en
+// cada arranque en frío. Así la puerta reaparece siempre que no haya sesión,
+// sin un muro persistido que la esconda entre aperturas.
+let saltadoEnSesion = false;
 
-/** ¿Ya saltó el gate en este dispositivo? */
+/** ¿Ya saltó el gate en ESTA carga de la app? (A propósito NO se persiste.) */
 function saltado(): boolean {
-  return !!store.get<string | null>(CLAVE_SKIP, null);
+  return saltadoEnSesion;
 }
 
 /* Lo que devuelven login/register para que la vista pinte error o aviso sin
@@ -41,6 +46,9 @@ function traducir(mensaje: string): string {
   if (/password should be at least|password.*6/.test(m)) return 'La contraseña necesita al menos 6 caracteres.';
   if (/rate limit|too many/.test(m)) return 'Muchos intentos seguidos. Espera un minuto y vuelve a probar.';
   if (/invalid.*email|email.*invalid/.test(m)) return 'Ese correo no se ve válido.';
+  if (/provider is not enabled|unsupported provider|is not enabled/.test(m))
+    return 'Google todavía no está activado en Supabase. Actívalo en Authentication → Providers → Google (ver SUPABASE-runbook §4) y reintenta.';
+  if (/popup|closed by the user|cancel/.test(m)) return 'Cancelaste el inicio con Google.';
   if (/fetch|network|failed to fetch/.test(m)) return 'Sin conexión con el servidor. Revisa tu internet.';
   return mensaje;
 }
@@ -59,6 +67,8 @@ type AuthState = {
   skip: () => void;
   login: (email: string, pass: string) => Promise<ResultadoAuth>;
   register: (email: string, pass: string) => Promise<ResultadoAuth>;
+  /** Abre el login con Google (OAuth). Redirige la pestaña si arranca bien. */
+  loginGoogle: () => Promise<ResultadoAuth>;
 };
 
 // StrictMode monta dos veces en dev; sin esto habría dos suscripciones de
@@ -97,11 +107,11 @@ export const useAuth = create<AuthState>((set) => ({
     });
   },
 
-  /* "Skip" es una decisión permanente del dispositivo, no de la sesión: quien
-     entró como invitado no quiere que la puerta le vuelva a aparecer cada vez
-     que abre la app. */
+  /* "Skip" deja entrar como invitado por ESTA carga de la app. A propósito NO se
+     persiste: al reabrir o recargar sin sesión, la puerta vuelve a ser lo
+     primero (es lo que hace que aparezca SIEMPRE que no hay login). */
   skip: () => {
-    store.set(CLAVE_SKIP, '1');
+    saltadoEnSesion = true;
     set({ gateNecesario: false });
   },
 
@@ -133,6 +143,37 @@ export const useAuth = create<AuthState>((set) => ({
       if (!u) return { ok: true, confirmar: true };
       set({ usuario: u, gateNecesario: false });
       return { ok: true };
+    } catch (e) {
+      return { ok: false, mensaje: comoMensaje(e) };
+    }
+  },
+
+  /* Login con Google (OAuth). Misma receta que el sync legacy
+     (public/js/supabase-sync.js): pedimos la URL con `skipBrowserRedirect` y
+     saltamos NOSOTROS con location.assign, en vez de dejar que signInWithOAuth
+     redirija a ciegas. Así, si Google no está habilitado en el server, el error
+     vuelve aquí como valor (no como el JSON crudo "provider is not enabled" en
+     una pantalla en blanco) y la vista lo traduce a un aviso claro.
+
+     `redirectTo` vuelve EXACTAMENTE a esta misma URL (prod o localhost); esa URL
+     debe estar en la allowlist de Redirect URLs de Supabase (SUPABASE-runbook
+     §3/§4). Al volver, detectSessionInUrl (default de supabase-js) lee el token
+     del hash y dispara SIGNED_IN → onAuthStateChange cierra el gate solo. */
+  loginGoogle: async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) return { ok: false, mensaje: traducir(error.message) };
+      if (data?.url) {
+        window.location.assign(data.url);
+        return { ok: true };
+      }
+      return { ok: false, mensaje: 'No pude abrir el login de Google. Reintenta.' };
     } catch (e) {
       return { ok: false, mensaje: comoMensaje(e) };
     }

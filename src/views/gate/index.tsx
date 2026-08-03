@@ -48,10 +48,12 @@ const PASO_ENTRADA = MODO_LIGERO ? 0 : 0.25;
 
 export function GateView() {
   const skip = useAuth((s) => s.skip);
+  const loginGoogle = useAuth((s) => s.loginGoogle);
   const t = useT();
 
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [googleCargando, setGoogleCargando] = useState(false);
 
   const emailRef = useRef<HTMLInputElement>(null);
 
@@ -76,7 +78,20 @@ export function GateView() {
     skip();
   }
 
-  // Sociales: por ahora solo visuales. No rompen nada; avisan que llegan pronto.
+  /* Google: login REAL con Supabase OAuth. Si arranca bien, la pestaña se va a
+     Google (esta vista se desmonta al volver con sesión), así que solo re-
+     habilitamos el botón cuando hubo error o el navegador bloqueó el salto. */
+  async function entrarConGoogle() {
+    if (googleCargando) return;
+    setGoogleCargando(true);
+    const r = await loginGoogle();
+    if (!r.ok) {
+      toast(r.mensaje, 5000);
+      setGoogleCargando(false);
+    }
+  }
+
+  // Apple y X: aún no cableados. Avisan que llegan pronto, sin romper nada.
   const proximamente = () => toast('Pronto lo activamos');
 
   return (
@@ -119,7 +134,8 @@ export function GateView() {
             <GlassButton
               type="button"
               size="icon"
-              onClick={proximamente}
+              onClick={entrarConGoogle}
+              disabled={googleCargando}
               aria-label="Continuar con Google"
             >
               <GoogleIcon />

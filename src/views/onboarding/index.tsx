@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Briefcase, User } from 'lucide-react';
 import { ChromaticTextReveal } from '@/components/beui/chromatic-text-reveal';
 import { BlurFade, GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import { GradientBackground } from '@/components/ui/sign-up';
+import { BanderaES, BanderaUS } from '@/components/rodeo/banderas';
 import { UiLangToggle } from '@/components/rodeo/ui-lang-toggle';
 import { useT } from '@/lib/demoStrings';
 import { programarPrecargaHome } from '@/lib/preload';
@@ -38,10 +39,14 @@ type Paso = 'nombre' | 'idioma' | 'nivel' | 'gustos' | 'carga';
    y inglés. Portugués y francés se retiraron a propósito para que la demo no
    prometa más de lo que hay contenido. Cuando entren más idiomas se añaden
    aquí y ya. `nombre` sale del diccionario (ES/EN) según el toggle; solo la
-   bandera y el id son fijos. */
+   bandera y el id son fijos.
+
+   La bandera es un COMPONENTE SVG (no emoji): el emoji 🇪🇸/🇺🇸 no renderiza en
+   Windows/Chrome (falta la fuente de banderas), así que en la compu se veían
+   como "ES"/"US" y en el cel sí como bandera. El SVG se ve igual en todos. */
 const IDIOMAS = [
-  { id: 'es', bandera: '🇪🇸' },
-  { id: 'en', bandera: '🇺🇸' },
+  { id: 'es', Bandera: BanderaES },
+  { id: 'en', Bandera: BanderaUS },
 ] as const;
 type IdiomaId = (typeof IDIOMAS)[number]['id'];
 
@@ -225,29 +230,30 @@ export function OnboardingView() {
                     </h1>
                   </BlurFade>
                   <div className="flex w-full flex-col gap-3">
-                    {IDIOMAS.map((i, n) => (
-                      <BlurFade key={i.id} delay={0.25 * 2 + n * 0.08} className="w-full">
-                        <div className="glass-input-wrap w-full">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIdioma(i.id);
-                              setPaso('nivel');
-                            }}
-                            className="glass-input w-full cursor-pointer"
-                          >
-                            <span className="glass-input-text-area" />
-                            <span className="relative z-10 flex w-full items-center gap-3 px-4 py-2.5 text-left">
-                              <span className="text-xl" aria-hidden="true">
-                                {i.bandera}
+                    {IDIOMAS.map((i, n) => {
+                      const Bandera = i.Bandera;
+                      return (
+                        <BlurFade key={i.id} delay={0.25 * 2 + n * 0.08} className="w-full">
+                          <div className="glass-input-wrap w-full">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIdioma(i.id);
+                                setPaso('nivel');
+                              }}
+                              className="glass-input w-full cursor-pointer"
+                            >
+                              <span className="glass-input-text-area" />
+                              <span className="relative z-10 flex w-full items-center gap-3 px-4 py-2.5 text-left">
+                                <Bandera className="h-5 w-[26px] shrink-0 rounded-[3px] ring-1 ring-black/10" />
+                                <span className="ob-titulo text-[15px] font-medium">{nombresIdioma[i.id]}</span>
+                                <ArrowRight className="ob-icono ml-auto h-4 w-4 shrink-0" aria-hidden="true" />
                               </span>
-                              <span className="ob-titulo text-[15px] font-medium">{nombresIdioma[i.id]}</span>
-                              <ArrowRight className="ob-icono ml-auto h-4 w-4 shrink-0" aria-hidden="true" />
-                            </span>
-                          </button>
-                        </div>
-                      </BlurFade>
-                    ))}
+                            </button>
+                          </div>
+                        </BlurFade>
+                      );
+                    })}
                   </div>
                   <VolverA onClick={() => setPaso('nombre')} etiqueta={t.obVolver} />
                 </>
