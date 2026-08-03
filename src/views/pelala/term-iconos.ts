@@ -24,6 +24,7 @@ import {
   MessageCircle,
   MessagesSquare,
   Milk,
+  Moon,
   Puzzle,
   Route,
   Smartphone,
@@ -37,6 +38,7 @@ import {
 } from 'lucide-react';
 
 export const ICONO_TERMINO: Record<string, LucideIcon> = {
+  'wind-up': Moon,
   'pull-off': Target,
   'run-into': Users,
   ghost: Ghost,

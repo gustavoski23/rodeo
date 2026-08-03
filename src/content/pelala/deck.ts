@@ -30,6 +30,18 @@ export type SlangTerm = {
 
 export const DECK: SlangTerm[] = [
   {
+    id: 'wind-up',
+    term: 'wind up',
+    kind: 'phrasal',
+    context_en: 'We wound up talking until 3 a.m.',
+    target: 'wound up',
+    gloss_es: 'terminar/acabar haciendo algo (sin planearlo)',
+    accept: ['wind up', 'wound up', 'winds up', 'winding up', 'wind up doing', 'wound up doing'],
+    emoji: '🌀',
+    imagePrompt:
+      'flat illustration of a winding spiral swirl leading into a speech bubble, crescent moon and stars for late night, minimal',
+  },
+  {
     id: 'pull-off',
     term: 'pull off',
     kind: 'phrasal',

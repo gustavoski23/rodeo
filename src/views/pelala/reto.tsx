@@ -30,11 +30,20 @@ import { CornerHint } from '@/components/pelala/corner-hint';
 import { DockPractica } from '@/components/pelala/dock-practica';
 import { PeelSticker, slangTextSource, type PeelStickerHandle } from '@/components/pelala/peel-sticker';
 import { UsarSlang } from '@/components/pelala/usar-slang';
+import { STICKER_SVG } from '@/content/pelala/stickers';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { usePelala } from '@/stores/pelala';
 
 import { ICONO_TERMINO, ICONO_FALLBACK } from './term-iconos';
+
+/* Sticker del término: si hay una ilustración en el pack (STICKER_SVG), esa
+   manda; si no, el sticker cae al texto de siempre (paridad con los términos
+   sin ilustrar todavía — el pack se va llenando de a poco). */
+function sourceDe(term: { id: string; term: string }) {
+  const svg = STICKER_SVG[term.id];
+  return svg ? ({ type: 'svg', svg } as const) : slangTextSource(term.term, '¿cómo se dice?');
+}
 
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
 const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
@@ -182,7 +191,7 @@ export function Pelala() {
           <PeelSticker
             ref={stickerRef}
             key="reto"
-            source={slangTextSource(term.term, '¿cómo se dice?')}
+            source={sourceDe(term)}
             sourceKey={term.id}
             onPeelStart={onPeelStart}
             onDetach={onDetach}
