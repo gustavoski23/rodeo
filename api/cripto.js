@@ -28,6 +28,8 @@
 //
 // Node ESM, SIN dependencias npm.
 
+import { acreditarPago, premiumDeUsuario, verificarSesion } from './_premium-db.js';
+
 // Planes que este frontend puede pedir. La lista existe para no reenviar a
 // ciegas lo que mande el navegador; los montos viven en Pangea.
 const PLANES = new Set(['rodeo-monthly', 'rodeo-yearly']);
@@ -97,7 +99,41 @@ export default async function handler(req, res) {
       return json(res, 400, { ok: false, error: 'No entendí la petición. Intenta de nuevo.' });
     }
     const url = `${base}/api/payments/status?intent=${encodeURIComponent(intent)}`;
-    return proxy(res, url, { method: 'GET', headers: { accept: 'application/json' } });
+    const r = await fetchReceptor(url, { method: 'GET', headers: { accept: 'application/json' } });
+    if (r.error) return json(res, r.error.status, r.error.payload);
+    const data = r.data;
+
+    // ATAR EL PAGO A LA CUENTA. Solo cuando la cadena YA confirmó (paid + txId)
+    // y el navegador mandó una sesión válida. Verificar el token es una llamada
+    // de red, así que se hace únicamente aquí —cuando de verdad hay algo que
+    // acreditar—, no en cada sondeo. Si no hay sesión o Supabase no está, el
+    // cobro sigue igual en el navegador; solo no queda atado a la cuenta.
+    let guardado = false;
+    if (data && data.paid === true && data.payment && typeof data.payment.txId === 'string') {
+      const sesion = await verificarSesion(req);
+      if (sesion) {
+        guardado = await acreditarPago({
+          userId: sesion.userId,
+          email: sesion.email,
+          chain: data.chain,
+          plan: data.plan,
+          txId: data.payment.txId,
+          amountBaseUnits: data.payment.amountBaseUnits,
+          reference: data.reference,
+          paidAtMs: data.payment.paidAtMs,
+        });
+      }
+    }
+    return json(res, 200, { ok: true, ...data, guardado });
+  }
+
+  // ¿Qué Premium tiene la cuenta logueada? Re-lee la tabla (fuente de verdad)
+  // para que el Premium siga al usuario a otro aparato: inicia sesión y lo ve.
+  if (action === 'mi-premium') {
+    const sesion = await verificarSesion(req);
+    if (!sesion) return json(res, 200, { ok: true, premium: null });
+    const premium = await premiumDeUsuario(sesion.userId);
+    return json(res, 200, { ok: true, premium, email: sesion.email });
   }
 
   return json(res, 400, { ok: false, error: 'No entendí la petición. Intenta de nuevo.' });
@@ -113,6 +149,18 @@ function testPlanEnabled() {
 
 /** Reenvía al receptor y normaliza la respuesta a { ok, ... }. */
 async function proxy(res, url, init) {
+  const r = await fetchReceptor(url, init);
+  if (r.error) return json(res, r.error.status, r.error.payload);
+  return json(res, 200, { ok: true, ...r.data });
+}
+
+/**
+ * Llama al receptor y devuelve el resultado SIN cerrar la respuesta, para que
+ * quien llama pueda post-procesarlo (p. ej. `status` acredita el pago antes de
+ * responder). Devuelve `{ data }` en éxito o `{ error: { status, payload } }`
+ * con el mismo {ok:false,...} que se enviaría tal cual.
+ */
+async function fetchReceptor(url, init) {
   // Si la wallet tiene "Vercel Authentication" (SSO) activada, sus URLs
   // *.vercel.app responden una página de login en vez del API. El token de
   // "Protection Bypass for Automation" (Vercel → Settings → Deployment
@@ -128,11 +176,16 @@ async function proxy(res, url, init) {
     upstream = await fetch(url, { ...init, headers, signal: AbortSignal.timeout(TIMEOUT_MS) });
   } catch {
     // Red caída / timeout: transitorio. NO es "no pagó".
-    return json(res, 502, {
-      ok: false,
-      error: 'No pude conectar con el servidor de pagos. Intenta de nuevo en un momento.',
-      transitorio: true,
-    });
+    return {
+      error: {
+        status: 502,
+        payload: {
+          ok: false,
+          error: 'No pude conectar con el servidor de pagos. Intenta de nuevo en un momento.',
+          transitorio: true,
+        },
+      },
+    };
   }
 
   let data;
@@ -144,29 +197,39 @@ async function proxy(res, url, init) {
     // devolviendo su página de login. Se distingue para el diagnóstico.
     const ct = upstream.headers.get('content-type') || '';
     const esLogin = upstream.status === 401 || upstream.status === 403 || /text\/html/.test(ct);
-    return json(res, esLogin ? 503 : 502, {
-      ok: false,
-      error: esLogin
-        ? 'El servidor de pagos está protegido y rechazó la conexión.'
-        : 'El servidor de pagos respondió raro. Intenta de nuevo en un momento.',
-      // 404/login = configuración pendiente → el frontend cae a modo demo.
-      motivo: esLogin || upstream.status === 404 ? 'sin_configurar' : undefined,
-      transitorio: !esLogin && upstream.status !== 404,
-    });
+    return {
+      error: {
+        status: esLogin ? 503 : 502,
+        payload: {
+          ok: false,
+          error: esLogin
+            ? 'El servidor de pagos está protegido y rechazó la conexión.'
+            : 'El servidor de pagos respondió raro. Intenta de nuevo en un momento.',
+          // 404/login = configuración pendiente → el frontend cae a modo demo.
+          motivo: esLogin || upstream.status === 404 ? 'sin_configurar' : undefined,
+          transitorio: !esLogin && upstream.status !== 404,
+        },
+      },
+    };
   }
 
   if (!upstream.ok) {
     // 502 del receptor = no pudo leer la cadena. Se marca transitorio para
     // que el frontend siga preguntando en vez de dar el cobro por perdido.
-    return json(res, upstream.status, {
-      ok: false,
-      error: mapError(data && data.code, data && data.error),
-      codigo: (data && data.code) || null,
-      transitorio: upstream.status === 502 || upstream.status === 429,
-    });
+    return {
+      error: {
+        status: upstream.status,
+        payload: {
+          ok: false,
+          error: mapError(data && data.code, data && data.error),
+          codigo: (data && data.code) || null,
+          transitorio: upstream.status === 502 || upstream.status === 429,
+        },
+      },
+    };
   }
 
-  return json(res, 200, { ok: true, ...data });
+  return { data };
 }
 
 // ── Traduce el código del receptor a español humano de RODEO ─────────────────

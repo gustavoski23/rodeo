@@ -19,6 +19,7 @@ import { AlertTriangle, Check, Copy, ExternalLink, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 
+import { AuthStrip } from '@/components/rodeo/auth-strip';
 import { Button } from '@/components/ui/button';
 import { ChainBadge } from '@/components/ui/chain-logo';
 import {
@@ -29,6 +30,19 @@ import {
   shortAddress,
 } from '@/lib/crypto-payment';
 import type { CryptoReceipt } from '@/lib/crypto-payment.types';
+import { tokenActual } from '@/stores/auth';
+
+/**
+ * Cabeceras para /api/cripto, con el token de la sesión si hay una. Con él, el
+ * servidor ata el pago a la cuenta (lo verifica y guarda la suscripción). Sin
+ * sesión, el pago funciona igual — solo no queda atado a un correo.
+ */
+async function cabecerasCripto(): Promise<Record<string, string>> {
+  const jwt = await tokenActual();
+  const headers: Record<string, string> = { 'content-type': 'application/json' };
+  if (jwt !== null) headers.Authorization = `Bearer ${jwt}`;
+  return headers;
+}
 
 export type PlanId = 'rodeo-monthly' | 'rodeo-yearly' | 'rodeo-test';
 type Red = 'solana' | 'stellar';
@@ -134,7 +148,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
     try {
       const res = await fetch('/api/cripto', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: await cabecerasCripto(),
         body: JSON.stringify({ action: 'intent', chain, plan: planEfectivo }),
       });
 
@@ -241,7 +255,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
     try {
       res = await fetch('/api/cripto', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: await cabecerasCripto(),
         body: JSON.stringify({ action: 'status', intent: token }),
       });
     } catch {
@@ -340,6 +354,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
 
   return (
     <div className="space-y-3">
+      <AuthStrip />
       <RedesSelector red={red} onRed={setRed} />
 
       {cargando && (

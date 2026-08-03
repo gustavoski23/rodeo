@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User } from '@supabase/supabase-js';
 
-import { supabase } from '@/lib/supabase';
+import { SB_ANON_KEY, SB_URL, supabase } from '@/lib/supabase';
 
 /* Gate de login — el estado de la puerta, no de la cuenta.
 
@@ -57,6 +57,39 @@ function comoMensaje(e: unknown): string {
   return traducir(String((e as { message?: string })?.message ?? e));
 }
 
+/**
+ * El access token de la sesión actual, o null. Lo usa el flujo de pago para
+ * mandar `Authorization: Bearer` a /api/cripto y que el servidor ate el pago a
+ * esta cuenta. Es una lectura local (supabase-js lo tiene en memoria/refresca
+ * solo): no pega a la red.
+ */
+export async function tokenActual(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/* ¿Qué proveedores externos están habilitados en el proyecto? Igual que el sync
+   legacy: se le pregunta a /auth/v1/settings para NO pintar el botón de Google
+   si el Paso 4 del runbook no está hecho (si no, "Google" lleva a un JSON de
+   error `provider is not enabled`). Se cachea: la respuesta no cambia en una
+   sesión. */
+let providersCache: { google: boolean } | null = null;
+export async function providersDisponibles(): Promise<{ google: boolean }> {
+  if (providersCache) return providersCache;
+  try {
+    const res = await fetch(`${SB_URL}/auth/v1/settings`, { headers: { apikey: SB_ANON_KEY } });
+    const data = (await res.json()) as { external?: { google?: boolean } };
+    providersCache = { google: data?.external?.google === true };
+  } catch {
+    providersCache = { google: false };
+  }
+  return providersCache;
+}
+
 type AuthState = {
   /** false hasta que init() resolvió getSession: antes NO se decide nada. */
   listo: boolean;
@@ -67,8 +100,12 @@ type AuthState = {
   skip: () => void;
   login: (email: string, pass: string) => Promise<ResultadoAuth>;
   register: (email: string, pass: string) => Promise<ResultadoAuth>;
-  /** Abre el login con Google (OAuth). Redirige la pestaña si arranca bien. */
+  /** Entra con Google (OAuth). Redirige la página; solo devuelve error. */
   loginGoogle: () => Promise<ResultadoAuth>;
+  /** Manda un enlace mágico al correo (sin contraseña). `confirmar` = enviado. */
+  loginConEnlace: (email: string) => Promise<ResultadoAuth>;
+  /** Cierra la sesión de Supabase y vuelve a mostrar la puerta de login. */
+  logout: () => Promise<void>;
 };
 
 // StrictMode monta dos veces en dev; sin esto habría dos suscripciones de
@@ -148,34 +185,51 @@ export const useAuth = create<AuthState>((set) => ({
     }
   },
 
-  /* Login con Google (OAuth). Misma receta que el sync legacy
-     (public/js/supabase-sync.js): pedimos la URL con `skipBrowserRedirect` y
-     saltamos NOSOTROS con location.assign, en vez de dejar que signInWithOAuth
-     redirija a ciegas. Así, si Google no está habilitado en el server, el error
-     vuelve aquí como valor (no como el JSON crudo "provider is not enabled" en
-     una pantalla en blanco) y la vista lo traduce a un aviso claro.
-
-     `redirectTo` vuelve EXACTAMENTE a esta misma URL (prod o localhost); esa URL
-     debe estar en la allowlist de Redirect URLs de Supabase (SUPABASE-runbook
-     §3/§4). Al volver, detectSessionInUrl (default de supabase-js) lee el token
-     del hash y dispara SIGNED_IN → onAuthStateChange cierra el gate solo. */
   loginGoogle: async () => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Vuelve al mismo origen donde estaba el usuario (así la sesión queda en
+      // el dominio que de verdad usa; ver la nota de Site URL en el runbook).
+      // Al volver, detectSessionInUrl (default de supabase-js) lee el token del
+      // hash y dispara SIGNED_IN → onAuthStateChange cierra el gate solo.
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo: window.location.origin + window.location.pathname,
-          skipBrowserRedirect: true,
-        },
+        options: { redirectTo: window.location.origin },
       });
       if (error) return { ok: false, mensaje: traducir(error.message) };
-      if (data?.url) {
-        window.location.assign(data.url);
-        return { ok: true };
-      }
-      return { ok: false, mensaje: 'No pude abrir el login de Google. Reintenta.' };
+      // En el éxito el navegador se va a Google; onAuthStateChange recoge la
+      // sesión al volver. No hace falta set() aquí.
+      return { ok: true };
     } catch (e) {
       return { ok: false, mensaje: comoMensaje(e) };
     }
+  },
+
+  loginConEnlace: async (email) => {
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) return { ok: false, mensaje: traducir(error.message) };
+      // Correo enviado: no hay sesión todavía. La vista dice "revisa tu buzón".
+      return { ok: true, confirmar: true };
+    } catch (e) {
+      return { ok: false, mensaje: comoMensaje(e) };
+    }
+  },
+
+  /* Cerrar sesión. Resetea el "skip" en memoria para que la PUERTA vuelva a
+     aparecer al salir (si no, saltadoEnSesion seguiría true y caerías al Home
+     sin sesión). signOut dispara SIGNED_OUT → onAuthStateChange, pero también
+     fijamos el estado aquí para que la UI reaccione al instante. Falla suave:
+     sin red igual limpiamos lo local para reflejar "sesión cerrada". */
+  logout: async () => {
+    saltadoEnSesion = false;
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      /* offline: el estado local se limpia igual abajo */
+    }
+    set({ usuario: null, gateNecesario: true });
   },
 }));
