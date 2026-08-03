@@ -28,10 +28,12 @@ red confirma el pago.
 Lo importante: **saber que un pago concreto es de una compra concreta**. Hay
 dos maneras y las dos se detectan solas:
 
-1. **Escaneando el QR de Solana**: lleva la dirección base58 pelada para que
-   la reconozcan lectores estrictos como Decaf. Después se elige USDC y se
-   escribe el monto exacto mostrado. El botón "Abrir en una wallet compatible"
-   conserva la URI Solana Pay con referencia para las wallets que la soportan.
+1. **Escaneando el QR**: lleva la URI completa de pago (Solana Pay en Solana,
+   SEP-0007 en Stellar) con destino, monto y referencia/memo dentro, así que
+   una wallet compatible autocompleta todo. **Cada red pide su propia wallet**:
+   el QR de Solana necesita una wallet de Solana (Phantom, Solflare…) y el de
+   Stellar una wallet de Stellar (Decaf, Lobstr…). Una wallet de Stellar NO
+   puede pagar en Solana ni al revés.
 2. **Copiando la dirección** (wallet, exchange, lo que sea): ahí no viaja
    ninguna referencia, así que el identificador es el **monto exacto**, al que
    se le suman micro-unidades únicas por cobro. Tiene que llegar clavado.

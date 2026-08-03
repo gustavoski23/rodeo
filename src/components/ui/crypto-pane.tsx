@@ -181,10 +181,10 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
     void pedirIntencion(red);
   }, [red, pedirIntencion]);
 
-  // Solana usa la dirección base58 pelada en el QR: los lectores estrictos
-  // (incluido Decaf en la prueba real) reconocen ese formato incluso cuando
-  // rechazan la URI densa de Solana Pay. La atribución automática se conserva
-  // por el monto exacto marcado. Stellar mantiene su URI con memo.
+  // El QR lleva la URI completa de pago (Solana Pay / SEP-7): una wallet
+  // compatible autocompleta destino, monto, token y referencia, y la
+  // atribución por referencia/memo queda intacta. Cada red pide su propia
+  // wallet: una de Solana no lee un QR de Stellar ni al revés.
   useEffect(() => {
     if (intencion === null) {
       setQr(null);
@@ -332,8 +332,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
 
             {qr !== null && (
               <div className="mt-3 flex flex-col items-center gap-1.5">
-                {/* Solana: dirección pelada compatible con Decaf. Stellar:
-                    URI completa para conservar el memo. */}
+                {/* La URI completa: la wallet compatible autocompleta el pago. */}
                 <img
                   src={qr}
                   alt="Código QR para pagar"
@@ -341,10 +340,13 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
                 />
                 {intencion.chain === 'solana' ? (
                   <p className="text-center text-xs text-muted-foreground">
-                    Escanéalo desde otra cuenta en Decaf, elige USDC y escribe el monto exacto.
+                    Escanéalo con una wallet de Solana. Una wallet de Stellar no
+                    puede pagar en Solana.
                   </p>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Escanéalo con la wallet de tu celular</p>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Escanéalo con tu wallet de Stellar.
+                  </p>
                 )}
               </div>
             )}

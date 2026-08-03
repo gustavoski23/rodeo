@@ -12,7 +12,14 @@
  * @param {{ chain: 'solana' | 'stellar', payTo: string, payUri: string }} intent
  */
 export function paymentQrPayload(intent) {
-  if (intent.chain === 'solana') return intent.payTo.trim();
+  // Las dos redes: la URI completa de pago (Solana Pay / SEP-7). Lleva monto,
+  // token y referencia dentro, así que una wallet compatible autocompleta todo
+  // y la atribución por referencia (Solana) o memo (Stellar) queda intacta.
+  //
+  // Antes Solana usaba la dirección base58 pelada "para Decaf", pero Decaf es
+  // una wallet de Stellar y no lee pagos de Solana en NINGÚN formato (al
+  // escanear muestra una cuenta que no es la del QR). Ese formato no ayudaba a
+  // nadie y les quitaba el autocompletado a las wallets de Solana de verdad.
   return intent.payUri.trim();
 }
 
