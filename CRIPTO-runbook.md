@@ -34,6 +34,16 @@ dos maneras y las dos se detectan solas:
    `web+stellar:` con parámetros (la propia wallet de Pangea llegó a lo mismo
    en `lib/qr/uri.ts`). La wallet abre "enviar a esta dirección"; se elige USDC
    y se escribe el **monto exacto** que muestra la pantalla.
+
+   > ⚠️ **La red se elige en la wallet, no en el QR.** Una dirección pelada no
+   > dice de qué cadena es, y las wallets multi-cadena (Decaf hace Solana *y*
+   > Stellar) escanean dentro de la red que ya tengas abierta: un QR de Solana
+   > leído desde el envío de Stellar abre un envío por Stellar. No tiene arreglo
+   > en el contenido del QR — marcar la red obliga a un esquema, y el esquema es
+   > justo lo que esos lectores rechazan. Por eso la pantalla dice qué red
+   > elegir **antes** de escanear y enseña la dirección abreviada (`3axp…3tSo`)
+   > para comprobar que la wallet abrió la correcta. Si no coincide, cambia de
+   > red en la wallet y vuelve a escanear.
 2. **Copiando la dirección** (wallet, exchange, lo que sea): idéntico al QR,
    pero tecleando la dirección.
 
@@ -93,10 +103,18 @@ https://TU-RODEO.vercel.app/?pagoprueba=1
 1. Abre esa URL **en el computador** (para poder escanear el QR con el celular).
 2. Menú → **Suscripcion** → *Get it now* → pestaña **Crypto** → **Solana**.
 3. Debe decir "Envía **0.1 USDC**" y mostrar el aviso de modo prueba.
-4. Paga desde una cuenta Solana **distinta** de la dirección receptora: escanea
+4. En la wallet del celular, **entra primero al envío de USDC por esa misma
+   red** y ahí abre el escáner. Comprueba que la dirección que te muestra
+   coincide con el recorte que aparece bajo el QR.
+5. Paga desde una cuenta Solana **distinta** de la dirección receptora: escanea
    el QR con esa otra cuenta, o copia la dirección y el **monto exacto** y
    mándalo desde un exchange u otra wallet.
-5. En unos segundos la pantalla pasa **sola** al ticket.
+6. En unos segundos la pantalla pasa **sola** al ticket.
+
+Desde el **celular** hay un camino más corto: abre ahí la URL de RODEO y toca
+"Abrir en una wallet compatible". Ese enlace sí lleva red, monto y
+referencia/memo dentro, así que la wallet lo rellena todo sola — el QR existe
+para el caso "pantalla grande + celular aparte".
 
 No envíes desde la misma dirección que aparece como destino. Una transferencia
 de la cuenta hacia sí misma no aumenta el saldo recibido y, correctamente, no

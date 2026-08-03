@@ -9,9 +9,11 @@ import {
   isPaymentAddressForChain,
   isPaymentUriForChain,
   paymentQrPayload,
+  shortAddress,
 } from '../src/lib/crypto-payment.js';
 
 const ADDRESS = '3axpuPto4iPUiQTPdM6a6qGuA55esJbC6XU8Ba843tSo';
+const STELLAR_ADDRESS = 'GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN';
 const PAY_URI = `solana:${ADDRESS}?amount=0.104436&spl-token=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&reference=reference`;
 
 function decodeGeneratedQr(payload) {
@@ -70,12 +72,22 @@ test('el QR de Solana contiene la dirección pelada compatible con Decaf', () =>
   assert.equal(decodeGeneratedQr(payload), ADDRESS);
 });
 
-test('Stellar conserva la URI completa para no perder el memo', () => {
-  const stellarUri = 'web+stellar:pay?destination=GABC&amount=1&memo=pedido';
-  assert.equal(
-    paymentQrPayload({ chain: 'stellar', payTo: 'GABC', payUri: ` ${stellarUri} ` }),
-    stellarUri,
-  );
+test('el QR de Stellar también es la dirección pelada, no la URI SEP-7', () => {
+  const payload = paymentQrPayload({
+    chain: 'stellar',
+    payTo: ` ${STELLAR_ADDRESS} `,
+    payUri: `web+stellar:pay?destination=${STELLAR_ADDRESS}&amount=1&memo=pedido`,
+  });
+  assert.equal(payload, STELLAR_ADDRESS);
+  assert.equal(decodeGeneratedQr(payload), STELLAR_ADDRESS);
+});
+
+// El QR no dice de qué red es la dirección, así que la pantalla enseña este
+// recorte para comparar con lo que abre la wallet y cazar la red equivocada.
+test('la dirección abreviada se recorta como la muestran las wallets', () => {
+  assert.equal(shortAddress(ADDRESS), '3axp…3tSo');
+  assert.equal(shortAddress(` ${STELLAR_ADDRESS} `), 'GA5Z…KZVN');
+  assert.equal(shortAddress('GABC'), 'GABC');
 });
 
 test('formatea micro-USDC sin usar floats', () => {

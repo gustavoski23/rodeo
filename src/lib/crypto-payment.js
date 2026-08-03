@@ -8,6 +8,14 @@
  * así que NO lo usamos"—; una URI `solana:`/`web+stellar:` con parámetros da
  * "QR inválido" en Decaf y otros escáneres estrictos.
  *
+ * ⚠️ EL PRECIO DE ESTE FORMATO — una dirección pelada NO DICE DE QUÉ RED ES.
+ * Las wallets multi-cadena (Decaf hace Solana y Stellar) escanean DENTRO de la
+ * red que ya tengas elegida en pantalla, así que un QR de Solana leído desde el
+ * envío de Stellar abre un envío por Stellar. No se arregla en el contenido del
+ * QR —cualquier esquema que marque la red vuelve a dar "QR inválido"—, así que
+ * se arregla en la UI: se dice qué red elegir ANTES de escanear y se muestra la
+ * dirección abreviada para comprobar que la wallet abrió la correcta.
+ *
  * No viaja el monto: se teclea a mano y la detección lo casa por el MONTO
  * EXACTO marcado (único por cobro). La URI completa —con monto y
  * referencia/memo, para autocompletar— sigue disponible en el botón "Abrir en
@@ -17,6 +25,19 @@
  */
 export function paymentQrPayload(intent) {
   return intent.payTo.trim();
+}
+
+/**
+ * Dirección abreviada `3axp…3tSo`, con el mismo recorte que usan las wallets
+ * para mostrarla. Sirve para lo único que importa aquí: comparar de un vistazo
+ * lo que abrió la wallet con lo que pide esta pantalla, y cazar así el envío
+ * por la red equivocada ANTES de mandar el dinero.
+ *
+ * @param {string} address @param {number} [visible] caracteres por lado
+ */
+export function shortAddress(address, visible = 4) {
+  const value = address.trim();
+  return value.length <= visible * 2 + 1 ? value : `${value.slice(0, visible)}…${value.slice(-visible)}`;
 }
 
 /** @param {'solana' | 'stellar'} chain @param {string} address */

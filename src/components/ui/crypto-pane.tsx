@@ -25,6 +25,7 @@ import {
   isPaymentAddressForChain,
   isPaymentUriForChain,
   paymentQrPayload,
+  shortAddress,
 } from '@/lib/crypto-payment';
 import type { CryptoReceipt } from '@/lib/crypto-payment.types';
 
@@ -111,6 +112,11 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
   // Evita que una respuesta lenta de una red pise a la de otra.
   const peticionRef = useRef(0);
 
+  const nombreRed =
+    intencion === null
+      ? ''
+      : (REDES.find((r) => r.id === intencion.chain)?.nombre ?? intencion.chain);
+
   const pedirIntencion = useCallback(async (chain: Red) => {
     const miPeticion = peticionRef.current + 1;
     peticionRef.current = miPeticion;
@@ -183,10 +189,15 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
 
   // El QR lleva la DIRECCIÓN pelada (sin esquema ni monto): es el formato que
   // TODA wallet escanea como destinatario, incluidos los escáneres estrictos
-  // como Decaf, que dan "QR inválido" ante una URI solana:/web+stellar: con
-  // parámetros (misma conclusión que lib/qr/uri.ts de la wallet de Pangea). El
-  // monto se teclea a mano y la detección lo casa por el monto exacto marcado;
-  // la URI completa —para autocompletar— sigue en el botón de abajo.
+  // que dan "QR inválido" ante una URI solana:/web+stellar: con parámetros
+  // (misma conclusión que lib/qr/uri.ts de la wallet de Pangea). El monto se
+  // teclea a mano y la detección lo casa por el monto exacto marcado; la URI
+  // completa —para autocompletar— sigue en el botón de abajo.
+  //
+  // Lo que ese formato NO puede decir es de qué RED es la dirección, y las
+  // wallets multi-cadena escanean dentro de la red que ya tengas abierta: por
+  // eso el pie del QR dice qué red elegir ANTES de escanear y enseña la
+  // dirección abreviada para comprobar que la wallet abrió la correcta.
   useEffect(() => {
     if (intencion === null) {
       setQr(null);
@@ -313,9 +324,7 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
             <p className="text-sm text-foreground">
               Envía exactamente{' '}
               <span className="font-semibold">{formatUsdcBaseUnits(intencion.amountBaseUnits)} USDC</span> por{' '}
-              <span className="font-medium">
-                {REDES.find((r) => r.id === intencion.chain)?.nombre}
-              </span>
+              <span className="font-medium">{nombreRed}</span>
             </p>
             {prueba && (
               <p className="mt-1 text-xs font-medium text-amber-700">
@@ -341,8 +350,16 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
                   className="w-60 max-w-full rounded-lg bg-white p-2"
                 />
                 <p className="text-center text-xs text-muted-foreground">
-                  Escanéalo con tu wallet, elige USDC y escribe el monto exacto
-                  de arriba.
+                  <span className="font-medium text-foreground">
+                    En tu wallet elige USDC en {nombreRed} ANTES de escanear.
+                  </span>{' '}
+                  El código lleva solo la dirección, así que la red la eliges tú: si tu wallet
+                  está en otra red, abrirá un envío por la red equivocada.
+                </p>
+                <p className="text-center text-xs text-muted-foreground">
+                  Tiene que aparecerte esta dirección:{' '}
+                  <span className="font-mono text-foreground">{shortAddress(intencion.payTo)}</span>
+                  . Luego escribe el monto exacto de arriba.
                 </p>
               </div>
             )}
