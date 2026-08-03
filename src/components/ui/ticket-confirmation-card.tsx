@@ -5,6 +5,8 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { ChainBadge } from "@/components/ui/chain-logo";
+import type { PaymentChain } from "@/lib/crypto-payment.types";
 
 // --- SVG Icons ---
 
@@ -48,55 +50,6 @@ const DashedLine = () => (
     aria-hidden="true"
   />
 );
-
-const Barcode = ({ value }: { value: string }) => {
-    const hashCode = (s: string) => s.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0);
-    const seed = hashCode(value);
-    const random = (s: number) => {
-        const x = Math.sin(s) * 10000;
-        return x - Math.floor(x);
-    };
-
-    const bars = Array.from({ length: 60 }).map((_, index) => {
-        const rand = random(seed + index);
-        const width = rand > 0.7 ? 2.5 : 1.5;
-        return { width };
-    });
-
-    const spacing = 1.5;
-    const totalWidth = bars.reduce((acc, bar) => acc + bar.width + spacing, 0) - spacing;
-    const svgWidth = 250;
-    const svgHeight = 70;
-    let currentX = (svgWidth - totalWidth) / 2;
-
-    return (
-        <div className="flex flex-col items-center py-2">
-             <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width={svgWidth}
-                height={svgHeight}
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                aria-label={`Barcode for value ${value}`}
-                className="fill-current text-foreground"
-            >
-                {bars.map((bar, index) => {
-                    const x = currentX;
-                    currentX += bar.width + spacing;
-                    return (
-                        <rect
-                            key={index}
-                            x={x}
-                            y="10"
-                            width={bar.width}
-                            height="50"
-                        />
-                    );
-                })}
-            </svg>
-            <p className="text-sm text-muted-foreground tracking-[0.3em] mt-2">{value}</p>
-        </div>
-    );
-};
 
 const ConfettiExplosion = () => {
   const confettiCount = 100;
@@ -146,11 +99,12 @@ export interface TicketProps extends React.HTMLAttributes<HTMLDivElement> {
   date: Date;
   cardHolder: string;
   last4Digits: string;
-  barcodeValue: string;
   amountLabel?: string;
   paymentLabel?: string;
   paymentDetail?: string;
   confirmationText?: string;
+  /** Si el pago fue en cripto, la red — para mostrar su logo en el chip. */
+  chain?: PaymentChain;
   icon?: React.ReactNode;
 }
 
@@ -163,11 +117,11 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
       date,
       cardHolder,
       last4Digits,
-      barcodeValue,
       amountLabel,
       paymentLabel,
       paymentDetail,
       confirmationText,
+      chain,
       ...props
     },
     ref
@@ -243,7 +197,9 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
               </div>
 
               <div className="bg-muted/50 p-4 rounded-lg flex items-center space-x-4">
-                  {paymentLabel ? (
+                  {chain ? (
+                    <ChainBadge chain={chain} className="size-10" />
+                  ) : paymentLabel ? (
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
                       USDC
                     </div>
@@ -257,10 +213,6 @@ const AnimatedTicket = React.forwardRef<HTMLDivElement, TicketProps>(
                       </p>
                   </div>
               </div>
-
-              <DashedLine />
-
-              <Barcode value={barcodeValue} />
           </div>
         </div>
       </>

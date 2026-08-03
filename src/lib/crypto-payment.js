@@ -53,6 +53,43 @@ export function isPaymentUriForChain(chain, payUri) {
   return chain === 'solana' ? value.startsWith('solana:') : value.startsWith('web+stellar:pay?');
 }
 
+/** Nombre humano del plan para las pantallas de suscripción. */
+export function planLabel(plan) {
+  switch (plan) {
+    case 'rodeo-monthly':
+      return 'Plan mensual';
+    case 'rodeo-yearly':
+      return 'Plan anual';
+    case 'rodeo-test':
+      return 'Prueba de cobro';
+    default:
+      return 'Premium';
+  }
+}
+
+/**
+ * Días de validez del plan, o null si no tiene vencimiento fijo (la prueba).
+ * El cobro en cripto es un pago único on-chain: no se renueva solo, así que la
+ * pantalla habla de "vence el…", no de "se renueva".
+ */
+export function planPeriodDays(plan) {
+  if (plan === 'rodeo-monthly') return 30;
+  if (plan === 'rodeo-yearly') return 365;
+  return null;
+}
+
+/**
+ * URL del explorador para VER la transacción en la cadena (red principal).
+ * Devuelve null si no hay txId. Es el "recibo" verificable del pago.
+ */
+export function explorerTxUrl(chain, txId) {
+  const id = String(txId == null ? '' : txId).trim();
+  if (id === '') return null;
+  return chain === 'solana'
+    ? `https://solscan.io/tx/${encodeURIComponent(id)}`
+    : `https://stellar.expert/explorer/public/tx/${encodeURIComponent(id)}`;
+}
+
 /** Unidades base de USDC (6 decimales) a decimal legible, sin floats. */
 export function formatUsdcBaseUnits(baseUnits) {
   if (!/^\d+$/.test(baseUnits)) return '0';

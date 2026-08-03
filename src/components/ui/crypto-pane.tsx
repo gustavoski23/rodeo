@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 
 import { Button } from '@/components/ui/button';
+import { ChainBadge } from '@/components/ui/chain-logo';
 import {
   formatUsdcBaseUnits,
   isPaymentAddressForChain,
@@ -44,14 +45,9 @@ function esModoPrueba(): boolean {
   return new URLSearchParams(window.location.search).get('pagoprueba') === '1';
 }
 
-const REDES: { id: Red; nombre: string; ticker: string; claseIcono: string }[] = [
-  {
-    id: 'solana',
-    nombre: 'Solana',
-    ticker: 'SOL',
-    claseIcono: 'bg-gradient-to-br from-[#9945FF] to-[#14F195]',
-  },
-  { id: 'stellar', nombre: 'Stellar', ticker: 'XLM', claseIcono: 'bg-black' },
+const REDES: { id: Red; nombre: string }[] = [
+  { id: 'solana', nombre: 'Solana' },
+  { id: 'stellar', nombre: 'Stellar' },
 ];
 
 /** Cada cuánto se le pregunta a la cadena. */
@@ -510,12 +506,7 @@ function RedesSelector({ red, onRed }: { red: Red; onRed: (r: Red) => void }) {
             red === r.id ? 'border-ring bg-accent' : 'border-input hover:bg-accent/50'
           }`}
         >
-          <span
-            className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white ${r.claseIcono}`}
-            aria-hidden="true"
-          >
-            {r.ticker}
-          </span>
+          <ChainBadge chain={r.id} className="size-6" />
           <span className="text-sm font-medium text-foreground">{r.nombre}</span>
         </button>
       ))}

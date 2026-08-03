@@ -9,6 +9,7 @@ import { ConnectedCards } from '@/components/ui/connected-cards';
 import { PaymentDialog } from '@/components/ui/payment-dialog';
 import { SquishyPricingCard } from '@/components/ui/squishy-card-component';
 import { AnimatedTicket } from '@/components/ui/ticket-confirmation-card';
+import { SuscripcionInfo } from '@/components/rodeo/suscripcion-info';
 import { formatUsdcBaseUnits } from '@/lib/crypto-payment';
 import { useSuscripcion } from '@/stores/suscripcion';
 
@@ -39,7 +40,6 @@ const TICKET_DEMO = {
   date: new Date('2025-06-19T10:15:00'),
   cardHolder: 'Liana80 Tudakova',
   last4Digits: '8237',
-  barcodeValue: '28937261273650',
 };
 
 export function SuscripcionOverlay() {
@@ -59,7 +59,7 @@ export function SuscripcionOverlay() {
         date: new Date(recibo.paidAtMs ?? Date.now()),
         cardHolder: '',
         last4Digits: '',
-        barcodeValue: recibo.txId.slice(0, 24),
+        chain: recibo.chain,
         paymentLabel: `USDC · ${recibo.chain === 'solana' ? 'Solana' : 'Stellar'}`,
         paymentDetail: 'Pago confirmado on-chain',
         confirmationText: 'Tu suscripción quedó activa',
@@ -202,23 +202,16 @@ export function SuscripcionOverlay() {
                     onClick={(e) => e.stopPropagation()}
                     className="sub-claro w-full max-w-md rounded-3xl bg-background p-6 shadow-2xl"
                   >
-                    <div className="mb-1 flex items-center justify-between gap-3">
-                      <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                        {recibo ? 'Tu suscripción' : 'Tu tarjeta conectada'}
-                      </h2>
-                      <Badge>Premium activo</Badge>
-                    </div>
                     {recibo ? (
-                      <div className="mb-4 space-y-2 rounded-xl border border-border bg-muted/50 p-4">
-                        <p className="text-sm font-medium text-foreground">
-                          {formatUsdcBaseUnits(recibo.amountBaseUnits)} USDC ·{' '}
-                          {recibo.chain === 'solana' ? 'Solana' : 'Stellar'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pago confirmado on-chain</p>
-                        <code className="block break-all text-xs text-muted-foreground">{recibo.txId}</code>
-                      </div>
+                      <SuscripcionInfo recibo={recibo} />
                     ) : (
                       <>
+                        <div className="mb-1 flex items-center justify-between gap-3">
+                          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                            Tu tarjeta conectada
+                          </h2>
+                          <Badge>Premium activo</Badge>
+                        </div>
                         <p className="mb-4 text-sm text-muted-foreground">
                           Con esta tarjeta pagaste tu suscripción — es la que está conectada a RODEO.
                         </p>

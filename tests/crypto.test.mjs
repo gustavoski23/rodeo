@@ -5,10 +5,13 @@ import { create as createQr } from 'qrcode';
 
 import cryptoHandler from '../api/cripto.js';
 import {
+  explorerTxUrl,
   formatUsdcBaseUnits,
   isPaymentAddressForChain,
   isPaymentUriForChain,
   paymentQrPayload,
+  planLabel,
+  planPeriodDays,
   shortAddress,
 } from '../src/lib/crypto-payment.js';
 
@@ -88,6 +91,29 @@ test('la dirección abreviada se recorta como la muestran las wallets', () => {
   assert.equal(shortAddress(ADDRESS), '3axp…3tSo');
   assert.equal(shortAddress(` ${STELLAR_ADDRESS} `), 'GA5Z…KZVN');
   assert.equal(shortAddress('GABC'), 'GABC');
+});
+
+test('el plan se traduce a un nombre humano', () => {
+  assert.equal(planLabel('rodeo-monthly'), 'Plan mensual');
+  assert.equal(planLabel('rodeo-yearly'), 'Plan anual');
+  assert.equal(planLabel('rodeo-test'), 'Prueba de cobro');
+  assert.equal(planLabel('lo-que-sea'), 'Premium');
+});
+
+test('el período del plan fija el vencimiento (o null en la prueba)', () => {
+  assert.equal(planPeriodDays('rodeo-monthly'), 30);
+  assert.equal(planPeriodDays('rodeo-yearly'), 365);
+  assert.equal(planPeriodDays('rodeo-test'), null);
+});
+
+test('el enlace del explorador apunta a la red correcta y escapa el id', () => {
+  assert.equal(explorerTxUrl('solana', 'abc'), 'https://solscan.io/tx/abc');
+  assert.equal(
+    explorerTxUrl('stellar', ' 3030028491268f6f '),
+    'https://stellar.expert/explorer/public/tx/3030028491268f6f',
+  );
+  assert.equal(explorerTxUrl('stellar', ''), null);
+  assert.equal(explorerTxUrl('solana', null), null);
 });
 
 test('formatea micro-USDC sin usar floats', () => {
