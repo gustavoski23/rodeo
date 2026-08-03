@@ -138,6 +138,11 @@ export async function pedirTTS(text: string, modelOverride?: VozId): Promise<Arr
    opts.voz        = el modelOverride del viejo (el episodio ilustrado pide una
                      voz por personaje sin tocar la voz global del coach).
    opts.trackReplay = false → no contamina el botón "repetir" del coach.
+   opts.onResuelta  = se dispara cuando la voz YA puede sonar (el MP3 está
+                     descargado y decodificado, a un frame de arrancar) — o si
+                     Deepgram falló. Es la señal de "suelta el texto": las
+                     vistas sincronizadas revelan las letras en ese momento,
+                     no antes (ver voice-sync.ts).
 
    NO hay cola: hay invalidación por token. Cada speak corta lo anterior
    (speakToken++) y una reproducción vieja que despierta con el token cambiado
@@ -145,7 +150,7 @@ export async function pedirTTS(text: string, modelOverride?: VozId): Promise<Arr
    respuestas seguidas sonarían una tras otra en vez de ganar la última. */
 export async function speak(
   text: string,
-  opts?: { voz?: VozId; trackReplay?: boolean },
+  opts?: { voz?: VozId; trackReplay?: boolean; onResuelta?: () => void },
 ): Promise<void> {
   // La voz habla SOLO el texto limpio: parseChunks descarta los marcadores
   // ⟦en||es⟧. Sin esto, Deepgram pronunciaba la traducción y los "||" dentro de
@@ -162,6 +167,7 @@ export async function speak(
     ab = await pedirTTS(limpio, opts?.voz);
   } catch (e) {
     if (token !== speakToken) return; // salió a otra vista mientras pedíamos Deepgram
+    opts?.onResuelta?.(); // no hay voz: el texto se libera de inmediato
     return avisarFalloVoz('falló la voz Deepgram', e);
   }
   if (token !== speakToken) return; // otra respuesta la reemplazó
@@ -183,13 +189,17 @@ export async function speak(
     src.connect(ctx.destination);
     audioActual = src;
     (window as unknown as { __vozMotor?: string }).__vozMotor = 'deepgram';
+    opts?.onResuelta?.(); // la voz arranca AHORA: liberar el texto sincronizado
     await new Promise<void>((res) => {
       src.onended = () => res();
       src.start();
     });
     if (audioActual === src) audioActual = null;
   } catch (e) {
-    if (token === speakToken) avisarFalloVoz('no pude reproducir el audio', e);
+    if (token === speakToken) {
+      opts?.onResuelta?.(); // falló la reproducción: el texto sale igual
+      avisarFalloVoz('no pude reproducir el audio', e);
+    }
   }
 }
 

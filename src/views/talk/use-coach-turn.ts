@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import { callAPI, callJSON, callStream, extractPartialReply, parseJSON, type ChatMessage } from '@/lib/api';
 import { recordUpgrade, saveDNA } from '@/lib/dna';
 import { parseChunks, stripChunksLive, type Gloss } from '@/lib/gloss';
-import { registrarHablado, speak, ttsActivo } from '@/lib/speech';
+import { hablarSincronizado } from '@/lib/voice-sync';
 import { REDUCED } from '@/lib/theme';
 import { toast } from '@/stores/toast';
 import { guardarOpener, leerOpeners, useTalk, type Debrief, type TalkSession } from '@/stores/talk';
@@ -94,7 +94,10 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
   };
 
   useTalk.getState().setTalkMode('charla');
-  useTalk.getState().abrirSesion(sesion, [{ tipo: 'coach', texto: ice, glosses: [], final: true }]);
+  /* La apertura se revela SINCRONIZADA con la voz (pedido de Gus): el lápiz
+     gira mientras Deepgram baja/decodifica el MP3 y las letras caen cuando la
+     voz arranca — no segundos antes. */
+  useTalk.getState().abrirSesion(sesion, [{ tipo: 'espera', desde: Date.now() }]);
   useTalk.getState().setFocoVolver(!!opts.focoVolver);
   /* Este es el ÚNICO camino que entra a una sesión sin pasar por la portada de
      TALK (la píldora aurora del Home). Aun así, el ← de la sesión devuelve a la
@@ -103,8 +106,12 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
      marca de origen que hacía la excepción se retiró en la ronda 3. */
 
   tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
-  if (ttsActivo()) void speak(ice);
-  else registrarHablado(ice);
+  const idLapiz = useTalk.getState().displayLog[0]?.id ?? null;
+  void (async () => {
+    await hablarSincronizado(ice);
+    if (idLapiz !== null) useTalk.getState().removeBubble(idLapiz);
+    useTalk.getState().addBubble({ tipo: 'coach', texto: ice, glosses: [], final: true });
+  })();
 
   return true;
 }
@@ -233,6 +240,15 @@ export function useCoachTurn() {
       // Se cancela el pintor antes de tocar nada para que un frame rezagado del
       // stream no pise el reply crudo que necesita <GlossText>.
       pintor.cancelar();
+
+      /* Sincronía texto-voz (pedido de Gus): las letras esperan a que la voz
+         de Deepgram arranque —o al tope de 3 s si tarda o falla— y aparecen
+         CUANDO el audio empieza a sonar. El lápiz gira mientras tanto. Con la
+         voz apagada, hablarSincronizado registra el texto y resuelve al acto. */
+      await hablarSincronizado(reply);
+      // ¿Salió de la charla mientras la voz calentaba? No pintar la respuesta.
+      if (!useTalk.getState().session) return;
+
       useTalk.getState().removeBubble(typingId);
 
       const { clean } = parseChunks(reply);
@@ -265,12 +281,6 @@ export function useCoachTurn() {
         ses.isOpening = false;
         guardarOpener(reply);
       }
-
-      /* La voz arranca EN PARALELO al pintado: leer y oír a la vez es la
-         gracia. Con la voz apagada se registra igual, para que el botón
-         repetir tenga algo si la enciendes después. */
-      if (ttsActivo()) void speak(reply);
-      else registrarHablado(reply);
     } catch (err) {
       pintor.cancelar();
       useTalk.getState().removeBubble(typingId);
@@ -321,6 +331,8 @@ export function useCoachTurn() {
     }
 
     const sit = buildSituation();
+    /* La apertura se revela SINCRONIZADA con la voz: el lápiz gira mientras
+       Deepgram baja el MP3 y las letras caen cuando la voz arranca. */
     useTalk.getState().abrirSesion(
       {
         scenario: 'free',
@@ -331,12 +343,16 @@ export function useCoachTurn() {
           { role: 'assistant', content: JSON.stringify({ reply: ice, corrections: [], glosses: [] }) },
         ],
       },
-      // La apertura ya pintada: sin lápiz, sin stream, directa a fase 2.
-      [{ tipo: 'coach', texto: ice, glosses: [], final: true }],
+      // La apertura NO se pinta de una: el lápiz espera a que la voz arranque.
+      [{ tipo: 'espera', desde: Date.now() }],
     );
     tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
-    if (ttsActivo()) void speak(ice);
-    else registrarHablado(ice);
+    const idLapiz = useTalk.getState().displayLog[0]?.id ?? null;
+    void (async () => {
+      await hablarSincronizado(ice);
+      if (idLapiz !== null) useTalk.getState().removeBubble(idLapiz);
+      useTalk.getState().addBubble({ tipo: 'coach', texto: ice, glosses: [], final: true });
+    })();
   }, []);
 
   /* ── Chat puro: el usuario abre escribiendo (portada de CHARLA) ───────────

@@ -25,7 +25,8 @@
 import { callAPI, callJSON, callStream, extractPartialReply, parseJSON, type ChatMessage } from '@/lib/api';
 import { saveDNA } from '@/lib/dna';
 import { stripChunksLive, type Gloss } from '@/lib/gloss';
-import { registrarHablado, speak, stopSpeak, ttsActivo } from '@/lib/speech';
+import { stopSpeak } from '@/lib/speech';
+import { hablarSincronizado } from '@/lib/voice-sync';
 import { useApp } from '@/stores/app';
 import { useEscenas, type RpAprendizaje, type RpSession } from '@/stores/escenas';
 import { useLadder } from '@/stores/ladder';
@@ -300,6 +301,15 @@ export async function rpTurn(userText: string | null, isOpening: boolean): Promi
 
     // Swap a fase 2. Sin máquina de escribir: la escena se lee de una.
     pintor.cancelar();
+
+    /* Sincronía texto-voz (pedido de Gus): la narración espera a que la voz
+       de Deepgram arranque —o al tope de 3 s si tarda o falla— y las letras
+       caen cuando el audio empieza a sonar. El lápiz sigue girando mientras
+       tanto. Con la voz apagada, hablarSincronizado registra y resuelve al
+       acto. */
+    await hablarSincronizado(reply);
+    if (!vive()) return;
+
     useEscenas.getState().remove(typingId);
     if (liveId === null) {
       liveId = useEscenas.getState().add({ tipo: 'narr', texto: reply, glosses, final: true });
@@ -309,10 +319,6 @@ export async function rpTurn(userText: string | null, isOpening: boolean): Promi
     if (consejo && consejo.trim()) useEscenas.getState().add({ tipo: 'consejo', texto: consejo });
 
     useEscenas.getState().setReplayOn(true);
-    /* La voz arranca en paralelo al pintado. Con la voz apagada se registra
-       igual, para que "repetir" tenga algo si la enciendes después. */
-    if (ttsActivo()) void speak(reply);
-    else registrarHablado(reply);
   } catch (err) {
     pintor.cancelar();
     useEscenas.getState().remove(typingId);

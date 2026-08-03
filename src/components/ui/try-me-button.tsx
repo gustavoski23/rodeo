@@ -182,7 +182,12 @@ const orbitStyles = `
   animation-play-state: paused;
 }
 
-@media (prefers-reduced-motion: reduce), (max-width: 767px), (pointer: coarse) {
+/* El anillo gira SIEMPRE a 18s (pedido de Gus, r3 + r4): la ronda de
+   optimización móvil lo apagó en teléfonos y Gus pidió que "siga rodando
+   lentamente como estaba". Fuera el (max-width: 767px) y el (pointer: coarse)
+   de la query — solo prefers-reduced-motion apaga la animación, para quien
+   pidió menos movimiento en el sistema. */
+@media (prefers-reduced-motion: reduce) {
   .hablarte-try-me,
   .hablarte-try-me__center {
     transition-duration: 1ms !important;

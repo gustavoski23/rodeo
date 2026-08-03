@@ -12,7 +12,10 @@ test('free conversation has tactile feedback without blocking navigation', async
 
   assert.match(button, /AURORA_HOME_FEEDBACK_MS = 120/);
   assert.doesNotMatch(button, /await\s+waitForUi/);
-  assert.match(coach, /abrirSesion\(sesion, \[\{ tipo: 'coach'/);
+  /* La apertura responde AL INSTANTE (sesión + lápiz), pero el texto espera a
+     que la voz de Deepgram arranque (sync texto-voz, pedido de Gus): el lápiz
+     es el feedback táctil, no un retardo artificial de "pensando". */
+  assert.match(coach, /abrirSesion\(sesion, \[\{ tipo: 'espera'/);
   assert.doesNotMatch(coach, /FREE_OPENING_THINK_MS|THINK_MS_REDUCED/);
 });
 
