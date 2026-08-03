@@ -1,26 +1,22 @@
 /**
- * Contenido que se dibuja dentro del QR de cobro.
+ * Contenido que se dibuja dentro del QR de cobro: la DIRECCIÓN pelada, sin
+ * esquema ni parámetros (base58 en Solana, G… en Stellar).
  *
- * En Solana usamos la dirección base58 pelada: es el formato de máxima
- * compatibilidad para lectores estrictos y para QRs fotografiados desde otra
- * pantalla. El monto exacto sigue visible y copiable al lado; Pangea lo usa
- * para atribuir pagos que llegan sin la referencia de Solana Pay.
+ * Es el formato de MÁXIMA COMPATIBILIDAD: el único que escanean los lectores
+ * estrictos. La wallet propia de Pangea llegó a la misma conclusión en
+ * lib/qr/uri.ts —"hasta `solana:<dirección>` lo rechaza el escáner de Decaf,
+ * así que NO lo usamos"—; una URI `solana:`/`web+stellar:` con parámetros da
+ * "QR inválido" en Decaf y otros escáneres estrictos.
  *
- * En Stellar se conserva la URI completa porque el memo forma parte del pago.
- * El botón de deep-link sigue usando `payUri` en ambas redes.
+ * No viaja el monto: se teclea a mano y la detección lo casa por el MONTO
+ * EXACTO marcado (único por cobro). La URI completa —con monto y
+ * referencia/memo, para autocompletar— sigue disponible en el botón "Abrir en
+ * una wallet compatible".
  *
  * @param {{ chain: 'solana' | 'stellar', payTo: string, payUri: string }} intent
  */
 export function paymentQrPayload(intent) {
-  // Las dos redes: la URI completa de pago (Solana Pay / SEP-7). Lleva monto,
-  // token y referencia dentro, así que una wallet compatible autocompleta todo
-  // y la atribución por referencia (Solana) o memo (Stellar) queda intacta.
-  //
-  // Antes Solana usaba la dirección base58 pelada "para Decaf", pero Decaf es
-  // una wallet de Stellar y no lee pagos de Solana en NINGÚN formato (al
-  // escanear muestra una cuenta que no es la del QR). Ese formato no ayudaba a
-  // nadie y les quitaba el autocompletado a las wallets de Solana de verdad.
-  return intent.payUri.trim();
+  return intent.payTo.trim();
 }
 
 /** @param {'solana' | 'stellar'} chain @param {string} address */

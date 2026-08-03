@@ -181,10 +181,12 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
     void pedirIntencion(red);
   }, [red, pedirIntencion]);
 
-  // El QR lleva la URI completa de pago (Solana Pay / SEP-7): una wallet
-  // compatible autocompleta destino, monto, token y referencia, y la
-  // atribución por referencia/memo queda intacta. Cada red pide su propia
-  // wallet: una de Solana no lee un QR de Stellar ni al revés.
+  // El QR lleva la DIRECCIÓN pelada (sin esquema ni monto): es el formato que
+  // TODA wallet escanea como destinatario, incluidos los escáneres estrictos
+  // como Decaf, que dan "QR inválido" ante una URI solana:/web+stellar: con
+  // parámetros (misma conclusión que lib/qr/uri.ts de la wallet de Pangea). El
+  // monto se teclea a mano y la detección lo casa por el monto exacto marcado;
+  // la URI completa —para autocompletar— sigue en el botón de abajo.
   useEffect(() => {
     if (intencion === null) {
       setQr(null);
@@ -332,22 +334,16 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
 
             {qr !== null && (
               <div className="mt-3 flex flex-col items-center gap-1.5">
-                {/* La URI completa: la wallet compatible autocompleta el pago. */}
+                {/* Dirección pelada: la escanea cualquier wallet como destino. */}
                 <img
                   src={qr}
                   alt="Código QR para pagar"
                   className="w-60 max-w-full rounded-lg bg-white p-2"
                 />
-                {intencion.chain === 'solana' ? (
-                  <p className="text-center text-xs text-muted-foreground">
-                    Escanéalo con una wallet de Solana. Una wallet de Stellar no
-                    puede pagar en Solana.
-                  </p>
-                ) : (
-                  <p className="text-center text-xs text-muted-foreground">
-                    Escanéalo con tu wallet de Stellar.
-                  </p>
-                )}
+                <p className="text-center text-xs text-muted-foreground">
+                  Escanéalo con tu wallet, elige USDC y escribe el monto exacto
+                  de arriba.
+                </p>
               </div>
             )}
 

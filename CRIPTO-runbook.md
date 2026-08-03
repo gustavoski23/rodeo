@@ -28,15 +28,19 @@ red confirma el pago.
 Lo importante: **saber que un pago concreto es de una compra concreta**. Hay
 dos maneras y las dos se detectan solas:
 
-1. **Escaneando el QR**: lleva la URI completa de pago (Solana Pay en Solana,
-   SEP-0007 en Stellar) con destino, monto y referencia/memo dentro, así que
-   una wallet compatible autocompleta todo. **Cada red pide su propia wallet**:
-   el QR de Solana necesita una wallet de Solana (Phantom, Solflare…) y el de
-   Stellar una wallet de Stellar (Decaf, Lobstr…). Una wallet de Stellar NO
-   puede pagar en Solana ni al revés.
-2. **Copiando la dirección** (wallet, exchange, lo que sea): ahí no viaja
-   ninguna referencia, así que el identificador es el **monto exacto**, al que
-   se le suman micro-unidades únicas por cobro. Tiene que llegar clavado.
+1. **Escaneando el QR**: lleva la **dirección pelada** (sin esquema ni monto).
+   Es el formato de máxima compatibilidad — el único que escanean los lectores
+   estrictos como Decaf, que dan "QR inválido" ante una URI `solana:` o
+   `web+stellar:` con parámetros (la propia wallet de Pangea llegó a lo mismo
+   en `lib/qr/uri.ts`). La wallet abre "enviar a esta dirección"; se elige USDC
+   y se escribe el **monto exacto** que muestra la pantalla.
+2. **Copiando la dirección** (wallet, exchange, lo que sea): idéntico al QR,
+   pero tecleando la dirección.
+
+En los dos caminos el identificador es el **monto exacto**, al que se le suman
+micro-unidades únicas por cobro (por eso no es redondo). Tiene que llegar
+clavado. El botón "Abrir en una wallet compatible" sí lleva la URI completa
+con monto y referencia/memo, para las wallets que la entienden.
 
 ---
 
