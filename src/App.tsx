@@ -155,8 +155,15 @@ export default function App() {
           <main
             className={cn(
               'flex min-h-0 flex-1 flex-col px-5',
-              // El pb no se toca: en sesión ya era el corto.
-              enSesion ? 'pb-[max(12px,env(safe-area-inset-bottom))]' : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
+              // El pb reserva 84px para la tab bar… que hoy está OCULTA (ver
+              // abajo). En sesión ya se recortaba a 12px. SLANG (Pélala) también
+              // lo recorta: su columna (sticker + significado + chat de práctica)
+              // es alta y esos 84px muertos empujaban el input fuera del pliegue
+              // en PC al 100%. Con la tab bar sin montar, reclamarlos es honesto;
+              // max(…, safe-area) respeta el notch/inferior del móvil.
+              enSesion || view === 'slang'
+                ? 'pb-[max(14px,env(safe-area-inset-bottom))]'
+                : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
             )}
           >
             <Suspense
