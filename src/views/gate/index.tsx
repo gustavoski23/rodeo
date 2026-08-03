@@ -14,7 +14,7 @@ import { UiLangToggle } from '@/components/rodeo/ui-lang-toggle';
 import { MODO_LIGERO } from '@/lib/device';
 import { useT } from '@/lib/demoStrings';
 import { store } from '@/lib/storage';
-import { useAuth } from '@/stores/auth';
+import { providersDisponibles, useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
 
 /* GATE — la puerta: lo primero que se ve al abrir la app.
@@ -48,12 +48,26 @@ const PASO_ENTRADA = MODO_LIGERO ? 0 : 0.25;
 
 export function GateView() {
   const skip = useAuth((s) => s.skip);
+  const loginGoogle = useAuth((s) => s.loginGoogle);
   const t = useT();
 
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // Google solo se cablea si el proveedor está encendido (Paso 4 del runbook);
+  // si no, el botón sigue avisando "pronto" en vez de caer en un error crudo.
+  const [googleOn, setGoogleOn] = useState(false);
 
   const emailRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    void providersDisponibles().then((p) => {
+      if (vivo) setGoogleOn(p.google);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   // Foco inicial en Email: al abrir la puerta, el cursor ya está donde se
   // empieza. (En useEffect, no autoFocus, para no pelear con el montaje doble
@@ -119,7 +133,7 @@ export function GateView() {
             <GlassButton
               type="button"
               size="icon"
-              onClick={proximamente}
+              onClick={googleOn ? () => void loginGoogle() : proximamente}
               aria-label="Continuar con Google"
             >
               <GoogleIcon />

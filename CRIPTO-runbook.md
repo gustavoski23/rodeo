@@ -162,6 +162,45 @@ menos.
 
 ---
 
+## Premium atado a la cuenta (Google / correo)
+
+Por defecto el Premium comprado vive **solo en el navegador** (localStorage). Si
+además quieres que quede **atado al correo del usuario** —que compre en el
+teléfono y lo tenga en la compu, o que reinstale y siga siendo Premium— RODEO ya
+trae la plomería. Es **aditivo**: sin nada de esto configurado, el cobro
+funciona exactamente igual, solo que no se ata a ninguna cuenta.
+
+**Cómo funciona.** El receptor (Pangea) es sin cuentas a propósito: sabe que
+*alguien* pagó, no *quién*. Así que la identidad la pone RODEO. Cuando hay
+sesión, el navegador manda su token de Supabase a `/api/cripto`; el servidor lo
+verifica y, en cuanto la cadena confirma el pago, escribe la fila en
+`public.suscripciones_premium` atada al `user_id`, deduplicando por `tx_id` (un
+pago acredita **una** vez). Al entrar en otro aparato con el mismo correo, la
+app pregunta `mi-premium` y refleja la suscripción. La tabla es la **fuente de
+verdad**; el localStorage es su espejo. Escribe **solo el servidor** (service
+key, tras re-confirmar el pago); un cliente con la key pública jamás se acredita
+Premium solo (RLS: cada quien solo LEE su propia fila).
+
+**Para encenderlo:**
+
+1. **Migración.** Aplica `supabase/migrations/20260803000000_suscripciones_premium.sql`
+   (se aplica sola al mergear a main con la integración de GitHub, o pégala en el
+   SQL Editor del dashboard).
+2. **Service key.** `SUPABASE_SERVICE_KEY` en Vercel (la misma que usa el panel
+   `/uso`; si ya la tienes, no hay nada nuevo). Sin ella, la acreditación es un
+   **no-op silencioso**: el cobro sigue, pero no se ata a la cuenta.
+3. **Login.** Para atar a Google hace falta el **Paso 4 de `SUPABASE-runbook.md`**
+   (encender Google OAuth). El **enlace mágico por correo** funciona con solo el
+   Paso 3 y ya sirve para atar la cuenta — el botón de Google aparece solo
+   cuando termines el Paso 4.
+
+> Nota: `SUPABASE_ANON_KEY` es opcional (tiene default con la key pública del
+> proyecto); solo se usa para validar el token del usuario contra Supabase Auth.
+> **Falta correo de confirmación:** no hay proveedor de correo todavía; cuando
+> quieras, se suma un endpoint que mande el recibo al acreditar el pago.
+
+---
+
 ## Precios
 
 Viven en el **servidor** (`lib/payments/plans.ts` de pangea-wallet), no en el

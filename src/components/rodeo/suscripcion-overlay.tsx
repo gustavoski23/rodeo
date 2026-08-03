@@ -11,6 +11,7 @@ import { SquishyPricingCard } from '@/components/ui/squishy-card-component';
 import { AnimatedTicket } from '@/components/ui/ticket-confirmation-card';
 import { SuscripcionInfo } from '@/components/rodeo/suscripcion-info';
 import { formatUsdcBaseUnits } from '@/lib/crypto-payment';
+import { useAuth } from '@/stores/auth';
 import { useSuscripcion } from '@/stores/suscripcion';
 
 import './suscripcion.css';
@@ -50,6 +51,17 @@ export function SuscripcionOverlay() {
   const pagar = useSuscripcion((s) => s.pagar);
   const recibo = useSuscripcion((s) => s.recibo);
   const resetDemo = useSuscripcion((s) => s.resetDemo);
+  const hidratarPremium = useSuscripcion((s) => s.hidratarPremium);
+  const usuario = useAuth((s) => s.usuario);
+
+  /* El Premium vive en el servidor atado a la cuenta; el localStorage es su
+     espejo. Al arrancar con sesión y cada vez que el usuario entra/sale,
+     preguntamos qué Premium tiene esta cuenta — así lo comprado en un aparato
+     aparece al entrar en otro. (El overlay está montado siempre, así que este
+     efecto corre al cargar la app.) */
+  useEffect(() => {
+    void hidratarPremium();
+  }, [usuario, hidratarPremium]);
 
   const ticket = recibo
     ? {
