@@ -130,6 +130,36 @@ Logs → `/api/cripto`) y del receptor. Los sospechosos habituales: falta alguna
 variable en la wallet, la dirección de cobro no es la que recibió, o el pago
 no llegó en USDC por la red elegida y con el monto exacto indicado.
 
+### Pagué y no lo detecta — qué mirar, en orden
+
+El botón "revisar ahora" ya distingue **"la cadena aún no lo ve"** de **"no
+pude mirar la cadena"** (si el receptor falla, sale su motivo, no un "no veo el
+pago" genérico). Si dice que no lo ve, abre la transacción en el explorador
+([stellar.expert](https://stellar.expert) / [solscan](https://solscan.io)) y
+comprueba, en este orden:
+
+1. **El monto, hasta el último decimal.** Es el identificador del cobro. Muchas
+   wallets de consumo muestran USDC como dólares y **redondean a dos
+   decimales**: mandan `0,11` donde pedíamos `0,108272` y ya no casa. Un pago
+   *de menos* tampoco vale aunque lleve el memo correcto.
+2. **La cuenta que recibió** es la misma que muestra la pantalla.
+3. **El activo**: en Stellar tiene que ser el USDC de Circle
+   (`GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN`); en Solana, el
+   mint real de USDC. Un USDC de otro emisor no se contabiliza.
+4. **Que sea un pago de verdad y no un saldo reclamable.** Si la cuenta de
+   cobro no tiene *trustline* de USDC, algunas wallets mandan un
+   `create_claimable_balance` en vez de un `payment`: la transacción sale
+   "exitosa", pero el dinero **no entra en la cuenta** hasta que se reclama, y
+   el receptor —que lee los pagos de la cuenta— no puede verlo. Arreglo: abre
+   la trustline de USDC en la cuenta de cobro y reclama el saldo pendiente.
+5. **Que el cobro sea el de esa pantalla.** Cada cobro tiene su propio monto
+   marcado; si recargaste o cambiaste de red antes de pagar, el monto que
+   estabas mirando ya era de otro cobro.
+
+El memo (Stellar) es un segundo camino de atribución, no un sustituto del
+monto: casa el pago aunque el monto venga *de más*, pero nunca si viene de
+menos.
+
 ---
 
 ## Precios

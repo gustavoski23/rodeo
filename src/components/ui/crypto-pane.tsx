@@ -57,6 +57,16 @@ const REDES: { id: Red; nombre: string; ticker: string; claseIcono: string }[] =
 /** Cada cuánto se le pregunta a la cadena. */
 const POLL_MS = 4_000;
 
+/**
+ * Resultado de preguntar por el estado del cobro. Los tres casos se tratan
+ * distinto a propósito: `sin_pago` es "aún no llegó", `fallo` es "no pudimos
+ * comprobarlo" (y su motivo hay que enseñarlo, no taparlo con un "no lo veo").
+ */
+type Consulta =
+  | { estado: 'pagado'; receipt: CryptoReceipt }
+  | { estado: 'sin_pago' }
+  | { estado: 'fallo'; error: string; transitorio: boolean };
+
 interface Intencion {
   intent: string;
   chain: Red;
@@ -225,59 +235,88 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
     };
   }, [intencion]);
 
-  /** Pregunta a la cadena y conserva el comprobante real si ya está pagado. */
-  const consultar = useCallback(async (token: string): Promise<CryptoReceipt | null> => {
+  /**
+   * Pregunta a la cadena. Devuelve POR QUÉ no hay ticket, no solo "no hay":
+   * "la cadena aún no lo ve" y "no pudimos mirar la cadena" son cosas
+   * distintas, y confundirlas deja al que ya pagó sin nada que hacer.
+   */
+  const consultar = useCallback(async (token: string): Promise<Consulta> => {
+    let res: Response;
     try {
-      const res = await fetch('/api/cripto', {
+      res = await fetch('/api/cripto', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'status', intent: token }),
       });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        paid?: boolean;
-        chain?: unknown;
-        plan?: unknown;
-        payment?: {
-          txId?: unknown;
-          amountBaseUnits?: unknown;
-          paidAtMs?: unknown;
-        };
-        error?: string;
-        transitorio?: boolean;
-      };
-      if (res.ok && data.ok === true && data.paid === true) {
-        const payment = data.payment;
-        if (
-          (data.chain === 'solana' || data.chain === 'stellar') &&
-          typeof data.plan === 'string' &&
-          payment !== undefined &&
-          typeof payment.txId === 'string' &&
-          payment.txId !== '' &&
-          typeof payment.amountBaseUnits === 'string' &&
-          /^\d+$/.test(payment.amountBaseUnits) &&
-          (payment.paidAtMs === null || typeof payment.paidAtMs === 'number')
-        ) {
-          return {
-            chain: data.chain,
-            plan: data.plan,
-            txId: payment.txId,
-            amountBaseUnits: payment.amountBaseUnits,
-            paidAtMs: payment.paidAtMs,
-          };
-        }
-        setError('La red confirmó el pago, pero el comprobante llegó incompleto. Intenta revisar de nuevo.');
-        return null;
-      }
-      // Un error transitorio (red caída) NO significa "no pagó": se calla y
-      // se reintenta en el siguiente ciclo.
-      if (!res.ok && data.transitorio !== true) {
-        setError(data.error ?? null);
-      }
-      return null;
     } catch {
-      return null;
+      return {
+        estado: 'fallo',
+        error: 'No pude conectar con el servidor de pagos. Revisa tu internet.',
+        transitorio: true,
+      };
     }
+
+    let data: {
+      ok?: boolean;
+      paid?: boolean;
+      chain?: unknown;
+      plan?: unknown;
+      payment?: {
+        txId?: unknown;
+        amountBaseUnits?: unknown;
+        paidAtMs?: unknown;
+      };
+      error?: string;
+      transitorio?: boolean;
+    };
+    try {
+      data = await res.json();
+    } catch {
+      return {
+        estado: 'fallo',
+        error: 'El servidor de pagos respondió algo que no entendí. Intenta de nuevo en un momento.',
+        transitorio: true,
+      };
+    }
+
+    if (!res.ok || data.ok !== true) {
+      return {
+        estado: 'fallo',
+        error: data.error ?? 'No pude comprobar el pago. Intenta de nuevo en un momento.',
+        // Transitorio = la red falló, NO "no pagó": el sondeo se calla y
+        // reintenta. Un cobro vencido, en cambio, hay que decirlo.
+        transitorio: data.transitorio === true,
+      };
+    }
+    if (data.paid !== true) return { estado: 'sin_pago' };
+
+    const payment = data.payment;
+    if (
+      (data.chain === 'solana' || data.chain === 'stellar') &&
+      typeof data.plan === 'string' &&
+      payment !== undefined &&
+      typeof payment.txId === 'string' &&
+      payment.txId !== '' &&
+      typeof payment.amountBaseUnits === 'string' &&
+      /^\d+$/.test(payment.amountBaseUnits) &&
+      (payment.paidAtMs === null || typeof payment.paidAtMs === 'number')
+    ) {
+      return {
+        estado: 'pagado',
+        receipt: {
+          chain: data.chain,
+          plan: data.plan,
+          txId: payment.txId,
+          amountBaseUnits: payment.amountBaseUnits,
+          paidAtMs: payment.paidAtMs,
+        },
+      };
+    }
+    return {
+      estado: 'fallo',
+      error: 'La red confirmó el pago, pero el comprobante llegó incompleto. Intenta revisar de nuevo.',
+      transitorio: true,
+    };
   }, []);
 
   // Sondeo mientras la intención esté viva.
@@ -287,8 +326,13 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
 
     const tick = async () => {
       if (!vivo) return;
-      const receipt = await consultar(intencion.intent);
-      if (vivo && receipt !== null) onPaid(receipt);
+      const resultado = await consultar(intencion.intent);
+      if (!vivo) return;
+      if (resultado.estado === 'pagado') onPaid(resultado.receipt);
+      // Una caída de red se calla y se reintenta sola; un motivo de verdad
+      // (cobro vencido, por ejemplo) se enseña: si no, el sondeo se queda
+      // girando para siempre sin decir por qué.
+      else if (resultado.estado === 'fallo' && !resultado.transitorio) setError(resultado.error);
     };
 
     const id = setInterval(() => void tick(), POLL_MS);
@@ -400,8 +444,21 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
               <p className="text-xs leading-relaxed">
                 Envía el <span className="font-semibold">monto exacto</span>, hasta el último
                 decimal: esos centésimos de centavo son lo que nos permite reconocer que el
-                pago es tuyo. Si lo mandas desde un exchange, revisa que la comisión no se
-                descuente del monto — lo que tiene que llegar exacto es lo que recibimos.
+                pago es tuyo. Si tu wallet redondea a dos decimales, escríbelo a mano. Si lo
+                mandas desde un exchange, revisa que la comisión no se descuente del monto —
+                lo que tiene que llegar exacto es lo que recibimos.
+              </p>
+            </div>
+
+            {/* El monto marcado es lo que identifica ESTE cobro. Si la pantalla
+                se rehace, el cobro es otro y el monto también: quien pagó el
+                anterior se queda esperando sin saber por qué. */}
+            <div className="flex gap-2 rounded-lg bg-amber-50 p-2.5 text-amber-900">
+              <AlertTriangle size={16} strokeWidth={2} className="mt-0.5 shrink-0" />
+              <p className="text-xs leading-relaxed">
+                Y es el monto <span className="font-semibold">de esta pantalla</span>: si la
+                recargas o cambias de red se genera otro cobro con otro monto, y este deja de
+                quedar a la espera. Paga sin cerrar esto.
               </p>
             </div>
           </div>
@@ -418,10 +475,16 @@ export function CryptoPane({ plan, onPaid }: { plan: PlanId; onPaid: (receipt: C
             disabled={verificando}
             onClick={async () => {
               setVerificando(true);
-              const receipt = await consultar(intencion.intent);
+              const resultado = await consultar(intencion.intent);
               setVerificando(false);
-              if (receipt !== null) onPaid(receipt);
-              else setError('Todavía no veo el pago en la red. Si acabas de enviarlo, dale unos segundos.');
+              if (resultado.estado === 'pagado') onPaid(resultado.receipt);
+              // El motivo real manda: decir "no veo el pago" cuando lo que pasó
+              // fue que no pudimos mirar deja a quien ya pagó sin saber qué hacer.
+              else if (resultado.estado === 'fallo') setError(resultado.error);
+              else
+                setError(
+                  `Todavía no veo el pago. Si acabas de enviarlo, dale unos segundos. Si ya pasaron varios minutos, comprueba en tu wallet que llegaron exactamente ${formatUsdcBaseUnits(intencion.amountBaseUnits)} USDC a la dirección de arriba: con otro monto no puedo reconocerlo como tuyo.`,
+                );
             }}
           >
             {verificando ? 'Revisando…' : 'Ya lo envié — revisar ahora'}
