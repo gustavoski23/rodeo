@@ -106,6 +106,8 @@ type AuthState = {
   loginConEnlace: (email: string) => Promise<ResultadoAuth>;
   /** Cierra la sesión de Supabase y vuelve a mostrar la puerta de login. */
   logout: () => Promise<void>;
+  /** Reabre la puerta de login SIN cerrar sesión (para quien entró con Skip). */
+  mostrarGate: () => void;
 };
 
 // StrictMode monta dos veces en dev; sin esto habría dos suscripciones de
@@ -231,5 +233,14 @@ export const useAuth = create<AuthState>((set) => ({
       /* offline: el estado local se limpia igual abajo */
     }
     set({ usuario: null, gateNecesario: true });
+  },
+
+  /* Reabrir la puerta a voluntad, SIN cerrar sesión. Es la contraparte de
+     `skip`: quien entró como invitado no tenía forma de volver al login sin
+     recargar la página. Baja la marca de "salté" para que la puerta no se
+     cierre sola en el siguiente cambio de estado. */
+  mostrarGate: () => {
+    saltadoEnSesion = false;
+    set({ gateNecesario: true });
   },
 }));

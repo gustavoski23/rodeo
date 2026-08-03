@@ -87,10 +87,13 @@ export function MenuFlotante({
   const setView = useApp((s) => s.setView);
   const setCarruselAlVolver = useApp((s) => s.setCarruselAlVolver);
   const abrirSuscripcion = useSuscripcion((s) => s.abrir);
-  // Solo pintamos "Cerrar sesion" cuando hay sesión viva (Google/correo): a un
-  // invitado no le sirve, y así el FloatingMenu se queda en 4 ítems para ellos.
+  /* La entrada de cuenta SIEMPRE está: con sesión ofrece salir, y sin sesión
+     ofrece entrar. Antes solo se pintaba "Cerrar sesion" con sesión viva, y
+     quien había entrado con Skip se quedaba sin ninguna forma de llegar al
+     login salvo recargar la página. */
   const usuario = useAuth((s) => s.usuario);
   const logout = useAuth((s) => s.logout);
+  const mostrarGate = useAuth((s) => s.mostrarGate);
 
   useEffect(() => escucharPrecargaHome(() => setCargado(true)), []);
 
@@ -118,14 +121,21 @@ export function MenuFlotante({
        tilde a propósito: el roll de letras del FloatingMenu recorta a 1em cada
        carácter y la Ó pierde el acento (y asoma el de la copia de abajo). */
     { label: 'Suscripcion', onClick: () => { cerrarMenu(); abrirSuscripcion(); } },
-    /* CERRAR SESION solo con sesión viva. logout() resetea el "skip" en memoria
-       y marca gateNecesario, así que al salir vuelve la puerta de login encima
-       — justo lo que sirve para probar el ciclo logout → login otra vez. Sin
-       tilde en "sesion" por el recorte de 1em del roll de letras (igual que
-       "Suscripcion"). */
-    ...(usuario
-      ? [{ label: 'Cerrar sesion', onClick: () => { cerrarMenu(); void logout(); } }]
-      : []),
+    /* CUENTA — la misma ranura sirve para las dos direcciones:
+       · con sesión  → "Cerrar sesion": logout() cierra en Supabase, resetea el
+         "skip" en memoria y marca gateNecesario, así que la puerta vuelve sola.
+       · sin sesión  → "Iniciar sesion": mostrarGate() reabre la puerta encima
+         del Home (Google / correo / Skip), sin recargar la página.
+       Dos detalles de tipografía que impone el FloatingMenu (verbatim):
+       · Sin tilde en "sesion": su roll de letras recorta cada carácter a 1em y
+         la Ó pierde el acento (misma razón que "Suscripcion").
+       · El espacio va DURO (\u00A0) y no normal: el componente parte la
+         etiqueta carácter por carácter y mete cada uno en un <span> propio,
+         donde un espacio normal COLAPSA — se leía "INICIARSESION" de corrido.
+         Por eso el resto de entradas son de una sola palabra. */
+    usuario
+      ? { label: 'Cerrar\u00A0sesion', onClick: () => { cerrarMenu(); void logout(); } }
+      : { label: 'Iniciar\u00A0sesion', onClick: () => { cerrarMenu(); mostrarGate(); } },
   ];
 
   return (
