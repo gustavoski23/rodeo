@@ -18,22 +18,29 @@
 //     rechaza; lo delatamos con metadatos seguros (largo, si trim la cambia).
 // Nunca se devuelve el valor de la key, solo su forma.
 
+import {
+  DEFAULT_FREE_MODEL,
+  DEFAULT_GO_CHAT_MODEL,
+  DEFAULT_GO_CREATIVE_MODEL,
+  OPENCODE_ZEN_URL,
+  openCodeContent,
+  requestOpenCode,
+  resolveGoModel,
+} from './_opencode.js';
 import { registrarUso, usuarioDe } from './_uso.js';
 
-/* Cadenas de modelos — MISMA lógica que api/chat.js (duplicada a propósito:
-   cada función serverless es un módulo aislado; si cambias una, cambia la otra). */
-const RESPALDO = {
-  chat: ['claude-haiku-4-5', 'kimi-k2.7-code'],
-  creative: ['kimi-k2.7-code', 'claude-haiku-4-5'],
+/* Modelos REALES del chat — resueltos por el MISMO cliente compartido que usa
+   api/chat.js (_opencode.js). La lección que motiva esto: la primera versión
+   duplicaba aquí la lista de modelos "a propósito", otra sesión cambió la
+   estrategia en chat.js, y este endpoint quedó diagnosticando modelos que la
+   app ya no usaba — decía sin_saldo con el chat funcionando. */
+const MODELS = {
+  chat: resolveGoModel(process.env.MODEL_GO_CHAT || process.env.MODEL_CHAT, DEFAULT_GO_CHAT_MODEL),
+  creative: resolveGoModel(process.env.MODEL_GO_CREATIVE || process.env.MODEL_CREATIVE, DEFAULT_GO_CREATIVE_MODEL),
 };
-function cadenaDe(mode) {
-  const env = mode === 'creative' ? process.env.MODEL_CREATIVE : process.env.MODEL_CHAT;
-  const propios = String(env || '').split(',').map((s) => s.trim()).filter(Boolean);
-  return [...new Set([...propios, ...RESPALDO[mode]])];
-}
+const MODELO_GRATIS = process.env.MODEL_FALLBACK || DEFAULT_FREE_MODEL;
 
 const DEEPGRAM_URL = 'https://api.deepgram.com/v1/speak';
-const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
 
 // Radiografía SEGURA de una key: nunca el valor, solo su forma. Sirve para
 // cazar el fallo más tonto y más común: pegarla con comillas o con un espacio
@@ -75,36 +82,58 @@ async function pingDeepgram(apiKey) {
   }
 }
 
-/* Ping real a OpenCode, modelo por modelo: distingue lo que el booleano
-   `opencode:true` no puede — la key existe pero ¿este modelo FUNCIONA? El caso
-   que lo motiva: claude-haiku se cobra del saldo Zen (que puede estar en $0)
-   mientras kimi entra en la suscripción Go — misma key, un modelo muere con
-   CreditsError y el otro anda. 16 tokens por modelo: centavos. */
+/* Diagnóstico ligero de un cuerpo de error SIN devolverlo jamás: el cuerpo
+   puede traer metadatos del proveedor (misma postura que _opencode.js). Si la
+   respuesta ya fue leída por requestOpenCode, text() lanza y queda ''. */
+async function diagnosticoDe(r) {
+  if (r.ok) return 'ok';
+  let cuerpo = '';
+  try {
+    cuerpo = await r.text();
+  } catch {
+    /* body ya consumido al clasificar el fallback */
+  }
+  if (/CreditsError|Insufficient balance|insufficient_quota|quota exceeded/i.test(cuerpo)) return 'sin_saldo_o_cuota';
+  if (r.status === 401) return 'key_rechazada_o_sin_saldo';
+  if (r.status === 402) return 'sin_saldo';
+  if (r.status === 404 || /ModelNotFound|unknown model/i.test(cuerpo)) return 'modelo_desconocido';
+  if (r.status === 429) return 'limite_de_tasa';
+  return 'error';
+}
+
+/* Ping real por el MISMO camino que el chat: requestOpenCode prueba el modelo
+   Go titular y, si el fallo es de crédito/cuota/región, cae solo al modelo
+   gratis — el resultado dice quién respondió de verdad (uso_respaldo). Aparte
+   se prueba el modelo gratis DIRECTO en Zen, porque es la red de seguridad
+   final y conviene saber si está viva por sí misma. 16 tokens por sonda. */
 async function pingOpenCode(apiKey) {
-  const modelos = [...new Set([...cadenaDe('chat'), ...cadenaDe('creative')])];
   const out = [];
-  // La key viaja VERBATIM, igual que en api/chat.js: si tiene un salto de
-  // línea pegado, el ping debe fallar IGUAL que el chat (antes se trimeaba
-  // aquí y el ping podía decir "ok" con un chat roto). La radiografía
-  // (formaClave) del handler delata el porqué.
-  const sinClave = (s) => String(s).split(apiKey).join('[key]');
-  for (const m of modelos) {
-    try {
-      const r = await fetch(OPENCODE_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: m, max_tokens: 16, messages: [{ role: 'user', content: 'Say "ok".' }] }),
-      });
-      const cuerpo = await r.text();
-      let diagnostico = r.ok ? 'ok' : 'error';
-      if (/CreditsError|Insufficient balance/i.test(cuerpo)) diagnostico = 'sin_saldo';
-      else if (r.status === 401) diagnostico = 'key_rechazada';
-      else if (r.status === 404 || /ModelNotFound|unknown model/i.test(cuerpo)) diagnostico = 'modelo_desconocido';
-      else if (r.status === 429) diagnostico = 'limite_de_tasa';
-      out.push({ modelo: m, status: r.status, ok: r.ok, diagnostico, detalle: r.ok ? null : sinClave(cuerpo).slice(0, 200) });
-    } catch (err) {
-      out.push({ modelo: m, alcanzado: false, error: String(err && err.message).slice(0, 150) });
-    }
+  const sonda = { max_tokens: 16, messages: [{ role: 'user', content: 'Say "ok".' }] };
+
+  try {
+    const { response, model, usedFallback } = await requestOpenCode(apiKey, { ...sonda, model: MODELS.chat });
+    out.push({
+      camino: 'chat_real',
+      modelo_pedido: MODELS.chat,
+      modelo_respondio: model,
+      uso_respaldo_gratis: usedFallback,
+      status: response.status,
+      ok: response.ok,
+      diagnostico: await diagnosticoDe(response),
+    });
+  } catch (err) {
+    out.push({ camino: 'chat_real', modelo_pedido: MODELS.chat, alcanzado: false, error: String(err && err.message).slice(0, 150) });
+  }
+
+  try {
+    const r = await fetch(OPENCODE_ZEN_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...sonda, model: MODELO_GRATIS }),
+    });
+    out.push({ camino: 'respaldo_gratis_directo', modelo: MODELO_GRATIS, status: r.status, ok: r.ok, diagnostico: await diagnosticoDe(r) });
+  } catch (err) {
+    out.push({ camino: 'respaldo_gratis_directo', modelo: MODELO_GRATIS, alcanzado: false, error: String(err && err.message).slice(0, 150) });
   }
   return out;
 }
@@ -127,27 +156,23 @@ const TURNOS = [
 async function turnoDeHumo(apiKey, indice, quien) {
   const texto = TURNOS[indice] ?? TURNOS[0];
   const t0 = Date.now();
-  for (const m of cadenaDe('chat')) {
-    try {
-      const r = await fetch(OPENCODE_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: m,
-          // 2500 como el piso del chat real: kimi quema ~1200 tokens RAZONANDO
-          // antes del primer carácter — con 1200 el turno saldría vacío justo
-          // en el escenario que este diagnóstico existe para probar.
-          max_tokens: 2500,
-          temperature: 0.9,
-          messages: [
-            { role: 'system', content: TURNO_SYSTEM },
-            { role: 'user', content: texto },
-          ],
-        }),
+  try {
+      // El MISMO camino que un turno real del chat: modelo Go titular con
+      // respaldo gratis automático (requestOpenCode decide, igual que chat.js).
+      // 2500 de techo como el piso del chat real: un modelo razonador quema
+      // cientos de tokens ANTES del primer carácter y con menos saldría vacío.
+      const { response: r, model: m, protocol } = await requestOpenCode(apiKey, {
+        model: MODELS.chat,
+        max_tokens: 2500,
+        temperature: 0.9,
+        messages: [
+          { role: 'system', content: TURNO_SYSTEM },
+          { role: 'user', content: texto },
+        ],
       });
-      if (!r.ok) continue; // el ping ya cuenta el porqué; aquí solo importa quién responde
+      if (!r.ok) return { error: 'ningun_modelo_respondio', status: r.status, diagnostico: await diagnosticoDe(r), mensaje_de_prueba: texto, ms: Date.now() - t0 };
       const data = await r.json();
-      const crudo = String(data.choices?.[0]?.message?.content || '');
+      const crudo = String(openCodeContent(data, protocol) || '');
       // El modelo puede envolver el JSON en ```fences``` — mismo parseo defensivo del cliente.
       let parsed = null;
       try {
@@ -172,9 +197,9 @@ async function turnoDeHumo(apiKey, indice, quien) {
         crudo: parsed ? null : crudo.slice(0, 600),
         usage: data.usage || null,
       };
-    } catch { /* siguiente modelo de la cadena */ }
+  } catch (err) {
+    return { error: 'red_caida', detalle: String(err && err.message).slice(0, 150), mensaje_de_prueba: texto, ms: Date.now() - t0 };
   }
-  return { error: 'ningun_modelo_respondio', mensaje_de_prueba: texto, ms: Date.now() - t0 };
 }
 
 export default async function handler(req, res) {
@@ -201,8 +226,9 @@ export default async function handler(req, res) {
       app_pass: hay(process.env.APP_PASS),
       supabase_service: hay(process.env.SUPABASE_SERVICE_KEY),
     },
-    // Cadenas completas: el primero es el titular, el resto respaldos en orden.
-    modelos: { chat: cadenaDe('chat'), creative: cadenaDe('creative') },
+    // El titular va por la cuota Go; si falla por crédito/cuota/región, el
+    // cliente compartido cae solo al modelo gratis de Zen.
+    modelos: { chat: MODELS.chat, creative: MODELS.creative, respaldo_gratis: MODELO_GRATIS },
     voz_por_defecto: process.env.TTS_MODEL || 'aura-2-helena-en',
   };
 
