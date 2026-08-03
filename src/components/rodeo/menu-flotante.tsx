@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { escucharPrecargaHome, homeInteraccionesPrecargadas } from '@/lib/preload';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
+import { useAuth } from '@/stores/auth';
 import { useSuscripcion } from '@/stores/suscripcion';
 
 // El re-anclaje vive en aurora.css. Se importa AQUÍ y no solo desde el Home
@@ -86,6 +87,10 @@ export function MenuFlotante({
   const setView = useApp((s) => s.setView);
   const setCarruselAlVolver = useApp((s) => s.setCarruselAlVolver);
   const abrirSuscripcion = useSuscripcion((s) => s.abrir);
+  // Solo pintamos "Cerrar sesion" cuando hay sesión viva (Google/correo): a un
+  // invitado no le sirve, y así el FloatingMenu se queda en 4 ítems para ellos.
+  const usuario = useAuth((s) => s.usuario);
+  const logout = useAuth((s) => s.logout);
 
   useEffect(() => escucharPrecargaHome(() => setCargado(true)), []);
 
@@ -113,6 +118,14 @@ export function MenuFlotante({
        tilde a propósito: el roll de letras del FloatingMenu recorta a 1em cada
        carácter y la Ó pierde el acento (y asoma el de la copia de abajo). */
     { label: 'Suscripcion', onClick: () => { cerrarMenu(); abrirSuscripcion(); } },
+    /* CERRAR SESION solo con sesión viva. logout() resetea el "skip" en memoria
+       y marca gateNecesario, así que al salir vuelve la puerta de login encima
+       — justo lo que sirve para probar el ciclo logout → login otra vez. Sin
+       tilde en "sesion" por el recorte de 1em del roll de letras (igual que
+       "Suscripcion"). */
+    ...(usuario
+      ? [{ label: 'Cerrar sesion', onClick: () => { cerrarMenu(); void logout(); } }]
+      : []),
   ];
 
   return (
