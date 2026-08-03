@@ -3,15 +3,26 @@
 Proyecto: `gustavoski23's Project` → `https://cablhejzsxqgwdvyzqei.supabase.co`
 (región East US, GitHub conectado a `gustavoski23/rodeo`).
 
-> **Estado (22 jul 2026):**
+> **Estado (3 ago 2026 — verificado contra la base, no de memoria):**
 > - ✅ Paso 1 — key `sb_publishable_*` pegada en `js/supabase-sync.js`
 > - ✅ Paso 2 — tabla `public.rodeo_state` creada con RLS owner-only (vía MCP)
-> - ⏳ Paso 3 — configurar Site URL + 3 Redirect URLs (2 min) → **activa el login por correo**
-> - ▫️ Paso 4 — Google OAuth (15 min, OPCIONAL — solo si quieres el botón de Google)
+> - ✅ Paso 3 — Site URL + Redirect URLs configuradas
+> - ✅ **Paso 4 — Google OAuth YA ESTÁ ACTIVADO Y FUNCIONA**
+>
+> **Prueba de que Google funciona** (consulta a `auth.identities` el 3 ago 2026):
+> hay un login real con `provider = 'google'` hecho el **22 jul 2026** con la
+> cuenta **`gustavogonzalez23g@gmail.com`** (Gustavo Gonzalez). Es el único
+> usuario del proyecto: 1 identidad Google, 0 por correo. O sea, las credenciales
+> de Google Cloud (Client ID + secret) ya están pegadas en Supabase y el consent
+> screen ya existe — **no hay que rehacer nada de Google Cloud.**
+>
+> Este bloque decía "Paso 4 pendiente/OPCIONAL" hasta hoy y nunca se actualizó
+> al activarlo: por eso parecía que faltaba configurar Google cuando en realidad
+> lo único que faltaba era **cablear el botón en la app React** (hecho en la rama
+> `claude/google-login-inconsistency-la1p17`).
 
-La app ya trae DOS formas de entrar (perfil → Cuenta & sync):
-**correo con enlace mágico/código** (solo necesita el Paso 3) y
-**Google** (necesita el Paso 4).
+La app trae DOS formas de entrar: **correo con enlace mágico/código** y
+**Google**. Ambas están activas en el servidor.
 
 ---
 
@@ -51,9 +62,15 @@ guarda:
 
 ---
 
-## Paso 4 — Google OAuth (15 min, OPCIONAL)
+## Paso 4 — Google OAuth ✅ HECHO (referencia histórica)
 
-Solo si quieres el botón "con Google" además del correo:
+> **No hay que rehacer esto.** Quedó configurado el 22 jul 2026 con la cuenta
+> `gustavogonzalez23g@gmail.com` y hay un login real en `auth.identities` que lo
+> prueba. Se deja escrito para saber DÓNDE está cada cosa el día que haya que
+> tocarla (rotar el secret, agregar dominios, sacar la app de modo Testing).
+>
+> **Lo único que hay que mantener al día son las Redirect URLs** cuando aparecen
+> dominios nuevos — ver "Dominios de preview" abajo.
 
 ### 4a. Google Cloud Console
 1. https://console.cloud.google.com → crea proyecto (`rodeo`).
@@ -73,18 +90,53 @@ Solo si quieres el botón "con Google" además del correo:
 **Authentication → Sign In / Up → Auth Providers → Google** → Enable →
 pega Client ID + secret → Save. (Las Redirect URLs ya quedaron del Paso 3.)
 
-> **El botón "o con Google" aparece SOLO cuando terminas este Paso 4.** La app
-> le pregunta al server (`/auth/v1/settings`) qué providers están habilitados y
-> solo pinta el botón de Google si de verdad está encendido. Antes de esto, el
-> botón está oculto a propósito: así nadie toca "Google", cae en el redirect a
-> `/authorize` y aterriza en el JSON crudo `provider is not enabled`. Mientras
-> tanto, el correo (Paso 3) es el camino principal y siempre está visible. Tras
-> habilitar Google, reabre el perfil (Cuenta & sync) y el botón ya estará ahí.
+> **Nota sobre el botón en las DOS apps.** El perfil *legacy*
+> (`public/js/supabase-sync.js`) pregunta a `/auth/v1/settings` qué providers
+> están encendidos y esconde el botón de Google si no lo está. El **gate nuevo
+> de React** (`src/views/gate/index.tsx`) lo pinta SIEMPRE: si el provider
+> estuviera apagado, el error vuelve como valor desde `auth.loginGoogle()` y se
+> muestra como aviso traducido — nunca como el JSON crudo `provider is not
+> enabled`. Como Google ya está encendido, este caso no debería aparecer.
+
+---
+
+## Dominios de preview (lo único que hay que mantener)
+
+Cada rama desplegada en Vercel estrena un dominio propio, por ejemplo
+`https://rodeo-git-<rama>-gustavoski23s-projects.vercel.app`. El login con
+Google vuelve **exactamente a la URL donde se pulsó el botón**
+(`redirectTo: location.origin + location.pathname`), y Supabase **rechaza el
+regreso si esa URL no está en la allowlist** — el síntoma es que Google te
+autentica pero te devuelve al Site URL (o a un error de `redirect_uri`), y la
+sesión no aparece en la rama que estabas probando.
+
+Para no tener que agregar cada preview a mano, en
+**Authentication → URL Configuration → Redirect URLs** conviene tener comodines:
+
+```
+https://rodeo-sigma.vercel.app/**
+https://rodeo-git-*-gustavoski23s-projects.vercel.app/**
+https://rodeo-*-gustavoski23s-projects.vercel.app/**
+http://localhost:4870/**
+```
+
+En **Google Cloud** no hay que tocar nada al agregar previews: el único
+*redirect URI* que Google conoce es el de Supabase
+(`https://cablhejzsxqgwdvyzqei.supabase.co/auth/v1/callback`), y no cambia nunca.
+Los dominios de la app se controlan **solo** del lado de Supabase.
 
 ---
 
 ## Probar
 
+**Google (gate nuevo de React):**
+1. Abre la app **sin sesión** → sale la puerta "Get started with Us".
+2. Toca el círculo de **Google** → elige tu cuenta → vuelves con la sesión
+   abierta y la puerta desaparece sola.
+3. Verifica en Supabase → **Authentication → Users**: tu correo con provider
+   `google` y un `last_sign_in_at` recién actualizado.
+
+**Correo (enlace mágico, camino alterno):**
 1. App → icono de perfil → **Cuenta & sync** → escribe tu Gmail → **MÁNDAME
    EL ENLACE** → abre el correo → toca el enlace (o pega el código de 6
    dígitos) → **confirma que el enlace te deja en `rodeo-sigma.vercel.app`**
@@ -93,6 +145,9 @@ pega Client ID + secret → Save. (Las Redirect URLs ya quedaron del Paso 3.)
 2. Supabase → **Table Editor → rodeo_state** → aparece tu fila con el DNA.
 3. Repite en el otro dispositivo con el mismo correo → DNA fusionado
    (unión, nunca se pisa nada).
+
+> Si el botón de Google devuelve al Home sin sesión, el sospechoso #1 es la
+> allowlist de Redirect URLs para ESE dominio — ver "Dominios de preview".
 
 ## Cómo funciona el sync (referencia)
 
