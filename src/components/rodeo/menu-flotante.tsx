@@ -119,7 +119,7 @@ export function MenuFlotante({
     <div className={cn('menu-flotante', oculto && 'menu-flotante--oculto', className)} aria-hidden={oculto || undefined}>
       {cargado ? (
         <Suspense fallback={<LanzadorMenu onClick={() => undefined} />}>
-          <FloatingMenu items={items} initialOpen />
+          <FloatingMenu items={items} />
         </Suspense>
       ) : (
         <LanzadorMenu onClick={() => setCargado(true)} />
