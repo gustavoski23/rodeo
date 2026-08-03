@@ -30,3 +30,6 @@ dist/
 
 # Scratchpad de sesión (tooling temporal: generador del demo, capturas, etc.)
 scratchpad/
+output/
+test-results/
+.codex-vite-preview*.log

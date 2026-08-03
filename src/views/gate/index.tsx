@@ -10,7 +10,9 @@ import {
   GradientBackground,
   XIcon,
 } from '@/components/ui/sign-up';
+import { UiLangToggle } from '@/components/rodeo/ui-lang-toggle';
 import { MODO_LIGERO } from '@/lib/device';
+import { useT } from '@/lib/demoStrings';
 import { store } from '@/lib/storage';
 import { useAuth } from '@/stores/auth';
 import { toast } from '@/stores/toast';
@@ -46,6 +48,7 @@ const PASO_ENTRADA = MODO_LIGERO ? 0 : 0.25;
 
 export function GateView() {
   const skip = useAuth((s) => s.skip);
+  const t = useT();
 
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +67,7 @@ export function GateView() {
   function entrarConEmail() {
     const correo = email.trim();
     if (!CORREO_OK.test(correo)) {
-      setError('Escribe un correo válido.');
+      setError(t.gateEmailInvalido);
       emailRef.current?.focus();
       return;
     }
@@ -89,6 +92,10 @@ export function GateView() {
         <GradientBackground />
       </div>
 
+      <div className="absolute right-4 top-[max(14px,env(safe-area-inset-top))] z-20">
+        <UiLangToggle />
+      </div>
+
       {/* Columna centrada, ~media pantalla, ancho contenido. */}
       <div className="relative z-10 flex w-full max-w-[340px] flex-col items-center gap-6 px-6">
         <BlurFade delay={PASO_ENTRADA * 1} className="w-full">
@@ -96,12 +103,12 @@ export function GateView() {
               componente original), aunque la columna esté acotada a 340px —
               desborda centrado, que es el look de la captura. */}
           <h1 className="gate-titulo whitespace-nowrap text-center font-serif text-4xl font-light tracking-tight sm:text-5xl">
-            Get started with Us
+            {t.gateTitulo}
           </h1>
         </BlurFade>
 
         <BlurFade delay={PASO_ENTRADA * 2}>
-          <p className="gate-muted text-sm font-medium">Continue with</p>
+          <p className="gate-muted text-sm font-medium">{t.gateContinuar}</p>
         </BlurFade>
 
         {/* Fila de botones sociales vidrio: iguales (size icon), uno al lado del
@@ -142,7 +149,7 @@ export function GateView() {
         <BlurFade delay={PASO_ENTRADA * 4} className="w-full">
           <div className="flex w-full items-center gap-3">
             <span className="gate-linea h-px flex-1" />
-            <span className="gate-muted text-xs font-semibold">OR</span>
+            <span className="gate-muted text-xs font-semibold">{t.gateOr}</span>
             <span className="gate-linea h-px flex-1" />
           </div>
         </BlurFade>
@@ -162,8 +169,8 @@ export function GateView() {
                 autoComplete="email"
                 autoCapitalize="none"
                 spellCheck={false}
-                aria-label="Email"
-                placeholder="Email"
+                aria-label={t.gateEmail}
+                placeholder={t.gateEmail}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => {
@@ -200,7 +207,7 @@ export function GateView() {
             honesta — marca rodeo_gate_skip y entra al Home; no reaparece. */}
         <BlurFade delay={PASO_ENTRADA * 6}>
           <GlassButton type="button" size="sm" onClick={skip}>
-            <span className="gate-titulo font-medium">Skip</span>
+            <span className="gate-titulo font-medium">{t.gateSkip}</span>
           </GlassButton>
         </BlurFade>
       </div>

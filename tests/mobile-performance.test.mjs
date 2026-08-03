@@ -76,6 +76,24 @@ test('conversation is prefetched only while the connection can afford it', async
   assert.match(preload, /import\('@\/views\/talk'\)/);
 });
 
+test('onboarding keeps the first flow narrow and warms up the Home menu', async () => {
+  const [app, onboarding, preload] = await Promise.all([
+    read('src/App.tsx'),
+    read('src/views/onboarding/index.tsx'),
+    read('src/lib/preload.ts'),
+  ]);
+
+  assert.match(app, /lazy\(\(\) => import\('@\/views\/onboarding'\)\)/);
+  assert.match(app, /useOnboarding/);
+  assert.match(onboarding, /\{ id: 'es', bandera: '🇪🇸' \}/);
+  assert.match(onboarding, /\{ id: 'en', bandera: '🇺🇸' \}/);
+  assert.doesNotMatch(onboarding, /id: 'pt'|id: 'fr'/);
+  assert.match(onboarding, /programarPrecargaHome\(\)/);
+  assert.match(preload, /homeInteraccionesPrecargadas/);
+  assert.match(preload, /rodeo:home-interacciones-listas/);
+  assert.match(preload, /import\('@\/components\/ui\/liquid-morph-floating-menu'\)/);
+});
+
 test('carousel serves smaller modern images on phones with a jpeg fallback', async () => {
   const carousel = await read('src/components/ui/card-fan-carousel.tsx');
   assert.match(carousel, /type="image\/avif"/);

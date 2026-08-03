@@ -8,6 +8,7 @@ import { MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
+import { useOnboarding } from '@/stores/onboarding';
 import { useEnCharla, useEnSesion } from '@/stores/talk';
 import HomeView from '@/views/home';
 import GateView from '@/views/gate';
@@ -24,6 +25,7 @@ const LadderView = lazy(() => import('@/views/ladder'));
 const DnaView = lazy(() => import('@/views/dna'));
 const OficinaView = lazy(() => import('@/views/a1/oficina'));
 const PerfilView = lazy(() => import('@/views/perfil'));
+const OnboardingView = lazy(() => import('@/views/onboarding'));
 const AuroraCustomizer = lazy(() =>
   import('@/components/rodeo/aurora-customizer').then((m) => ({ default: m.AuroraCustomizer })),
 );
@@ -73,6 +75,7 @@ export default function App() {
      Skip previo, el gate no existe. */
   const authListo = useAuth((s) => s.listo);
   const gateNecesario = useAuth((s) => s.gateNecesario);
+  const onboardingNecesario = useOnboarding((s) => s.necesario);
 
   /* ENTRAR = SIEMPRE GRADIENTE (pedido de Gus): al pasar el gate —loguearse o
      pulsar Skip— el shell se abre en gradiente, de Home en adelante, sea cual
@@ -101,6 +104,16 @@ export default function App() {
     return (
       <MotionConfig reducedMotion={MODO_LIGERO ? 'always' : 'user'}>
         <GateView />
+        <Toaster />
+      </MotionConfig>
+    );
+  }
+  if (onboardingNecesario) {
+    return (
+      <MotionConfig reducedMotion={MODO_LIGERO ? 'always' : 'user'}>
+        <Suspense fallback={<div className="min-h-dvh" style={{ background: 'oklch(97.5% 0.012 85)' }} />}>
+          <OnboardingView />
+        </Suspense>
         <Toaster />
       </MotionConfig>
     );

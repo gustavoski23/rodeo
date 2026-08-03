@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 
+import { escucharPrecargaHome, homeInteraccionesPrecargadas } from '@/lib/preload';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useSuscripcion } from '@/stores/suscripcion';
@@ -81,10 +82,12 @@ export function MenuFlotante({
   oculto?: boolean;
   className?: string;
 }) {
-  const [cargado, setCargado] = useState(false);
+  const [cargado, setCargado] = useState(() => homeInteraccionesPrecargadas());
   const setView = useApp((s) => s.setView);
   const setCarruselAlVolver = useApp((s) => s.setCarruselAlVolver);
   const abrirSuscripcion = useSuscripcion((s) => s.abrir);
+
+  useEffect(() => escucharPrecargaHome(() => setCargado(true)), []);
 
   // Si el menú estuviera abierto al aparecer el modal, se cierra con su morph
   // inverso en vez de quedarse congelado como panel invisible detrás del velo.
