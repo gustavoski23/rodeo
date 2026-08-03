@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 
+import { extraerFrasesDelTranscript, guardarLeccionesA1, marcarTemaA1 } from '@/lib/a1-memory';
 import { callAPI, callJSON, callStream, extractPartialReply, parseJSON, type ChatMessage } from '@/lib/api';
 import { recordUpgrade, saveDNA } from '@/lib/dna';
 import { parseChunks, stripChunksLive, type Gloss } from '@/lib/gloss';
@@ -18,12 +19,15 @@ import {
   TALK_MAX_TOKENS,
   TALK_MAX_TOKENS_RETRY,
   TALK_OPENING,
+  areaUsuario,
   buildSituation,
   debriefUser,
   elegirRompehielos,
   ideaUser,
+  nivelUsuario,
   nombreUsuario,
   premiumGate,
+  rompehielosA1,
   talkSystemPrompt,
   type ScenarioKey,
 } from './prompts';
@@ -69,13 +73,23 @@ type Correccion = { quote?: string; fix?: string; why?: string };
 
    Función de módulo (no hook): el Home vive fuera de TalkView y solo necesita
    los stores. */
-export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean {
+export async function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): Promise<boolean> {
   if (useTalk.getState().busy) return false;
   if (!premiumGate('talk')) return false;
 
-  let ice = elegirRompehielos();
+  const nivel = nivelUsuario();
+  const esA1 = nivel === 'A1';
   const nom = nombreUsuario();
-  if (nom) {
+
+  // A1: rompehielos via API (1 llamada, personalizado). B2+: pool local (gratis).
+  let ice: string;
+  if (esA1) {
+    try { ice = await rompehielosA1(); } catch { ice = elegirRompehielos(); }
+  } else {
+    ice = elegirRompehielos();
+  }
+
+  if (nom && !esA1) {
     const low = /^[A-Z][a-z]/.test(ice) ? ice.charAt(0).toLowerCase() + ice.slice(1) : ice;
     ice = `Hey ${nom} — ${low}`;
   }
@@ -85,25 +99,15 @@ export function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): boolean 
     scenario: 'free',
     title: 'Dibujo libre',
     situation: sit,
-    // El historial lleva la apertura desde YA: si Gus escribe durante el
-    // `Pensando`, el modelo tiene el contexto completo. Solo lo VISUAL espera.
     messages: [
-      { role: 'system', content: talkSystemPrompt(SCENARIOS.free.prompt, sit, leerOpeners()) },
+      { role: 'system', content: talkSystemPrompt(SCENARIOS.free.prompt, sit, leerOpeners(), nivel) },
       { role: 'assistant', content: JSON.stringify({ reply: ice, corrections: [], glosses: [] }) },
     ],
   };
 
   useTalk.getState().setTalkMode('charla');
-  /* La apertura se revela SINCRONIZADA con la voz (pedido de Gus): el lápiz
-     gira mientras Deepgram baja/decodifica el MP3 y las letras caen cuando la
-     voz arranca — no segundos antes. */
   useTalk.getState().abrirSesion(sesion, [{ tipo: 'espera', desde: Date.now() }]);
   useTalk.getState().setFocoVolver(!!opts.focoVolver);
-  /* Este es el ÚNICO camino que entra a una sesión sin pasar por la portada de
-     TALK (la píldora aurora del Home). Aun así, el ← de la sesión devuelve a la
-     PORTADA de TALK, no al Home: lo manda la regla 5 del contrato («Sesión → ←
-     portada TALK») y desde ahí el ← de la portada sigue llevando al Home. La
-     marca de origen que hacía la excepción se retiró en la ronda 3. */
 
   tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
   const idLapiz = useTalk.getState().displayLog[0]?.id ?? null;
@@ -237,6 +241,13 @@ export function useCoachTurn() {
 
       const glosses: Gloss[] = parsed && Array.isArray(parsed.glosses) ? (parsed.glosses as Gloss[]) : [];
 
+      // A1: extraer frases enseñadas del reply del coach y guardarlas en memoria
+      if (nivelUsuario() === 'A1' && reply) {
+        const area = areaUsuario();
+        const frases = extraerFrasesDelTranscript(reply, area);
+        if (frases.length) guardarLeccionesA1(frases);
+      }
+
       // Se cancela el pintor antes de tocar nada para que un frame rezagado del
       // stream no pise el reply crudo que necesita <GlossText>.
       pintor.cancelar();
@@ -298,15 +309,15 @@ export function useCoachTurn() {
   /* ── Arranque por chip (startSession, L3890) ──────────────────────────── */
   const startSession = useCallback(
     (key: ScenarioKey) => {
-      // Premium: cada charla nueva cuenta contra la cuota diaria.
       if (!premiumGate('talk')) return;
       const sc = SCENARIOS[key];
       const sit = buildSituation();
+      const nivel = nivelUsuario();
       useTalk.getState().abrirSesion({
         scenario: key,
         title: sc.title,
         situation: sit,
-        messages: [{ role: 'system', content: talkSystemPrompt(sc.prompt, sit, leerOpeners()) }],
+        messages: [{ role: 'system', content: talkSystemPrompt(sc.prompt, sit, leerOpeners(), nivel) }],
       });
       tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
       void sendTurn(null); // el coach abre (esto SÍ gasta una llamada)
@@ -316,34 +327,37 @@ export function useCoachTurn() {
 
   /* ── Dibujo libre (startLibre, L3975) ─────────────────────────────────
      El rompehielos YA es la apertura del coach: se siembra como turno
-     'assistant' y se pinta directo, sin gastar una llamada a la API. */
-  const startLibre = useCallback((iceVisible?: string) => {
+     'assistant' y se pinta directo, sin gastar una llamada a la API.
+     Para A1, el rompehielos viene de la API (personalizado). */
+  const startLibre = useCallback(async (iceVisible?: string) => {
     if (useTalk.getState().busy) return;
     if (!premiumGate('talk')) return;
 
-    let ice = (iceVisible || '').trim() || elegirRompehielos();
-    // El coach abre saludando por tu nombre — pequeño, pero mata el "Hello
-    // user". Solo baja la mayúscula si la palabra es normal (no siglas "AI …").
+    const nivel = nivelUsuario();
+    const esA1 = nivel === 'A1';
     const nom = nombreUsuario();
-    if (nom) {
+
+    let ice = (iceVisible || '').trim();
+    if (!ice) {
+      ice = esA1 ? await rompehielosA1().catch(() => elegirRompehielos()) : elegirRompehielos();
+    }
+
+    if (nom && !esA1) {
       const low = /^[A-Z][a-z]/.test(ice) ? ice.charAt(0).toLowerCase() + ice.slice(1) : ice;
       ice = `Hey ${nom} — ${low}`;
     }
 
     const sit = buildSituation();
-    /* La apertura se revela SINCRONIZADA con la voz: el lápiz gira mientras
-       Deepgram baja el MP3 y las letras caen cuando la voz arranca. */
     useTalk.getState().abrirSesion(
       {
         scenario: 'free',
         title: 'Dibujo libre',
         situation: sit,
         messages: [
-          { role: 'system', content: talkSystemPrompt(SCENARIOS.free.prompt, sit, leerOpeners()) },
+          { role: 'system', content: talkSystemPrompt(SCENARIOS.free.prompt, sit, leerOpeners(), nivel) },
           { role: 'assistant', content: JSON.stringify({ reply: ice, corrections: [], glosses: [] }) },
         ],
       },
-      // La apertura NO se pinta de una: el lápiz espera a que la voz arranque.
       [{ tipo: 'espera', desde: Date.now() }],
     );
     tipPrimeraVez('talk', 'Toca el mic y habla — te corrijo');
@@ -463,6 +477,25 @@ export function useCoachTurn() {
       );
 
       useTalk.getState().setDebrief(d);
+
+      // A1: extraer todas las frases del coach de la sesión y guardarlas
+      if (nivelUsuario() === 'A1') {
+        const area = areaUsuario();
+        const allCoach = ses.messages
+          .filter((m) => m.role === 'assistant')
+          .map((m) => m.content)
+          .join(' ');
+        const frases = extraerFrasesDelTranscript(allCoach, area);
+        if (frases.length) guardarLeccionesA1(frases);
+        // Inferir temas del contenido del usuario
+        const userText = ses.messages
+          .filter((m) => m.role === 'user')
+          .map((m) => m.content)
+          .join(' ')
+          .toLowerCase();
+        const temasConocidos = ['programación', 'tecnología', 'música', 'deportes', 'comida', 'viajes', 'cine', 'gaming', 'diseño', 'marketing'];
+        temasConocidos.filter((t) => userText.includes(t)).forEach(marcarTemaA1);
+      }
     } catch (err) {
       // El fallo del debrief de CHARLA se lleva la sesión por delante (el de
       // ESCENA no: ofrece reintentar). Asimetría del legacy, portada tal cual —

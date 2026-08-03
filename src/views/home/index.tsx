@@ -79,7 +79,7 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
 
   async function lanzar(viaTeclado: boolean) {
     const { lanzarLibreAurora } = await import('@/views/talk/use-coach-turn');
-    if (lanzarLibreAurora({ focoVolver: viaTeclado })) setView('talk');
+    if (await lanzarLibreAurora({ focoVolver: viaTeclado })) setView('talk');
   }
 
   return (

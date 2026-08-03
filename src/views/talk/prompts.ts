@@ -8,6 +8,8 @@
    medido (la sección SPEED sola baja el turno de 10-19 s a ~8 s). Si algo aquí
    se "mejora", cambia el producto, no el código. */
 
+import { cargarMemoriaA1, limpiarSiViejo } from '@/lib/a1-memory';
+import { callJSON } from '@/lib/api';
 import { getDNA } from '@/lib/dna';
 import { store } from '@/lib/storage';
 import { NOTA_STT_BILINGUE } from '@/lib/speech';
@@ -30,6 +32,32 @@ export function interesesBriefTalk(): string {
   return xs.length
     ? `\nHIS WORLD — weave topics, examples and the flavour of the scenario around these when it fits naturally, never force them and never list them out loud: ${xs.join(', ')}.`
     : '';
+}
+
+/** Nivel CEFR del onboarding. '' si nunca lo dio. */
+export function nivelUsuario(): string {
+  return String(store.get<string>('rodeo_nivel', '') || '').trim();
+}
+
+/** Área/trabajo del onboarding. '' si nunca lo dio. */
+export function areaUsuario(): string {
+  return String(store.get<string>('rodeo_area', '') || '').trim();
+}
+
+/* ── Memoria A1 — inyección en prompts ──────────────────────────────────
+   Recuerda al coach qué frases ya le enseñó al usuario y qué temas se
+   cubrieron, para no repetir. Solo se inyecta si nivel === 'A1'. */
+export function a1LessonsBrief(): string {
+  if (nivelUsuario() !== 'A1') return '';
+  const mem = cargarMemoriaA1();
+  limpiarSiViejo();
+  if (!mem.lessons.length && !mem.topics.length) return '';
+  const frases = mem.lessons.map((l) => `- "${l.en}" → ${l.es}`).join('\n');
+  const temas = mem.topics.join(', ');
+  return `\nWHAT YOU ALREADY TAUGHT THIS USER (CRITICAL — never repeat these):
+- Phrases you already taught:\n${frases || '(none yet)'}
+- Topics already discussed: ${temas || '(none yet)'}
+You MUST introduce NEW phrases from their area. Build on previous sessions. Never re-teach the same phrase.`;
 }
 
 /* ── Escenarios de los chips (L3751) ──────────────────────────────────────
@@ -205,15 +233,19 @@ ABOUT THE APP (only if he asks) — RODEO is the app he is talking to. If he ask
 - TU DNA: everything he gets wrong and every bit of slang he saves, kept in one place (it is what feeds your corrections).
 - Rétame: a quick quiz on what he has been learning.`;
 
-/** System prompt de CHARLA — L3848-3888. VERBATIM + bloque SOBRE LA APP. */
-export function talkSystemPrompt(scenarioPrompt: string, sit: Situacion, avoidOpeners?: string[]): string {
+/** System prompt de CHARLA — L3848-3888. VERBATIM + bloque SOBRE LA APP + A1 mode. */
+export function talkSystemPrompt(scenarioPrompt: string, sit: Situacion, avoidOpeners?: string[], nivel?: string): string {
   const avoid =
     avoidOpeners && avoidOpeners.length
       ? `\nDO NOT open anything like these — you have already used them:\n${avoidOpeners.map((o) => `- "${o}"`).join('\n')}`
       : '';
   const nom = nombreUsuario() || 'Gus';
+  const esA1 = nivel === 'A1';
+  const nivelDesc = esA1
+    ? `${nom} is Venezuelan, lives in Medellín, Colombia, absolute beginner A1 — they barely know any English.`
+    : `${nom} is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life.`;
 
-  return `You are ${nom}'s conversation partner inside RODEO, a personal English trainer. ${nom} is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life. Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
+  return `You are ${nom}'s conversation partner inside RODEO, a personal English trainer. ${nivelDesc} Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
 
 SCENARIO: Role-play ${scenarioPrompt}
 
@@ -223,13 +255,23 @@ YOUR STATE RIGHT NOW — this is what makes you a person instead of a chatbot. L
 - What you want out of this conversation: ${sit.agenda}
 - Somewhere in this conversation: ${sit.twist}
 
-HOW TO TALK:
+${esA1 ? `LANGUAGE MODE — A1 (absolute beginner):
+- You speak 85-90% in SPANISH. English ONLY for:
+  1. The key phrase you are teaching (wrap in ⟦english||español⟧ markers)
+  2. Short reactions ("Cool!", "Nice!", "Oh really?")
+- NEVER write a full English sentence unless it is the phrase you are teaching.
+- Your job: ask about THEIR life, work, interests — in Spanish, naturally.
+- After 2-3 turns, naturally offer: "¿Quieres que te enseñe frases de [their area] en inglés?"
+- If they say yes, teach through CONTEXT — the phrase appears naturally in your conversation, not in a list.
+- Max 1-2 NEW phrases per session. Quality over quantity.
+- Always explain WHY a phrase is useful in THEIR specific work context.
+- Use their interests and work area to guide topics.` : `HOW TO TALK:
 - Stay in character. Contemporary, natural English. 2-4 sentences.
 - CRITICAL: do NOT end every turn with a question. Vary it — react, tell a piece of your own story, disagree, make a remark and let it sit. Ask a real question maybe one turn in three. You are having a conversation, not conducting an interview.
 - Be specific. Names, places, numbers, small concrete details. Vague friendliness is exactly what makes you sound like a bot.
 - Let the conversation drift the way real ones do. Do not keep steering back to the same two topics.
-- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).
-- ${NOTA_STT_BILINGUE}${avoid}${dnaBrief()}${interesesBriefTalk()}
+- Use vocabulary slightly above his level on purpose (C1 collocations, phrasal verbs, natural idioms).`}
+- ${NOTA_STT_BILINGUE}${avoid}${dnaBrief()}${interesesBriefTalk()}${esA1 ? a1LessonsBrief() : ''}
 
 CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
 - ${nom} sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a gringo would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
@@ -321,6 +363,58 @@ export function elegirRompehielos(): string {
   }
   ultimoRompe = pick;
   return pick;
+}
+
+/* ── Rompehielos A1 (via API) ───────────────────────────────────────────
+   Genera UNA pregunta personalizada en español para un usuario A1, basada
+   en sus intereses y área de trabajo. 1 llamada a la API, fallback a pool
+   local si falla. */
+
+const ROMPEHIELOS_A1_FALLBACK = [
+  '¿Qué es lo que más te gusta de tu trabajo?',
+  'Cuéntame algo divertido que te haya pasado esta semana.',
+  '¿Cuál es tu comida favorita?',
+  '¿Cómo llegaste a dedicarte a lo que haces?',
+  '¿Qué hacías el fin de semana pasado?',
+  '¿Tienes alguna mascota? Cuéntame.',
+  '¿Cuál es tu serie o película favorita?',
+  '¿De dónde eres? Cuéntame de tu ciudad.',
+];
+
+function fallbackA1(): string {
+  return ROMPEHIELOS_A1_FALLBACK[Math.floor(Math.random() * ROMPEHIELOS_A1_FALLBACK.length)];
+}
+
+export async function rompehielosA1(): Promise<string> {
+  const nombre = nombreUsuario() || 'amigo';
+  const intereses = interesesArr();
+  const area = areaUsuario();
+
+  const prompt = `Generate ONE icebreaker question for a FIRST-TIME A1 English learner.
+Their name: ${nombre}
+Their interests: ${intereses.join(', ') || 'not specified'}
+Their work/area: ${area || 'not specified'}
+
+RULES:
+- Write in SPANISH (they are A1, they don't understand English yet)
+- Max 15 words
+- Must be personal and related to THEIR interests or work
+- Must have an obvious, easy first answer
+- Never generic ("¿cómo estás?"). Be specific to their world.
+- Sound like a friendly conversation, not a test
+
+OUTPUT: JSON only. {"question":"the question in Spanish"}`;
+
+  try {
+    const { parsed } = await callJSON('chat', [
+      { role: 'system', content: 'You generate icebreaker questions. Respond with STRICT JSON only, first character = JSON.' },
+      { role: 'user', content: prompt },
+    ], 500);
+    const p = parsed as { question?: string } | null;
+    return p?.question || fallbackA1();
+  } catch {
+    return fallbackA1();
+  }
 }
 
 /* ── Prompts auxiliares ───────────────────────────────────────────────── */
