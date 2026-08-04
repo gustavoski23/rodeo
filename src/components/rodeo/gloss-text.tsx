@@ -123,21 +123,27 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
         pointerEvents: tip.fijado && tip.term ? 'auto' : 'none',
       }}
     >
-      <div className={tip.fijado && tip.term ? 'mb-[9px]' : undefined}>{tip.es}</div>
+      <div className={tip.fijado && tip.term ? 'mb-[7px]' : undefined}>{tip.es}</div>
+      {/* El botón de guardar, EN CHIQUITICO (pedido de Gus, 2026-08-04): una
+          pastillita discreta alineada a la derecha, no una barra a todo lo
+          ancho — la protagonista del tooltip es la explicación. Se mantiene un
+          alto táctil de 30px y el estado "ya guardado" en tinta de acento. */}
       {tip.fijado && tip.term && (
-        <button
-          type="button"
-          onClick={guardar}
-          disabled={guardado}
-          className="flex min-h-[34px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border-0 px-3 py-[7px] font-sans text-[0.76rem] font-bold disabled:cursor-default"
-          style={
-            guardado
-              ? { background: 'var(--accent-dim)', color: 'var(--accent)' }
-              : { background: 'var(--accent)', color: 'var(--accent-ink)' }
-          }
-        >
-          {guardado ? '✓ en tu DNA' : '＋ guardar a DNA'}
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={guardar}
+            disabled={guardado}
+            className="inline-flex min-h-[30px] cursor-pointer items-center gap-1 rounded-full border-0 px-2.5 py-1 font-sans text-[0.68rem] font-bold whitespace-nowrap disabled:cursor-default"
+            style={
+              guardado
+                ? { background: 'var(--accent-dim)', color: 'var(--accent)' }
+                : { background: 'var(--accent)', color: 'var(--accent-ink)' }
+            }
+          >
+            {guardado ? '✓ en tu DNA' : '＋ guardar'}
+          </button>
+        </div>
       )}
     </motion.div>
   );
