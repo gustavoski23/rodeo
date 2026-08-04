@@ -153,6 +153,13 @@ export default function App() {
               // En sesión la Card es alta y a 390px pide todo el alto que
               // pueda: la fila cierra corta. Fuera de sesión, el pb-3 de siempre.
               charlaEnSesion ? 'pb-1.5' : 'pb-3',
+              // En el LIBRO móvil la fila entera se esconde (pedido de Gus): la
+              // hoja se mide contra el alto disponible y el Menu + toggler eran
+              // una franja muerta que le recortaba página al libro. El corte a
+              // 739px espeja el UMBRAL_MOVIL=700 de la vista (700 de caja + 40
+              // del px-5 del main). En PC la fila se queda: ahí sobra alto y el
+              // toggler es de todas las pantallas.
+              view === 'libro' && 'max-[739px]:hidden',
             )}
           />
 

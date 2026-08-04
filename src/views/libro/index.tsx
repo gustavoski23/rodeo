@@ -8,12 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, CornerRightDown, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, MoveRight, Volume2, VolumeX, X } from 'lucide-react';
 import { MantineProvider } from '@mantine/core';
 import { Book } from '@gfazioli/mantine-book';
 
 import { GlossText } from '@/components/rodeo/gloss-text';
 import { PencilLoader } from '@/components/rodeo/pencil-loader';
+import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import { store } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -51,11 +52,28 @@ import './libro.css';
 
 const COLUMNA = 'mx-auto w-full max-w-[880px]';
 
-/* El curl 3D (WebGL) es LA razón de ser de este componente, así que se queda
-   también en el móvil: es un canvas pequeño, no un escenario. Solo cae al
-   pliegue plano (mismo gesto, puro DOM) si el sistema pide menos movimiento. */
-const SIN_CURL =
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* El curl 3D (WebGL) va SIEMPRE, también con prefers-reduced-motion. Antes ahí
+   se caía a la variante 'flat', y Gus —cuyo Windows tiene "reducir movimiento"
+   activado— vio el resultado: el volteo se pintaba como un rectángulo duro
+   montado sobre la otra página, con pinta de bug ("¿es normal que se vea
+   así?"). La variante plana NO es una versión sin movimiento — la hoja se
+   mueve igual, solo que fea — así que degradar ahí no compraba accesibilidad,
+   solo un pase de página roto. Quien pide menos movimiento sigue teniendo las
+   flechas: un salto de página sin arrastre. Las animaciones decorativas de la
+   vista (flechitas, pulsos) sí respetan reduced-motion, en el CSS. */
+
+/* uN SOLO disparo por toque en los botones de vidrio — mismo arreglo que
+   charla-session.tsx: GlassButton envuelve el <button> en un <div> cuyo onClick
+   "reenvía" el toque, y como el toque real siempre cae en el <span> interior,
+   el evento burbujeaba y el handler corría DOS veces. Aquí el doble disparo
+   haría que A+ suba dos pasos y el mudo se apague y encienda en el mismo tap.
+   Cortar la propagación en el botón deja al wrapper sin evento que reenviar. */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    fn();
+  };
 
 /** Proporción de las láminas (1400 × 1960). Se respeta a rajatabla: si la
     página fuera más cuadrada, el object-fit se comería el marco dorado que las
@@ -377,7 +395,9 @@ function CaraTexto({
             {flecha && (
               <span className="libro-flecha" aria-hidden="true">
                 leelo completo
-                <CornerRightDown strokeWidth={2.4} />
+                {/* Flecha →, no ↘: señala AL BOTÓN, que está a su derecha.
+                    La de esquina apuntaba hacia abajo, donde no hay nada. */}
+                <MoveRight strokeWidth={2.4} />
               </span>
             )}
             <button
@@ -450,7 +470,11 @@ function Lector({ cap, onCerrar, escala }: { cap: Capitulo; onCerrar: () => void
         transition={{ type: 'spring', stiffness: 380, damping: 34 }}
         onClick={(e) => e.stopPropagation()}
         style={{ ['--escala' as string]: escala, boxShadow: '0 24px 70px oklch(0% 0 0 / 0.6)' }}
-        className="libro-lector relative flex max-h-[90dvh] w-full max-w-[640px] flex-col overflow-hidden rounded-t-[20px] outline-none sm:rounded-[20px]"
+        /* En el teléfono la hoja sube HASTA el notch (pedido de Gus: la franja
+           oscura que quedaba arriba era espacio regalado): alto fijo de casi
+           toda la pantalla, respetando el safe-area. En PC vuelve al diálogo
+           centrado de siempre, que se ajusta a su contenido. */
+        className="libro-lector relative flex h-[calc(100dvh-max(10px,env(safe-area-inset-top)))] w-full max-w-[640px] flex-col overflow-hidden rounded-t-[20px] outline-none sm:h-auto sm:max-h-[90dvh] sm:rounded-[20px]"
       >
         <div
           className="flex shrink-0 items-start gap-3 px-5 pt-4 pb-3"
@@ -626,20 +650,61 @@ export default function LibroView() {
     }
   };
 
+  /* MÓVIL: el deslizamiento es NUESTRO, no del libro.
+
+     Con una sola página visible, el arrastre nativo del componente miente:
+     la cara que se ve puede ser la mitad IZQUIERDA del libro físico (los
+     dorsos), y ahí arrastrar a la izquierda significa «voltear la página de
+     atrás» — Gus deslizó a la izquierda sobre la lámina del capítulo 1 y el
+     libro se movió al lado contrario. En un lector de una página la regla es
+     universal: izquierda = siguiente, derecha = anterior, se esté mirando la
+     mitad que se esté mirando.
+
+     Cómo: el pointerdown se corta en el marco (captura) para que el libro
+     jamás arme su arrastre, y al soltar se decide con el delta. El volteo
+     animado no se pierde — cambiar `page` lo dispara igual. Los taps siguen
+     vivos (click se genera aunque el pointerdown no baje), y el scroll
+     vertical del texto también: touch-action pan-y se lo deja al navegador,
+     que además cancela el puntero (pointercancel) cuando decide que el gesto
+     era un scroll. En escritorio nada de esto existe: la plana completa se
+     arrastra con el gesto nativo del componente, que ahí sí es el correcto. */
+  const gesto = useRef<{ x: number; y: number } | null>(null);
+
+  const alSoltarGesto = (e: React.PointerEvent) => {
+    const g = gesto.current;
+    gesto.current = null;
+    if (!g) return;
+    const dx = e.clientX - g.x;
+    const dy = e.clientY - g.y;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      // TAP. En la portada un toque abre el libro; el botón «tocá para abrir»
+      // ya hace lo suyo con su propio click — no sumarle otro paso encima.
+      if (cara === 0 && !(e.target as HTMLElement).closest?.('.libro-abrir')) ir(1);
+      return;
+    }
+    if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.2) ir(dx < 0 ? cara + 1 : cara - 1);
+  };
+
   const capActual = CAP_DE_CARA[cara];
   const pie =
     cara === 0
-      ? 'Portada · arrastrá para abrir'
+      ? movil
+        ? 'Portada · tocá para abrir'
+        : 'Portada · arrastrá o tocá para abrir'
       : cara >= TOTAL - 1
         ? 'Fin · The End'
         : capActual
           ? `Cap. ${capActual.n} de ${CAPITULOS.length} · ${capActual.titulo}`
           : '';
 
+  /* Con la FilaSuperior escondida en el libro móvil (App.tsx), esta barra es
+     lo primero de la pantalla y a ella le toca poner el hueco del notch. */
+  const BARRA_MOVIL = 'max-[739px]:pt-[max(12px,env(safe-area-inset-top))]';
+
   if (!listo) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-3')}>
+        <div className={cn(COLUMNA, BARRA_MOVIL, 'flex shrink-0 items-center gap-2 pb-3')}>
           <motion.button
             type="button"
             whileTap={{ scale: 0.94 }}
@@ -664,8 +729,9 @@ export default function LibroView() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <GlassStyles />
       {/* ── Barra de sección ──────────────────────────────────────────────── */}
-      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-2')}>
+      <div className={cn(COLUMNA, BARRA_MOVIL, 'flex shrink-0 items-center gap-2 pb-2')}>
         <motion.button
           type="button"
           whileTap={{ scale: 0.94 }}
@@ -685,18 +751,25 @@ export default function LibroView() {
 
         {/* Tamaño de letra y sonido. Van arriba y no en el pie porque el pie es
             para navegar: mezclar «dónde estoy» con «cómo lo veo» obliga a
-            leer la fila entera para encontrar cualquiera de las dos. */}
-        <div className="flex shrink-0 items-center gap-1">
-          <button
+            leer la fila entera para encontrar cualquiera de las dos.
+            EN VIDRIO (pedido de Gus): el mismo material glass de los botones
+            del login. La receta es la de TALK — `vidrio-tema` en el contenedor
+            (mapea --background/--foreground a los tokens del tema),
+            <GlassStyles/> montado una vez en la vista, y unSoloClick para que
+            el wrapper de GlassButton no repita el toque. El ← redondo canónico
+            NO se toca: es el de toda la app. */}
+        <div className="vidrio-tema flex shrink-0 items-center gap-1.5">
+          <GlassButton
             type="button"
-            onClick={() => cambiarEscala(-PASO_ESCALA)}
+            size="icon"
+            onClick={unSoloClick(() => cambiarEscala(-PASO_ESCALA))}
             disabled={escalaEfectiva <= ESCALA_MIN}
             aria-label="Letra más pequeña"
-            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border text-[0.72rem] font-bold disabled:cursor-default disabled:opacity-35"
-            style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+            className={cn('shrink-0', escalaEfectiva <= ESCALA_MIN && 'pointer-events-none opacity-40')}
+            contentClassName="text-[0.8rem] font-bold tracking-normal!"
           >
             A−
-          </button>
+          </GlassButton>
           <span
             className="w-9 text-center font-mono text-[0.58rem] font-bold tabular-nums"
             style={{ color: 'var(--text-secondary)' }}
@@ -704,30 +777,31 @@ export default function LibroView() {
           >
             {Math.round(escalaEfectiva * 100)}%
           </span>
-          <button
+          <GlassButton
             type="button"
-            onClick={() => cambiarEscala(PASO_ESCALA)}
+            size="icon"
+            onClick={unSoloClick(() => cambiarEscala(PASO_ESCALA))}
             disabled={escalaEfectiva >= ESCALA_MAX}
             aria-label="Letra más grande"
-            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border text-[0.86rem] font-bold disabled:cursor-default disabled:opacity-35"
-            style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+            className={cn('shrink-0', escalaEfectiva >= ESCALA_MAX && 'pointer-events-none opacity-40')}
+            contentClassName="text-[0.92rem] font-bold tracking-normal!"
           >
             A+
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
             type="button"
-            onClick={() => {
+            size="icon"
+            onClick={unSoloClick(() => {
               const v = !mudo;
               setMudo(v);
               setLibroMudo(v);
-            }}
+            })}
             aria-label={mudo ? 'Activar el sonido de las páginas' : 'Silenciar las páginas'}
             aria-pressed={mudo}
-            className="ml-0.5 inline-flex size-8 cursor-pointer items-center justify-center rounded-full border"
-            style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+            className="shrink-0"
           >
-            {mudo ? <VolumeX size={15} strokeWidth={2} /> : <Volume2 size={15} strokeWidth={2} />}
-          </button>
+            {mudo ? <VolumeX size={16} strokeWidth={2} /> : <Volume2 size={16} strokeWidth={2} />}
+          </GlassButton>
         </div>
       </div>
 
@@ -740,7 +814,20 @@ export default function LibroView() {
                 frentes (descansan a la derecha) y las impares son dorsos ya
                 volteados (quedan a la izquierda). En escritorio no hay marco
                 que valga: se ve la plana completa. */}
-            <div className="libro-marco" style={movil ? { width: pw, height: ph } : undefined}>
+            <div
+              className="libro-marco relative"
+              style={movil ? { width: pw, height: ph, touchAction: 'pan-y' } : undefined}
+              onPointerDownCapture={
+                movil
+                  ? (e) => {
+                      gesto.current = { x: e.clientX, y: e.clientY };
+                      e.stopPropagation(); // el libro no arma su arrastre: el gesto es nuestro
+                    }
+                  : undefined
+              }
+              onPointerUp={movil ? alSoltarGesto : undefined}
+              onPointerCancel={movil ? () => (gesto.current = null) : undefined}
+            >
               <div
                 className="libro-riel"
                 style={movil ? { width: pw * 2, transform: `translateX(${cara % 2 === 0 ? -pw : 0}px)` } : undefined}
@@ -748,7 +835,7 @@ export default function LibroView() {
                 <Book
                   width={pw}
                   height={ph}
-                  variant={SIN_CURL ? 'flat' : 'rounded'}
+                  variant="rounded"
                   /* withCover solo en escritorio: la tapa dura centra el libro
                      CERRADO sobre la plana, y ese centrado pelearía con el riel
                      del móvil, que ya decide él qué mitad se mira. */
@@ -775,6 +862,20 @@ export default function LibroView() {
                   ))}
                 </Book>
               </div>
+
+              {/* «Tocá para abrir» (pedido de Gus): el rótulo de abajo nadie lo
+                  lee, así que la invitación va SOBRE la tapa — un botón que se
+                  ve tocable y hace lo que dice. Solo existe en la portada;
+                  abierto el libro, se va y no vuelve a estorbar. La tapa
+                  cerrada queda centrada en el marco en los dos mundos (el
+                  withCover del PC la centra igual), así que el 50% sirve para
+                  ambos. */}
+              {cara === 0 && (
+                <button type="button" className="libro-abrir" onClick={() => ir(1)} aria-label="Abrir el libro">
+                  <i>tocá para abrir</i>
+                  <ChevronRight strokeWidth={2.6} />
+                </button>
+              )}
             </div>
           </div>
         </MantineProvider>

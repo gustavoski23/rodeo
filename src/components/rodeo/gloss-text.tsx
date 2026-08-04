@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'motion/react';
 import { create } from 'zustand';
 
 import { replySpans, type Gloss } from '@/lib/gloss';
@@ -42,11 +41,27 @@ const useTip = create<{
 
 let seqOwner = 0;
 
+/* SIN motion/AnimatePresence, a propósito. El tip vivía en un portal al body y
+   su exit de AnimatePresence NUNCA completaba: cerrar() dejaba el store en
+   null y el nodo se quedaba huérfano en pantalla para siempre (visto por Gus
+   en el teléfono: la glosa "no se quitaba" tocando fuera). Como es un tooltip
+   —chico y utilitario— la salida instantánea del legacy es lo correcto; la
+   entrada conserva un fundido de 140ms hecho con transición CSS, que no tiene
+   ciclo de exit que se pueda atascar. */
 function GlossTip({ tip }: { tip: TipAbierto }) {
   const cerrar = useTip((s) => s.cerrar);
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: -9999, top: -9999, w: 300 });
   const [guardado, setGuardado] = useState(() => (tip.term ? dnaTieneSlang(tip.term) : false));
+
+  // Entrada: un frame después de montar (ya colocado por el layout effect) se
+  // enciende la transición. rAF y no un setTimeout: lo que se busca es "el
+  // siguiente pintado", no un tiempo.
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   /* posicionarTip (L3397): centrado sobre la palabra, clampeado a 12 px de los
      bordes, y si no cabe arriba se va abajo. Se posiciona con JS porque el
@@ -55,13 +70,19 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
     const tipEl = ref.current;
     if (!tipEl) return;
     const r = tip.el.getBoundingClientRect();
-    const w = Math.min(300, window.innerWidth - 24);
+    const maxW = Math.min(300, window.innerWidth - 24);
     const th = tipEl.offsetHeight;
+    /* Centrar con el ancho REAL del tip, no con el máximo: solo hay maxWidth,
+       así que una traducción corta ("formalita") deja un tip de ~150px — y
+       centrarlo como si midiera 300 lo corría ~75px a la izquierda, hasta
+       quedar flotando encima de OTRA palabra (visto por Gus en el libro; en
+       TALK no se notaba porque sus traducciones largas sí llenan los 300). */
+    const w = Math.min(tipEl.offsetWidth, maxW);
     let left = r.left + r.width / 2 - w / 2;
     left = Math.max(12, Math.min(left, window.innerWidth - w - 12));
     let top = r.top - th - 8;
     if (top < 8) top = r.bottom + 8; // sin espacio arriba → abajo
-    setPos({ left, top, w });
+    setPos({ left, top, w: maxW });
   }, [tip.el]);
 
   useLayoutEffect(() => {
@@ -83,6 +104,10 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
   // Clic fuera con el tip fijado → cerrar. Los clics DENTRO del tooltip (el
   // botón de guardar) y los de otra glosa se ignoran aquí: los maneja quien
   // corresponde, y así el tip no se cierra al guardar.
+  // EN CAPTURA, no en burbuja: el lector del libro (y cualquier panel futuro)
+  // hace stopPropagation en sus clicks para no cerrar SU modal, y en burbuja
+  // ese corte dejaba al tip abierto para siempre — tocabas cualquier parte del
+  // capítulo y la glosa seguía ahí. La captura corre antes de cualquier corte.
   useEffect(() => {
     if (!tip.fijado) return;
     const onDoc = (e: MouseEvent) => {
@@ -91,8 +116,8 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
       if (t?.closest?.('[data-gloss]')) return;
       cerrar();
     };
-    document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    document.addEventListener('click', onDoc, true);
+    return () => document.removeEventListener('click', onDoc, true);
   }, [tip.fijado, cerrar]);
 
   const guardar = () => {
@@ -103,14 +128,10 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
   };
 
   return (
-    <motion.div
+    <div
       ref={ref}
       data-gloss-tip
       role="tooltip"
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ type: 'spring', stiffness: 520, damping: 34 }}
       className="fixed z-[300] rounded-[10px] border px-3 py-[9px] font-sans text-[0.82rem] leading-[1.4]"
       style={{
         left: pos.left,
@@ -121,6 +142,9 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
         color: 'var(--text-primary)',
         boxShadow: '0 12px 34px oklch(0% 0 0 / 0.55)',
         pointerEvents: tip.fijado && tip.term ? 'auto' : 'none',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'scale(1)' : 'scale(0.96)',
+        transition: 'opacity 140ms ease, transform 140ms ease',
       }}
     >
       <div className={tip.fijado && tip.term ? 'mb-[7px]' : undefined}>{tip.es}</div>
@@ -145,7 +169,7 @@ function GlossTip({ tip }: { tip: TipAbierto }) {
           </button>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -232,9 +256,7 @@ export function GlossText({
       {nodos}
       {typeof document !== 'undefined' &&
         createPortal(
-          <AnimatePresence>
-            {tip && tip.owner === owner && <GlossTip key={`${tip.term ?? ''}|${tip.es}`} tip={tip} />}
-          </AnimatePresence>,
+          tip && tip.owner === owner ? <GlossTip key={`${tip.term ?? ''}|${tip.es}`} tip={tip} /> : null,
           document.body,
         )}
     </span>

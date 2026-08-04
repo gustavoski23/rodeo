@@ -453,8 +453,63 @@
   overflow: hidden;
 }
 
+/* El anillo azul de foco del navegador aparecía pegado al borde del libro al
+   arrastrarlo con el mouse (captura de Gus). Se apaga SOLO para el foco de
+   puntero: el de teclado (:focus-visible) se queda, que para eso está. */
+.libro-marco :focus:not(:focus-visible) {
+  outline: none;
+}
+
 .libro-riel {
   transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* «Tocá para abrir»: la invitación SOBRE la tapa. Vidrio oscuro para no pelear
+   con la lámina, tipografía del libro, y el chevron con un empujoncito que
+   dice "por aquí". Vive solo mientras se está en la portada. */
+.libro-abrir {
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  cursor: pointer;
+  padding: 0.55em 0.95em 0.55em 1.15em;
+  border-radius: 999px;
+  border: 1px solid oklch(78% 0.08 82 / 0.5);
+  background: oklch(18% 0.02 60 / 0.66);
+  backdrop-filter: blur(6px);
+  color: oklch(90% 0.07 85);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  box-shadow: 0 6px 22px oklch(0% 0 0 / 0.4);
+}
+
+.libro-abrir svg {
+  width: 1.1em;
+  height: 1.1em;
+  animation: libro-empuja 1.5s ease-in-out infinite;
+}
+
+@keyframes libro-empuja {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.3em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-abrir svg {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
