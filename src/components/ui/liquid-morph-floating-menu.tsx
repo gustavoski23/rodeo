@@ -1,6 +1,16 @@
 /* liquid-morph-floating-menu — componente de 21st.dev pegado por Gus, VERBATIM.
    Adaptaciones declaradas (solo las imprescindibles para este repo):
    · sin "use client" (no es Next).
+   · Panel abierto re-tallado para las 5 entradas de RODEO (pedido de Gus,
+     2026-08-04, captura 3: en móvil se veía cortado y mal repartido — el
+     original está pensado para 3 ítems de 24px):
+       - La palabra "Menu" de la barra de abajo DESAPARECE al abrir (ya la
+         leíste al tocar; su hueco es aire para las entradas). La X se queda
+         como único mando de cerrar.
+       - Ítems a 19px con gap de 14px (antes 24px/24px): las cinco entradas
+         caben en el panel sin recortarse.
+       - El bloque de ítems baja un poco (padding superior al abrir), hasta la
+         zona que marcó Gus con la línea verde.
    · El resto del fichero es el código tal cual llegó en el prompt. La posición
      (el original es fixed bottom-center; RODEO lo quiere arriba a la
      izquierda) NO se toca aquí: quien lo monta la ajusta vía las props
@@ -67,7 +77,7 @@ function MenuButton({
       onClick={onClick}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
-      className="text-[#f7f1ed] text-[24px] uppercase leading-none overflow-hidden"
+      className="text-[#f7f1ed] text-[19px] uppercase leading-none overflow-hidden"
       style={{
         fontFamily: "'Trobika', 'Bebas Neue', sans-serif",
         letterSpacing: "-0.03em",
@@ -207,12 +217,13 @@ export default function FloatingMenu({ items, initialOpen = false }: FloatingMen
 
         {/* Menu items */}
         <div
-          className="relative z-10 flex flex-col gap-6 items-center justify-center"
+          className="relative z-10 flex flex-col gap-[14px] items-center justify-center"
           style={{
             pointerEvents: isOpen ? "auto" : "none",
             opacity: isOpen ? 1 : 0,
             flex: isOpen ? 1 : 0,
             overflow: "hidden",
+            paddingTop: isOpen ? 26 : 0,
           }}
         >
           {menuItems.map((item, idx) => (
@@ -239,10 +250,13 @@ export default function FloatingMenu({ items, initialOpen = false }: FloatingMen
           transition={{ duration: 0.8, ease }}
           style={{ alignItems: "center" }}
         >
+          {/* Abierto, "Menu" se va (opacity 0): ya lo leíste al tocar, y su
+              hueco es aire para las entradas. La X queda como único cierre. */}
           <motion.span
             className="text-[14px] md:text-[20px] leading-none"
-            animate={{ color: isOpen ? "#f7f1ed" : "#242424" }}
+            animate={{ color: isOpen ? "#f7f1ed" : "#242424", opacity: isOpen ? 0 : 1 }}
             transition={{ duration: 0.3, ease }}
+            aria-hidden={isOpen || undefined}
           >
             Menu
           </motion.span>
