@@ -1,41 +1,63 @@
-/* Libre Baskerville se pide DESDE AQUÍ y no desde index.html a propósito: la
-   fuente es del LIBRO, no de la app (pedido de Gus, 2026-08-04). Este CSS viaja
-   en el chunk lazy de la vista, así que quien nunca abre el libro no descarga
-   la fuente; y como solo se aplica dentro de .libro-*, el resto de la app sigue
-   con Familjen Grotesk sin enterarse. */
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+/* Libre Baskerville, SERVIDA DESDE public/fonts.
+
+   No va por Google Fonts (que era lo de antes) por dos razones. Una: el
+   empaquetador del demo (scripts/hacer-demo.mjs) inlinea los assets LOCALES a
+   data: URI, y el CSP del artifact bloquea cualquier host externo — con el
+   @import a Google la fuente se caía sin avisar y el libro salía en Georgia.
+   Dos: es una request de terceros menos y sin FOUT.
+
+   Los tres pesos son archivos DISTINTOS (Fontsource). Ojo con esto: Google
+   Fonts hoy sirve el MISMO woff2 para 400 y 700, así que declarar el 700
+   apuntando al regular daba títulos que no se veían en negrita. */
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/LibreBaskerville-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/LibreBaskerville-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/LibreBaskerville-Italic.woff2') format('woff2');
+}
 
 /* LIBRO — Alice in Wonderland.
 
-   Toda la tipografía de las páginas se mide en `em` sobre --pw (el ancho de
-   página en px que calcula la vista). Así el libro es UN objeto que escala:
-   a 175px en un móvil y a 340px en el PC se ve el mismo diseño, no uno roto y
-   otro suelto. Si algo aquí lleva px fijos es porque NO debe escalar (los
-   hairlines del marco dorado, que a 0.4px desaparecen). */
+   La tipografía de las páginas se mide en `em` sobre --pw (el ancho de página
+   en px que calcula la vista) multiplicado por --escala (el A−/A+ del lector).
+   Así el libro es UN objeto que escala entero: a 175px en un móvil y a 340px
+   en el PC se ve el mismo diseño, no uno roto y otro suelto. Si algo lleva px
+   fijos es porque NO debe escalar. */
 
 .libro-cara {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-  /* La unidad del libro: 1em = 4.2% del ancho de página. */
-  font-size: calc(var(--pw, 300px) * 0.042);
+  font-size: calc(var(--pw, 300px) * 0.042 * var(--escala, 1));
 }
 
-/* ── Caras ilustradas (portada, escenas, cierre) ───────────────────────── */
+/* ── Caras ilustradas (portada, aperturas de capítulo, cierre) ──────────── */
 
 .libro-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
-  /* El arte ya trae su marco dorado pintado; el object-fit lo recorta un pelo
-     a los lados en vez de deformarlo. */
 }
 
-/* Velo inferior: apoya el folio/rótulo sobre la ilustración y —de paso— tapa
-   la franja de abajo, donde el generador a veces deja un renglón de letras
-   ilegibles. Es decorativo, así que no roba el tap del pase de página. */
+/* Velo inferior: apoya el rótulo sobre la ilustración y —de paso— tapa la
+   franja de abajo, donde el generador a veces deja un renglón ilegible. */
 .libro-velo {
   position: absolute;
   inset: auto 0 0 0;
@@ -57,14 +79,15 @@
 .libro-rotulo b {
   display: block;
   font-size: 1.05em;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0 0.8em;
 }
 
 .libro-rotulo span {
   display: block;
-  margin-top: 0.25em;
-  font-size: 0.62em;
+  margin-top: 0.3em;
+  font-size: 0.6em;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   opacity: 0.75;
@@ -75,20 +98,15 @@
 .libro-pergamino {
   display: flex;
   flex-direction: column;
-  /* El pb reserva el renglón del folio: con dos filas de chips el pie llegaba
-     a sentarse encima del número. */
-  padding: 1.5em 1.35em 1.9em;
+  padding: 1.35em 1.3em 1.15em;
   color: oklch(26% 0.035 65);
   font-family: 'Libre Baskerville', Georgia, serif;
   background:
-    /* manchas de humedad, muy suaves */
     radial-gradient(ellipse at 18% 12%, oklch(84% 0.05 78 / 0.55), transparent 45%),
     radial-gradient(ellipse at 85% 78%, oklch(82% 0.06 62 / 0.5), transparent 40%),
     radial-gradient(ellipse at 50% 50%, oklch(94% 0.028 88), oklch(88% 0.042 74));
 }
 
-/* Vignette del papel: oscurece los bordes como un pliego viejo. Va en ::before
-   para no ensuciar el fondo del bloque de texto. */
 .libro-pergamino::before {
   content: '';
   position: absolute;
@@ -97,26 +115,28 @@
   box-shadow: inset 0 0 3em 0.9em oklch(62% 0.06 62 / 0.28);
 }
 
-/* Filete dorado interior, el del pliego impreso. */
 .libro-pergamino::after {
   content: '';
   position: absolute;
-  inset: 0.62em;
+  inset: 0.55em;
   pointer-events: none;
   border: 1px solid oklch(66% 0.09 78 / 0.5);
 }
 
+/* Cabecera de capítulo: solo en la PRIMERA cara de texto del capítulo. Las
+   otras cuatro entran directo al cuento, como en un libro de verdad — repetir
+   el título en cada página gastaría el mejor espacio de la plana. */
 .libro-cap {
   position: relative;
   flex-shrink: 0;
   text-align: center;
-  margin-bottom: 0.85em;
+  margin-bottom: 0.75em;
 }
 
 .libro-cap i {
   display: block;
   font-style: normal;
-  font-size: 0.58em;
+  font-size: 0.56em;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: oklch(52% 0.09 62);
@@ -124,7 +144,7 @@
 
 .libro-cap b {
   display: block;
-  margin-top: 0.3em;
+  margin-top: 0.28em;
   font-size: 1em;
   font-weight: 700;
   line-height: 1.2;
@@ -133,20 +153,18 @@
 
 .libro-cap em {
   display: block;
-  margin-top: 0.22em;
-  font-size: 0.6em;
-  font-style: italic;
+  margin-top: 0.2em;
+  font-size: 0.58em;
   color: oklch(48% 0.05 62);
 }
 
-/* Filigrana de separación: ❦ centrado entre dos hairlines. */
 .libro-cap u {
   display: flex;
   align-items: center;
   gap: 0.5em;
-  margin-top: 0.55em;
+  margin-top: 0.5em;
   text-decoration: none;
-  font-size: 0.62em;
+  font-size: 0.6em;
   color: oklch(60% 0.09 72);
 }
 
@@ -158,62 +176,158 @@
   background: linear-gradient(to right, transparent, oklch(66% 0.09 78 / 0.65), transparent);
 }
 
-/* El cuerpo del cuento. min-height:0 + overflow oculto: si un capítulo se pasa
-   de largo se recorta ARRIBA del pie, nunca lo empuja fuera de la página. */
-/* Libre Baskerville tiene la x muy alta: al mismo tamaño pinta bastante más
-   grande que Georgia, así que el cuerpo baja de 0.82 a 0.72em para que quepa
-   el mismo cuento sin apretar el interlineado.
-   Y se va el JUSTIFICADO. En una columna de ~26 caracteres el justificado
-   abría ríos blancos y obligaba a partir palabras ("hu-rried on"): con
-   bandera derecha el gris del párrafo es parejo y no hay un solo guion. */
+/* El cuerpo del cuento.
+
+   overflow-y AUTO y no hidden: con la letra agrandada (el A+ llega a 175%) el
+   cuento deja de caber en la hoja, y esconderle el final al lector es el peor
+   fallo posible en un libro — se leía "Rabbits don't talk, Alice thought. She"
+   y ahí se acababa el mundo. Ahora la página se desplaza por dentro.
+   Para que ese desplazamiento no pelee con el gesto de pasar página, el <Book>
+   va con `mobileScrollSupport`: en táctil el libro espera a ver si el gesto
+   tira en horizontal antes de reclamar el arrastre, así el dedo vertical
+   scrollea y el horizontal voltea.
+   overscroll-behavior contiene el rebote: al llegar al final del texto no
+   arrastra la página entera detrás. */
 .libro-cuerpo {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
   font-size: 0.72em;
   line-height: 1.58;
   text-align: left;
   hyphens: manual;
 }
 
+.libro-cuerpo::-webkit-scrollbar {
+  display: none;
+}
+
+/* «Sigue abajo». El degradado se pega al borde inferior del área de texto y
+   solo existe mientras quede algo por leer (data-mas lo pone la vista al medir).
+   Sin esto, una frase cortada a media línea se lee como un fallo; con esto se
+   lee como una página que sigue. Va en un pseudo-elemento sticky y no en un
+   ::after absoluto porque el contenedor scrollea: absoluto se iría con el
+   texto hacia arriba. */
+.libro-cuerpo[data-mas]::after {
+  content: '';
+  display: block;
+  position: sticky;
+  bottom: -1px;
+  height: 2.2em;
+  margin-top: -2.2em;
+  pointer-events: none;
+  background: linear-gradient(to top, oklch(90% 0.038 80) 12%, oklch(90% 0.038 80 / 0) 100%);
+}
+
+/* SANGRÍA DE LIBRO (pedido de Gus: «respetando la sangría»). Los párrafos NO
+   se separan con aire: se marcan con sangría de primera línea, que es como se
+   compone un libro impreso. El primero va sin sangría —lleva la capitular— y
+   del segundo en adelante entran 1.15em. Así la mancha de texto queda maciza y
+   pareja, sin los escalones blancos que deja el margen entre párrafos. */
 .libro-cuerpo p {
-  margin: 0 0 0.62em;
+  margin: 0;
+  text-indent: 1.15em;
+}
+
+.libro-cuerpo p:first-child {
+  text-indent: 0;
+}
+
+/* El diálogo respira: una línea que abre con comillas arranca párrafo nuevo y
+   ahí sí conviene un pelín de aire, si no la conversación se lee como un
+   bloque. */
+.libro-cuerpo p.dialogo {
+  margin-top: 0.3em;
 }
 
 .libro-cuerpo p:first-child::first-letter {
   float: left;
-  font-size: 2.5em;
+  font-size: 2.6em;
   line-height: 0.82;
   padding: 0.06em 0.1em 0 0;
   color: oklch(45% 0.13 42);
 }
 
-/* Las glosas de <GlossText> heredan el punteado ámbar de la app, que sobre
-   papel claro se pierde: aquí se retiñen a tinta sepia. */
+/* Las glosas heredan el punteado ámbar de la app, que sobre papel claro se
+   pierde: aquí se retiñen a tinta sepia. */
 .libro-cuerpo [data-gloss] {
   border-bottom-color: oklch(55% 0.13 52) !important;
   color: oklch(34% 0.1 45);
+  cursor: pointer;
 }
 
-/* ── Pie: los phrasal verbs del capítulo ────────────────────────────────── */
+/* La ilustración de la MITAD del capítulo, embebida en la página de texto. */
+.libro-medio {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0.7em;
+  border: 1px solid oklch(62% 0.08 70 / 0.6);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.libro-medio img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Pie: la línea ES y el folio ────────────────────────────────────────── */
+
+.libro-es {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin-top: 0.6em;
+  padding-top: 0.45em;
+  border-top: 1px solid oklch(66% 0.09 78 / 0.45);
+  font-size: 0.56em;
+  line-height: 1.45;
+  color: oklch(46% 0.05 62);
+}
+
+.libro-es i {
+  flex-shrink: 0;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: oklch(56% 0.09 62);
+}
+
+.libro-es span {
+  flex: 1;
+  font-style: italic;
+}
+
+.libro-es b {
+  flex-shrink: 0;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: oklch(56% 0.06 62);
+}
+
+/* ── Los phrasal verbs, solo en la primera cara de texto del capítulo ───── */
 
 .libro-pie {
   position: relative;
   flex-shrink: 0;
   margin-top: 0.5em;
-  padding-top: 0.5em;
+  padding-top: 0.45em;
   border-top: 1px solid oklch(66% 0.09 78 / 0.45);
 }
 
-/* Rótulo a la izquierda y botón "Leer" a la derecha, en la misma línea: así el
-   botón nunca se sienta encima de los chips. */
 .libro-pie-cab {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5em;
-  margin-bottom: 0.4em;
+  margin-bottom: 0.35em;
 }
 
 .libro-pie i {
@@ -230,7 +344,7 @@
   gap: 0.35em;
   flex-shrink: 0;
   cursor: pointer;
-  padding: 0.24em 0.62em;
+  padding: 0.28em 0.68em;
   border-radius: 999px;
   font-family: 'Libre Baskerville', Georgia, serif;
   font-size: 0.52em;
@@ -245,11 +359,11 @@
 .libro-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.28em;
+  gap: 0.26em;
 }
 
 .libro-chips span {
-  font-size: 0.5em;
+  font-size: 0.48em;
   line-height: 1.5;
   padding: 0.1em 0.5em;
   border-radius: 999px;
@@ -259,14 +373,40 @@
   border: 1px solid oklch(62% 0.08 70 / 0.5);
 }
 
-/* Folio */
-.libro-folio {
-  position: absolute;
-  inset: auto 0 0.35em 0;
-  text-align: center;
-  font-size: 0.5em;
-  letter-spacing: 0.2em;
-  color: oklch(56% 0.06 62);
+/* La flechita que señala LEER hasta que se usa una vez (pedido de Gus). Es un
+   descubrimiento, no un adorno: sin ella nadie sabe que la página tiene un
+   lector detrás. Por eso se va PARA SIEMPRE al primer clic.
+   Va EN LA MISMA FILA que el botón, empujada contra él: flotando encima se
+   sentaba sobre la línea ES y tapaba el resumen en español. */
+.libro-flecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-left: auto;
+  margin-right: 0.35em;
+  flex-shrink: 0;
+  pointer-events: none;
+  font-size: 0.48em;
+  font-style: italic;
+  white-space: nowrap;
+  color: oklch(45% 0.14 45);
+  animation: libro-señala 1.5s ease-in-out infinite;
+}
+
+.libro-flecha svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+/* Apunta AL BOTÓN, que está a su derecha: el vaivén es horizontal. */
+@keyframes libro-señala {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.3em);
+  }
 }
 
 /* ── Cierre ─────────────────────────────────────────────────────────────── */
@@ -287,7 +427,7 @@
 
 .libro-fin b {
   font-size: 1.5em;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.22em;
   color: oklch(90% 0.08 85);
   text-shadow: 0 0.06em 0.3em oklch(10% 0.02 60);
@@ -295,17 +435,39 @@
 
 .libro-fin span {
   margin-top: 0.5em;
-  font-size: 0.6em;
+  font-size: 0.58em;
   line-height: 1.5;
   color: oklch(82% 0.05 80 / 0.85);
 }
 
+/* ── El marco de página única (móvil) ───────────────────────────────────── */
+
+/* En el móvil una plana de dos páginas deja cada hoja en ~170px: preciosa para
+   mirar, imposible de leer. Así que el marco recorta a UNA página y el riel
+   corre para enseñar la mitad donde está la cara actual (las caras pares son
+   frentes y descansan a la derecha; las impares son dorsos ya volteados y
+   quedan a la izquierda). El libro por dentro sigue siendo el mismo objeto de
+   dos planas — esto solo decide qué mitad se mira, así que el volteo, el
+   arrastre y el curl 3D siguen intactos. */
+.libro-marco {
+  overflow: hidden;
+}
+
+.libro-riel {
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-riel {
+    transition: none;
+  }
+  .libro-flecha {
+    animation: none;
+  }
+}
+
 /* ── Lector a pantalla completa ─────────────────────────────────────────── */
 
-/* En el móvil la página del libro mide ~175px: preciosa para hojear, ilegible
-   para leer. El lector es la respuesta — el mismo capítulo, mismas glosas, a
-   tamaño de lectura. Aquí la tipografía SÍ va en rem: ya no escala con el
-   libro, escala con el usuario. */
 .libro-lector {
   font-family: 'Libre Baskerville', Georgia, serif;
   color: oklch(26% 0.035 65);
@@ -316,26 +478,47 @@
 }
 
 .libro-lector-cuerpo {
-  font-size: 0.95rem;
+  font-size: calc(0.95rem * var(--escala, 1));
   line-height: 1.7;
   text-align: left;
   hyphens: manual;
 }
 
 .libro-lector-cuerpo p {
-  margin: 0 0 0.9em;
+  margin: 0;
+  text-indent: 1.15em;
+}
+
+.libro-lector-cuerpo p:first-child {
+  text-indent: 0;
+}
+
+.libro-lector-cuerpo p.dialogo {
+  margin-top: 0.4em;
+}
+
+/* Separador entre las páginas del capítulo dentro del lector: el cuento sigue
+   siendo uno, pero se ve dónde cortaba cada hoja. */
+.libro-lector-corte {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 1em 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: oklch(60% 0.07 68);
+}
+
+.libro-lector-corte::before,
+.libro-lector-corte::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(66% 0.09 78 / 0.55), transparent);
 }
 
 .libro-lector-cuerpo [data-gloss] {
   border-bottom-color: oklch(55% 0.13 52) !important;
   color: oklch(34% 0.1 45);
-}
-
-/* ── Movimiento reducido ────────────────────────────────────────────────── */
-
-@media (prefers-reduced-motion: reduce) {
-  .libro-cara,
-  .libro-lector {
-    transition: none !important;
-  }
 }

@@ -8,6 +8,23 @@ import { aplicarTema, hidratarTema, type Tema } from '@/lib/theme';
 
 export type View = 'home' | 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1' | 'perfil' | 'libro';
 
+const VISTAS: readonly View[] = ['home', 'talk', 'story', 'slang', 'ladder', 'dna', 'a1', 'perfil', 'libro'];
+
+/* Vista de arranque. Normalmente el Home —es la puerta de la app— pero un
+   `#/libro` en la URL abre directo ahí.
+
+   No es un router: es UNA lectura del hash al crear el store, sin listener y
+   sin escribir la URL de vuelta. Con eso alcanza para lo que hace falta —
+   mandarle a alguien el enlace de una sección, y que el demo single-file
+   (scripts/hacer-demo.mjs con DEMO_VIEW) aterrice donde toca en vez de obligar
+   a cruzar el carrusel. Si el hash trae cualquier otra cosa, Home. */
+function vistaInicial(): View {
+  if (typeof location === 'undefined') return 'home';
+  const m = location.hash.match(/^#\/?([a-z0-9]+)/i);
+  const v = m?.[1]?.toLowerCase() as View | undefined;
+  return v && VISTAS.includes(v) ? v : 'home';
+}
+
 type AppState = {
   view: View;
   tema: Tema;
@@ -31,8 +48,9 @@ type AppState = {
 };
 
 export const useApp = create<AppState>((set) => ({
-  // El Home aurora es la puerta de la app (decisión de Gus, 2026-07-28).
-  view: 'home',
+  // El Home aurora es la puerta de la app (decisión de Gus, 2026-07-28); un
+  // #/<vista> en la URL puede abrir directo en otra.
+  view: vistaInicial(),
   tema: typeof document !== 'undefined' ? hidratarTema() : 'oscuro',
   nombre: store.get<string | null>('rodeo_nombre', null),
   nivel: store.get<string | null>('rodeo_nivel', null),

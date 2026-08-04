@@ -16,6 +16,12 @@
  *      /api/chat (SSE con reply canned del coach), /api/stt ({text}) y /api/tts.
  *
  * Salida: scratchpad/demo.html  (single-file, self-contained).
+ *
+ * Variables opcionales:
+ *   DEMO_OUT=<ruta>    dónde escribir el HTML.
+ *   DEMO_VIEW=<vista>  aterrizar en una vista concreta (p.ej. `libro`) en vez
+ *                      del Home: siembra `#/<vista>`, que stores/app.ts lee al
+ *                      crear el store. Sin ella, el demo abre como siempre.
  */
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, mkdtempSync } from 'node:fs';
@@ -119,6 +125,15 @@ const bootstrap = `
   S('rodeo_nombre', 'Gustavo');
   S('rodeo_tts', false);            // sin llamadas a /api/tts en el opener
   S('rodeo_pass', 'demo');          // por si el gate del PIN saltara
+  ${
+    process.env.DEMO_VIEW
+      ? `// DEMO_VIEW: el demo aterriza en una vista concreta en vez del Home.
+  // Se hace por HASH y no tocando el store, porque el store lo lee en su
+  // creación (stores/app.ts → vistaInicial) y este bootstrap corre antes.
+  // El gate sigue apareciendo primero: al pulsar Skip se cae en la vista.
+  try { if (!location.hash) location.hash = '#/${process.env.DEMO_VIEW}'; } catch (e) {}`
+      : ''
+  }
 
   var CORR = [];
   var REPLY = 'Nice one, Gustavo! What made it feel \\u27e6worth every peso||que vali\\u00f3 cada peso\\u27e7? Tell me a bit more \\u2014 when did you buy it, and would you buy it again?';
