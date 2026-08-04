@@ -23,7 +23,7 @@ export type Capitulo = {
   titulo: string;
   /** Guiño en español debajo del título: ubica sin traducir. */
   subtitulo: string;
-  /** Ilustración de la cara izquierda del pliego (public/libro/*.png). */
+  /** Ilustración de la cara izquierda del pliego (public/libro/*.webp). */
   img: string;
   /** Alt de la ilustración. Se lee en voz alta con lector de pantalla. */
   alt: string;
@@ -38,7 +38,7 @@ export const CAPITULOS: Capitulo[] = [
     n: 1,
     titulo: 'Down the Rabbit Hole',
     subtitulo: 'Por la madriguera',
-    img: '/libro/01-madriguera.png',
+    img: '/libro/01-madriguera.webp',
     alt: 'Alicia cayendo por una madriguera profunda con estantes, libros y faroles, y un conejo blanco con chaleco abajo.',
     texto: `Alice was ⟦fed up with||harta de⟧ sitting by the river with nothing to do, when a White Rabbit in a ⟦waistcoat||chaleco⟧ ⟦rushed past||pasó corriendo⟧ her, muttering, "Oh dear! I shall be late!"
 
@@ -53,7 +53,7 @@ Down she went after it, never once ⟦working out||cayendo en cuenta de⟧ how o
     n: 2,
     titulo: 'The Pool of Tears',
     subtitulo: 'El charco de lágrimas',
-    img: '/libro/02-charco.png',
+    img: '/libro/02-charco.webp',
     alt: 'Alicia diminuta sobre un piso ajedrezado inundado, junto a una mesa de vidrio gigante con un frasco etiquetado.',
     texto: `The fall ⟦went on||siguió y siguió⟧ forever. At last Alice landed in a long hall ⟦lined with||llena de⟧ locked doors.
 
@@ -68,7 +68,7 @@ Then she ⟦came across||se topó con⟧ a cake marked EAT ME. One bite and she 
     n: 3,
     titulo: 'The Cheshire Cat',
     subtitulo: 'El gato de Cheshire',
-    img: '/libro/03-gato.png',
+    img: '/libro/03-gato.webp',
     alt: 'Alicia mirando hacia arriba a un gato atigrado sonriente sentado en una rama, con la luna llena detrás.',
     texto: `In a moonlit wood a grin ⟦showed up||apareció⟧ among the branches — and then, slowly, a cat ⟦turned up||se materializó⟧ around it.
 
@@ -87,7 +87,7 @@ Alice tried to ⟦figure out||descifrar⟧ whether he was ⟦making fun of||burl
     n: 4,
     titulo: 'A Mad Tea Party',
     subtitulo: 'Una merienda de locos',
-    img: '/libro/04-te.png',
+    img: '/libro/04-te.webp',
     alt: 'Mesa larga bajo un árbol con decenas de tazas desparejas, Alicia, el Sombrerero con chistera y una liebre.',
     texto: `"No room! No room!" they shouted when Alice ⟦turned up||se apareció⟧ at the table.
 
@@ -108,7 +108,7 @@ Alice ⟦got up||se levantó⟧ and ⟦walked off||se fue⟧ in disgust.`,
     n: 5,
     titulo: 'The Queen of Hearts',
     subtitulo: 'La Reina de Corazones',
-    img: '/libro/05-reina.png',
+    img: '/libro/05-reina.webp',
     alt: 'La Reina de Corazones de rojo gritando en un rosal, con soldados naipe detrás y Alicia pequeña y firme delante.',
     texto: `In the royal garden three gardeners were ⟦painting over||repintando⟧ white roses with red paint.
 

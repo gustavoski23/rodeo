@@ -1,3 +1,10 @@
+/* Libre Baskerville se pide DESDE AQUÍ y no desde index.html a propósito: la
+   fuente es del LIBRO, no de la app (pedido de Gus, 2026-08-04). Este CSS viaja
+   en el chunk lazy de la vista, así que quien nunca abre el libro no descarga
+   la fuente; y como solo se aplica dentro de .libro-*, el resto de la app sigue
+   con Familjen Grotesk sin enterarse. */
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
 /* LIBRO — Alice in Wonderland.
 
    Toda la tipografía de las páginas se mide en `em` sobre --pw (el ancho de
@@ -42,7 +49,7 @@
   inset: auto 0 1.1em 0;
   text-align: center;
   pointer-events: none;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Libre Baskerville', Georgia, serif;
   color: oklch(88% 0.07 85);
   text-shadow: 0 0.06em 0.25em oklch(10% 0.02 60 / 0.9);
 }
@@ -72,7 +79,7 @@
      a sentarse encima del número. */
   padding: 1.5em 1.35em 1.9em;
   color: oklch(26% 0.035 65);
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Libre Baskerville', Georgia, serif;
   background:
     /* manchas de humedad, muy suaves */
     radial-gradient(ellipse at 18% 12%, oklch(84% 0.05 78 / 0.55), transparent 45%),
@@ -118,9 +125,9 @@
 .libro-cap b {
   display: block;
   margin-top: 0.3em;
-  font-size: 1.16em;
-  font-weight: 600;
-  line-height: 1.15;
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1.2;
   color: oklch(28% 0.06 55);
 }
 
@@ -153,15 +160,21 @@
 
 /* El cuerpo del cuento. min-height:0 + overflow oculto: si un capítulo se pasa
    de largo se recorta ARRIBA del pie, nunca lo empuja fuera de la página. */
+/* Libre Baskerville tiene la x muy alta: al mismo tamaño pinta bastante más
+   grande que Georgia, así que el cuerpo baja de 0.82 a 0.72em para que quepa
+   el mismo cuento sin apretar el interlineado.
+   Y se va el JUSTIFICADO. En una columna de ~26 caracteres el justificado
+   abría ríos blancos y obligaba a partir palabras ("hu-rried on"): con
+   bandera derecha el gris del párrafo es parejo y no hay un solo guion. */
 .libro-cuerpo {
   position: relative;
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  font-size: 0.82em;
-  line-height: 1.62;
-  text-align: justify;
-  hyphens: auto;
+  font-size: 0.72em;
+  line-height: 1.58;
+  text-align: left;
+  hyphens: manual;
 }
 
 .libro-cuerpo p {
@@ -219,7 +232,7 @@
   cursor: pointer;
   padding: 0.24em 0.62em;
   border-radius: 999px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Libre Baskerville', Georgia, serif;
   font-size: 0.52em;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -268,7 +281,7 @@
   padding: 0 1.4em 1.6em;
   text-align: center;
   pointer-events: none;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Libre Baskerville', Georgia, serif;
   background: linear-gradient(to top, oklch(12% 0.02 60 / 0.94) 22%, oklch(12% 0.02 60 / 0.25) 48%, transparent 68%);
 }
 
@@ -294,7 +307,7 @@
    tamaño de lectura. Aquí la tipografía SÍ va en rem: ya no escala con el
    libro, escala con el usuario. */
 .libro-lector {
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Libre Baskerville', Georgia, serif;
   color: oklch(26% 0.035 65);
   background:
     radial-gradient(ellipse at 20% 10%, oklch(84% 0.05 78 / 0.5), transparent 45%),
@@ -303,10 +316,10 @@
 }
 
 .libro-lector-cuerpo {
-  font-size: 1.02rem;
-  line-height: 1.72;
-  text-align: justify;
-  hyphens: auto;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  text-align: left;
+  hyphens: manual;
 }
 
 .libro-lector-cuerpo p {

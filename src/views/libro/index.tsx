@@ -388,7 +388,7 @@ export default function LibroView() {
               {/* Hoja 0 — portada / cap. 1 ilustración */}
               <Book.Page>
                 <Book.Page.Front>
-                  <CaraIlustrada src="/libro/00-portada.png" alt="Portada de Alice in Wonderland, de Lewis Carroll." />
+                  <CaraIlustrada src="/libro/00-portada.webp" alt="Portada de Alice in Wonderland, de Lewis Carroll." />
                 </Book.Page.Front>
                 <Book.Page.Back>
                   <CaraIlustrada
@@ -433,7 +433,7 @@ export default function LibroView() {
                   <div className="libro-cara">
                     <img
                       className="libro-img"
-                      src="/libro/06-final.png"
+                      src="/libro/06-final.webp"
                       alt="Alicia dormida en la ribera mientras las criaturas del País de las Maravillas se desvanecen."
                       draggable={false}
                     />
