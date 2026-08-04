@@ -23,6 +23,10 @@ const PelalaView = lazy(() => import('@/views/pelala'));
 const StoryView = lazy(() => import('@/views/story'));
 const LadderView = lazy(() => import('@/views/ladder'));
 const DnaView = lazy(() => import('@/views/dna'));
+/* LIBRO va lazy como el resto y encima le conviene más que a nadie: se trae
+   Mantine + el curl WebGL + su CSS, y nada de eso tiene por qué pesar en el
+   arranque de quien nunca abre el libro. */
+const LibroView = lazy(() => import('@/views/libro'));
 const OficinaView = lazy(() => import('@/views/a1/oficina'));
 const PerfilView = lazy(() => import('@/views/perfil'));
 const OnboardingView = lazy(() => import('@/views/onboarding'));
@@ -161,7 +165,10 @@ export default function App() {
               // es alta y esos 84px muertos empujaban el input fuera del pliegue
               // en PC al 100%. Con la tab bar sin montar, reclamarlos es honesto;
               // max(…, safe-area) respeta el notch/inferior del móvil.
-              enSesion || view === 'slang'
+              // LIBRO entra en la misma excepción que SLANG: la hoja se mide
+              // contra el alto disponible, así que 84px muertos ahí abajo le
+              // recortan la página al libro entero, no solo un margen.
+              enSesion || view === 'slang' || view === 'libro'
                 ? 'pb-[max(14px,env(safe-area-inset-bottom))]'
                 : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
             )}
@@ -185,6 +192,8 @@ export default function App() {
                 <OficinaView />
               ) : view === 'perfil' ? (
                 <PerfilView />
+              ) : view === 'libro' ? (
+                <LibroView />
               ) : (
                 <StoryView />
               )}

@@ -1,0 +1,328 @@
+/* LIBRO — Alice in Wonderland.
+
+   Toda la tipografía de las páginas se mide en `em` sobre --pw (el ancho de
+   página en px que calcula la vista). Así el libro es UN objeto que escala:
+   a 175px en un móvil y a 340px en el PC se ve el mismo diseño, no uno roto y
+   otro suelto. Si algo aquí lleva px fijos es porque NO debe escalar (los
+   hairlines del marco dorado, que a 0.4px desaparecen). */
+
+.libro-cara {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  /* La unidad del libro: 1em = 4.2% del ancho de página. */
+  font-size: calc(var(--pw, 300px) * 0.042);
+}
+
+/* ── Caras ilustradas (portada, escenas, cierre) ───────────────────────── */
+
+.libro-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* El arte ya trae su marco dorado pintado; el object-fit lo recorta un pelo
+     a los lados en vez de deformarlo. */
+}
+
+/* Velo inferior: apoya el folio/rótulo sobre la ilustración y —de paso— tapa
+   la franja de abajo, donde el generador a veces deja un renglón de letras
+   ilegibles. Es decorativo, así que no roba el tap del pase de página. */
+.libro-velo {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(to top, oklch(12% 0.02 60 / 0.92), transparent);
+}
+
+.libro-rotulo {
+  position: absolute;
+  inset: auto 0 1.1em 0;
+  text-align: center;
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: oklch(88% 0.07 85);
+  text-shadow: 0 0.06em 0.25em oklch(10% 0.02 60 / 0.9);
+}
+
+.libro-rotulo b {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.libro-rotulo span {
+  display: block;
+  margin-top: 0.25em;
+  font-size: 0.62em;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* ── Caras de texto (pergamino) ─────────────────────────────────────────── */
+
+.libro-pergamino {
+  display: flex;
+  flex-direction: column;
+  /* El pb reserva el renglón del folio: con dos filas de chips el pie llegaba
+     a sentarse encima del número. */
+  padding: 1.5em 1.35em 1.9em;
+  color: oklch(26% 0.035 65);
+  font-family: Georgia, 'Times New Roman', serif;
+  background:
+    /* manchas de humedad, muy suaves */
+    radial-gradient(ellipse at 18% 12%, oklch(84% 0.05 78 / 0.55), transparent 45%),
+    radial-gradient(ellipse at 85% 78%, oklch(82% 0.06 62 / 0.5), transparent 40%),
+    radial-gradient(ellipse at 50% 50%, oklch(94% 0.028 88), oklch(88% 0.042 74));
+}
+
+/* Vignette del papel: oscurece los bordes como un pliego viejo. Va en ::before
+   para no ensuciar el fondo del bloque de texto. */
+.libro-pergamino::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 3em 0.9em oklch(62% 0.06 62 / 0.28);
+}
+
+/* Filete dorado interior, el del pliego impreso. */
+.libro-pergamino::after {
+  content: '';
+  position: absolute;
+  inset: 0.62em;
+  pointer-events: none;
+  border: 1px solid oklch(66% 0.09 78 / 0.5);
+}
+
+.libro-cap {
+  position: relative;
+  flex-shrink: 0;
+  text-align: center;
+  margin-bottom: 0.85em;
+}
+
+.libro-cap i {
+  display: block;
+  font-style: normal;
+  font-size: 0.58em;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: oklch(52% 0.09 62);
+}
+
+.libro-cap b {
+  display: block;
+  margin-top: 0.3em;
+  font-size: 1.16em;
+  font-weight: 600;
+  line-height: 1.15;
+  color: oklch(28% 0.06 55);
+}
+
+.libro-cap em {
+  display: block;
+  margin-top: 0.22em;
+  font-size: 0.6em;
+  font-style: italic;
+  color: oklch(48% 0.05 62);
+}
+
+/* Filigrana de separación: ❦ centrado entre dos hairlines. */
+.libro-cap u {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.55em;
+  text-decoration: none;
+  font-size: 0.62em;
+  color: oklch(60% 0.09 72);
+}
+
+.libro-cap u::before,
+.libro-cap u::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(66% 0.09 78 / 0.65), transparent);
+}
+
+/* El cuerpo del cuento. min-height:0 + overflow oculto: si un capítulo se pasa
+   de largo se recorta ARRIBA del pie, nunca lo empuja fuera de la página. */
+.libro-cuerpo {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  font-size: 0.82em;
+  line-height: 1.62;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.libro-cuerpo p {
+  margin: 0 0 0.62em;
+}
+
+.libro-cuerpo p:first-child::first-letter {
+  float: left;
+  font-size: 2.5em;
+  line-height: 0.82;
+  padding: 0.06em 0.1em 0 0;
+  color: oklch(45% 0.13 42);
+}
+
+/* Las glosas de <GlossText> heredan el punteado ámbar de la app, que sobre
+   papel claro se pierde: aquí se retiñen a tinta sepia. */
+.libro-cuerpo [data-gloss] {
+  border-bottom-color: oklch(55% 0.13 52) !important;
+  color: oklch(34% 0.1 45);
+}
+
+/* ── Pie: los phrasal verbs del capítulo ────────────────────────────────── */
+
+.libro-pie {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0.5em;
+  padding-top: 0.5em;
+  border-top: 1px solid oklch(66% 0.09 78 / 0.45);
+}
+
+/* Rótulo a la izquierda y botón "Leer" a la derecha, en la misma línea: así el
+   botón nunca se sienta encima de los chips. */
+.libro-pie-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.4em;
+}
+
+.libro-pie i {
+  font-style: normal;
+  font-size: 0.5em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: oklch(52% 0.09 62);
+}
+
+.libro-leer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.24em 0.62em;
+  border-radius: 999px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.52em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(32% 0.09 48);
+  background: oklch(72% 0.07 72 / 0.55);
+  border: 1px solid oklch(62% 0.08 70 / 0.65);
+}
+
+.libro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28em;
+}
+
+.libro-chips span {
+  font-size: 0.5em;
+  line-height: 1.5;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: oklch(34% 0.08 48);
+  background: oklch(72% 0.07 72 / 0.42);
+  border: 1px solid oklch(62% 0.08 70 / 0.5);
+}
+
+/* Folio */
+.libro-folio {
+  position: absolute;
+  inset: auto 0 0.35em 0;
+  text-align: center;
+  font-size: 0.5em;
+  letter-spacing: 0.2em;
+  color: oklch(56% 0.06 62);
+}
+
+/* ── Cierre ─────────────────────────────────────────────────────────────── */
+
+.libro-fin {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 1.4em 1.6em;
+  text-align: center;
+  pointer-events: none;
+  font-family: Georgia, 'Times New Roman', serif;
+  background: linear-gradient(to top, oklch(12% 0.02 60 / 0.94) 22%, oklch(12% 0.02 60 / 0.25) 48%, transparent 68%);
+}
+
+.libro-fin b {
+  font-size: 1.5em;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: oklch(90% 0.08 85);
+  text-shadow: 0 0.06em 0.3em oklch(10% 0.02 60);
+}
+
+.libro-fin span {
+  margin-top: 0.5em;
+  font-size: 0.6em;
+  line-height: 1.5;
+  color: oklch(82% 0.05 80 / 0.85);
+}
+
+/* ── Lector a pantalla completa ─────────────────────────────────────────── */
+
+/* En el móvil la página del libro mide ~175px: preciosa para hojear, ilegible
+   para leer. El lector es la respuesta — el mismo capítulo, mismas glosas, a
+   tamaño de lectura. Aquí la tipografía SÍ va en rem: ya no escala con el
+   libro, escala con el usuario. */
+.libro-lector {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: oklch(26% 0.035 65);
+  background:
+    radial-gradient(ellipse at 20% 10%, oklch(84% 0.05 78 / 0.5), transparent 45%),
+    radial-gradient(ellipse at 80% 85%, oklch(82% 0.06 62 / 0.45), transparent 42%),
+    radial-gradient(ellipse at 50% 50%, oklch(95% 0.026 88), oklch(89% 0.04 74));
+}
+
+.libro-lector-cuerpo {
+  font-size: 1.02rem;
+  line-height: 1.72;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.libro-lector-cuerpo p {
+  margin: 0 0 0.9em;
+}
+
+.libro-lector-cuerpo [data-gloss] {
+  border-bottom-color: oklch(55% 0.13 52) !important;
+  color: oklch(34% 0.1 45);
+}
+
+/* ── Movimiento reducido ────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-cara,
+  .libro-lector {
+    transition: none !important;
+  }
+}

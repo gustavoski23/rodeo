@@ -130,10 +130,11 @@ export function CarruselFeatures() {
     return () => observador.disconnect();
   }, []);
 
-  // Los cuatro placeholders, repartidos: dos al principio (índices 0-1) y dos
-  // al final (8-9). Las SEIS features reales quedan contiguas (2-7): paginando
-  // desde SLANG se recorren STORY → CONVERSACIÓN → OFICINA → TU DNA a la
-  // derecha y SUBE a la izquierda, sin placeholders en medio.
+  // Los placeholders, repartidos: dos al principio (índices 0-1) y el resto al
+  // final. Las SIETE features reales quedan contiguas (2-8): paginando desde
+  // SLANG se recorren STORY → CONVERSACIÓN → OFICINA → TU DNA → LIBRO a la
+  // derecha y SUBE a la izquierda, sin placeholders en medio. LIBRO entró
+  // gastándose uno de los slots de "próximamente" — ya no es una promesa.
   const pronto: CardItem[] = IMG_PRONTO.map((n) => ({
     imgUrl: `/carrusel/${n}.jpg`,
     alt: 'Feature en camino',
@@ -224,7 +225,21 @@ export function CarruselFeatures() {
         />
       ),
     },
-    ...pronto.slice(2),
+    {
+      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en
+      // la vitrina es literalmente lo que se abre al tocar.
+      imgUrl: '/libro/00-portada.png',
+      alt: 'LIBRO · Alicia en el País de las Maravillas',
+      onClick: () => abrirFeature('libro'),
+      contenido: (
+        <OverlayFeature
+          titulo="LIBRO"
+          subtitulo="Alice in Wonderland"
+          linea="Un cuento que se hojea, sembrado de phrasal verbs."
+        />
+      ),
+    },
+    ...pronto.slice(3),
   ];
 
   return (

@@ -6,7 +6,7 @@ import { aplicarTema, hidratarTema, type Tema } from '@/lib/theme';
    (envolvería los valores en {state,version} y rompería las claves rodeo_*):
    cada campo persistente lee/escribe su clave con el mismo formato de siempre. */
 
-export type View = 'home' | 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1' | 'perfil';
+export type View = 'home' | 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1' | 'perfil' | 'libro';
 
 type AppState = {
   view: View;
