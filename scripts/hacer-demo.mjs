@@ -61,7 +61,11 @@ execSync('npm run build', { cwd: ROOT, stdio: 'inherit', env: { ...process.env, 
 let html = readFileSync(join(DIST, 'index.html'), 'utf8');
 // El artifact conserva su identidad "RODEO · demo de migración" (el <title> del
 // build de producción es otro). El tag gana sobre el parámetro `title` del tool.
-html = html.replace(/<title>[^<]*<\/title>/, '<title>RODEO · demo de migración</title>');
+// DEMO_TITLE lo cambia cuando el demo es de otra cosa (p.ej. el libro): el
+// <title> es lo que nombra al artifact y a su pestaña, así que dos demos
+// distintos no pueden llamarse igual.
+const TITULO = process.env.DEMO_TITLE || 'RODEO · demo de migración';
+html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITULO}</title>`);
 const jsPath = html.match(/src="(\/assets\/[^"]+\.js)"/)[1];
 const cssPath = html.match(/href="(\/assets\/[^"]+\.css)"/)[1];
 let js = readFileSync(join(DIST, jsPath.slice(1)), 'utf8');
@@ -131,7 +135,13 @@ const bootstrap = `
   // Se hace por HASH y no tocando el store, porque el store lo lee en su
   // creación (stores/app.ts → vistaInicial) y este bootstrap corre antes.
   // El gate sigue apareciendo primero: al pulsar Skip se cae en la vista.
-  try { if (!location.hash) location.hash = '#/${process.env.DEMO_VIEW}'; } catch (e) {}`
+  try { if (!location.hash) location.hash = '#/${process.env.DEMO_VIEW}'; } catch (e) {}
+  // Y se da el onboarding por hecho: quien abre un enlace directo a una vista
+  // no quiere responder cuatro pantallas de bienvenida antes de verla. Sin
+  // esto App.tsx antepone <OnboardingView> y el hash nunca se llega a usar.
+  S('rodeo_onboarding', true);
+  S('rodeo_nivel', 'b2');
+  S('rodeo_idioma', 'es');`
       : ''
   }
 
@@ -227,7 +237,34 @@ const fontOverride =
 const safeCss = (fontsCss + '\n' + css + fontOverride).replace(/<\/style/gi, '<\\/style');
 const styleBlock = `<style>${safeCss}</style>`;
 const scriptBlock = `<script type="module">${safeJs}</script>`;
-html = html.replace(/<\/head>/, () => `${styleBlock}\n${scriptBlock}\n</head>`);
+
+/* El módulo va al FINAL DEL BODY, no del head.
+
+   El single-file es un solo archivo de varios MB y el navegador no pinta nada
+   hasta terminar de parsear el <head>. Con el bundle ahí dentro, eso significa
+   pantalla en blanco durante TODA la descarga — que en datos móviles son
+   decenas de segundos de nada. Poniéndolo al final del body, el render empieza
+   en cuanto llega la CSS y el telón de abajo se ve mientras baja el resto.
+   Semánticamente no cambia nada: `type="module"` ya es diferido, así que
+   ejecutaba después del parse igual.
+
+   El telón se esconde SOLO, sin JS: en cuanto React monta algo dentro de
+   #root, el selector `#root:not(:empty) ~ #demo-telon` deja de encontrarlo
+   vacío y lo apaga. Es deliberadamente callado —el fondo de la app y una línea
+   mono— porque la espera con contenido de verdad es la del libro, que tiene su
+   propio lápiz dentro de la app. */
+const telon = `<div id="demo-telon" aria-hidden="true"><span>RODEO</span></div>
+<style>
+#demo-telon{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#0a0a0e}
+#demo-telon span{font-family:'Space Mono',ui-monospace,monospace;font-size:.7rem;letter-spacing:.5em;
+  text-indent:.5em;color:#8a8598;animation:demo-lat 1.8s ease-in-out infinite}
+#root:not(:empty) ~ #demo-telon{display:none}
+@keyframes demo-lat{0%,100%{opacity:.35}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){#demo-telon span{animation:none;opacity:.7}}
+</style>`;
+
+html = html.replace(/<\/head>/, () => `${styleBlock}\n</head>`);
+html = html.replace(/<\/body>/, () => `${telon}\n${scriptBlock}\n</body>`);
 
 writeFileSync(OUT, html);
 const mb = (Buffer.byteLength(html) / 1048576).toFixed(2);
