@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Play, RefreshCw, SendHorizontal, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Pause, Play, RefreshCw, SendHorizontal, Volume2, VolumeX } from 'lucide-react';
 
 import { MicButton } from '@/components/rodeo/mic-button';
 import { IconMorph } from '@/components/rodeo/pill-button';
@@ -8,7 +8,7 @@ import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
 import { Card } from '@/components/ui/card';
 import { GlassButton } from '@/components/ui/sign-up';
 import { cn } from '@/lib/utils';
-import { repetirUltimo, replayUltimo, toggleTts, useTts } from '@/lib/speech';
+import { playPausa, repetirUltimo, toggleTts, useTts, useVozEstado } from '@/lib/speech';
 import { useEscenas } from '@/stores/escenas';
 import { toast } from '@/stores/toast';
 
@@ -64,6 +64,9 @@ export function EscenasSession() {
   const endBusy = useEscenas((s) => s.endBusy);
   const devolver = useEscenas((s) => s.devolver);
   const { ttsOn } = useTts();
+  /* Play ⇄ pause, gemelo del de charla-session (pedido de Gus, 2026-08-04). */
+  const vozEstado = useVozEstado();
+  const hablando = vozEstado === 'hablando';
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -170,12 +173,18 @@ export function EscenasSession() {
             type="button"
             size="icon"
             disabled={!replayOn}
-            onClick={unSoloClick(replayUltimo)}
-            aria-label="Escuchar la última línea"
+            onClick={unSoloClick(playPausa)}
+            aria-label={
+              hablando ? 'Pausar la voz' : vozEstado === 'pausada' ? 'Reanudar la voz' : 'Escuchar la última línea'
+            }
             className={cn(!replayOn && 'pointer-events-none opacity-40')}
             contentClassName="text-[var(--text-primary)]!"
           >
-            <Play className="size-4" fill="currentColor" strokeWidth={0} />
+            <IconMorph
+              on={hablando}
+              iconOn={<Pause className="size-4" fill="currentColor" strokeWidth={0} />}
+              iconOff={<Play className="size-4" fill="currentColor" strokeWidth={0} />}
+            />
           </GlassButton>
           {/* #rp-again existía en el HTML del viejo pero nunca tuvo handler
               (spec §8 trampa 34): se cablea a repetir, como su gemelo de

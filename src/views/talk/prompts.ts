@@ -6,7 +6,13 @@
 
    Ni una coma cambia: el system prompt es la personalidad del coach y está
    medido (la sección SPEED sola baja el turno de 10-19 s a ~8 s). Si algo aquí
-   se "mejora", cambia el producto, no el código. */
+   se "mejora", cambia el producto, no el código.
+
+   Enmiendas DE GUS (no mejoras de código): el bloque SOBRE LA APP, el modo A1
+   y —2026-08-04— la regla "PLAIN TEXT only" del OUTPUT: el modelo colaba
+   **negritas** Markdown y la voz de Deepgram leía los asteriscos en voz alta
+   ("star star loads star star"). El saneo duro vive en parseChunks (gloss.ts);
+   esta línea es la defensa en origen. */
 
 import { cargarMemoriaA1, limpiarSiViejo } from '@/lib/a1-memory';
 import { callJSON } from '@/lib/api';
@@ -289,6 +295,7 @@ OUTPUT — STRICT JSON only, nothing outside it, exactly this shape:
 {"reply":"your in-character reply","corrections":[{"quote":"the exact incorrect words he wrote","fix":"how a native would say it","why":"por qué, en español, una sola línea"}],"glosses":[{"term":"the exact phrase as it appears in your reply","es":"qué significa y por qué se dice así, natural"}]}
 - "corrections": only REAL errors or clearly unnatural phrasing from HIS LAST message. Maximum 3, the most valuable. If his message was clean, return []. Typos don't count.
 - "glosses": pick 2-4 phrases FROM YOUR OWN reply that a B2 learner likely won't fully get — phrasal verbs, slang, idioms, natural collocations (e.g. "wound up", "blowout", "shoot the breeze"). For each, "term" must be the EXACT substring as written in reply (same case, same words), and "es" explains in Spanish what it MEANS and why a native uses it there — conversational, like a friend explaining, NEVER grammar-speak (no "subjuntivo", no "phrasal verb", no tense names). One or two lines. If the reply has no such phrases, or you already underlined them inline with ⟦||⟧, return [].
+- PLAIN TEXT only inside "reply" — NEVER Markdown: no **bold**, no *italics*, no backticks, no bullet lists, no headers. Your reply is spoken aloud by a TTS voice and rendered as-is; any symbol gets read out loud ("star star loads star star"). To highlight a phrase, the ⟦english||español⟧ markers are the ONLY tool.
 - Never correct him inside "reply" — that must flow as pure conversation (the only exception is a correction you fold in and underline with ⟦english||español⟧).`;
 }
 

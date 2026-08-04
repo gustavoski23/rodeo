@@ -66,6 +66,30 @@ let avisoTTSDado = false; // no repetir el toast de fallo en cada turno
 
 let ttsOn = store.get<boolean>('rodeo_tts', true);
 
+/* ── Estado de reproducción (pedido de Gus, 2026-08-04) ───────────────────
+   El botón play de las sesiones se convierte en pause mientras la voz suena:
+   necesita saber en qué está el audio. Tres estados, ni uno más:
+     'inactiva' — no hay nada sonando (play = releer la última respuesta)
+     'hablando' — la voz está sonando (el botón muestra pause)
+     'pausada'  — pausa a mitad de frase (play = reanudar desde ahí)         */
+export type VozEstado = 'inactiva' | 'hablando' | 'pausada';
+
+let vozEstado: VozEstado = 'inactiva';
+const estadoSubs = new Set<() => void>();
+function setVozEstado(v: VozEstado) {
+  if (vozEstado === v) return;
+  vozEstado = v;
+  estadoSubs.forEach((fn) => fn());
+}
+export function vozEstadoActual(): VozEstado {
+  return vozEstado;
+}
+
+/* La pausa congela el AudioContext entero (ver pausarVoz). El listener global
+   de "cualquier clic desbloquea el contexto" NO debe deshacerla: esta marca
+   distingue la suspensión pedida por el usuario de la del autoplay bloqueado. */
+let pausaManual = false;
+
 /* Reproducción por Web Audio API, no por <audio>: Brave bloquea el autoplay de
    HTMLMediaElement, pero un AudioContext se desbloquea con cualquier clic y
    queda desbloqueado toda la sesión. */
@@ -78,12 +102,14 @@ function ctxAudio(): AudioContext {
 }
 
 // Cualquier clic desbloquea el contexto; repetirlo es gratis (L4488-4492).
+// Salvo cuando la suspensión es la PAUSA del usuario: ahí el clic no reanuda
+// nada — reanudar es cosa del botón play.
 if (typeof document !== 'undefined') {
   document.addEventListener(
     'click',
     () => {
       const c = ctxAudio();
-      if (c.state === 'suspended') c.resume().catch(() => {});
+      if (c.state === 'suspended' && !pausaManual) c.resume().catch(() => {});
     },
     true,
   );
@@ -190,13 +216,20 @@ export async function speak(
     audioActual = src;
     (window as unknown as { __vozMotor?: string }).__vozMotor = 'deepgram';
     opts?.onResuelta?.(); // la voz arranca AHORA: liberar el texto sincronizado
+    setVozEstado('hablando');
     await new Promise<void>((res) => {
       src.onended = () => res();
       src.start();
     });
-    if (audioActual === src) audioActual = null;
+    // Solo si ESTA reproducción sigue siendo la vigente: si otra la reemplazó,
+    // el estado ya es de la nueva y no hay que pisarlo.
+    if (audioActual === src) {
+      audioActual = null;
+      setVozEstado('inactiva');
+    }
   } catch (e) {
     if (token === speakToken) {
+      setVozEstado('inactiva');
       opts?.onResuelta?.(); // falló la reproducción: el texto sale igual
       avisarFalloVoz('no pude reproducir el audio', e);
     }
@@ -207,9 +240,46 @@ export async function speak(
 export function stopSpeak(): void {
   speakToken++; // cualquier reproducción en vuelo queda huérfana
   pararAudio();
+  /* Si el usuario había pausado, el contexto quedó suspendido: se levanta la
+     marca y se reanuda el reloj para que el stop se consuma y la siguiente
+     voz no nazca congelada. Reanudar tras stop() no suena: la fuente ya está
+     detenida en el instante en que se congeló. */
+  if (pausaManual) {
+    pausaManual = false;
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  }
+  setVozEstado('inactiva');
   // El episodio ilustrado encapsula sus fuentes en su IIFE y expone este hook.
   const w = window as unknown as { pararAudioShadow?: () => void };
   if (w.pararAudioShadow) w.pararAudioShadow();
+}
+
+/* ── Pausa ⇄ reanudar (pedido de Gus, 2026-08-04) ─────────────────────────
+   Un AudioBufferSourceNode no sabe pausarse; congelar el AudioContext entero
+   sí detiene el audio DONDE VA y resume() lo suelta desde ese mismo punto.
+   Es seguro porque la app reproduce UNA voz a la vez (el singleton de este
+   módulo) — no hay otro audio colgando del contexto que sufra la congelada. */
+export function pausarVoz(): void {
+  if (vozEstado !== 'hablando' || !audioActual) return;
+  pausaManual = true;
+  ctxAudio().suspend().catch(() => {});
+  setVozEstado('pausada');
+}
+
+export function reanudarVoz(): void {
+  if (vozEstado !== 'pausada') return;
+  pausaManual = false;
+  ctxAudio().resume().catch(() => {});
+  setVozEstado('hablando');
+}
+
+/** El botón play/pause de las sesiones, en una sola acción: pausa si está
+    sonando, reanuda si está en pausa y, en reposo, relee la última respuesta
+    (el play de siempre). */
+export function playPausa(): void {
+  if (vozEstado === 'hablando') pausarVoz();
+  else if (vozEstado === 'pausada') reanudarVoz();
+  else replayUltimo();
 }
 
 /* ── ultimoHablado + repetir ────────────────────────────────────────────── */
@@ -483,6 +553,7 @@ function suscriptor(set: Set<() => void>) {
 const subTts = suscriptor(ttsSubs);
 const subUltimo = suscriptor(ultimoSubs);
 const subVoz = suscriptor(vozSubs);
+const subEstado = suscriptor(estadoSubs);
 const subMic = new Map<MicCtx, (fn: () => void) => () => void>();
 const leerMic = new Map<MicCtx, () => MicLang>();
 
@@ -500,6 +571,11 @@ export function useUltimoHablado(): string {
 /** Voz Deepgram activa (Helena/Draco). */
 export function useVoz(): VozId {
   return useSyncExternalStore(subVoz, vozActual, vozActual);
+}
+
+/** Estado de la reproducción: el botón play ⇄ pause de las sesiones. */
+export function useVozEstado(): VozEstado {
+  return useSyncExternalStore(subEstado, vozEstadoActual, vozEstadoActual);
 }
 
 /** Idioma de dictado de un contexto + su toggle (el chip ES/EN). */

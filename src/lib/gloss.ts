@@ -37,15 +37,20 @@ export function parseChunks(reply: unknown): { clean: string; marks: GlossSpan[]
   }
   clean += src.slice(last);
   // Saneo final: barre cualquier ⟦ o ⟧ residual (marcador sin ||, corchete
-  // colgante, ⟧ suelto, anidados) que sobrevivió a la regex, reajustando las
-  // coords de `marks` para que jamás quede un corchete crudo a la vista.
-  if (clean.indexOf('⟦') !== -1 || clean.indexOf('⟧') !== -1) {
+  // colgante, ⟧ suelto, anidados) que sobrevivió a la regex — Y los símbolos
+  // de Markdown que el modelo cuela a veces aunque se le pida texto plano
+  // (pedido de Gus, 2026-08-04: Helena decía "star" por cada * de un
+  // **negrita**, porque Deepgram lee el asterisco en voz alta; en pantalla se
+  // veían los ** crudos). Se filtran a nivel de carácter (* y `) reajustando
+  // las coords de `marks`, así que ni la vista ni la voz ni las glosas los
+  // vuelven a ver. El _ NO se toca: partiría snake_case y nombres de usuario.
+  if (/[⟦⟧*`]/.test(clean)) {
     let cleaned = '';
     const map = new Array<number>(clean.length + 1); // viejo índice → nuevo índice
     for (let i = 0; i < clean.length; i++) {
       map[i] = cleaned.length;
       const ch = clean[i];
-      if (ch !== '⟦' && ch !== '⟧') cleaned += ch;
+      if (ch !== '⟦' && ch !== '⟧' && ch !== '*' && ch !== '`') cleaned += ch;
     }
     map[clean.length] = cleaned.length;
     for (const mk of marks) {
@@ -68,7 +73,10 @@ export function stripChunksLive(s: unknown): string {
     const sep = rest.indexOf('||');
     out = out.slice(0, open) + (sep !== -1 ? rest.slice(0, sep) : rest);
   }
-  return out.replace(/[⟦⟧]/g, ''); // barre corchetes residuales (⟧ suelto, sin ||, anidados)
+  // Corchetes residuales (⟧ suelto, sin ||, anidados) + los símbolos Markdown
+  // que también barre parseChunks: el stream no debe enseñar unos ** que el
+  // swap final va a borrar.
+  return out.replace(/[⟦⟧*`]/g, '');
 }
 
 // Coloca en `spans` (respetando `ocupado`) las apariciones de cada glosa del

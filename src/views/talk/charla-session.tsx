@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Lightbulb, Play, RefreshCw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Lightbulb, Pause, Play, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 
 import { ConversationBar } from '@/components/elevenlabs/conversation-bar';
 import {
@@ -20,7 +20,8 @@ import {
   useTts,
   useUltimoHablado,
   useVoz,
-  replayUltimo,
+  useVozEstado,
+  playPausa,
   repetirUltimo,
   VOCES,
 } from '@/lib/speech';
@@ -109,6 +110,12 @@ export function CharlaSession({ motor }: { motor: Motor }) {
   const busy = useTalk((s) => s.busy);
   const { ttsOn } = useTts();
   const ultimo = useUltimoHablado();
+  /* Play ⇄ pause (pedido de Gus, 2026-08-04): mientras la voz suena el botón
+     es PAUSE; pausada, vuelve a PLAY y reanuda desde donde iba; en reposo,
+     PLAY relee la última respuesta (lo de siempre). Todo lo decide playPausa
+     en speech.ts — aquí solo se pinta el estado. */
+  const vozEstado = useVozEstado();
+  const hablando = vozEstado === 'hablando';
   /* La etiqueta del waveform dice QUIÉN te habla y se toca para cambiar de voz
      (pedido de Gus): "Coach RODEO" era decoración, "Coach Helena" es un mando.
      El re-render lo trae useVoz (useSyncExternalStore sobre el singleton de
@@ -293,18 +300,29 @@ export function CharlaSession({ motor }: { motor: Motor }) {
               iconOff={<VolumeX className="size-4" />}
             />
           </GlassButton>
-          {/* Play: relee la última respuesta. Funciona con la voz apagada —
-              sirve justo para probar cómo suena sin activarla en cada turno. */}
+          {/* Play ⇄ pause: sonando pausa, pausado reanuda, y en reposo relee la
+              última respuesta (funciona con la voz apagada — sirve justo para
+              probar cómo suena sin activarla en cada turno). */}
           <GlassButton
             type="button"
             size="icon"
             disabled={!ultimo}
-            onClick={unSoloClick(replayUltimo)}
-            aria-label="Escuchar la última respuesta"
+            onClick={unSoloClick(playPausa)}
+            aria-label={
+              hablando
+                ? 'Pausar la voz'
+                : vozEstado === 'pausada'
+                  ? 'Reanudar la voz'
+                  : 'Escuchar la última respuesta'
+            }
             className={cn(!ultimo && 'pointer-events-none opacity-40')}
             contentClassName="text-[var(--text-primary)]!"
           >
-            <Play className="size-4" fill="currentColor" strokeWidth={0} />
+            <IconMorph
+              on={hablando}
+              iconOn={<Pause className="size-4" fill="currentColor" strokeWidth={0} />}
+              iconOff={<Play className="size-4" fill="currentColor" strokeWidth={0} />}
+            />
           </GlassButton>
           {/* Repetir: misma acción, con su gesto — el icono da media vuelta */}
           <GlassButton
