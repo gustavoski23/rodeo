@@ -600,7 +600,7 @@ function Lector({ cap, onCerrar, escala }: { cap: Capitulo; onCerrar: () => void
         <div className="libro-lector-cuerpo min-h-0 flex-1 overflow-y-auto px-5 py-4">
           {cap.paginas.map((pag, i) => (
             <div key={i}>
-              {i > 0 && <div className="libro-lector-corte">{i === 2 ? '· la mitad ·' : '·'}</div>}
+              {i > 0 && <div className="libro-lector-corte">·</div>}
               {/* La lámina de la mitad también aparece aquí, en su sitio del
                   cuento: el lector es el capítulo entero, no solo su texto. */}
               {i === 2 && (
@@ -1045,6 +1045,26 @@ export default function LibroView() {
                      sube a 420. */
                   flipThreshold={movil ? 20 : undefined}
                   swipeTimeThreshold={movil ? 420 : undefined}
+                  /* LOS VOLTEOS DE BOTÓN, que se sentían un salto.
+
+                     Medido cuadro a cuadro: al pulsar ‹ o › el curl (el canvas
+                     WebGL) no arranca hasta 180-360 ms después. En ese hueco se
+                     ve el PLIEGUE PLANO —el componente captura las texturas al
+                     vuelo cuando el volteo empieza— y el relevo plano→curl a
+                     mitad de camino es justo lo que se siente forzado. Con el
+                     dedo no pasa: el "agarre" del pointerdown calienta las
+                     texturas mientras uno todavía está arrastrando, y ahí el
+                     curl entra a los 73 ms.
+
+                     Dos cosas lo suavizan. `turnOrigin='middle'` doblega la
+                     hoja RECTA en vez de con pliegue diagonal desde la esquina
+                     de abajo, que era lo que hacía ver raro el movimiento en
+                     reversa (la esquina volvía por un camino que el dedo nunca
+                     recorre). Y `flippingTime` más largo reparte el mismo
+                     relevo sobre más recorrido, así que deja de leerse como un
+                     tirón y se lee como una hoja pesada. */
+                  turnOrigin="middle"
+                  flippingTime={900}
                   page={aPageDelLibro(cara, movil)}
                   onPageChange={(p) => setCara(aCara(p, movil))}
                   pageBackground="#f3e6c8"
