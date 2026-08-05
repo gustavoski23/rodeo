@@ -194,6 +194,15 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  /* pan-y es OBLIGATORIO, no cosmético. Al ser un contenedor scrollable con
+     touch-action: auto, el navegador se quedaba con CUALQUIER gesto que
+     empezara aquí —también los horizontales— para hacer scroll, y al hacerlo
+     disparaba `pointercancel`: el arrastre del libro moría al primer
+     pointermove y la página de texto no se podía pasar con el dedo (medido con
+     input táctil real por CDP: pointerdown 1, pointermove 1, pointercancel 1).
+     Declarando pan-y, lo vertical sigue siendo del navegador —el texto se
+     desplaza igual— y lo horizontal queda para el libro. */
+  touch-action: pan-y;
   scrollbar-width: none;
   font-size: 0.72em;
   line-height: 1.58;

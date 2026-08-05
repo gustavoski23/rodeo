@@ -91,62 +91,122 @@ const CLAVE_ESCALA = 'rodeo_libro_escala';
 const CLAVE_FLECHA = 'rodeo_libro_leer_visto';
 
 /* ────────────────────────────────────────────────────────────────────────────
-   Las 44 caras, derivadas de los capítulos. Se arma una lista PLANA y después
-   se parte en hojas de dos: así el reparto vive en un solo lugar y agregar un
-   capítulo no obliga a recontar hojas a mano. */
+   LAS CARAS — y por qué son DOS libros distintos.
+
+   ESCRITORIO (44 caras / 22 hojas). La plana completa cabe, así que el libro
+   es el libro entero: lámina de apertura + las cinco páginas del capítulo +
+   la lámina de la mitad embebida. Dos caras por hoja, como un libro de verdad.
+
+   TELÉFONO (16 caras / 16 hojas). Pedido de Gus: «que solo hagas swap para ver
+   los capítulos». Se hojea de capítulo en capítulo — lámina, abrebocas, lámina
+   del siguiente, abrebocas… — y el capítulo COMPLETO vive detrás del botón
+   LEER, que abre el lector y ahí se baja con scroll. Un lector de una página no
+   es un libro abierto: encadenar cinco páginas de texto a puros swipes cansa,
+   y el lector ya hace ese trabajo mejor.
+
+   Y hay una razón MECÁNICA para que en el móvil vaya UNA CARA POR HOJA (frente
+   con contenido, dorso en blanco): el componente solo deja arrastrar la hoja de
+   arriba de cada mitad — la derecha avanza, la izquierda retrocede. Con dos
+   caras por hoja, la cara visible alterna de mitad (los frentes descansan a la
+   derecha, los dorsos ya volteados quedan a la izquierda), así que en la mitad
+   de las páginas el gesto de avanzar habría que hacerlo sobre una mitad que en
+   el móvil ni se ve — eso era el «deslizo y se mueve al lado contrario» de Gus.
+   Con una cara por hoja, el contenido SIEMPRE está en la mitad derecha: el
+   marco enseña esa mitad y siempre fija, y arrastrar siempre avanza, con su
+   curl nativo siguiendo el dedo. */
 
 type Cara =
   | { t: 'lamina'; src: string; alt: string; rotulo?: string; kicker?: string; fin?: boolean }
-  | { t: 'texto'; cap: Capitulo; p: number; folio: number; cabecera?: boolean; phrasals?: boolean; medio?: boolean };
+  | {
+      t: 'texto';
+      cap: Capitulo;
+      p: number;
+      folio: number;
+      cabecera?: boolean;
+      phrasals?: boolean;
+      medio?: boolean;
+    };
 
-const CARAS: Cara[] = (() => {
-  const out: Cara[] = [
-    { t: 'lamina', src: IMAGENES.portada, alt: 'Portada de Alice in Wonderland, de Lewis Carroll.' },
-  ];
-  let folio = 2;
-  for (const cap of CAPITULOS) {
-    out.push({
-      t: 'lamina',
-      src: cap.imgApertura,
-      alt: cap.altApertura,
-      rotulo: cap.titulo,
-      kicker: `Chapter ${cap.n}`,
-    });
-    for (let p = 0; p < 5; p++) {
-      out.push({
-        t: 'texto',
-        cap,
-        p,
-        folio: folio++,
-        cabecera: p === 0, // el título del capítulo solo en su primera cara
-        phrasals: p === 0,
-        medio: p === 2, // la cara que comparte espacio con la lámina de la mitad
-      });
-    }
-  }
-  out.push({
-    t: 'lamina',
-    src: IMAGENES.fin,
-    alt: 'Alicia dormida en la ribera mientras las criaturas del País de las Maravillas se desvanecen.',
-    fin: true,
-  });
-  return out;
-})();
+const PORTADA: Cara = {
+  t: 'lamina',
+  src: IMAGENES.portada,
+  alt: 'Portada de Alice in Wonderland, de Lewis Carroll.',
+};
 
-/** Las hojas físicas: [frente, dorso]. La última puede quedar sin dorso. */
-const HOJAS: Cara[][] = Array.from({ length: Math.ceil(CARAS.length / 2) }, (_, i) =>
-  CARAS.slice(i * 2, i * 2 + 2),
-);
+const CONTRA: Cara = {
+  t: 'lamina',
+  src: IMAGENES.fin,
+  alt: 'Alicia dormida en la ribera mientras las criaturas del País de las Maravillas se desvanecen.',
+  fin: true,
+};
 
-/** A qué capítulo pertenece cada cara — para el rótulo del pie y para saber
-    qué abrir cuando alguien pulsa LEER. */
-const CAP_DE_CARA: (Capitulo | null)[] = CARAS.map((c) => (c.t === 'texto' ? c.cap : null));
-CARAS.forEach((c, i) => {
-  if (c.t === 'lamina' && c.rotulo) {
-    const sig = CARAS[i + 1];
-    if (sig && sig.t === 'texto') CAP_DE_CARA[i] = sig.cap;
-  }
+const apertura = (cap: Capitulo): Cara => ({
+  t: 'lamina',
+  src: cap.imgApertura,
+  alt: cap.altApertura,
+  rotulo: cap.titulo,
+  kicker: `Chapter ${cap.n}`,
 });
+
+/** El folio de la página `p` del capítulo `n`, contando el libro completo. */
+const folioDe = (n: number, p: number) => 2 + (n - 1) * 5 + p;
+
+const CARAS: Cara[] = [
+  PORTADA,
+  ...CAPITULOS.flatMap((cap) => [
+    apertura(cap),
+    ...Array.from({ length: 5 }, (_, p) => ({
+      t: 'texto' as const,
+      cap,
+      p,
+      folio: folioDe(cap.n, p),
+      cabecera: p === 0, // el título del capítulo solo en su primera cara
+      phrasals: p === 0,
+      medio: p === 2, // la cara que comparte espacio con la lámina de la mitad
+    })),
+  ]),
+  CONTRA,
+];
+
+const CARAS_MOVIL: Cara[] = [
+  PORTADA,
+  ...CAPITULOS.flatMap((cap) => [
+    apertura(cap),
+    { t: 'texto' as const, cap, p: 0, folio: folioDe(cap.n, 0), cabecera: true, phrasals: true },
+  ]),
+  CONTRA,
+];
+
+/** Escritorio: hojas de dos caras [frente, dorso]. */
+const HOJAS: (Cara | undefined)[][] = Array.from({ length: Math.ceil(CARAS.length / 2) }, (_, i) => [
+  CARAS[i * 2],
+  CARAS[i * 2 + 1],
+]);
+
+/** Teléfono: una cara por hoja. El dorso va vacío a propósito — es el envés de
+    la hoja, lo que se ve de refilón mientras la página gira. */
+const HOJAS_MOVIL: (Cara | undefined)[][] = CARAS_MOVIL.map((c) => [c, undefined]);
+
+/** A qué capítulo pertenece cada cara — para el rótulo del pie, para saber qué
+    abrir con LEER y para reubicarse al cruzar el umbral móvil/escritorio. */
+function capsDe(caras: Cara[]): (Capitulo | null)[] {
+  return caras.map((c, i) => {
+    if (c.t === 'texto') return c.cap;
+    const sig = caras[i + 1];
+    return c.rotulo && sig?.t === 'texto' ? sig.cap : null;
+  });
+}
+
+const CAP_DE_CARA = capsDe(CARAS);
+const CAP_DE_CARA_MOVIL = capsDe(CARAS_MOVIL);
+
+/* ── El puente con el índice del <Book> ──────────────────────────────────────
+   En escritorio el índice de cara ES el `page` del componente (frente de la
+   hoja i en 2i, dorso en 2i+1). En el móvil, con una cara por hoja, la cara k
+   se ve cuando la hoja k descansa sin voltear en la mitad derecha: eso pasa en
+   `page = 2k - 1` (y en 0 para la portada, con el libro cerrado). */
+const aPageDelLibro = (k: number, movil: boolean) => (!movil ? k : k === 0 ? 0 : 2 * k - 1);
+const aCara = (page: number, movil: boolean) => (!movil ? page : Math.floor((page + 1) / 2));
 
 /* ────────────────────────────────────────────────────────────────────────────
    Precarga */
@@ -352,10 +412,12 @@ function CaraTexto({
   cara,
   onLeer,
   flecha,
+  movil,
 }: {
   cara: Extract<Cara, { t: 'texto' }>;
   onLeer: () => void;
   flecha: boolean;
+  movil: boolean;
 }) {
   const { cap, p } = cara;
   const pagina = cap.paginas[p];
@@ -380,11 +442,14 @@ function CaraTexto({
         </div>
       )}
 
-      {/* La brújula en español: qué está pasando en esta página. */}
+      {/* La brújula en español: qué está pasando en esta página.
+          El FOLIO solo en escritorio: el móvil enseña una sola página por
+          capítulo, así que su numeración real saltaría 2 → 7 → 12 y se leería
+          como un error. Allí la posición ya la dice el pie ("Cap. 2 de 7"). */}
       <div className="libro-es">
         <i>ES</i>
         <span>{pagina.es}</span>
-        <b>{cara.folio}</b>
+        {!movil && <b>{cara.folio}</b>}
       </div>
 
       {/* Los phrasal verbs, solo en la primera cara de texto del capítulo. */}
@@ -428,10 +493,30 @@ function CaraTexto({
   );
 }
 
-function pintarCara(cara: Cara | undefined, onLeer: (c: Capitulo) => void, flecha: boolean): ReactNode {
-  if (!cara) return null;
+function pintarCara(
+  cara: Cara | undefined,
+  onLeer: (c: Capitulo) => void,
+  flecha: boolean,
+  movil: boolean,
+): ReactNode {
+  // Sin cara = el envés de una hoja del móvil: papel y nada más. Es lo que se
+  // ve de refilón mientras la página gira.
+  if (!cara) return <div className="libro-cara libro-pergamino" aria-hidden="true" />;
   if (cara.t === 'lamina') return <CaraLamina cara={cara} />;
-  return <CaraTexto cara={cara} onLeer={() => onLeer(cara.cap)} flecha={flecha && cara.cap.n === 1} />;
+  return (
+    <CaraTexto
+      cara={cara}
+      movil={movil}
+      onLeer={() => onLeer(cara.cap)}
+      /* En el TELÉFONO la flechita se queda para siempre y en todos los
+         capítulos: allí LEER no es un extra, es el ÚNICO camino al capítulo
+         completo (pedido de Gus: «de nuevo le dejas el leelo completo, porque
+         la gente no lee pero por inercia toca ahí»). En escritorio sigue
+         siendo la pista de una sola vez que ya estaba: ahí el capítulo entero
+         se hojea igual, así que insistir sobraría. */
+      flecha={movil || (flecha && cara.cap.n === 1)}
+    />
+  );
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -591,6 +676,31 @@ export default function LibroView() {
 
   const movil = caja.w > 0 && caja.w < UMBRAL_MOVIL;
 
+  const caras = movil ? CARAS_MOVIL : CARAS;
+  const hojas = movil ? HOJAS_MOVIL : HOJAS;
+  const capsDeCara = movil ? CAP_DE_CARA_MOVIL : CAP_DE_CARA;
+  const TOTAL = caras.length;
+
+  /* Cruzar el umbral (girar el teléfono, estirar la ventana) cambia el libro
+     entero debajo de los pies, y el índice viejo apuntaría a otra cosa. Se
+     recoloca al ARRANQUE DEL CAPÍTULO donde se estaba — no al mismo número,
+     que en la otra lista no significa nada. Portada y cierre se respetan. */
+  const eraMovil = useRef(movil);
+  useLayoutEffect(() => {
+    if (eraMovil.current === movil) return;
+    const antes = eraMovil.current ? CAP_DE_CARA_MOVIL : CAP_DE_CARA;
+    const listaAntes = eraMovil.current ? CARAS_MOVIL : CARAS;
+    eraMovil.current = movil;
+    setCara((k) => {
+      if (k <= 0) return 0;
+      if (k >= listaAntes.length - 1) return TOTAL - 1;
+      const cap = antes[k];
+      if (!cap) return 0;
+      const destino = (movil ? CAP_DE_CARA_MOVIL : CAP_DE_CARA).findIndex((c) => c?.n === cap.n);
+      return destino < 0 ? 0 : destino;
+    });
+  }, [movil, TOTAL]);
+
   /* Tamaño de página. En móvil ocupa el ancho entero (una sola página); en
      escritorio, la mitad menos el aire del pliegue. El alto manda igual: si la
      página no cabe a lo alto, se encoge — un libro que se sale de la pantalla
@@ -616,7 +726,6 @@ export default function LibroView() {
     store.set(CLAVE_ESCALA, v);
   };
 
-  const TOTAL = CARAS.length;
   const ir = useCallback((n: number) => setCara(Math.max(0, Math.min(TOTAL - 1, n))), [TOTAL]);
 
   /* El sonido va en un efecto sobre `cara` y NO dentro de `ir`: así suena
@@ -650,42 +759,120 @@ export default function LibroView() {
     }
   };
 
-  /* MÓVIL: el deslizamiento es NUESTRO, no del libro.
+  /* MÓVIL: AVANZAR es del libro; RETROCEDER es nuestro.
 
-     Con una sola página visible, el arrastre nativo del componente miente:
-     la cara que se ve puede ser la mitad IZQUIERDA del libro físico (los
-     dorsos), y ahí arrastrar a la izquierda significa «voltear la página de
-     atrás» — Gus deslizó a la izquierda sobre la lámina del capítulo 1 y el
-     libro se movió al lado contrario. En un lector de una página la regla es
-     universal: izquierda = siguiente, derecha = anterior, se esté mirando la
-     mitad que se esté mirando.
+     Avanzar lo hace el componente con su arrastre nativo — la hoja se curva
+     siguiendo el dedo, que es el efecto que Gus quiere conservar. Funciona
+     porque en el móvil el contenido vive siempre en la mitad DERECHA (una cara
+     por hoja), y arrastrar la mitad derecha es exactamente «pasar página».
 
-     Cómo: el pointerdown se corta en el marco (captura) para que el libro
-     jamás arme su arrastre, y al soltar se decide con el delta. El volteo
-     animado no se pierde — cambiar `page` lo dispara igual. Los taps siguen
-     vivos (click se genera aunque el pointerdown no baje), y el scroll
-     vertical del texto también: touch-action pan-y se lo deja al navegador,
-     que además cancela el puntero (pointercancel) cuando decide que el gesto
-     era un scroll. En escritorio nada de esto existe: la plana completa se
-     arrastra con el gesto nativo del componente, que ahí sí es el correcto. */
-  const gesto = useRef<{ x: number; y: number } | null>(null);
+     Retroceder no puede: el componente lo pide sobre la mitad IZQUIERDA, que
+     en el móvil está fuera del marco. Así que el swipe hacia la derecha lo
+     atendemos aquí. NO se corta la propagación —eso fue lo que mató el curl la
+     vez pasada—: solo se mira el gesto de reojo y se actúa cuando fue
+     claramente hacia la derecha, un movimiento que el libro nunca convierte en
+     volteo desde esa mitad, así que no hay forma de que los dos respondan.
 
-  const alSoltarGesto = (e: React.PointerEvent) => {
-    const g = gesto.current;
-    gesto.current = null;
-    if (!g) return;
-    const dx = e.clientX - g.x;
-    const dy = e.clientY - g.y;
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
-      // TAP. En la portada un toque abre el libro; el botón «tocá para abrir»
-      // ya hace lo suyo con su propio click — no sumarle otro paso encima.
-      if (cara === 0 && !(e.target as HTMLElement).closest?.('.libro-abrir')) ir(1);
-      return;
-    }
-    if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.2) ir(dx < 0 ? cara + 1 : cara - 1);
-  };
+     El tap en la portada también se atiende aquí (abrir el libro), midiendo
+     que el dedo no se haya movido. */
+  const marcoRef = useRef<HTMLDivElement>(null);
+  const caraRef = useRef(cara);
+  caraRef.current = cara;
 
-  const capActual = CAP_DE_CARA[cara];
+  /* Los listeners van NATIVOS y EN FASE DE CAPTURA. Las dos cosas importan.
+
+     Nativos, porque el <Book> llama stopPropagation() en sus handlers de
+     React: la propagación sintética de React es simulada, así que cortarla ahí
+     deja sin correr los handlers de React de los ancestros aunque el evento
+     nativo haya subido igual. Con onPointerUp={...} en el marco no se
+     ejecutaba nada.
+
+     En captura, porque también corta la propagación NATIVA. La captura baja
+     desde la raíz hasta el objetivo, o sea que corre ANTES que cualquier
+     handler del libro — nada de lo que él haga después nos puede dejar fuera.
+     (Medido con input táctil real: en burbuja no llegaba ni el tap ni el
+     deslizamiento hacia atrás; en captura, los dos.) */
+  useEffect(() => {
+    const el = marcoRef.current;
+    if (!el || !movil) return;
+    let g: { x: number; y: number; id: number } | null = null;
+    let atras = false; // el gesto ya se declaró «hacia atrás»
+    let abortando = false; // el pointercancel lo mandamos nosotros
+
+    const abajo = (e: PointerEvent) => {
+      g = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      atras = false;
+    };
+
+    const cancelar = () => {
+      if (abortando) return; // es el nuestro: no borres el gesto en curso
+      g = null;
+      atras = false;
+    };
+
+    /* Deslizar HACIA ATRÁS: hay que quitarle el gesto al libro.
+
+       El mismo dedo armó su arrastre, y mientras esté en él se traga cualquier
+       cambio del prop `page` — medido con dedo real: la rama se ejecutaba con
+       dx=+216 y la página no se movía. Esperar a que asiente serían ~600 ms de
+       libro muerto. En vez de eso, en cuanto el gesto se declara hacia la
+       derecha se le manda un `pointercancel` al elemento que estaba siguiendo:
+       él suelta el arrastre en el acto (a la derecha no tenía nada que hacer,
+       esa mitad solo voltea hacia adelante) y el salto entra limpio. */
+    const mover = (e: PointerEvent) => {
+      if (!g || atras || e.pointerId !== g.id) return;
+      const dx = e.clientX - g.x;
+      const dy = e.clientY - g.y;
+      if (dx < 42 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
+      atras = true;
+      abortando = true;
+      (e.target as HTMLElement | null)?.dispatchEvent(
+        new PointerEvent('pointercancel', { bubbles: true, pointerId: g.id, pointerType: e.pointerType }),
+      );
+      abortando = false;
+    };
+    /* El cambio de página se pide en el TICK SIGUIENTE al pointerup.
+
+       El mismo toque que nosotros leemos también armó el arrastre del libro, y
+       mientras él sigue en ese estado se traga cualquier cambio del prop
+       `page`: medido con dedo real, un deslizamiento a la derecha entraba bien
+       en esta rama (dx=+216) y el libro se quedaba clavado igual. Soltando el
+       hilo un instante, el libro ya asentó su arrastre a cero y acepta el
+       salto. Son ~120 ms, imperceptibles porque el volteo dura mucho más. */
+    const irLuego = (n: number) => setTimeout(() => ir(n), 120);
+
+    const arriba = (e: PointerEvent) => {
+      const ini = g;
+      g = null;
+      if (!ini) return;
+      const dx = e.clientX - ini.x;
+      const dy = e.clientY - ini.y;
+      const k = caraRef.current;
+
+      // Quieto = tap. En la portada, abre. (El botón «tocá para abrir» tiene
+      // su propio click; no hay que contarlo dos veces.)
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+        if (k === 0 && !(e.target as HTMLElement).closest?.('.libro-abrir')) irLuego(1);
+        return;
+      }
+      // Hacia la DERECHA y con intención: volver. Hacia la izquierda no se
+      // toca nada — de eso se encarga el arrastre del propio libro.
+      if (atras || (dx >= 48 && dx > Math.abs(dy) * 1.2)) irLuego(k - 1);
+    };
+
+    el.addEventListener('pointerdown', abajo, true);
+    el.addEventListener('pointermove', mover, true);
+    el.addEventListener('pointerup', arriba, true);
+    el.addEventListener('pointercancel', cancelar, true);
+    return () => {
+      el.removeEventListener('pointerdown', abajo, true);
+      el.removeEventListener('pointermove', mover, true);
+      el.removeEventListener('pointerup', arriba, true);
+      el.removeEventListener('pointercancel', cancelar, true);
+    };
+  }, [movil, ir]);
+
+  const capActual = capsDeCara[cara];
   const pie =
     cara === 0
       ? movil
@@ -815,22 +1002,17 @@ export default function LibroView() {
                 volteados (quedan a la izquierda). En escritorio no hay marco
                 que valga: se ve la plana completa. */}
             <div
+              ref={marcoRef}
               className="libro-marco relative"
               style={movil ? { width: pw, height: ph, touchAction: 'pan-y' } : undefined}
-              onPointerDownCapture={
-                movil
-                  ? (e) => {
-                      gesto.current = { x: e.clientX, y: e.clientY };
-                      e.stopPropagation(); // el libro no arma su arrastre: el gesto es nuestro
-                    }
-                  : undefined
-              }
-              onPointerUp={movil ? alSoltarGesto : undefined}
-              onPointerCancel={movil ? () => (gesto.current = null) : undefined}
             >
+              {/* El riel enseña SIEMPRE la mitad derecha del libro: es donde
+                  descansan las hojas sin voltear, o sea donde está el contenido
+                  con una cara por hoja. Fijo, sin alternar — de eso vive que
+                  arrastrar siempre avance. */}
               <div
                 className="libro-riel"
-                style={movil ? { width: pw * 2, transform: `translateX(${cara % 2 === 0 ? -pw : 0}px)` } : undefined}
+                style={movil ? { width: pw * 2, transform: `translateX(${-pw}px)` } : undefined}
               >
                 <Book
                   width={pw}
@@ -845,19 +1027,51 @@ export default function LibroView() {
                      letra agrandada el dedo que quiere BAJAR por el texto
                      acabaría volteando la página. */
                   mobileScrollSupport
-                  page={cara}
-                  onPageChange={setCara}
+                  /* UMBRALES DEL VOLTEO, distintos en el móvil.
+
+                     Por defecto la hoja se voltea al soltarla pasada la MITAD
+                     del recorrido (flipThreshold 50), y ese recorrido va del
+                     borde libre al LOMO. En la plana completa del escritorio
+                     eso es un gesto natural: el lomo está a la vista, en el
+                     centro. En el móvil el lomo cae JUSTO EN EL BORDE
+                     IZQUIERDO de la pantalla, así que llegar al 50% obliga a
+                     arrastrar hasta casi salirse del teléfono — medido: agarrar
+                     al 90% del ancho y deslizar dos tercios de la página no
+                     volteaba nada; solo funcionaba empezando por la mitad.
+                     Con 20 basta un deslizamiento de pulgar normal.
+
+                     Y el atajo del "swipe rápido" pedía menos de 250 ms, que
+                     para un pulgar en una pantalla de 6" se queda corto: se
+                     sube a 420. */
+                  flipThreshold={movil ? 20 : undefined}
+                  swipeTimeThreshold={movil ? 420 : undefined}
+                  page={aPageDelLibro(cara, movil)}
+                  onPageChange={(p) => setCara(aCara(p, movil))}
                   pageBackground="#f3e6c8"
                   shadowColor="#2a1c0e"
                   revealBackground="transparent"
-                  pageAnnouncement={({ from, total: t }) =>
-                    from === 1 ? 'Portada' : from >= t ? 'Fin del libro' : `Página ${from} de ${t}`
-                  }
+                  /* Se calcula desde el `from` que llega, no desde `cara`: el
+                     anuncio se arma durante el cambio y el estado todavía trae
+                     el valor viejo. */
+                  pageAnnouncement={({ from }) => {
+                    const k = aCara(from - 1, movil);
+                    if (k <= 0) return 'Portada';
+                    if (k >= TOTAL - 1) return 'Fin del libro';
+                    return `Página ${k + 1} de ${TOTAL}`;
+                  }}
                 >
-                  {HOJAS.map((hoja, i) => (
-                    <Book.Page key={i}>
-                      <Book.Page.Front>{pintarCara(hoja[0], abrirLector, flecha)}</Book.Page.Front>
-                      <Book.Page.Back>{pintarCara(hoja[1], abrirLector, flecha)}</Book.Page.Back>
+                  {hojas.map((hoja, i) => (
+                    <Book.Page
+                      key={`${movil ? 'm' : 'd'}${i}`}
+                      /* Solo en el MÓVIL: allí voltear la última hoja dejaría
+                         la mitad derecha —la única que se ve— vacía, y habría
+                         que retroceder a ciegas para volver. En escritorio se
+                         voltea con normalidad: la plana entera se ve y el
+                         withCover cierra el libro como debe. */
+                      disabled={movil && i === hojas.length - 1}
+                    >
+                      <Book.Page.Front>{pintarCara(hoja[0], abrirLector, flecha, movil)}</Book.Page.Front>
+                      <Book.Page.Back>{pintarCara(hoja[1], abrirLector, flecha, movil)}</Book.Page.Back>
                     </Book.Page>
                   ))}
                 </Book>
