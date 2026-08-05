@@ -26,11 +26,11 @@ import './aurora.css';
    dos flancos (0-1 y 8-9), que es donde tienen que estar.
 
    Las imágenes de las features REALES son las ilustraciones de Gus
-   (public/carrusel/{slang,story,conversacion,oficina}.jpg, 800×1400, set
-   coherente con acentos lima) y, para las dos nuevas, las gradientes 07/08 —
-   las que ya estaban en el set y mejor aguantan un título encima. Los
-   placeholders usan las gradientes aurora restantes (05, 06, 09, 10, 400×700,
-   paletas del personalizador). */
+   (public/carrusel/{slang,story,conversacion,oficina,dna}.jpg, 800×1400, set
+   coherente con acentos lima) y, para SUBE, la gradiente 07 — que ya estaba
+   en el set y mejor aguanta un título encima. Los placeholders usan las
+   gradientes aurora restantes (05, 06, 09, 10, 400×700, paletas del
+   personalizador). */
 
 /** Índice de la carta centrada al abrir: el HALF del componente. */
 const CENTRO_INICIAL = 3;
@@ -53,11 +53,11 @@ function OverlayFeature({
   titulo: string;
   subtitulo: string;
   linea: string;
-  /* SUBE y TU DNA no tienen ilustración propia: van sobre una gradiente aurora,
-     que es mucho más clara y saturada que las fotos oscuras de las otras cuatro
-     y se come el texto blanco. `aurora` añade .cf-overlay--aurora, que solo
-     sube el velo — ninguna clase existente cambia, así que las cuatro cartas
-     originales quedan pixel-iguales. */
+  /* SUBE no tiene ilustración propia: va sobre una gradiente aurora, que es
+     mucho más clara y saturada que las fotos oscuras de las demás y se come
+     el texto blanco. `aurora` añade .cf-overlay--aurora, que solo sube el
+     velo — ninguna clase existente cambia, así que las cartas con foto
+     quedan pixel-iguales. */
   aurora?: boolean;
 }) {
   return (
@@ -213,14 +213,13 @@ export function CarruselFeatures() {
       ),
     },
     {
-      imgUrl: '/carrusel/08.jpg',
-      alt: 'TU DNA · Tu cerebro de errores',
+      imgUrl: '/carrusel/dna.jpg',
+      alt: 'DNA · Tu archivo de lenguaje, siempre contigo',
       onClick: () => abrirFeature('dna'),
       contenido: (
         <OverlayFeature
-          aurora
-          titulo="TU DNA"
-          subtitulo="Tu cerebro de errores"
+          titulo="DNA"
+          subtitulo="Tu archivo de lenguaje, siempre contigo"
           linea="Tus fallos, tu jerga y tus upgrades, vivos."
         />
       ),
