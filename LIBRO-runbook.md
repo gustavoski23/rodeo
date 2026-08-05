@@ -256,20 +256,42 @@ Checklist, todo pequeño:
 
 ## 8. El próximo libro: la especificación que pidió Gus
 
-Más largo que Alicia y con más ilustraciones:
+Más capítulos y MÁS ILUSTRACIONES, pero los capítulos **igual de cortos que los
+de Alicia** — «muy resumidos», dijo Gus. Lo que crece es el número de capítulos
+y de láminas, no el largo de cada capítulo:
 
 | | Alicia (hecho) | El próximo |
 |---|---|---|
 | Capítulos | 7 | **10** |
-| Páginas por capítulo | 5 (~430 palabras) | **10 (~860 palabras)** |
-| Láminas por capítulo | 2 (apertura + mitad) | **4 (apertura + 3 intermedias)** |
+| Páginas por capítulo | 5 (~430 palabras) | **5 (~430 palabras)** ← igual |
+| Láminas por capítulo | 2 (apertura + mitad) | **4 (apertura + 3 dentro)** |
 | Láminas totales | 16 | **42** (40 + tapa + contra) |
-| Palabras | ~3.000 | **~8.600** |
+| Palabras | ~3.000 | **~4.300** |
 
-Estructura por capítulo en escritorio: 12 caras = 6 hojas — lámina de apertura,
-abrebocas, y 10 páginas de texto con las 3 láminas embebidas repartidas (caras
-4, 7 y 10). En móvil no cambia nada: sigue siendo lámina + abrebocas, y el
-capítulo entero por LEER.
+**No inventes páginas más largas.** Los rangos de §2.4 están calibrados para que
+a escala 1.0 no se desborde ninguna cara; duplicarlos rompería eso.
+
+Estructura por capítulo: 6 caras = 3 hojas, exactamente como Alicia —
+
+    cara 0  lámina de apertura
+    cara 1  abrebocas + phrasal verbs + LEER
+    cara 2  texto
+    cara 3  texto + lámina 1
+    cara 4  texto + lámina 2
+    cara 5  texto + lámina 3
+
+Es el mismo esqueleto que ya funciona: solo cambia que las caras 3, 4 y 5 llevan
+lámina embebida en vez de una sola en la 3. Total: 32 hojas / 64 caras.
+
+**Las tres láminas se reparten por el SCROLL del lector.** El pedido de Gus es
+que «se vean distribuidas mientras uno va haciendo scroll down»: en el lector a
+pantalla completa, cada lámina va intercalada en el punto del cuento que le
+toca, no todas juntas. Hoy el lector ya inserta la lámina de la mitad antes de
+la página 2 (`src/views/libro/index.tsx`, el bloque `{i === 2 && <img …>}`);
+para tres, insertar antes de las páginas 2, 3 y 4.
+
+En el móvil no cambia nada: sigue siendo lámina de apertura + abrebocas por
+capítulo, y el capítulo entero por LEER.
 
 > **Ojo con el peso.** 42 láminas en WebP son ~4,6 MB. El artifact single-file
 > pasaría de 7,5 MB a ~12 MB, que en datos móviles es mucha primera carga. Para
