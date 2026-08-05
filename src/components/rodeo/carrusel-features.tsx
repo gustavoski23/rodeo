@@ -227,13 +227,13 @@ export function CarruselFeatures() {
     {
       // La carta usa la MISMA portada que la tapa del libro: lo que se ve en
       // la vitrina es literalmente lo que se abre al tocar.
-      imgUrl: '/libro/00-portada.webp',
-      alt: 'LIBRO · Alicia en el País de las Maravillas',
+      imgUrl: '/libro/v00-portada.webp',
+      alt: 'LIBRO · Around the World in Eighty Days',
       onClick: () => abrirFeature('libro'),
       contenido: (
         <OverlayFeature
           titulo="LIBRO"
-          subtitulo="Alice in Wonderland"
+          subtitulo="Around the World in 80 Days"
           linea="Un cuento que se hojea, sembrado de phrasal verbs."
         />
       ),

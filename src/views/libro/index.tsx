@@ -18,7 +18,7 @@ import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import { store } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
-import { CAPITULOS, IMAGENES, PHRASALS_TOTAL, type Capitulo } from '@/content/libro/alicia';
+import { CAPITULOS, IMAGENES, PHRASALS_TOTAL, type Capitulo } from '@/content/libro/vueltamundo';
 import { libroMudo, setLibroMudo, sonarPagina } from './sonido-pagina';
 
 /* Mantine y la extensión del libro, en su variante `.layer.css`: así todo entra
@@ -30,19 +30,21 @@ import '@mantine/core/styles.layer.css';
 import '@gfazioli/mantine-book/styles.layer.css';
 import './libro.css';
 
-/* LIBRO — Alicia en el País de las Maravillas, sobre <Book> de
+/* LIBRO — Around the World in Eighty Days, sobre <Book> de
    @gfazioli/mantine-book.
 
-   ESTRUCTURA (7 capítulos × 3 hojas = 21 hojas + tapa + cierre = 22 hojas,
-   44 caras). Cada capítulo son tres pliegos, y cada pliego tiene su oficio:
+   ESTRUCTURA: 10 capítulos, cada uno de 6 caras (1 de apertura + 5 de texto),
+   más tapa y contratapa = 62 caras / 31 hojas. Las seis caras de un capítulo:
 
-     pliego 1   IZQ lámina de apertura     DER abrebocas + phrasal verbs + LEER
-     pliego 2   IZQ solo texto             DER texto + la lámina de la MITAD
-     pliego 3   IZQ solo texto             DER solo texto → cierra el capítulo
+     apertura   lámina a sangre del capítulo
+     texto 0    abrebocas + phrasal verbs + LEER
+     texto 1    solo texto
+     texto 2    texto + lámina interna 1   ┐ las tres láminas internas van
+     texto 3    texto + lámina interna 2   │ REPARTIDAS, una por cara, no
+     texto 4    texto + lámina interna 3   ┘ todas juntas
 
-   Los phrasal verbs viven SOLO en el primer pliego del capítulo: son la
-   promesa de lo que se va a aprender, no un pie de página que se repite cinco
-   veces.
+   Los phrasal verbs viven SOLO en la primera cara de texto del capítulo: son la
+   promesa de lo que se va a aprender, no un pie de página que se repite.
 
    MÓVIL = UNA PÁGINA. A 390 px una plana de dos deja cada hoja en ~170 px:
    linda de mirar, imposible de leer. El marco recorta a una sola página y el
@@ -93,11 +95,12 @@ const CLAVE_FLECHA = 'rodeo_libro_leer_visto';
 /* ────────────────────────────────────────────────────────────────────────────
    LAS CARAS — y por qué son DOS libros distintos.
 
-   ESCRITORIO (44 caras / 22 hojas). La plana completa cabe, así que el libro
-   es el libro entero: lámina de apertura + las cinco páginas del capítulo +
-   la lámina de la mitad embebida. Dos caras por hoja, como un libro de verdad.
+   ESCRITORIO (62 caras / 31 hojas). La plana completa cabe, así que el libro
+   es el libro entero: lámina de apertura + las cinco páginas del capítulo, con
+   sus TRES láminas internas embebidas. Dos caras por hoja, como un libro de
+   verdad.
 
-   TELÉFONO (16 caras / 16 hojas). Pedido de Gus: «que solo hagas swap para ver
+   TELÉFONO (22 caras / 22 hojas). Pedido de Gus: «que solo hagas swap para ver
    los capítulos». Se hojea de capítulo en capítulo — lámina, abrebocas, lámina
    del siguiente, abrebocas… — y el capítulo COMPLETO vive detrás del botón
    LEER, que abre el lector y ahí se baja con scroll. Un lector de una página no
@@ -124,19 +127,21 @@ type Cara =
       folio: number;
       cabecera?: boolean;
       phrasals?: boolean;
-      medio?: boolean;
+      /** Índice de la lámina interna embebida en esta cara (0,1,2 → caras de
+          texto 2,3,4). undefined en las caras sin lámina. */
+      lamina?: number;
     };
 
 const PORTADA: Cara = {
   t: 'lamina',
   src: IMAGENES.portada,
-  alt: 'Portada de Alice in Wonderland, de Lewis Carroll.',
+  alt: 'Portada de Around the World in Eighty Days, de Jules Verne: la ruta del viaje sobre un mapa del mundo.',
 };
 
 const CONTRA: Cara = {
   t: 'lamina',
   src: IMAGENES.fin,
-  alt: 'Alicia dormida en la ribera mientras las criaturas del País de las Maravillas se desvanecen.',
+  alt: 'Phileas Fogg y Aouda al final del viaje, con el mundo dado la vuelta.',
   fin: true,
 };
 
@@ -162,7 +167,9 @@ const CARAS: Cara[] = [
       folio: folioDe(cap.n, p),
       cabecera: p === 0, // el título del capítulo solo en su primera cara
       phrasals: p === 0,
-      medio: p === 2, // la cara que comparte espacio con la lámina de la mitad
+      // Las caras de texto 2, 3 y 4 embeben cada una su lámina interna
+      // (imgDentro[0,1,2]); la 0 (abrebocas) y la 1 van sin lámina.
+      lamina: p >= 2 ? p - 2 : undefined,
     })),
   ]),
   CONTRA,
@@ -214,18 +221,19 @@ const aCara = (page: number, movil: boolean) => (!movil ? page : Math.floor((pag
 /** Todas las láminas del libro, en orden de aparición. */
 const TODAS: string[] = [
   IMAGENES.portada,
-  ...CAPITULOS.flatMap((c) => [c.imgApertura, c.imgMedio]),
+  ...CAPITULOS.flatMap((c) => [c.imgApertura, ...c.imgDentro]),
   IMAGENES.fin,
 ];
 
 const CLAVE_PRECARGA = 'rodeo_libro_precargado';
 
-/* Descarga las 16 láminas ANTES de enseñar el libro.
+/* Descarga las 42 láminas ANTES de enseñar el libro.
 
-   Por qué bloquear: son ~1.8 MB en alta resolución (pedido de Gus: nítidas en
+   Por qué bloquear: son ~4.6 MB en alta resolución (pedido de Gus: nítidas en
    el teléfono Y en el PC). Sin precarga, hojear en el celular sería ir viendo
    páginas grises que se van llenando — que es exactamente lo que rompe la
-   sensación de estar pasando hojas de un libro.
+   sensación de estar pasando hojas de un libro. Que la espera tarde 5-10 s la
+   primera vez es a propósito: después el libro abre al instante.
 
    Solo bloquea LA PRIMERA VEZ. Después el service worker las tiene cache-first
    (regla 5 de sw.js las atrapa por ser estáticos same-origin), así que la
@@ -290,8 +298,8 @@ function Precarga({ hechas, total }: { hechas: number; total: number }) {
           Trayendo el libro
         </p>
         <p className="max-w-[30ch] text-[0.82rem] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Son dieciséis láminas pintadas a mano. Se bajan una sola vez y después
-          el libro abre al instante, incluso sin señal.
+          Son cuarenta y dos láminas pintadas a mano. Se bajan una sola vez y
+          después el libro abre al instante, incluso sin señal.
         </p>
         {/* Barra de progreso: 4 px de alto, sin números grandes. Lo que importa
             es que se mueva — el porcentaje exacto no le sirve a nadie. */}
@@ -435,10 +443,10 @@ function CaraTexto({
 
       <CuentoVivo texto={pagina.texto} />
 
-      {/* La lámina de la MITAD del capítulo, embebida bajo el texto. */}
-      {cara.medio && (
+      {/* Una de las tres láminas internas, embebida bajo el texto (caras 2,3,4). */}
+      {cara.lamina !== undefined && (
         <div className="libro-medio">
-          <img src={cap.imgMedio} alt={cap.altMedio} draggable={false} />
+          <img src={cap.imgDentro[cara.lamina]} alt={cap.altDentro[cara.lamina]} draggable={false} />
         </div>
       )}
 
@@ -601,12 +609,13 @@ function Lector({ cap, onCerrar, escala }: { cap: Capitulo; onCerrar: () => void
           {cap.paginas.map((pag, i) => (
             <div key={i}>
               {i > 0 && <div className="libro-lector-corte">·</div>}
-              {/* La lámina de la mitad también aparece aquí, en su sitio del
-                  cuento: el lector es el capítulo entero, no solo su texto. */}
-              {i === 2 && (
+              {/* Las tres láminas internas también aparecen aquí, REPARTIDAS
+                  por el scroll: cada una antes de la página que le toca (2, 3 y
+                  4), en su punto del cuento. El lector es el capítulo entero. */}
+              {i >= 2 && (
                 <img
-                  src={cap.imgMedio}
-                  alt={cap.altMedio}
+                  src={cap.imgDentro[i - 2]}
+                  alt={cap.altDentro[i - 2]}
                   className="mb-3 w-full rounded-[8px]"
                   style={{ border: '1px solid oklch(62% 0.08 70 / 0.55)' }}
                 />
@@ -906,7 +915,7 @@ export default function LibroView() {
             className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Libro · Alice in Wonderland
+            Libro · Around the World in 80 Days
           </span>
         </div>
         <Precarga hechas={hechas} total={total} />
@@ -933,7 +942,7 @@ export default function LibroView() {
           className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Libro · Alice in Wonderland
+          Libro · Around the World in 80 Days
         </span>
 
         {/* Tamaño de letra y sonido. Van arriba y no en el pie porque el pie es
