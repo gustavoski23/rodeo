@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import SocialCards, { type CardItem } from '@/components/ui/card-fan-carousel';
 import { useApp, type View } from '@/stores/app';
+import type { LibroId } from '@/content/libro';
 
 import './aurora.css';
 
@@ -19,11 +20,10 @@ import './aurora.css';
    al abrir, lo primero que se ve enorme y al frente es SLANG, que es lo que
    pide la vitrina.
 
-   Ahora son SEIS features reales. SUBE entra en el 2 (a la izquierda de SLANG)
-   y TU DNA en el 7 (a la derecha de OFICINA), de modo que las seis quedan
-   CONTIGUAS en 2-7: paginando desde SLANG se recorre la app entera sin tropezar
-   con un placeholder en medio. Quedan cuatro "Próximamente" repartidos en los
-   dos flancos (0-1 y 8-9), que es donde tienen que estar.
+   Ahora son OCHO features reales (SUBE en el 2, y los dos LIBROS al final, en el
+   8 y el 9), CONTIGUAS en 2-9: paginando desde SLANG se recorre la app entera
+   sin tropezar con un placeholder en medio. Quedan dos "Próximamente" en el
+   flanco izquierdo (0-1); el derecho lo llenaron los libros.
 
    Las imágenes de las features REALES son las ilustraciones de Gus
    (public/carrusel/{slang,story,conversacion,oficina,dna}.jpg, 800×1400, set
@@ -93,6 +93,13 @@ const IMG_PRONTO = ['05', '06', '09', '10'];
    Se lee del store con getState() y no con un hook: esto corre dentro de un
    onClick, no en render, y así el carrusel no se re-renderiza por suscribirse
    a un setter que nunca cambia. */
+/** Entrar a un libro concreto: fija cuál abre la vista LIBRO y navega. La
+    precarga (todo el libro antes de abrir) la dispara la vista al entrar. */
+function abrirLibro(id: LibroId) {
+  useApp.getState().setLibroActivo(id);
+  abrirFeature('libro');
+}
+
 function abrirFeature(view: View) {
   const { setCarruselAlVolver, setView } = useApp.getState();
   setCarruselAlVolver(true);
@@ -130,11 +137,11 @@ export function CarruselFeatures() {
     return () => observador.disconnect();
   }, []);
 
-  // Los placeholders, repartidos: dos al principio (índices 0-1) y el resto al
-  // final. Las SIETE features reales quedan contiguas (2-8): paginando desde
-  // SLANG se recorren STORY → CONVERSACIÓN → OFICINA → TU DNA → LIBRO a la
-  // derecha y SUBE a la izquierda, sin placeholders en medio. LIBRO entró
-  // gastándose uno de los slots de "próximamente" — ya no es una promesa.
+  // Los placeholders quedan solo al principio (índices 0-1). Las OCHO features
+  // reales van contiguas (2-9): paginando desde SLANG se recorren STORY →
+  // CONVERSACIÓN → OFICINA → TU DNA → LIBRO (Around the World) → LIBRO (Alicia) a
+  // la derecha, y SUBE a la izquierda, sin placeholders en medio. Los dos libros
+  // entraron gastándose slots de "próximamente" — ya no son una promesa.
   const pronto: CardItem[] = IMG_PRONTO.map((n) => ({
     imgUrl: `/carrusel/${n}.jpg`,
     alt: 'Feature en camino',
@@ -225,20 +232,33 @@ export function CarruselFeatures() {
       ),
     },
     {
-      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en
-      // la vitrina es literalmente lo que se abre al tocar.
+      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en la
+      // vitrina es literalmente lo que se abre al tocar. Son DOS libros ahora
+      // (pedido de Gus): cada carta entra al suyo y dispara su propia precarga.
       imgUrl: '/libro/v00-portada.webp',
       alt: 'LIBRO · Around the World in Eighty Days',
-      onClick: () => abrirFeature('libro'),
+      onClick: () => abrirLibro('vuelta'),
       contenido: (
         <OverlayFeature
           titulo="LIBRO"
           subtitulo="Around the World in 80 Days"
+          linea="Diez escalas, una vuelta al mundo sembrada de phrasal verbs."
+        />
+      ),
+    },
+    {
+      imgUrl: '/libro/00-portada.webp',
+      alt: 'LIBRO · Alice in Wonderland',
+      onClick: () => abrirLibro('alicia'),
+      contenido: (
+        <OverlayFeature
+          titulo="LIBRO"
+          subtitulo="Alice in Wonderland"
           linea="Un cuento que se hojea, sembrado de phrasal verbs."
         />
       ),
     },
-    ...pronto.slice(3),
+    ...pronto.slice(4),
   ];
 
   return (

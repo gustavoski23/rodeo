@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { store } from '@/lib/storage';
 import { aplicarTema, hidratarTema, type Tema } from '@/lib/theme';
+import type { LibroId } from '@/content/libro';
 
 /* Estado de shell. La persistencia NO usa el middleware `persist` de zustand
    (envolvería los valores en {state,version} y rompería las claves rodeo_*):
@@ -31,6 +32,10 @@ type AppState = {
   nombre: string | null;
   nivel: string | null;
   cost: number;
+  /** Qué libro abre la vista LIBRO. Lo fija la carta del carrusel al entrar;
+      por defecto el nuevo. La vista lo lee para elegir contenido y láminas. */
+  libroActivo: LibroId;
+  setLibroActivo: (id: LibroId) => void;
   setView: (v: View) => void;
   setTema: (t: Tema) => void;
   /** Cambia el tema DE VERDAD: pinta <html>, persiste rodeo_tema, avisa.
@@ -55,6 +60,8 @@ export const useApp = create<AppState>((set) => ({
   nombre: store.get<string | null>('rodeo_nombre', null),
   nivel: store.get<string | null>('rodeo_nivel', null),
   cost: store.get<number>('rodeo_cost', 0),
+  libroActivo: 'vuelta',
+  setLibroActivo: (libroActivo) => set({ libroActivo }),
   setView: (view) => set({ view }),
   setTema: (tema) => set({ tema }),
   cambiarTema: (tema) => {

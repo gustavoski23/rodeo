@@ -18,7 +18,7 @@ import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import { store } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
-import { CAPITULOS, IMAGENES, PHRASALS_TOTAL, type Capitulo } from '@/content/libro/vueltamundo';
+import { LIBROS, type Capitulo, type Libro } from '@/content/libro';
 import { libroMudo, setLibroMudo, sonarPagina } from './sonido-pagina';
 
 /* Mantine y la extensión del libro, en su variante `.layer.css`: así todo entra
@@ -119,7 +119,16 @@ const CLAVE_FLECHA = 'rodeo_libro_leer_visto';
    curl nativo siguiendo el dedo. */
 
 type Cara =
-  | { t: 'lamina'; src: string; alt: string; rotulo?: string; kicker?: string; fin?: boolean }
+  | {
+      t: 'lamina';
+      src: string;
+      alt: string;
+      rotulo?: string;
+      kicker?: string;
+      fin?: boolean;
+      /** Números del cierre ("N phrasal verbs en M capítulos"), del libro activo. */
+      finStats?: { phrasals: number; caps: number };
+    }
   | {
       t: 'texto';
       cap: Capitulo;
@@ -132,19 +141,6 @@ type Cara =
       lamina?: number;
     };
 
-const PORTADA: Cara = {
-  t: 'lamina',
-  src: IMAGENES.portada,
-  alt: 'Portada de Around the World in Eighty Days, de Jules Verne: la ruta del viaje sobre un mapa del mundo.',
-};
-
-const CONTRA: Cara = {
-  t: 'lamina',
-  src: IMAGENES.fin,
-  alt: 'Phileas Fogg y Aouda al final del viaje, con el mundo dado la vuelta.',
-  fin: true,
-};
-
 const apertura = (cap: Capitulo): Cara => ({
   t: 'lamina',
   src: cap.imgApertura,
@@ -156,44 +152,6 @@ const apertura = (cap: Capitulo): Cara => ({
 /** El folio de la página `p` del capítulo `n`, contando el libro completo. */
 const folioDe = (n: number, p: number) => 2 + (n - 1) * 5 + p;
 
-const CARAS: Cara[] = [
-  PORTADA,
-  ...CAPITULOS.flatMap((cap) => [
-    apertura(cap),
-    ...Array.from({ length: 5 }, (_, p) => ({
-      t: 'texto' as const,
-      cap,
-      p,
-      folio: folioDe(cap.n, p),
-      cabecera: p === 0, // el título del capítulo solo en su primera cara
-      phrasals: p === 0,
-      // Las caras de texto 2, 3 y 4 embeben cada una su lámina interna
-      // (imgDentro[0,1,2]); la 0 (abrebocas) y la 1 van sin lámina.
-      lamina: p >= 2 ? p - 2 : undefined,
-    })),
-  ]),
-  CONTRA,
-];
-
-const CARAS_MOVIL: Cara[] = [
-  PORTADA,
-  ...CAPITULOS.flatMap((cap) => [
-    apertura(cap),
-    { t: 'texto' as const, cap, p: 0, folio: folioDe(cap.n, 0), cabecera: true, phrasals: true },
-  ]),
-  CONTRA,
-];
-
-/** Escritorio: hojas de dos caras [frente, dorso]. */
-const HOJAS: (Cara | undefined)[][] = Array.from({ length: Math.ceil(CARAS.length / 2) }, (_, i) => [
-  CARAS[i * 2],
-  CARAS[i * 2 + 1],
-]);
-
-/** Teléfono: una cara por hoja. El dorso va vacío a propósito — es el envés de
-    la hoja, lo que se ve de refilón mientras la página gira. */
-const HOJAS_MOVIL: (Cara | undefined)[][] = CARAS_MOVIL.map((c) => [c, undefined]);
-
 /** A qué capítulo pertenece cada cara — para el rótulo del pie, para saber qué
     abrir con LEER y para reubicarse al cruzar el umbral móvil/escritorio. */
 function capsDe(caras: Cara[]): (Capitulo | null)[] {
@@ -204,8 +162,83 @@ function capsDe(caras: Cara[]): (Capitulo | null)[] {
   });
 }
 
-const CAP_DE_CARA = capsDe(CARAS);
-const CAP_DE_CARA_MOVIL = capsDe(CARAS_MOVIL);
+/* ── Armado del LIBRO ACTIVO ──────────────────────────────────────────────────
+   Todo lo que dependía del libro (portada, caras, hojas, precarga) se calcula
+   desde el `Libro` elegido, para que la MISMA vista sirva a Alicia y a Around
+   the World. Lo único que cambia entre libros es cuántas láminas internas trae
+   cada capítulo (Alicia 1, AtW 3): el largo de `cap.imgDentro` lo decide. */
+type ArmadoLibro = {
+  caras: Cara[];
+  carasMovil: Cara[];
+  hojas: (Cara | undefined)[][];
+  hojasMovil: (Cara | undefined)[][];
+  capDeCara: (Capitulo | null)[];
+  capDeCaraMovil: (Capitulo | null)[];
+  /** Todas las láminas del libro, en orden de aparición — para la precarga. */
+  todas: string[];
+};
+
+function construir(libro: Libro): ArmadoLibro {
+  const portada: Cara = { t: 'lamina', src: libro.portada, alt: libro.portadaAlt };
+  const contra: Cara = {
+    t: 'lamina',
+    src: libro.fin,
+    alt: libro.finAlt,
+    fin: true,
+    finStats: { phrasals: libro.phrasalsTotal.length, caps: libro.capitulos.length },
+  };
+
+  const caras: Cara[] = [
+    portada,
+    ...libro.capitulos.flatMap((cap) => [
+      apertura(cap),
+      ...Array.from({ length: 5 }, (_, p) => ({
+        t: 'texto' as const,
+        cap,
+        p,
+        folio: folioDe(cap.n, p),
+        cabecera: p === 0, // el título del capítulo solo en su primera cara
+        phrasals: p === 0,
+        // Cada cara de texto embebe la lámina que le toca, empezando en la 2.
+        // Alicia solo tiene 1 (cara 2); AtW tiene 3 (caras 2, 3, 4). El largo de
+        // imgDentro decide hasta dónde llegan.
+        lamina: p >= 2 && p - 2 < cap.imgDentro.length ? p - 2 : undefined,
+      })),
+    ]),
+    contra,
+  ];
+
+  const carasMovil: Cara[] = [
+    portada,
+    ...libro.capitulos.flatMap((cap) => [
+      apertura(cap),
+      { t: 'texto' as const, cap, p: 0, folio: folioDe(cap.n, 0), cabecera: true, phrasals: true },
+    ]),
+    contra,
+  ];
+
+  const hojas: (Cara | undefined)[][] = Array.from({ length: Math.ceil(caras.length / 2) }, (_, i) => [
+    caras[i * 2],
+    caras[i * 2 + 1],
+  ]);
+  const hojasMovil: (Cara | undefined)[][] = carasMovil.map((c) => [c, undefined]);
+
+  const todas: string[] = [
+    libro.portada,
+    ...libro.capitulos.flatMap((c) => [c.imgApertura, ...c.imgDentro]),
+    libro.fin,
+  ];
+
+  return {
+    caras,
+    carasMovil,
+    hojas,
+    hojasMovil,
+    capDeCara: capsDe(caras),
+    capDeCaraMovil: capsDe(carasMovil),
+    todas,
+  };
+}
 
 /* ── El puente con el índice del <Book> ──────────────────────────────────────
    En escritorio el índice de cara ES el `page` del componente (frente de la
@@ -218,73 +251,80 @@ const aCara = (page: number, movil: boolean) => (!movil ? page : Math.floor((pag
 /* ────────────────────────────────────────────────────────────────────────────
    Precarga */
 
-/** Todas las láminas del libro, en orden de aparición. */
-const TODAS: string[] = [
-  IMAGENES.portada,
-  ...CAPITULOS.flatMap((c) => [c.imgApertura, ...c.imgDentro]),
-  IMAGENES.fin,
-];
+/* Descarga TODAS las láminas del libro activo ANTES de abrirlo.
 
-const CLAVE_PRECARGA = 'rodeo_libro_precargado';
+   Pedido fuerte de Gus: al entrar a un libro «DEBE descargárseles todo» para que
+   en teléfonos sea fluido y no se quede pegado, lento ni crasheando. Por eso:
 
-/* Descarga las 42 láminas ANTES de enseñar el libro.
+   - Bloquea con el PencilLoader hasta el 100% (o el techo de red mala).
+   - Va de a TANDAS (límite de concurrencia). Decodificar 42 láminas 1400×1960 a
+     la vez son ~460 MB de bitmaps: en un teléfono de gama baja, bajada segura al
+     piso. Con CONCURRENCIA a la vez el pico de memoria queda acotado y el móvil
+     no se ahoga. (Antes se disparaban las 42 juntas — bien en el PC, riesgoso en
+     el celular.)
+   - La clave del flag es POR LIBRO: bajar Alicia no marca a AtW como listo, y al
+     revés. Solo bloquea LA PRIMERA VEZ de cada libro; después el service worker
+     las tiene cache-first (regla 5 de sw.js) y la segunda visita entra directo.
+   - El techo de 20 s evita que una red mala deje a alguien encerrado mirando el
+     lápiz: pasado ese tiempo se entra igual y lo que falte se carga a su ritmo.
 
-   Por qué bloquear: son ~4.6 MB en alta resolución (pedido de Gus: nítidas en
-   el teléfono Y en el PC). Sin precarga, hojear en el celular sería ir viendo
-   páginas grises que se van llenando — que es exactamente lo que rompe la
-   sensación de estar pasando hojas de un libro. Que la espera tarde 5-10 s la
-   primera vez es a propósito: después el libro abre al instante.
+   `decode()` espera a que el bitmap esté LISTO PARA PINTAR (no solo bajado): sin
+   eso la primera hoja parpadea mientras el navegador decodifica. onerror también
+   cuenta — una lámina caída no puede dejar el libro cerrado para siempre. */
+const CONCURRENCIA = 5;
 
-   Solo bloquea LA PRIMERA VEZ. Después el service worker las tiene cache-first
-   (regla 5 de sw.js las atrapa por ser estáticos same-origin), así que la
-   segunda visita entra directo. El flag es del dispositivo, no del usuario.
-
-   El techo de 20 s existe para que una red mala no deje a nadie encerrado
-   mirando el lápiz: pasado ese tiempo se entra igual y las que falten se
-   cargarán a su ritmo. */
-function usePrecarga(): { listo: boolean; hechas: number; total: number } {
-  const yaEstaba = useRef(store.get<boolean>(CLAVE_PRECARGA, false));
+function usePrecarga(todas: string[], clave: string): { listo: boolean; hechas: number; total: number } {
+  const yaEstaba = useRef(store.get<boolean>(clave, false));
   const [hechas, setHechas] = useState(0);
   const [listo, setListo] = useState(yaEstaba.current);
 
   useEffect(() => {
-    if (yaEstaba.current) return;
+    if (store.get<boolean>(clave, false)) {
+      setListo(true);
+      return;
+    }
+    setListo(false);
+    setHechas(0);
     let vivo = true;
     let n = 0;
+    let i = 0;
 
-    const cuenta = () => {
-      if (!vivo) return;
-      n++;
-      setHechas(n);
-      if (n >= TODAS.length) {
-        store.set(CLAVE_PRECARGA, true);
-        setListo(true);
+    const unaImg = (src: string) =>
+      new Promise<void>((res) => {
+        const img = new Image();
+        const fin = () => res();
+        img.onload = () => (img.decode ? img.decode().then(fin, fin) : fin());
+        img.onerror = fin;
+        img.src = src;
+      });
+
+    // Cada worker toma el siguiente índice hasta agotar la lista; con
+    // CONCURRENCIA workers nunca hay más de esas imágenes decodificando a la vez.
+    const worker = async () => {
+      while (vivo && i < todas.length) {
+        await unaImg(todas[i++]);
+        if (!vivo) return;
+        n++;
+        setHechas(n);
+        if (n >= todas.length) {
+          store.set(clave, true);
+          setListo(true);
+        }
       }
     };
-
-    for (const src of TODAS) {
-      const img = new Image();
-      // `decode()` espera a que el bitmap esté LISTO PARA PINTAR, no solo
-      // descargado: sin esto la primera hoja igual parpadea mientras el
-      // navegador decodifica 1400×1960. El catch cubre el caso de una imagen
-      // rota — una lámina caída no puede dejar el libro cerrado para siempre.
-      img.onload = () => (img.decode ? img.decode().then(cuenta, cuenta) : cuenta());
-      img.onerror = cuenta;
-      img.src = src;
-    }
+    for (let k = 0; k < Math.min(CONCURRENCIA, todas.length); k++) void worker();
 
     const techo = setTimeout(() => {
-      if (!vivo) return;
-      setListo(true); // red mala: se entra igual, sin marcar el flag
+      if (vivo) setListo(true); // red mala: se entra igual, sin marcar el flag
     }, 20000);
 
     return () => {
       vivo = false;
       clearTimeout(techo);
     };
-  }, []);
+  }, [todas, clave]);
 
-  return { listo, hechas, total: TODAS.length };
+  return { listo, hechas, total: todas.length };
 }
 
 /** La espera, con el lápiz que ya usa el resto de la app (TALK, episodios). */
@@ -298,8 +338,8 @@ function Precarga({ hechas, total }: { hechas: number; total: number }) {
           Trayendo el libro
         </p>
         <p className="max-w-[30ch] text-[0.82rem] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          Son cuarenta y dos láminas pintadas a mano. Se bajan una sola vez y
-          después el libro abre al instante, incluso sin señal.
+          Son {total} láminas pintadas a mano. Se bajan una sola vez y después el
+          libro abre al instante, incluso sin señal.
         </p>
         {/* Barra de progreso: 4 px de alto, sin números grandes. Lo que importa
             es que se mueva — el porcentaje exacto no le sirve a nadie. */}
@@ -402,13 +442,13 @@ function CaraLamina({ cara }: { cara: Extract<Cara, { t: 'lamina' }> }) {
           </div>
         </>
       )}
-      {cara.fin && (
+      {cara.fin && cara.finStats && (
         <div className="libro-fin">
           <b>THE END</b>
           <span>
-            {PHRASALS_TOTAL.length} phrasal verbs
+            {cara.finStats.phrasals} phrasal verbs
             <br />
-            en {CAPITULOS.length} capítulos
+            en {cara.finStats.caps} capítulos
           </span>
         </div>
       )}
@@ -663,7 +703,10 @@ function Lector({ cap, onCerrar, escala }: { cap: Capitulo; onCerrar: () => void
 
 export default function LibroView() {
   const setView = useApp((s) => s.setView);
-  const { listo, hechas, total } = usePrecarga();
+  const libroActivo = useApp((s) => s.libroActivo);
+  const libro = LIBROS[libroActivo];
+  const armado = useMemo(() => construir(libro), [libro]);
+  const { listo, hechas, total } = usePrecarga(armado.todas, libro.precargaKey);
 
   const cajaRef = useRef<HTMLDivElement>(null);
   const [caja, setCaja] = useState({ w: 0, h: 0 });
@@ -685,9 +728,9 @@ export default function LibroView() {
 
   const movil = caja.w > 0 && caja.w < UMBRAL_MOVIL;
 
-  const caras = movil ? CARAS_MOVIL : CARAS;
-  const hojas = movil ? HOJAS_MOVIL : HOJAS;
-  const capsDeCara = movil ? CAP_DE_CARA_MOVIL : CAP_DE_CARA;
+  const caras = movil ? armado.carasMovil : armado.caras;
+  const hojas = movil ? armado.hojasMovil : armado.hojas;
+  const capsDeCara = movil ? armado.capDeCaraMovil : armado.capDeCara;
   const TOTAL = caras.length;
 
   /* Cruzar el umbral (girar el teléfono, estirar la ventana) cambia el libro
@@ -697,18 +740,18 @@ export default function LibroView() {
   const eraMovil = useRef(movil);
   useLayoutEffect(() => {
     if (eraMovil.current === movil) return;
-    const antes = eraMovil.current ? CAP_DE_CARA_MOVIL : CAP_DE_CARA;
-    const listaAntes = eraMovil.current ? CARAS_MOVIL : CARAS;
+    const antes = eraMovil.current ? armado.capDeCaraMovil : armado.capDeCara;
+    const listaAntes = eraMovil.current ? armado.carasMovil : armado.caras;
     eraMovil.current = movil;
     setCara((k) => {
       if (k <= 0) return 0;
       if (k >= listaAntes.length - 1) return TOTAL - 1;
       const cap = antes[k];
       if (!cap) return 0;
-      const destino = (movil ? CAP_DE_CARA_MOVIL : CAP_DE_CARA).findIndex((c) => c?.n === cap.n);
+      const destino = (movil ? armado.capDeCaraMovil : armado.capDeCara).findIndex((c) => c?.n === cap.n);
       return destino < 0 ? 0 : destino;
     });
-  }, [movil, TOTAL]);
+  }, [movil, TOTAL, armado]);
 
   /* Tamaño de página. En móvil ocupa el ancho entero (una sola página); en
      escritorio, la mitad menos el aire del pliegue. El alto manda igual: si la
@@ -890,7 +933,7 @@ export default function LibroView() {
       : cara >= TOTAL - 1
         ? 'Fin · The End'
         : capActual
-          ? `Cap. ${capActual.n} de ${CAPITULOS.length} · ${capActual.titulo}`
+          ? `Cap. ${capActual.n} de ${libro.capitulos.length} · ${capActual.titulo}`
           : '';
 
   /* Con la FilaSuperior escondida en el libro móvil (App.tsx), esta barra es
@@ -915,7 +958,7 @@ export default function LibroView() {
             className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Libro · Around the World in 80 Days
+            Libro · {libro.titulo}
           </span>
         </div>
         <Precarga hechas={hechas} total={total} />
@@ -942,7 +985,7 @@ export default function LibroView() {
           className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
           style={{ color: 'var(--text-secondary)' }}
         >
-          Libro · Around the World in 80 Days
+          Libro · {libro.titulo}
         </span>
 
         {/* Tamaño de letra y sonido. Van arriba y no en el pie porque el pie es

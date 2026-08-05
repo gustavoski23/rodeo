@@ -33,36 +33,11 @@
    obra (Phileas Fogg, Passepartout, el detective Fix, Aouda, Kiouni, la apuesta
    de las veinte mil libras, el día que se gana cruzando el meridiano). */
 
-export type Pagina = {
-  /** El cuento en inglés, con glosas ⟦en||es⟧ embebidas. */
-  texto: string;
-  /** La brújula: una línea en español con lo que pasa en esta página. Va al
-      pie, para que quien se pierda no tenga que salir del libro a traducir. */
-  es: string;
-};
+import type { Capitulo } from './tipos';
 
-export type Capitulo = {
-  n: number;
-  /** Título en inglés — el que se ve grande. */
-  titulo: string;
-  /** Guiño en español debajo del título: ubica sin traducir. */
-  subtitulo: string;
-  /** Lámina a sangre que abre el capítulo (cara izquierda del primer pliego). */
-  imgApertura: string;
-  /** Las TRES láminas internas, embebidas en las caras de texto 2, 3 y 4.
-      El orden importa: [0] va en la página 2, [1] en la 3, [2] en la 4. En el
-      lector a pantalla completa se reparten por el scroll, cada una en el punto
-      del cuento que le toca (§8 del runbook). */
-  imgDentro: [string, string, string];
-  altApertura: string;
-  altDentro: [string, string, string];
-  /** Las cinco páginas del capítulo. */
-  paginas: Pagina[];
-  /** Los phrasal verbs del capítulo, para la tira de chips de su primera
-      página. Ordenados: primero los que este capítulo ESTRENA, después los que
-      ya salieron antes (que reaparezcan es repaso espaciado, no un descuido). */
-  phrasals: string[];
-};
+/* Las 3 láminas internas de cada capítulo van en imgDentro[0,1,2] → caras de
+   texto 2, 3 y 4. En el lector a pantalla completa se reparten por el scroll,
+   cada una en el punto del cuento que le toca (§8 del runbook). */
 
 /** Las láminas que no pertenecen a ningún capítulo. */
 export const IMAGENES = {
