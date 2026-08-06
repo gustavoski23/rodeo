@@ -17,15 +17,18 @@ import './aurora.css';
    amigos: «deja solo las que ya tienen imagen»). Fuera quedaron SUBE —que iba
    sobre una gradiente, no una foto— y los dos «Próximamente» transparentes.
 
-   ORDEN DE LAS CARTAS (decisión, no descuido): con siete cartas el componente
-   de Gus deja de paginar (needsPagination = totalCards > 7 es falso) y las
-   abre TODAS a la vez en un abanico fijo, con la del índice 3 al frente,
-   grande y centrada (totalCards >> 1 = 3). Esa es la protagonista. Por eso el
-   arreglo NO es el orden de lectura sino una ROTACIÓN del mismo: dejamos SLANG
-   —la firma de la app— en el índice 3, que es donde el abanico pone su cara. A
-   su izquierda inmediata caen los dos LIBROS (los recién horneados, bien
-   grandes); el resto reparte el abanico. Se conserva la adyacencia cíclica del
-   orden original, solo centrada en SLANG.
+   El abanico ARRANCA centrado en el índice 3 (centerIndex inicial = HALF), y de
+   ahí se pagina con el dedo o con las flechas. Nota: el componente solo pagina
+   con ≥ 7 cartas (adaptación 5 de card-fan-carousel: `>=`, para que 7 no se
+   queden en un abanico estático e intocable); justo son 7, así que vuelve el
+   deslizar, las dos flechas glass y los puntos.
+
+   ORDEN DE LAS CARTAS (decisión, no descuido): la que nace al frente es la del
+   índice 3, así que ahí va SLANG —la firma de la app—. El arreglo NO es el
+   orden de lectura sino una ROTACIÓN del mismo: a la izquierda inmediata de
+   SLANG caen los dos LIBROS (los recién horneados); el resto reparte el
+   abanico. Se conserva la adyacencia cíclica del orden original, solo centrada
+   en SLANG al abrir.
 
    Las imágenes son las ilustraciones de Gus
    (public/carrusel/{slang,story,conversacion,oficina,dna}.jpg, 800×1400, set
@@ -33,9 +36,8 @@ import './aurora.css';
    (public/libro/{v00,00}-portada.webp): lo que se ve en la vitrina es
    literalmente lo que se abre al tocar. */
 
-/** Índice de la carta centrada al abrir. Con 7 cartas el abanico no pagina y
-    su centro es totalCards >> 1 = 3; ahí ponemos SLANG. (Si algún día vuelven
-    a ser >7 y pagina, el HALF del componente también es 3, así que cuadra.) */
+/** Índice de la carta centrada al abrir: el HALF del componente (=3), que es
+    donde nace su centerIndex al paginar. Ahí ponemos SLANG. */
 const CENTRO_INICIAL = 3;
 
 /* Overlay de una feature real. Dos registros según dónde esté la carta:
@@ -109,13 +111,10 @@ export function CarruselFeatures() {
      mientras anima y se desincronizaría).
      Va por atributo y no por prop para NO provocar un render nuevo del
      carrusel: cambiar `cards` invalidaría su useEffect de GSAP en mitad de la
-     animación de paginado.
-     OJO con las 7 cartas actuales: el abanico no pagina, así que NO pinta
-     puntos — el observador no encuentra ninguno y sale (queda latente). Ahí
-     manda el valor inicial CENTRO_INICIAL=3, que es justo el centro del abanico
-     fijo, y por eso el `data-centro` sigue cuadrando sin puntos que leer. Si
-     algún día vuelven a ser >7, el componente pagina, aparecen los puntos y
-     esto se reactiva solo. */
+     animación de paginado. Con las 7 cartas el abanico SÍ pagina (adaptación 5
+     del componente), así que pinta puntos y el observador lee de verdad; el
+     valor inicial CENTRO_INICIAL=3 solo cubre el primer render, antes de que el
+     observador se enganche. */
   useEffect(() => {
     const lienzo = lienzoRef.current;
     if (!lienzo) return;

@@ -12,7 +12,11 @@
    4. El CSS de .fan-layout/.fan-card no venía en el prompt (vive en el sitio
       original): las medidas están derivadas de la tabla de alturas del propio
       código (getHeightMultiplier) en card-fan-carousel.css.
-   Todo lo demás — posiciones del abanico, GSAP, hover, paginación — intacto. */
+   5. Umbral de paginación `>` → `>=` (ver la nota en needsPagination): con
+      EXACTAMENTE MAX_VISIBLE cartas el original dejaba el abanico estático
+      —sin flechas, puntos ni swipe, y las cartas de los flancos intocables—;
+      con `>=` esas 7 ya rotan. Es el único cambio de comportamiento; la
+      geometría del abanico, el GSAP y el hover siguen intactos. */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
@@ -97,7 +101,13 @@ export default function SocialCards({ cards }: SocialCardsProps) {
   const prevVisible = useRef<Set<number>>(new Set());
 
   const totalCards = cards.length;
-  const needsPagination = totalCards > MAX_VISIBLE;
+  /* Adaptación RODEO (5): `>` → `>=`. El original solo paginaba con MÁS cartas
+     que el aforo del abanico (8+); con EXACTAMENTE 7 (las features con foto de
+     RODEO) el abanico quedaba ESTÁTICO: sin flechas, sin puntos, sin swipe, y
+     las cartas de los flancos —tapadas por la central— eran intocables (solo se
+     abría la del centro). Con `>=`, 7 cartas ya rotan: vuelve el deslizar y las
+     dos flechas glass de abajo, y cualquier carta se trae al frente para tocar. */
+  const needsPagination = totalCards >= MAX_VISIBLE;
   const [centerIndex, setCenterIndex] = useState(needsPagination ? HALF : totalCards >> 1);
 
   const getVisibleMap = useCallback((center: number) => {
