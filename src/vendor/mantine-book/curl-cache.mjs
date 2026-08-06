@@ -81,7 +81,24 @@ export function guardarCara(clave, entrada) {
 /** Para la prueba de regresión: cuántas caras hay guardadas ahora mismo. */
 export const carasGuardadas = () => caras.size;
 
+/* ¿Hay alguna hoja girando AHORA MISMO?
+
+   Lo lleva un contador y no una bandera porque durante un cambio de página
+   pueden solaparse dos hojas un instante (la que aterriza y la que arranca).
+
+   Existe para una cosa concreta: que ninguna hoja se ponga a rasterizar
+   mientras otra está en mitad del volteo. Antes eso se intentaba mirando si el
+   hilo principal estaba «quieto» (dos frames seguidos por debajo de 24 ms), y
+   esa señal mide otra cosa: en una máquina rápida los frames del volteo YA son
+   de 16 ms, así que daba por asentada una animación que seguía corriendo y
+   metía la rasterización dentro. `active` es el dato de verdad. */
+let volteando = 0;
+export function marcarVolteo(encendido) {
+  volteando = Math.max(0, volteando + (encendido ? 1 : -1));
+}
+export const hayVolteo = () => volteando > 0;
+
 if (typeof window !== 'undefined') {
   // Ventana de inspección para el arnés de tests/perf (y para depurar a mano).
-  window.__curlCache = { carasGuardadas, invalidarCaras, generacionActual };
+  window.__curlCache = { carasGuardadas, invalidarCaras, generacionActual, hayVolteo };
 }

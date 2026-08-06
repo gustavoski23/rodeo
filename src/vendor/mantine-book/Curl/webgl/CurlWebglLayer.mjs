@@ -11,7 +11,7 @@ import { CurlGlRenderer } from './glRenderer.mjs';
 import { CurlWebglPool } from './pool.mjs';
 import { CurlWebglPoolContext } from './poolContext.mjs';
 import { captureFaceTexture } from './snapshot.mjs';
-import { generacionActual, guardarCara, leerCara } from '../../curl-cache.mjs';
+import { generacionActual, guardarCara, hayVolteo, leerCara, marcarVolteo } from '../../curl-cache.mjs';
 
 const DEFAULT_SHADOW_RGB = [0.1, 0.1, 0.12];
 function cssColorToRgb(color) {
@@ -225,6 +225,15 @@ function CurlWebglLayer(props) {
       holder2.pool?.release(owner);
     };
   }, [active, width, height]);
+  /* Mientras esta hoja gira, que nadie rasterice. Lo publica en el contador
+     compartido de curl-cache.mjs; lo lee el planificador de la captura. */
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    marcarVolteo(true);
+    return () => marcarVolteo(false);
+  }, [active]);
   useEffect(() => {
     const localHolder = localHolderRef.current;
     return () => {
@@ -249,15 +258,26 @@ function CurlWebglLayer(props) {
         1-3 veces de cada 4. Si la hoja ya está `active` (girando de verdad) no
         se espera a nada: ahí la textura hace falta ya.
 
-     Y lo quieto se detecta CONTANDO FRAMES, no con `requestIdleCallback`.
-     Se probó con rIC y no sirve: medido en este banco, sus callbacks no
-     llegaban hasta vencer el `timeout`, así que el «idle» acababa siendo un
-     retardo fijo — y con 600 ms caía justo en mitad de la animación de 900 ms
-     (los fps del volteo bajaron de 30 a 5 y una fila entera se quedó sin curl).
-     Dos frames seguidos por debajo de 24 ms es una señal directa de que la
-     animación terminó y nadie está usando el hilo, y funciona igual en
-     cualquier navegador. El tope de 1200 ms es el respaldo por si los frames
-     nunca se calman (pestaña de fondo, rAF frenado). */
+     «Quieto» son DOS condiciones, y la primera es la que importa:
+
+     1. que NINGUNA hoja esté girando (`hayVolteo()`, que sale del `active` de
+        las capas). Es el dato de verdad. La versión anterior solo miraba los
+        frames y eso mide otra cosa: en una máquina rápida los frames del volteo
+        ya son de 16 ms, así que daba la animación por terminada mientras seguía
+        corriendo y metía la rasterización dentro. Aquí no se notaba porque este
+        banco tarda 60-200 ms por frame durante el volteo; en un teléfono con
+        GPU sí se habría notado.
+     2. y que además el hilo respire — dos frames seguidos por debajo de 24 ms.
+
+     No se usa `requestIdleCallback` para nada de esto: se probó y no sirve.
+     Medido en este banco, sus callbacks no llegaban hasta vencer el `timeout`,
+     así que el «idle» acababa siendo un retardo fijo, y con 600 ms caía justo
+     en mitad de la animación de 900 ms (los fps del volteo bajaron de 30 a 5 y
+     una fila entera se quedó sin curl).
+
+     El tope de 1800 ms es el respaldo por si nada se calma nunca (pestaña de
+     fondo, rAF frenado): más largo que el volteo más largo que admite la vista,
+     para que no vuelva a caer dentro de la animación. */
   useEffect(() => {
     if (!warm && !active) {
       return;
@@ -309,14 +329,14 @@ function CurlWebglLayer(props) {
     let raf = 0;
     let anterior = 0;
     let seguidos = 0;
-    const limite = performance.now() + 1200;
+    const limite = performance.now() + 1800;
     const mirar = (t) => {
       if (cancelled) {
         return;
       }
       const delta = anterior ? t - anterior : Infinity;
       anterior = t;
-      seguidos = delta < 24 ? seguidos + 1 : 0;
+      seguidos = !hayVolteo() && delta < 24 ? seguidos + 1 : 0;
       if (seguidos >= 2 || performance.now() > limite) {
         void capturar();
         return;
