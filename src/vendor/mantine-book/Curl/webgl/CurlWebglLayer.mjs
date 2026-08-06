@@ -258,26 +258,28 @@ function CurlWebglLayer(props) {
         1-3 veces de cada 4. Si la hoja ya está `active` (girando de verdad) no
         se espera a nada: ahí la textura hace falta ya.
 
-     «Quieto» son DOS condiciones, y la primera es la que importa:
+     «Asentado» = TRES FRAMES SEGUIDOS SIN NINGUNA HOJA GIRANDO. Nada más.
+     `hayVolteo()` sale del `active` de las capas, así que es el dato exacto: no
+     una inferencia sobre la carga de la máquina, sino «¿hay una animación en
+     marcha ahora mismo?». Tres frames son ~50 ms de margen para que el último
+     frame del volteo termine de componerse.
 
-     1. que NINGUNA hoja esté girando (`hayVolteo()`, que sale del `active` de
-        las capas). Es el dato de verdad. La versión anterior solo miraba los
-        frames y eso mide otra cosa: en una máquina rápida los frames del volteo
-        ya son de 16 ms, así que daba la animación por terminada mientras seguía
-        corriendo y metía la rasterización dentro. Aquí no se notaba porque este
-        banco tarda 60-200 ms por frame durante el volteo; en un teléfono con
-        GPU sí se habría notado.
-     2. y que además el hilo respire — dos frames seguidos por debajo de 24 ms.
+     Se llegó aquí quemando dos versiones, y las dos merecen quedar escritas:
 
-     No se usa `requestIdleCallback` para nada de esto: se probó y no sirve.
-     Medido en este banco, sus callbacks no llegaban hasta vencer el `timeout`,
-     así que el «idle» acababa siendo un retardo fijo, y con 600 ms caía justo
-     en mitad de la animación de 900 ms (los fps del volteo bajaron de 30 a 5 y
-     una fila entera se quedó sin curl).
+     1. `requestIdleCallback`. No sirve: medido en el banco, sus callbacks no
+        llegaban hasta vencer el `timeout`, o sea que el «idle» era un retardo
+        fijo — y con 600 ms caía en mitad de la animación de 900 ms (los fps del
+        volteo bajaron de 30 a 5 y una fila entera se quedó sin curl).
+     2. «dos frames seguidos por debajo de 24 ms». Dos problemas a la vez. Mide
+        lo que no es —en una máquina rápida los frames del volteo YA son de 16
+        ms, así que daría por terminada una animación en marcha— y además casi
+        nunca se cumple donde los frames son lentos: medido, el planificador
+        acababa disparando por el RESPALDO de 1800 ms en vez de por la señal, o
+        sea que calentar una cara tardaba casi dos segundos de más y la caché
+        aparecía vacía justo cuando alguien la miraba.
 
-     El tope de 1800 ms es el respaldo por si nada se calma nunca (pestaña de
-     fondo, rAF frenado): más largo que el volteo más largo que admite la vista,
-     para que no vuelva a caer dentro de la animación. */
+     El respaldo de 1800 ms sigue ahí para lo que es un respaldo de verdad: una
+     pestaña de fondo con el rAF frenado, donde `hayVolteo()` nunca cambia. */
   useEffect(() => {
     if (!warm && !active) {
       return;
@@ -327,17 +329,14 @@ function CurlWebglLayer(props) {
     }
 
     let raf = 0;
-    let anterior = 0;
     let seguidos = 0;
     const limite = performance.now() + 1800;
-    const mirar = (t) => {
+    const mirar = () => {
       if (cancelled) {
         return;
       }
-      const delta = anterior ? t - anterior : Infinity;
-      anterior = t;
-      seguidos = !hayVolteo() && delta < 24 ? seguidos + 1 : 0;
-      if (seguidos >= 2 || performance.now() > limite) {
+      seguidos = hayVolteo() ? 0 : seguidos + 1;
+      if (seguidos >= 3 || performance.now() > limite) {
         void capturar();
         return;
       }
