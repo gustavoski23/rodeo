@@ -294,6 +294,35 @@ regeneran corriendo lo de arriba).
 > byte a byte. Si alguno te deja el árbol sucio, es un fallo suyo: mirá
 > `git diff` antes de seguir.
 
+### La regresión que vigila esto
+
+`tests/mobile-performance.test.mjs` gana tres pruebas, todas con toque real por
+CDP contra el `dist` de producción:
+
+- **el volteo**: tap en la portada para abrir, deslizar adelante, deslizar
+  atrás, cada uno comprobando la cara EXACTA a la que llega (el anuncio del
+  `<Book>`, no el pie: el pie dice «Cap. 1 de 10» en dos caras distintas y un
+  deslizamiento que no hace nada pasaría por bueno), y que el curl arranca por
+  debajo de 260 ms sin ninguna rasterización dentro del gesto.
+- **lo que no se puede romper nunca**: tocar una glosa abre el significado, el
+  botón la guarda al DNA (`rodeo_dna` crece), tocarla NO voltea la página, y el
+  A+ cambia la escala e invalida las texturas.
+- **el fork honesto**: que `src/vendor/mantine-book/` siga siendo el `dist/esm`
+  del paquete con dos archivos cambiados y uno nuevo, que la versión instalada
+  sea 1.0.5 y que `package.json` la clave sin `^`.
+
+Y `tests/perf/escritorio.mjs` comprueba a mano el otro libro —la plana de dos
+páginas a 1280×900, sin táctil—, porque escritorio era una restricción dura y
+pasa por los mismos caminos del fork.
+
+> Las dos primeras fallaron en su estreno y **las dos por lo mismo**: esperaban
+> con `esperarQuietas`, que cuenta rasterizaciones de snapdom y solo existe en
+> el bundle instrumentado. Contra el `dist` de verdad ese contador es 0 siempre,
+> la espera acababa en 700 ms y la prueba deslizaba antes de que la textura
+> estuviera. Ahora esperan mirando `window.__curlCache.carasGuardadas()`, que
+> existe en los dos builds. **Si escribís otra prueba del libro, esperá por la
+> caché, no por el cronómetro.**
+
 ---
 
 ## Qué quedó sin resolver

@@ -12,7 +12,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { RAIZ, abrirNavegador, dormir, servir } from './libro-harness.mjs';
+import { RAIZ, abrirNavegador, dormir, esperarCache, servir } from './libro-harness.mjs';
 import { sonda } from './instrumentacion.mjs';
 
 const SALIDA = path.join(RAIZ, 'tests/perf/resultados');
@@ -68,6 +68,13 @@ try {
      libro no se movía y que el curl no dibujaba. Ni una cosa ni la otra: el
      libro estaba bien y la prueba estaba mal.) */
   const voltearHoja = async (etiqueta) => {
+    /* Esperar a la caché ANTES de pulsar, no un tiempo fijo. En escritorio cada
+       hoja lleva DOS caras de contenido (en el móvil el dorso va en blanco), o
+       sea el doble de rasterización, y con un `sleep` de 2,4 s la prueba pasaba
+       página antes de que la textura estuviera: daba «no dibujó curl» sobre un
+       libro que estaba bien. Se vio porque el volteo hacia ATRÁS —cuya textura
+       ya estaba en caché— sí dibujaba. */
+    await esperarCache(page);
     await page.evaluate(() => window.__reset());
     await page.click(`button[aria-label="${etiqueta}"]`);
     await dormir(120);
