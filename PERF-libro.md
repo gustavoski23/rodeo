@@ -219,6 +219,26 @@ dos con el dedo apoyado a mitad del gesto para que la cara curvada esté quieta:
 Y la cara PLANA sale idéntica a la de antes: mover la capitular de
 `::first-letter` a un `<span>` no cambió un píxel de la página quieta.
 
+### T4 — cuánto dura el volteo: SIN DECIDIR
+
+`flippingTime` sigue en **900 ms**, que es donde estaba. Está ahí para esconder
+un tirón que ya no existe, así que sobra tiempo — pero cuánto exactamente es
+tacto, no medición, y lo elige Gus. `tests/perf/flipping-time.mjs` construye las
+cuatro variantes (900, 500, 450, 400), graba el mismo volteo con
+`Page.startScreencast` y arma la tira en
+`tests/perf/resultados/flippingTime.png`.
+
+Dos avisos para leerla:
+
+- **El instante de cada foto es real y cuenta desde la PULSACIÓN**, no desde que
+  arranca la animación. Entre una cosa y la otra hay el ida y vuelta de React,
+  que en este banco no es despreciable.
+- **La tira se graba a dpr 1 a propósito.** A dpr 3 el compositor por software
+  solo entrega ~15 fotogramas por segundo y una animación de 400 ms salía en
+  seis fotos casi iguales: la primera hoja de contactos no servía para decidir
+  nada. Los tiempos de la tabla de arriba SÍ están medidos a dpr 3, que es el
+  teléfono de referencia.
+
 ### T3 — el dpr del snapshot
 
 El snapshot no tiene por qué rasterizarse al mismo dpr que el render: es la

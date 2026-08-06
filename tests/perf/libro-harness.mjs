@@ -132,9 +132,14 @@ export async function abrirNavegador() {
 }
 
 /** Abre la vista del libro con el onboarding y el gate ya resueltos. */
-export async function abrirLibro(browser, url, { throttle = 1, libro = 'vuelta' } = {}) {
+export async function abrirLibro(browser, url, { throttle = 1, libro = 'vuelta', dpr } = {}) {
   const page = await browser.newPage();
-  await page.emulate(TELEFONO);
+  /* `dpr` solo lo baja quien va a GRABAR la pantalla. Componer 1170×2532 por
+     software cuesta tanto que el screencast entrega ~15 fotogramas por segundo,
+     y con eso una animación de 400 ms sale en seis fotos casi iguales. A dpr 1
+     el compositor va sobrado y la tira se puede mirar. Para MEDIR tiempos no se
+     toca: ahí el teléfono de referencia es 390×844 @3 y punto. */
+  await page.emulate(dpr ? { ...TELEFONO, viewport: { ...TELEFONO.viewport, deviceScaleFactor: dpr } } : TELEFONO);
   await page.evaluateOnNewDocument(sonda);
   // El onboarding y el nivel se siembran antes del primer script de la app:
   // `store` es localStorage con JSON, mismas claves de siempre.

@@ -33,7 +33,7 @@ const SALIDA = path.join(RAIZ, 'tests/perf/resultados');
 const VISTA = path.join(RAIZ, 'src/views/libro/index.tsx');
 const arg = (n) => (process.argv.includes(`--${n}`) ? process.argv[process.argv.indexOf(`--${n}`) + 1] : null);
 const VALORES = (arg('valores') ?? '900,500,450,400').split(',').map(Number);
-const FOTOS = 6;
+const FOTOS = 8;
 
 const original = await readFile(VISTA, 'utf8');
 const RE = /flippingTime=\{(\d+)\}/;
@@ -55,7 +55,7 @@ try {
     const servidor = await servir({ dist: 'dist-perf', puerto: 4176 });
     const browser = await abrirNavegador();
     try {
-      const { page, cdp } = await abrirLibro(browser, servidor.url, { throttle: 1 });
+      const { page, cdp } = await abrirLibro(browser, servidor.url, { throttle: 1, dpr: 1 });
       // Hasta una cara de TEXTO, que es donde se aprecia el tacto de la hoja.
       await tocar(page, 0.5, 0.4);
       await dormir(1500);
