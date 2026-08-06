@@ -271,7 +271,13 @@
   margin-top: 0.3em;
 }
 
-.libro-cuerpo p:first-child::first-letter {
+/* La capitular. Va sobre un <span> REAL que pinta la vista (CAPITULAR en
+   index.tsx) y no sobre `::first-letter`, porque el snapshot que rasteriza la
+   cara del curl clona nodos y estilos calculados: un pseudo-elemento de primera
+   letra no existe para él, y la cara girando salía sin capitular y con el
+   párrafo recompuesto. Los valores son los mismos de antes — esto cambia QUIÉN
+   los recibe, no cómo se ve. */
+.libro-capitular {
   float: left;
   font-size: 2.6em;
   line-height: 0.82;

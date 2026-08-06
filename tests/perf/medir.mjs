@@ -103,11 +103,33 @@ async function corrida(browser, url, throttle) {
     await medirVarias('deslizar atrás', () => deslizar(page, +1), { asentado });
   }
 
+  /* COSTE DE RASTERIZACIÓN POR VOLTEO. La mediana de `capturaMs` engaña
+     cuando cambia el NÚMERO de capturas: si se dejan de hacer las baratas, la
+     mediana de las que quedan sube aunque el trabajo total baje. Lo que importa
+     es cuánto hilo principal se gasta por página pasada, así que se cuentan
+     todas las capturas de una tanda de volteos y se divide. */
+  await esperarQuietas(page);
+  await page.evaluate(() => window.__reset());
+  const TANDA = 6;
+  for (let i = 0; i < TANDA; i++) {
+    await tocarBoton(page, i % 2 === 0 ? 'siguiente' : 'anterior');
+    await dormir(1400);
+    await esperarQuietas(page);
+  }
+  const tanda = await page.evaluate(() => ({
+    n: window.__perf.caps.length,
+    ms: Math.round(window.__perf.caps.reduce((s, c) => s + Math.max(0, c.ms), 0)),
+  }));
+  const porVolteo = {
+    capturas: Math.round((tanda.n / TANDA) * 100) / 100,
+    ms: Math.round(tanda.ms / TANDA),
+  };
+
   const caps = await capturas(page);
   const mem = await memoriaMb(page);
   const donde = await pie(page);
   await page.close();
-  return { throttle, filas, png: caps.png[0] ?? null, memoriaMb: mem, pie: donde };
+  return { throttle, filas, porVolteo, png: caps.png[0] ?? null, memoriaMb: mem, pie: donde };
 }
 
 /** Recorre el libro entero ida y vuelta y devuelve el heap al final. */
@@ -149,7 +171,9 @@ try {
           `png ${f.png ? `${f.png.w}×${f.png.h} ${Math.round(f.png.bytes / 1024)} kB` : '—'}\n`,
       );
     }
-    process.stdout.write(`heap ${r.memoriaMb} MB · ${r.pie}\n`);
+    process.stdout.write(
+      `por volteo: ${r.porVolteo.capturas} capturas, ${r.porVolteo.ms} ms de rasterización · heap ${r.memoriaMb} MB · ${r.pie}\n`,
+    );
   }
   process.stdout.write('\n=== paseo de memoria (10 capítulos ida y vuelta) ===\n');
   salida.memoria = await paseoMemoria(browser, servidor.url);

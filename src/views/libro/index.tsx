@@ -10,7 +10,13 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, MoveRight, Volume2, VolumeX, X } from 'lucide-react';
 import { MantineProvider } from '@mantine/core';
-import { Book } from '@gfazioli/mantine-book';
+/* El <Book> viene del FORK vendorizado, no del paquete. El paquete sigue
+   instalado y clavado en 1.0.5: de él salen los estilos, los tipos y
+   @zumer/snapdom. Lo único que cambia en el fork es cómo se rasterizan y se
+   guardan las texturas de las caras — el porqué, con números, en FORK.md y en
+   PERF-libro.md. */
+import { Book } from '@/vendor/mantine-book';
+import { invalidarCaras } from '@/vendor/mantine-book/curl-cache';
 
 import { GlossText } from '@/components/rodeo/gloss-text';
 import { PencilLoader } from '@/components/rodeo/pencil-loader';
@@ -430,6 +436,23 @@ const esDialogo = (p: string) => /^\s*["“'—]/.test(p);
    párrafo cortado a media línea sin ninguna señal se lee como un bug, no como
    algo que se desplaza. `data-mas` enciende el degradado del borde inferior y
    se apaga solo al llegar al final. */
+/* La CAPITULAR va en un <span> de verdad y no en un `::first-letter`.
+
+   Medido (tests/perf/fuentes.mjs y las capturas de tests/perf/resultados/):
+   snapdom clona NODOS y estilos calculados, y los pseudo-elementos de primera
+   letra no son nodos — no tiene de dónde sacarlos. Resultado: la textura de la
+   cara salía SIN capitular y, sin el hueco que dejaba su float, el párrafo se
+   recomponía entero. Eso es lo que se veía al empezar a pasar página: la letra
+   capital desaparecía y el texto saltaba de sitio. Con un nodo real, el
+   snapshot la reproduce y la cara girando se lee igual que la quieta.
+
+   Se lleva la PUNTUACIÓN de apertura pegada a la letra, que es justo lo que
+   hace `::first-letter`: en «"Fogg…» la comilla y la F son una sola capitular.
+   Si el párrafo no empieza por letra —por ejemplo si arrancara con una glosa
+   `⟦…⟧`— no hay coincidencia y se pinta sin capitular, que es preferible a
+   partir un marcador por la mitad. */
+const CAPITULAR = /^([\s"'“‘«([¡¿—–-]*\p{L})([\s\S]*)$/u;
+
 function CuentoVivo({ texto }: { texto: string }) {
   const parrafos = useMemo(() => texto.split(/\n{2,}/), [texto]);
   const ref = useRef<HTMLDivElement>(null);
@@ -464,11 +487,21 @@ function CuentoVivo({ texto }: { texto: string }) {
         if ((e.target as HTMLElement).closest?.('[data-gloss]')) e.stopPropagation();
       }}
     >
-      {parrafos.map((p, i) => (
-        <p key={i} className={esDialogo(p) ? 'dialogo' : undefined}>
-          <GlossText reply={p} />
-        </p>
-      ))}
+      {parrafos.map((p, i) => {
+        const capital = i === 0 ? CAPITULAR.exec(p) : null;
+        return (
+          <p key={i} className={esDialogo(p) ? 'dialogo' : undefined}>
+            {capital ? (
+              <>
+                <span className="libro-capitular">{capital[1]}</span>
+                <GlossText reply={capital[2]} />
+              </>
+            ) : (
+              <GlossText reply={p} />
+            )}
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -827,9 +860,23 @@ export default function LibroView() {
 
   const cambiarEscala = (delta: number) => {
     const v = Math.round(Math.min(ESCALA_MAX, Math.max(ESCALA_MIN, escalaEfectiva + delta)) * 100) / 100;
+    if (v === escalaEfectiva) return;
     setEscala(v);
     store.set(CLAVE_ESCALA, v);
+    /* La caché de texturas del curl se indexa por el TAMAÑO de la página, que
+       aquí no cambia: cambia el cuerpo de letra, o sea el texto dentro de la
+       misma caja. Sin este aviso la cara curvada seguiría enseñando el texto a
+       la escala anterior — la página se leería de un tamaño quieta y de otro
+       mientras gira. */
+    invalidarCaras();
   };
+
+  /* Y lo mismo al CAMBIAR DE LIBRO: la caja de la página puede coincidir entre
+     Alicia y Around the World, así que las texturas de una podrían darse por
+     buenas en la otra. Se tiran al montar la vista con otro libro. */
+  useEffect(() => {
+    invalidarCaras();
+  }, [libro]);
 
   const ir = useCallback((n: number) => setCara(Math.max(0, Math.min(TOTAL - 1, n))), [TOTAL]);
 
@@ -861,6 +908,12 @@ export default function LibroView() {
     if (flecha) {
       setFlecha(false); // la flechita cumplió su trabajo: no vuelve
       store.set(CLAVE_FLECHA, true);
+      /* Y con ella cambia el DOM de una cara sin cambiar el tamaño de la
+         página, que es justo lo que la caché de texturas no puede oler. Si no
+         se invalida, la cara girando seguiría enseñando la flechita que en la
+         página quieta ya no está. (Solo pasa en escritorio: en el teléfono la
+         flechita se queda para siempre — es el único camino al capítulo.) */
+      invalidarCaras();
     }
   };
 

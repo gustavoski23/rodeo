@@ -65,23 +65,37 @@ export async function disponible() {
 
 /** Levanta `vite preview` sobre un dist ya construido y espera a que responda. */
 export async function servir({ dist = 'dist-perf', puerto = 4173 } = {}) {
+  /* `detached` + `unref` + stdio cerrado, las tres cosas a propósito: sin ellas
+     el proceso de medición NO TERMINA aunque ya haya escrito sus resultados —las
+     tuberías de stdio del hijo mantienen vivo el bucle de eventos de Node— y una
+     cadena `medir 1x && medir 4x` se queda colgada para siempre después de la
+     primera. `detached` además le da grupo propio al hijo, que es lo que permite
+     matar al `npx` Y al `vite` que cuelga de él. */
   const proc = spawn(
     'npx',
     ['vite', 'preview', '--outDir', dist, '--port', String(puerto), '--strictPort', '--host', '127.0.0.1'],
-    { cwd: RAIZ, stdio: ['ignore', 'pipe', 'pipe'] },
+    { cwd: RAIZ, stdio: 'ignore', detached: true },
   );
+  proc.unref();
+  const matar = () => {
+    try {
+      process.kill(-proc.pid, 'SIGTERM');
+    } catch {
+      /* ya se fue */
+    }
+  };
   const url = `http://127.0.0.1:${puerto}`;
   const hasta = Date.now() + 30_000;
   while (Date.now() < hasta) {
     try {
       const r = await fetch(url, { signal: AbortSignal.timeout(1500) });
-      if (r.ok) return { url, cerrar: () => proc.kill('SIGTERM') };
+      if (r.ok) return { url, cerrar: matar };
     } catch {
       /* todavía no levanta */
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  proc.kill('SIGKILL');
+  matar();
   throw new Error('vite preview no respondió en 30 s');
 }
 

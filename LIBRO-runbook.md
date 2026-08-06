@@ -219,9 +219,30 @@ sí tenía transform inline). Para medir layout: `chrome-devtools` con `emulate`
 
 Cuando algo "se siente raro", muestrealo cuadro a cuadro con `requestAnimationFrame`
 en vez de adivinar. Así se encontró que el volteo por BOTÓN no arranca el curl
-hasta 180–360 ms después (el componente captura las texturas WebGL al vuelo y
-mientras tanto muestra el pliegue plano), mientras que el del dedo entra a los
-73 ms porque el "agarre" las calienta.
+hasta 180–360 ms después: el componente pinta cada cara como una TEXTURA (un
+screenshot del DOM hecho por snapdom) y mientras no la tiene enseña el pliegue
+plano.
+
+> ### ⚠ TRAMPA 7 — la explicación del "agarre" era falsa
+> De esa misma medición salió una conclusión razonable y equivocada: que el
+> arrastre se siente mejor «porque el agarre del `pointerdown` calienta las
+> texturas». **No existe tal cosa.** `useDragController.onStart` solo fija el
+> ancla del pliegue; no toca snapdom ni el pool WebGL (se leyó el código de la
+> librería, no se dedujo). El arrastre se siente mejor por otra razón: el
+> pliegue sigue al dedo desde el primer milímetro, así que no hay hueco muerto
+> que notar.
+>
+> Y el hueco tampoco lo abre la captura DE ESE volteo: la librería ya
+> precalienta las dos hojas vecinas. Lo que lo abre es que **rehace cuatro caras
+> cada vez que una hoja aterriza**, y ese trabajo cae encima del gesto
+> SIGUIENTE. Medido a 4× de CPU y pasando página cada 500 ms, el curl no llegaba
+> a dibujarse ni una vez.
+>
+> Todo esto está con números en [PERF-libro.md](PERF-libro.md), y el arnés que
+> los saca (con toque real por CDP) vive en `tests/perf/`. **Antes de tocar el
+> rendimiento del libro, corré `tests/perf/medir.mjs` y comparalo con esa
+> tabla.** El curl y las texturas los sirve un fork vendorizado de la librería:
+> `src/vendor/mantine-book/FORK.md`.
 
 ---
 

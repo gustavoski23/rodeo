@@ -85,3 +85,70 @@ Dos ritmos, y la diferencia entre ellos **es** el hallazgo:
 apretada, **el curl no llega a dibujarse ni una vez** — el volteo entero se pinta
 con el pliegue plano del DOM — y hay 1-3 rasterizaciones de snapdom solapando el
 gesto.
+
+### CPU 6× (N = 3)
+
+| Ritmo | Camino | curl ms | fps | frame ms | captura/cara | camino |
+|---|---|---:|---:|---:|---:|---:|
+| — | tap portada | **sin curl** | 2,8 | 353 | — | 0 |
+| asentado | botón › | **sin curl** | 3,3 | 303 | 8719 ms | 1 |
+| asentado | botón ‹ | 603 | 6,5 | 153 | 3135 ms | 1 |
+| asentado | deslizar adelante | **sin curl** | 8,6 | 117 | 7878 ms | 0 |
+| asentado | deslizar atrás | 3513 | 8,8 | 114 | 9120 ms | 1 |
+| seguido | botón › | **sin curl** | 4,2 | 236 | 6044 ms | 1 |
+| seguido | botón ‹ | **sin curl** | 5,0 | 202 | 4258 ms | 2 |
+| seguido | deslizar adelante | **sin curl** | 6,6 | 152 | 2858 ms | 3 |
+| seguido | deslizar atrás | 3231 | 12,8 | 78 | 3329 ms | 4 |
+
+---
+
+## Lo que la medición dijo que NO era
+
+Tres cosas que parecían la causa y no lo son. Van escritas porque volver a
+sospecharlas cuesta una ronda entera.
+
+### 1. «La captura ocurre en el camino crítico del gesto» — a medias
+
+A 1× y con la página asentada, **`camino` es 0 en los 8 caminos y en las 40
+pasadas**: cuando el dedo llega, la textura ya está. La librería ya precalienta
+las dos hojas vecinas —`Book.mjs`, `warm: index === effectiveTurned || index ===
+effectiveTurned - 1`, que en el mapeo del móvil es exactamente N+1 y N−1—, así
+que **la precarga que pedía T2 ya existía**.
+
+Lo que sí pasa, y es peor: la librería **vuelve a rasterizar cuatro caras cada
+vez que una hoja aterriza**, y ese trabajo cae encima del gesto SIGUIENTE. A 4×
+y pasando página cada 500 ms, el curl **no se dibuja ni una vez**. No es la
+captura del volteo: es la del volteo anterior.
+
+### 2. «El agarre del `pointerdown` calienta las texturas»
+
+No existe tal cosa. `useDragController.onStart` solo fija el ancla del pliegue
+(`flip/drag.mjs` → `handleStart` en `useCurlController.mjs`); no toca snapdom ni
+el pool WebGL. El arrastre se siente mejor por otra razón: el pliegue sigue al
+dedo desde el primer milímetro, así que no hay un hueco muerto que notar.
+
+### 3. «La letra cambia porque la fuente todavía viene bajando»
+
+Esa carrera existía y T1 la cierra, pero **no era lo que se veía**. Con la
+fuente ya en caché y las tres caras cargadas, la cara que gira **sigue saliendo
+con otra tipografía**, y por dos motivos que están dentro del snapshot:
+
+- `embedFonts: false` en `snapshot.mjs`. El `<foreignObject>` rasteriza en un
+  contexto aislado, sin las `@font-face` del documento. La misma cara con
+  `false` y con `true` difiere en el **9,7 % de sus píxeles** y —lo que se ve—
+  los saltos de línea **no caen en el mismo sitio**.
+- La **capitular** es un `::first-letter`, y snapdom clona nodos: el snapshot
+  sale sin ella, y sin el hueco de su `float` el párrafo se recompone entero.
+
+Se ve **siempre**, en los dos libros, en todos los volteos. Lo de «solo se ve en
+Verne» describía cuándo se nota, no de dónde viene.
+
+---
+
+## Qué se cambió
+
+| | Dónde | Qué |
+|---|---|---|
+| **T1** | `index.html`, `libro.css`, `views/libro/index.tsx` | Preload de las tres woff2, `font-display: block`, y el libro no abre hasta que `document.fonts` confirma las tres caras. |
+| **T1b** | `views/libro/index.tsx`, `libro.css` | La **capitular** pasa de `::first-letter` a un `<span>` real: los pseudo-elementos no existen para snapdom, y el snapshot salía sin ella. |
+| **T2** | `src/vendor/mantine-book/` | Fork de la librería. `flipped` sale de la clave de captura (mitad del trabajo, gratis), caché LRU de 6 caras, la captura espera a que el hilo esté quieto, y `embedFonts: true`. Detalle en [FORK.md](src/vendor/mantine-book/FORK.md). |
