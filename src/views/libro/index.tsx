@@ -1217,12 +1217,34 @@ export default function LibroView() {
                      4× de CPU y sin ninguna rasterización dentro del gesto), así
                      que el tiempo largo sobraba.
 
-                     100 ms es ELECCIÓN DE GUS, y va contra lo que decía el
-                     encargo —«que se lea como hoja pesada, no como corte
-                     seco»— así que conviene dejar escrito qué se midió al
-                     ponerlo, y no que fue un descuido. Ver PERF-libro.md. */
+                     100 ms EN EL MÓVIL es elección de Gus. Va contra lo que
+                     decía el encargo —«que se lea como hoja pesada, no como
+                     corte seco»— así que queda escrito qué se midió al ponerlo,
+                     para que nadie lo lea como un descuido:
+
+                       deslizar   el curl se ve 660-785 ms (1×) / 1,1-1,3 s (4×)
+                                  — casi no cambia: durante el arrastre el
+                                  pliegue sigue al dedo y flippingTime solo
+                                  gobierna el asentamiento al soltar
+                       botón      el curl se ve 37-50 ms (1×) / ~130 ms (4×)
+                                  — tres fotogramas, un parpadeo
+
+                     Y POR QUÉ NO 100 EN ESCRITORIO. Ahí se midió que el curl
+                     directamente no llega a dibujarse: de tres volteos de hoja,
+                     dos dieron CERO frames de curl (tests/perf/escritorio.mjs;
+                     con 900 ms el mismo código daba «Escritorio OK»). La plana
+                     de escritorio es otro libro —dos caras de contenido por
+                     hoja, páginas más grandes— y 100 ms se le acaban antes de
+                     que la primera textura llegue a pintarse. Como «escritorio
+                     no se regresa» es una restricción del encargo, allí se
+                     queda en 450, que es el medio del rango que el propio
+                     encargo proponía (500/450/400).
+
+                     Si Gus quiere 100 en los dos sitios, es quitar el
+                     condicional — pero entonces el curl del escritorio se va, y
+                     con él el motivo de tener un curl WebGL. */
                   turnOrigin="middle"
-                  flippingTime={100}
+                  flippingTime={movil ? 100 : 450}
                   page={aPageDelLibro(cara, movil)}
                   onPageChange={(p) => setCara(aCara(p, movil))}
                   pageBackground="#f3e6c8"
