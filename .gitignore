@@ -33,3 +33,8 @@ scratchpad/
 output/
 test-results/
 .codex-vite-preview*.log
+
+# Medición del libro (tests/perf): el build instrumentado y sus salidas se
+# regeneran corriendo los scripts; las capturas pesan megas y no son fuente.
+dist-perf/
+tests/perf/resultados/
