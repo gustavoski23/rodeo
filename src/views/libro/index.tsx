@@ -327,6 +327,53 @@ function usePrecarga(todas: string[], clave: string): { listo: boolean; hechas: 
   return { listo, hechas, total: todas.length };
 }
 
+/* Las tres caras de Libre Baskerville, EXIGIDAS antes de abrir el libro.
+
+   El @font-face vive en libro.css, que es CSS de una vista lazy: la fuente no
+   empieza a bajar hasta que la vista monta. Con `swap` eso significaba abrir el
+   cuento en Georgia y verlo cambiar solo a Baskerville unos cientos de ms
+   después — con la capitular a 2.6em, el párrafo entero se recomponía delante
+   de los ojos. Ahora hay tres cosas encadenadas: <link rel=preload> en el HTML
+   (arranca la descarga con el documento), `font-display: block` (nunca se pinta
+   con la de repuesto) y esta espera, que retiene el libro detrás del mismo
+   lápiz de la precarga hasta que las tres caras están listas.
+
+   `document.fonts.load()` es lo que EMPUJA la descarga: `ready` a secas solo
+   promete que no queda nada pendiente, y si la fuente todavía no la pidió nadie
+   resuelve enseguida y no espera nada.
+
+   El techo de 4 s es la misma idea que el de 20 s de la precarga: una red mala
+   no puede dejar a nadie encerrado mirando el lápiz. Si vence, se entra con lo
+   que haya — peor es no entrar. */
+const CARAS_BASKERVILLE = [
+  '400 1em "Libre Baskerville"',
+  '700 1em "Libre Baskerville"',
+  'italic 400 1em "Libre Baskerville"',
+];
+
+function useFuentes(): boolean {
+  const [listas, setListas] = useState(false);
+
+  useEffect(() => {
+    let vivo = true;
+    const fin = () => vivo && setListas(true);
+    if (!document.fonts) {
+      fin();
+      return;
+    }
+    Promise.all(CARAS_BASKERVILLE.map((c) => document.fonts.load(c)))
+      .then(() => document.fonts.ready)
+      .then(fin, fin);
+    const techo = setTimeout(fin, 4000);
+    return () => {
+      vivo = false;
+      clearTimeout(techo);
+    };
+  }, []);
+
+  return listas;
+}
+
 /** La espera, con el lápiz que ya usa el resto de la app (TALK, episodios). */
 function Precarga({ hechas, total }: { hechas: number; total: number }) {
   const pct = Math.round((hechas / total) * 100);
@@ -706,7 +753,13 @@ export default function LibroView() {
   const libroActivo = useApp((s) => s.libroActivo);
   const libro = LIBROS[libroActivo];
   const armado = useMemo(() => construir(libro), [libro]);
-  const { listo, hechas, total } = usePrecarga(armado.todas, libro.precargaKey);
+  const { listo: laminasListas, hechas, total } = usePrecarga(armado.todas, libro.precargaKey);
+  const fuentesListas = useFuentes();
+  /* Las láminas Y la tipografía. La precarga de láminas se marca en disco y no
+     vuelve a bloquear; la de fuentes es de esta carga y en la segunda visita
+     resuelve en el mismo tick (la woff2 ya está en caché HTTP), así que sumarla
+     aquí no añade una espera visible salvo la primera vez. */
+  const listo = laminasListas && fuentesListas;
 
   const cajaRef = useRef<HTMLDivElement>(null);
   const [caja, setCaja] = useState({ w: 0, h: 0 });

@@ -13,7 +13,17 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { RAIZ, abrirLibro, abrirNavegador, deslizarYSostener, dormir, servir, tocar, tocarBoton } from './libro-harness.mjs';
+import {
+  RAIZ,
+  TELEFONO,
+  abrirLibro,
+  abrirNavegador,
+  deslizarYSostener,
+  dormir,
+  servir,
+  tocar,
+  tocarBoton,
+} from './libro-harness.mjs';
 
 const SALIDA = path.join(RAIZ, 'tests/perf/resultados');
 const lenta = process.argv.includes('--lenta');
@@ -127,28 +137,91 @@ try {
   /* 4. Red mala y caché fría: el otro camino por el que la letra puede cambiar
         sola — la fuente todavía bajando cuando el lector ya se ve. */
   if (lenta) {
-    const p2 = await browser.newPage();
-    await p2.close();
-    const { page: pl, cdp: cl } = await abrirLibro(browser, servidor.url, { throttle: 1 });
-    await cl.send('Network.clearBrowserCache');
+    /* CACHÉ FRÍA + SLOW 3G. La pregunta es concreta: cuando el libro aparece,
+       ¿ya está Libre Baskerville? Si no, la primera pantalla se pinta con la
+       fuente de repuesto y cambia sola a media lectura — que es el fallo que
+       reportó Gus. Se mide con un muestreo cada 60 ms desde antes de navegar,
+       anotando en qué instante aparece cada cosa; una captura sola no
+       distingue "nunca pasó" de "pasó y ya volvió". */
+    const pl = await browser.newPage();
+    await pl.emulate(TELEFONO);
+    await pl.evaluateOnNewDocument(() => {
+      localStorage.setItem('rodeo_onboarding', '"1"');
+      localStorage.setItem('rodeo_nombre', '"Gus"');
+      localStorage.setItem('rodeo_nivel', '"B2-C1"');
+      localStorage.setItem('rodeo_idioma', '"es"');
+      // El flag de la precarga de láminas SÍ se siembra aquí: lo que se estudia
+      // es la carrera de la FUENTE, y 42 webp a 400 kbps la taparían del todo.
+      localStorage.setItem('rodeo_libro_vuelta_precargado', 'true');
+      window.__linea = [];
+      const mirar = () => {
+        window.__linea.push({
+          t: Math.round(performance.now()),
+          marco: !!document.querySelector('.libro-marco'),
+          /* OJO: `document.fonts.check()` NO sirve aquí. Devuelve true cuando
+             NINGUNA @font-face declara esa familia —da por buena la de
+             repuesto—, y la @font-face de Libre Baskerville vive en libro.css,
+             que es CSS de una vista lazy: antes de montarla, `check` diría que
+             sí. Hay que preguntar por las tres caras REALES y su estado. */
+          fuente: (() => {
+            const c = [...document.fonts].filter((f) => f.family.includes('Libre Baskerville'));
+            return c.length === 3 && c.every((f) => f.status === 'loaded');
+          })(),
+          // Texto del libro YA pintado en pantalla: si aparece antes que la
+          // fuente, se está viendo el cuento con la de repuesto.
+          texto: (document.querySelector('.libro-cuerpo')?.textContent?.length ?? 0) > 40,
+        });
+        if (window.__linea.length < 900) setTimeout(mirar, 60);
+      };
+      mirar();
+    });
+    const cl = await pl.createCDPSession();
+    await cl.send('Network.setCacheDisabled', { cacheDisabled: true });
     await cl.send('Network.emulateNetworkConditions', {
       offline: false,
       latency: 400,
       downloadThroughput: (400 * 1024) / 8,
       uploadThroughput: (400 * 1024) / 8,
     });
-    await pl.reload({ waitUntil: 'domcontentloaded' });
-    await pl.waitForSelector('.libro-marco', { timeout: 180_000 });
-    informe.lentaFuentes = await pl.evaluate(() => ({
-      estado: document.fonts.status,
-      regular: document.fonts.check('400 1em "Libre Baskerville"'),
-    }));
-    await tocar(pl, 0.5, 0.4);
-    await dormir(700);
+    await pl.goto(`${servidor.url}/#/libro`, { waitUntil: 'domcontentloaded' });
+    await pl
+      .waitForFunction(
+        () => [...document.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Skip'),
+        { timeout: 180_000 },
+      )
+      .catch(() => {});
+    await pl.evaluate(() => {
+      [...document.querySelectorAll('button')].find((x) => x.textContent?.trim() === 'Skip')?.click();
+    });
+    await pl.waitForSelector('.libro-marco', { timeout: 240_000 });
     await pl.screenshot({ path: path.join(SALIDA, `${etiqueta}-slow3g-al-abrir.png`) });
+    await tocar(pl, 0.5, 0.4);
+    await dormir(1200);
     await tocarBoton(pl, 'siguiente');
-    await dormir(300);
-    await pl.screenshot({ path: path.join(SALIDA, `${etiqueta}-slow3g-volteando.png`) });
+    await dormir(1800);
+    await pl.screenshot({ path: path.join(SALIDA, `${etiqueta}-slow3g-primera-pagina.png`) });
+
+    const linea = await pl.evaluate(() => window.__linea);
+    const primero = (clave) => linea.find((m) => m[clave])?.t ?? null;
+    informe.lenta3g = {
+      // El veredicto: `textoSinFuenteMs` es cuánto tiempo hubo cuento en
+      // pantalla ANTES de que la fuente estuviera lista. Tiene que ser 0.
+      fuenteMs: primero('fuente'),
+      marcoMs: primero('marco'),
+      textoMs: primero('texto'),
+      textoSinFuenteMs: Math.max(0, (primero('fuente') ?? 0) - (primero('texto') ?? Infinity)),
+      muestrasConTextoSinFuente: linea.filter((m) => m.texto && !m.fuente).length,
+    };
+    /* Y de dónde salió la fuente: con el <link rel=preload> del HTML tiene que
+       arrancar junto al documento, no cuando monta la vista lazy. */
+    informe.lenta3g.recursos = await pl.evaluate(() =>
+      performance
+        .getEntriesByType('resource')
+        .filter((r) => /LibreBaskerville|\.js$/.test(r.name))
+        .map((r) => ({ que: r.name.split('/').pop(), inicioMs: Math.round(r.startTime), finMs: Math.round(r.responseEnd) }))
+        .sort((a, b) => a.inicioMs - b.inicioMs)
+        .slice(0, 8),
+    );
     await pl.close();
   }
 

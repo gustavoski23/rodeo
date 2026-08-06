@@ -20,6 +20,21 @@
 <meta name="apple-mobile-web-app-title" content="RODEO">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Libre Baskerville, la letra del LIBRO. Se precarga desde el HTML y no
+     desde libro.css porque ahí llega tarde: la @font-face vive en el CSS de la
+     vista, que es lazy, así que la fuente empezaba a bajar cuando el lector ya
+     estaba montado — y la primera página se pintaba en Georgia y cambiaba sola
+     a media lectura (reporte de Gus, y solo en Verne, el libro que se abre
+     primero: para cuando se llega a Alicia ya está en caché).
+     Los tres pesos son archivos DISTINTOS de Fontsource: los tres se precargan
+     porque las tres caras se usan en la primera pantalla del libro (cuerpo
+     regular, títulos en negrita, subtítulo en cursiva).
+     `crossorigin` es OBLIGATORIO aunque el archivo sea del mismo origen: las
+     fuentes se piden en modo CORS, y sin el atributo el navegador descarga el
+     archivo DOS veces y el preload no sirve de nada. -->
+<link rel="preload" href="/fonts/LibreBaskerville-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/LibreBaskerville-Bold.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/LibreBaskerville-Italic.woff2" as="font" type="font/woff2" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 /* Nivel, leído ANTES del primer paint: el principiante (A1) no tiene tab bar,

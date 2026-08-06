@@ -8,26 +8,38 @@
 
    Los tres pesos son archivos DISTINTOS (Fontsource). Ojo con esto: Google
    Fonts hoy sirve el MISMO woff2 para 400 y 700, así que declarar el 700
-   apuntando al regular daba títulos que no se veían en negrita. */
+   apuntando al regular daba títulos que no se veían en negrita.
+
+   `font-display: block` y NO `swap`. En un libro el intercambio de fuente no
+   es un detalle cosmético: `swap` pinta el cuento en Georgia y lo REEMPLAZA por
+   Baskerville a media lectura, y como la capitular va a 2.6em (más abajo) el
+   salto reflowea el párrafo entero delante de los ojos — eso es lo que Gus vio
+   («la letra cambia sola»). `block` deja el texto invisible mientras la fuente
+   viaja (unos 100 ms, y con el <link rel=preload> de index.html arranca con el
+   HTML, no con la vista) y después lo pinta UNA vez, ya bien.
+   Ese hueco no se llega a ver, además, porque la vista no abre el libro hasta
+   que `document.fonts` confirma las tres caras (índice de la vista, useFuentes).
+   Aquí no vale `optional`: descartaría la fuente en la primera carga con red
+   lenta y el libro entero saldría en Georgia hasta recargar. */
 @font-face {
   font-family: 'Libre Baskerville';
   font-style: normal;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url('/fonts/LibreBaskerville-Regular.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Libre Baskerville';
   font-style: normal;
   font-weight: 700;
-  font-display: swap;
+  font-display: block;
   src: url('/fonts/LibreBaskerville-Bold.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Libre Baskerville';
   font-style: italic;
   font-weight: 400;
-  font-display: swap;
+  font-display: block;
   src: url('/fonts/LibreBaskerville-Italic.woff2') format('woff2');
 }
 
