@@ -1222,7 +1222,7 @@ export default function LibroView() {
                      relevo sobre más recorrido, así que deja de leerse como un
                      tirón y se lee como una hoja pesada. */
                   turnOrigin="middle"
-                  flippingTime={400}
+                  flippingTime={900}
                   page={aPageDelLibro(cara, movil)}
                   onPageChange={(p) => setCara(aCara(p, movil))}
                   pageBackground="#f3e6c8"
