@@ -238,6 +238,13 @@ Dos avisos para leerla:
   seis fotos casi iguales: la primera hoja de contactos no servía para decidir
   nada. Los tiempos de la tabla de arriba SÍ están medidos a dpr 3, que es el
   teléfono de referencia.
+- **Y aun así la tira NO sirve para juzgar el tacto.** Ni a dpr 1: el pliegue
+  solo se ve en el último fotograma de cada fila. Lo que la tira sí dice es lo
+  objetivo —a 900 ms el volteo sigue en marcha a los 885 ms, a 400-450 se acabó
+  sobre los 390— y eso basta para saber que 900 sobra, no para elegir entre 500,
+  450 y 400. **Esa parte se decide en el teléfono**, desplegando la rama y
+  pasando páginas. Dejarlo escrito es más honesto que fingir que una hoja de
+  contactos de un banco sin GPU responde una pregunta de tacto.
 
 ### T3 — el dpr del snapshot
 
