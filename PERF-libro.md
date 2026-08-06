@@ -19,15 +19,15 @@ hojea de verdad.
 
 | | Antes | Después |
 |---|---|---|
-| **CPU 4×, ritmo seguido, botón ›** | **sin curl** | **342 ms** |
-| **CPU 4×, ritmo seguido, botón ‹** | **sin curl** | **332 ms** |
-| **CPU 4×, ritmo seguido, deslizar adelante** | **sin curl** | **232 ms** |
-| **CPU 4×, ritmo seguido, deslizar atrás** | **sin curl** | **235 ms** |
+| **CPU 4×, ritmo seguido, botón ›** | **sin curl** | **266 ms** |
+| **CPU 4×, ritmo seguido, botón ‹** | **sin curl** | **280 ms** |
+| **CPU 4×, ritmo seguido, deslizar adelante** | **sin curl** | **149 ms** |
+| **CPU 4×, ritmo seguido, deslizar atrás** | **sin curl** | **155 ms** |
 | Rasterizaciones solapando el gesto (4×, seguido) | 1-3 | **0 en los cuatro** |
 | p95 del peor camino (1×) | 4773 ms | **57 ms** |
-| Caras rasterizadas por volteo | 4 | **2** (0,5 releyendo) |
+| Caras rasterizadas por volteo | 4 | **2** (0 releyendo) |
 | PNG intermedio por cara | 688×964, 707 kB | **516×723, 416 kB** |
-| Heap tras los 10 capítulos ida y vuelta (4×) | 42 MB | **17 MB** |
+| Heap tras los 10 capítulos ida y vuelta (4×) | 42 MB | **32 MB** |
 | Tipografía de la cara que gira | otra fuente, sin capitular | **igual que la página quieta** |
 | `flippingTime` | 900 ms | 900 ms — **sin decidir, es de Gus** |
 
@@ -198,34 +198,53 @@ peor caso pasa de 4773 ms a 57 ms.
 
 | Ritmo | Camino | curl antes → después | capturas solapando |
 |---|---|---:|---:|
-| asentado | botón › | 400 → 385 ms | 0 → 0 |
-| asentado | botón ‹ | 670 → **367** ms | 0 → 0 |
-| asentado | deslizar adelante | 259 → **233** ms | 0 → 0 |
-| asentado | deslizar atrás | 229 → 232 ms | 0 → 0 |
-| seguido | botón › | **sin curl → 342 ms** | **2 → 0** |
-| seguido | botón ‹ | **sin curl → 332 ms** | **1 → 0** |
-| seguido | deslizar adelante | **sin curl → 232 ms** | **2 → 0** |
-| seguido | deslizar atrás | **sin curl → 235 ms** | **3 → 0** |
+| asentado | botón › | 400 → **256** ms | 0 → 0 |
+| asentado | botón ‹ | 670 → **267** ms | 0 → 0 |
+| asentado | deslizar adelante | 259 → **137** ms | 0 → 0 |
+| asentado | deslizar atrás | 229 → **154** ms | 0 → 0 |
+| seguido | botón › | **sin curl → 266 ms** | **2 → 0** |
+| seguido | botón ‹ | **sin curl → 280 ms** | **1 → 0** |
+| seguido | deslizar adelante | **sin curl → 149 ms** | **2 → 0** |
+| seguido | deslizar atrás | **sin curl → 155 ms** | **3 → 0** |
 
 Los cuatro caminos que a ritmo de lectura real **no dibujaban curl ni una vez**
-ahora lo dibujan, y sin ninguna rasterización dentro del gesto.
+ahora lo dibujan, y **ninguna de las ocho filas registra una sola rasterización
+dentro de la ventana del gesto**.
+
+> Estos números son de la TERCERA versión del planificador de la captura, y las
+> tres están medidas porque las dos primeras se cayeron solas:
+>
+> | Planificador | 4×, seguido, botón › | 4×, asentado, botón › |
+> |---|---:|---:|
+> | `requestIdleCallback`, timeout 600 ms | 364 ms | **sin curl** (3 de 3) |
+> | dos frames seguidos < 24 ms | 342 ms | 385 ms |
+> | **ninguna hoja girando + hilo libre** | **266 ms** | **256 ms** |
+>
+> El primero falló porque en este banco los callbacks de rIC no llegan hasta
+> vencer el `timeout`, así que 600 ms caía en mitad de la animación de 900 ms.
+> El segundo pasaba aquí pero medía lo que no era: «dos frames rápidos» no
+> significa «la animación terminó» — en una máquina rápida los frames del volteo
+> YA son de 16 ms, así que en un teléfono con GPU habría rasterizado dentro del
+> volteo. El tercero mira `active`, que es el dato de verdad.
+
+**Coste de rasterización por volteo**, releyendo (ida y vuelta entre dos caras):
+**0 capturas, 0 ms**. Todo lo sirve la caché. En lectura lineal son 2 —las dos
+caras de la hoja nueva— contra las 4 del original.
 
 **Memoria**, paseo por los 10 capítulos ida y vuelta:
 
 | | antes | después |
 |---|---:|---:|
 | CPU 1× | 11 → **54 MB** | 10 → **35 MB** |
-| CPU 4× | 11 → **42 MB** | 10 → **17 MB** |
+| CPU 4× | 11 → **42 MB** | 10 → **32 MB** |
+
+El heap varía bastante entre corridas (el recolector no es determinista): la
+misma configuración dio 17 MB en una pasada y 32 MB en otra. Lo que se sostiene
+es la dirección, no la cifra exacta.
 
 Guardar caras gasta MENOS memoria que no guardarlas, que suena al revés y no lo
 es: antes cada volteo rasterizaba cuatro PNG nuevos y los viejos se apilaban
 esperando al recolector.
-
-**Coste de rasterización por volteo** (ida y vuelta entre dos caras, 1×):
-**0,5 capturas y 706 ms**, contra las **4 capturas** que hacía la librería en
-cada aterrizaje (contadas en la traza: el contador pasa de 2 a 6 tras un solo
-volteo). En lectura lineal, donde cada volteo estrena hoja, el fork hace 2 —
-las dos caras de la hoja nueva— en vez de 4.
 
 ### Y la tipografía, mirada (regla #1)
 
@@ -336,7 +355,9 @@ CDP contra el `dist` de producción:
 
 Y `tests/perf/escritorio.mjs` comprueba a mano el otro libro —la plana de dos
 páginas a 1280×900, sin táctil—, porque escritorio era una restricción dura y
-pasa por los mismos caminos del fork.
+pasa por los mismos caminos del fork. Corre en dos modos, **con fork y
+`--sin-fork`**, con la MISMA espera en los dos: sin esa simetría, «no dibujó
+curl» no prueba nada. Resultado final: **OK en los dos**.
 
 > Las dos primeras fallaron en su estreno y **las dos por lo mismo**: esperaban
 > con `esperarQuietas`, que cuenta rasterizaciones de snapdom y solo existe en
