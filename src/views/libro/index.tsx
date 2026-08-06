@@ -1203,26 +1203,26 @@ export default function LibroView() {
                      sube a 420. */
                   flipThreshold={movil ? 20 : undefined}
                   swipeTimeThreshold={movil ? 420 : undefined}
-                  /* LOS VOLTEOS DE BOTÓN, que se sentían un salto.
+                  /* LOS VOLTEOS DE BOTÓN.
 
-                     Medido cuadro a cuadro: al pulsar ‹ o › el curl (el canvas
-                     WebGL) no arranca hasta 180-360 ms después. En ese hueco se
-                     ve el PLIEGUE PLANO —el componente captura las texturas al
-                     vuelo cuando el volteo empieza— y el relevo plano→curl a
-                     mitad de camino es justo lo que se siente forzado. Con el
-                     dedo no pasa: el "agarre" del pointerdown calienta las
-                     texturas mientras uno todavía está arrastrando, y ahí el
-                     curl entra a los 73 ms.
+                     `turnOrigin='middle'` doblega la hoja RECTA en vez de con
+                     pliegue diagonal desde la esquina de abajo, que era lo que
+                     hacía ver raro el movimiento en reversa (la esquina volvía
+                     por un camino que el dedo nunca recorre). Eso no se toca.
 
-                     Dos cosas lo suavizan. `turnOrigin='middle'` doblega la
-                     hoja RECTA en vez de con pliegue diagonal desde la esquina
-                     de abajo, que era lo que hacía ver raro el movimiento en
-                     reversa (la esquina volvía por un camino que el dedo nunca
-                     recorre). Y `flippingTime` más largo reparte el mismo
-                     relevo sobre más recorrido, así que deja de leerse como un
-                     tirón y se lee como una hoja pesada. */
+                     `flippingTime` estuvo en 900 ms para ESCONDER un tirón: el
+                     curl tardaba en arrancar y estirar la animación repartía el
+                     relevo pliegue-plano → curl sobre más recorrido. Ese tirón
+                     ya no existe (PERF-libro.md: el curl entra en 149-280 ms a
+                     4× de CPU y sin ninguna rasterización dentro del gesto), así
+                     que el tiempo largo sobraba.
+
+                     100 ms es ELECCIÓN DE GUS, y va contra lo que decía el
+                     encargo —«que se lea como hoja pesada, no como corte
+                     seco»— así que conviene dejar escrito qué se midió al
+                     ponerlo, y no que fue un descuido. Ver PERF-libro.md. */
                   turnOrigin="middle"
-                  flippingTime={900}
+                  flippingTime={100}
                   page={aPageDelLibro(cara, movil)}
                   onPageChange={(p) => setCara(aCara(p, movil))}
                   pageBackground="#f3e6c8"
