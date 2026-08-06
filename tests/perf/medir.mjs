@@ -50,7 +50,7 @@ const p95 = (xs) => {
 };
 
 async function corrida(browser, url, throttle) {
-  const { page } = await abrirLibro(browser, url, { throttle });
+  const { page, cdp } = await abrirLibro(browser, url, { throttle });
   const filas = [];
 
   /* El tap de la portada: solo se puede medir una vez por carga, porque abre
@@ -126,7 +126,7 @@ async function corrida(browser, url, throttle) {
   };
 
   const caps = await capturas(page);
-  const mem = await memoriaMb(page);
+  const mem = await memoriaMb(page, cdp);
   const donde = await pie(page);
   await page.close();
   return { throttle, filas, porVolteo, png: caps.png[0] ?? null, memoriaMb: mem, pie: donde };
@@ -134,8 +134,8 @@ async function corrida(browser, url, throttle) {
 
 /** Recorre el libro entero ida y vuelta y devuelve el heap al final. */
 async function paseoMemoria(browser, url) {
-  const { page } = await abrirLibro(browser, url, { throttle: 1 });
-  const inicio = await memoriaMb(page);
+  const { page, cdp } = await abrirLibro(browser, url, { throttle: 1 });
+  const inicio = await memoriaMb(page, cdp);
   await tocar(page, 0.5, 0.4);
   await dormir(1200);
   for (let i = 0; i < 20; i++) {
@@ -147,7 +147,7 @@ async function paseoMemoria(browser, url) {
     await dormir(1100);
   }
   await dormir(1500);
-  const fin = await memoriaMb(page);
+  const fin = await memoriaMb(page, cdp);
   const donde = await pie(page);
   await page.close();
   return { inicio, fin, pie: donde };

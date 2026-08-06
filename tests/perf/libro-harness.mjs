@@ -401,10 +401,24 @@ export const capturas = (page) =>
     png: window.__perf.png.map((p) => ({ w: p.w, h: p.h, kb: Math.round(p.bytes / 1024) })),
   }));
 
-export const memoriaMb = (page) =>
-  page.evaluate(() => {
+/* El heap, FORZANDO RECOLECCIÓN ANTES DE LEER.
+
+   Sin eso el número no mide lo que parece. Leído a secas, `performance.memory`
+   dice cuánta basura queda sin recoger, o sea CUÁNDO pasó el GC: en once
+   corridas de este repo dio entre 17 y 54 MB para configuraciones que deberían
+   ordenarse al revés —el baseline a 6× marcó 17 MB, la lectura más baja de
+   todas—, y con esos rangos solapados no se puede afirmar nada. `collectGarbage`
+   de CDP vacía primero; lo que queda es lo que de verdad está retenido. */
+export async function memoriaMb(page, cdp) {
+  if (cdp) {
+    await cdp.send('HeapProfiler.enable').catch(() => {});
+    await cdp.send('HeapProfiler.collectGarbage').catch(() => {});
+    await dormir(400);
+  }
+  return page.evaluate(() => {
     const m = performance.memory;
     return m ? Math.round(m.usedJSHeapSize / 1048576) : null;
   });
+}
 
 export { dormir };
