@@ -97,9 +97,13 @@ try {
        página antes de que la textura estuviera: daba «no dibujó curl» sobre un
        libro que estaba bien. Se vio porque el volteo hacia ATRÁS —cuya textura
        ya estaba en caché— sí dibujaba. */
-    // Sin fork no hay caché que mirar: allí se espera por el cronómetro.
+    /* LA MISMA ESPERA EN LAS DOS VARIANTES, y esto importa: la primera versión
+       daba `esperarCache` al fork y 6 s fijos al paquete original, o sea más
+       tiempo de asentarse al que hacía de patrón. Comparar así no vale para
+       nada — cualquier diferencia podía ser del reloj y no del código. Los dos
+       esperan 6 s; el fork además mira su caché, que solo puede sumar. */
+    await dormir(6000);
     if (!SIN_FORK) await esperarCache(page);
-    else await dormir(6000);
     await page.evaluate(() => window.__reset());
     await page.click(`button[aria-label="${etiqueta}"]`);
     await dormir(120);
