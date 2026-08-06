@@ -1157,10 +1157,20 @@ export default function LibroView() {
                   withCover del PC la centra igual), así que el 50% sirve para
                   ambos. */}
               {cara === 0 && (
-                <button type="button" className="libro-abrir" onClick={() => ir(1)} aria-label="Abrir el libro">
-                  <i>tocá para abrir</i>
-                  <ChevronRight strokeWidth={2.6} />
-                </button>
+                <>
+                  {/* «Desliza como una revista» (pedido de Gus): el modelo mental
+                      del gesto, ARRIBA de la tapa. Solo en la portada; abierto el
+                      libro se va con el resto de la capa de la cara 0. */}
+                  <div className="libro-revista" aria-hidden="true">
+                    <ChevronLeft strokeWidth={2.4} />
+                    <span>Desliza como una revista</span>
+                    <ChevronRight strokeWidth={2.4} />
+                  </div>
+                  <button type="button" className="libro-abrir" onClick={() => ir(1)} aria-label="Abrir el libro">
+                    <i>tocá para abrir</i>
+                    <ChevronRight strokeWidth={2.6} />
+                  </button>
+                </>
               )}
             </div>
           </div>

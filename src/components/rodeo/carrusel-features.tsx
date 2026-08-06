@@ -13,26 +13,29 @@ import './aurora.css';
    son los suyos. Aquí vive únicamente el CONTENIDO: qué feature es cada carta
    y a dónde navega.
 
-   ORDEN DE LAS CARTAS (decisión, no descuido): el carrusel arranca con
-   `centerIndex = HALF = 3` — es estado inicial del componente de Gus, que no
-   tocamos. Es decir: la carta que nace GRANDE Y CENTRADA (la protagonista del
-   abanico) es la del índice 3, no la del 0. Por eso SLANG sigue en el índice 3:
-   al abrir, lo primero que se ve enorme y al frente es SLANG, que es lo que
-   pide la vitrina.
+   SIETE cartas, todas con imagen real (pedido de Gus para mandárselo a
+   amigos: «deja solo las que ya tienen imagen»). Fuera quedaron SUBE —que iba
+   sobre una gradiente, no una foto— y los dos «Próximamente» transparentes.
 
-   Ahora son OCHO features reales (SUBE en el 2, y los dos LIBROS al final, en el
-   8 y el 9), CONTIGUAS en 2-9: paginando desde SLANG se recorre la app entera
-   sin tropezar con un placeholder en medio. Quedan dos "Próximamente" en el
-   flanco izquierdo (0-1); el derecho lo llenaron los libros.
+   ORDEN DE LAS CARTAS (decisión, no descuido): con siete cartas el componente
+   de Gus deja de paginar (needsPagination = totalCards > 7 es falso) y las
+   abre TODAS a la vez en un abanico fijo, con la del índice 3 al frente,
+   grande y centrada (totalCards >> 1 = 3). Esa es la protagonista. Por eso el
+   arreglo NO es el orden de lectura sino una ROTACIÓN del mismo: dejamos SLANG
+   —la firma de la app— en el índice 3, que es donde el abanico pone su cara. A
+   su izquierda inmediata caen los dos LIBROS (los recién horneados, bien
+   grandes); el resto reparte el abanico. Se conserva la adyacencia cíclica del
+   orden original, solo centrada en SLANG.
 
-   Las imágenes de las features REALES son las ilustraciones de Gus
+   Las imágenes son las ilustraciones de Gus
    (public/carrusel/{slang,story,conversacion,oficina,dna}.jpg, 800×1400, set
-   coherente con acentos lima) y, para SUBE, la gradiente 07 — que ya estaba
-   en el set y mejor aguanta un título encima. Los placeholders usan las
-   gradientes aurora restantes (05, 06, 09, 10, 400×700, paletas del
-   personalizador). */
+   coherente con acentos lima) y las dos tapas de libro
+   (public/libro/{v00,00}-portada.webp): lo que se ve en la vitrina es
+   literalmente lo que se abre al tocar. */
 
-/** Índice de la carta centrada al abrir: el HALF del componente. */
+/** Índice de la carta centrada al abrir. Con 7 cartas el abanico no pagina y
+    su centro es totalCards >> 1 = 3; ahí ponemos SLANG. (Si algún día vuelven
+    a ser >7 y pagina, el HALF del componente también es 3, así que cuadra.) */
 const CENTRO_INICIAL = 3;
 
 /* Overlay de una feature real. Dos registros según dónde esté la carta:
@@ -73,18 +76,6 @@ function OverlayFeature({
   );
 }
 
-/* Overlay de placeholder: sutil, sin título grande y SIN nombre inventado.
-   Solo la eyebrow "Próximamente" arriba, que es lo honesto: todavía no existe. */
-function OverlayProximamente() {
-  return (
-    <div className="cf-overlay cf-overlay--pronto">
-      <p className="cf-overlay__eyebrow">Próximamente</p>
-    </div>
-  );
-}
-
-const IMG_PRONTO = ['05', '06', '09', '10'];
-
 /* ← AL ORIGEN (regla 5): «cuando hago click en el boton para ← regresar me
    lleva directo al home, debe regresar es al carrusel de features». Las vistas
    no saben por dónde entró el usuario — su ← siempre hace setView('home') —,
@@ -118,7 +109,13 @@ export function CarruselFeatures() {
      mientras anima y se desincronizaría).
      Va por atributo y no por prop para NO provocar un render nuevo del
      carrusel: cambiar `cards` invalidaría su useEffect de GSAP en mitad de la
-     animación de paginado. */
+     animación de paginado.
+     OJO con las 7 cartas actuales: el abanico no pagina, así que NO pinta
+     puntos — el observador no encuentra ninguno y sale (queda latente). Ahí
+     manda el valor inicial CENTRO_INICIAL=3, que es justo el centro del abanico
+     fijo, y por eso el `data-centro` sigue cuadrando sin puntos que leer. Si
+     algún día vuelven a ser >7, el componente pagina, aparecen los puntos y
+     esto se reactiva solo. */
   useEffect(() => {
     const lienzo = lienzoRef.current;
     if (!lienzo) return;
@@ -137,29 +134,48 @@ export function CarruselFeatures() {
     return () => observador.disconnect();
   }, []);
 
-  // Los placeholders quedan solo al principio (índices 0-1). Las OCHO features
-  // reales van contiguas (2-9): paginando desde SLANG se recorren STORY →
-  // CONVERSACIÓN → OFICINA → TU DNA → LIBRO (Around the World) → LIBRO (Alicia) a
-  // la derecha, y SUBE a la izquierda, sin placeholders en medio. Los dos libros
-  // entraron gastándose slots de "próximamente" — ya no son una promesa.
-  const pronto: CardItem[] = IMG_PRONTO.map((n) => ({
-    imgUrl: `/carrusel/${n}.jpg`,
-    alt: 'Feature en camino',
-    contenido: <OverlayProximamente />,
-  }));
-
+  // Siete cartas, todas con foto real, ordenadas para que SLANG quede al frente
+  // (índice 3, el centro del abanico fijo). A su izquierda inmediata, los dos
+  // LIBROS —los recién horneados, bien grandes—; luego DNA cierra ese flanco. A
+  // la derecha, STORY → CONVERSACIÓN → OFICINA. Es el orden de lectura rotado:
+  // conserva la vecindad cíclica, solo centrado en SLANG.
   const cards: CardItem[] = [
-    ...pronto.slice(0, 2),
     {
-      imgUrl: '/carrusel/07.jpg',
-      alt: 'SUBE · De B2 a C1 con juez',
-      onClick: () => abrirFeature('ladder'),
+      imgUrl: '/carrusel/dna.jpg',
+      alt: 'DNA · Tu archivo de lenguaje, siempre contigo',
+      onClick: () => abrirFeature('dna'),
       contenido: (
         <OverlayFeature
-          aurora
-          titulo="SUBE"
-          subtitulo="B2 → C1"
-          linea="Peldaños con juez: di lo mismo, pero como un nativo."
+          titulo="DNA"
+          subtitulo="Tu archivo de lenguaje, siempre contigo"
+          linea="Tus fallos, tu jerga y tus upgrades, vivos."
+        />
+      ),
+    },
+    {
+      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en la
+      // vitrina es literalmente lo que se abre al tocar. Son DOS libros ahora
+      // (pedido de Gus): cada carta entra al suyo y dispara su propia precarga.
+      imgUrl: '/libro/v00-portada.webp',
+      alt: 'LIBRO · Around the World in Eighty Days',
+      onClick: () => abrirLibro('vuelta'),
+      contenido: (
+        <OverlayFeature
+          titulo="LIBRO"
+          subtitulo="Around the World in 80 Days"
+          linea="Diez escalas, una vuelta al mundo sembrada de phrasal verbs."
+        />
+      ),
+    },
+    {
+      imgUrl: '/libro/00-portada.webp',
+      alt: 'LIBRO · Alice in Wonderland',
+      onClick: () => abrirLibro('alicia'),
+      contenido: (
+        <OverlayFeature
+          titulo="LIBRO"
+          subtitulo="Alice in Wonderland"
+          linea="Un cuento que se hojea, sembrado de phrasal verbs."
         />
       ),
     },
@@ -219,46 +235,6 @@ export function CarruselFeatures() {
         />
       ),
     },
-    {
-      imgUrl: '/carrusel/dna.jpg',
-      alt: 'DNA · Tu archivo de lenguaje, siempre contigo',
-      onClick: () => abrirFeature('dna'),
-      contenido: (
-        <OverlayFeature
-          titulo="DNA"
-          subtitulo="Tu archivo de lenguaje, siempre contigo"
-          linea="Tus fallos, tu jerga y tus upgrades, vivos."
-        />
-      ),
-    },
-    {
-      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en la
-      // vitrina es literalmente lo que se abre al tocar. Son DOS libros ahora
-      // (pedido de Gus): cada carta entra al suyo y dispara su propia precarga.
-      imgUrl: '/libro/v00-portada.webp',
-      alt: 'LIBRO · Around the World in Eighty Days',
-      onClick: () => abrirLibro('vuelta'),
-      contenido: (
-        <OverlayFeature
-          titulo="LIBRO"
-          subtitulo="Around the World in 80 Days"
-          linea="Diez escalas, una vuelta al mundo sembrada de phrasal verbs."
-        />
-      ),
-    },
-    {
-      imgUrl: '/libro/00-portada.webp',
-      alt: 'LIBRO · Alice in Wonderland',
-      onClick: () => abrirLibro('alicia'),
-      contenido: (
-        <OverlayFeature
-          titulo="LIBRO"
-          subtitulo="Alice in Wonderland"
-          linea="Un cuento que se hojea, sembrado de phrasal verbs."
-        />
-      ),
-    },
-    ...pronto.slice(4),
   ];
 
   return (

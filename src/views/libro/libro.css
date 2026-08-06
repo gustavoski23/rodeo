@@ -54,6 +54,13 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  /* Zoom mínimo (pedido de Gus). El generador dejó un filo casi-blanco de
+     ~4-5px de "papel" ALREDEDOR del marco dorado —medido en el borde de arriba:
+     las filas de brillo caían 236 232 212 192 165… hasta el oro oscuro (~63)—,
+     y contra el marco se leía como una línea blanca. Un scale corta ese papel
+     por las cuatro caras (el overflow:hidden del padre lo recorta) sin comerse
+     el marco: 2.5% es lo justo que borra el filo y deja el cuadro intacto. */
+  transform: scale(1.025);
 }
 
 /* Velo inferior: apoya el rótulo sobre la ilustración y —de paso— tapa la
@@ -517,6 +524,75 @@
 
 @media (prefers-reduced-motion: reduce) {
   .libro-abrir svg {
+    animation: none;
+  }
+}
+
+/* «Desliza como una revista» (pedido de Gus para estrenar con amigos): el
+   modelo mental del gesto. Va ARRIBA de la tapa —la acción inmediata, «tocá
+   para abrir», vive abajo—, en el mismo vidrio oscuro que la píldora para que
+   se lean como un par y no como dos parches sueltos. Las dos flechas se abren
+   un pelín hacia afuera para decir «esto se hojea de lado». Solo en la portada
+   del libro (cara 0): en las aperturas de capítulo estorbaría. */
+.libro-revista {
+  position: absolute;
+  left: 50%;
+  top: 6%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+  pointer-events: none;
+  padding: 0.4em 0.85em;
+  border-radius: 999px;
+  border: 1px solid oklch(78% 0.08 82 / 0.45);
+  background: oklch(18% 0.02 60 / 0.6);
+  backdrop-filter: blur(6px);
+  color: oklch(90% 0.07 85);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  box-shadow: 0 6px 22px oklch(0% 0 0 / 0.35);
+}
+
+.libro-revista svg {
+  width: 0.95em;
+  height: 0.95em;
+  opacity: 0.85;
+}
+
+.libro-revista svg:first-child {
+  animation: libro-desliza-izq 1.6s ease-in-out infinite;
+}
+
+.libro-revista svg:last-child {
+  animation: libro-desliza-der 1.6s ease-in-out infinite;
+}
+
+@keyframes libro-desliza-izq {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-0.22em);
+  }
+}
+
+@keyframes libro-desliza-der {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.22em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-revista svg {
     animation: none;
   }
 }
