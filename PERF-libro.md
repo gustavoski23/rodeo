@@ -11,6 +11,29 @@ RODEO_PUPPETEER=<ruta>/node_modules node tests/perf/medir.mjs --etiqueta base
 RODEO_PUPPETEER=<ruta>/node_modules node tests/perf/fuentes.mjs --lenta
 ```
 
+## El resumen, si solo se lee una tabla
+
+Around the World in 80 Days, 390×844 @3, escala 130 %, mediana de N pasadas.
+«Ritmo seguido» = pasar página 500 ms después de la anterior, que es como se
+hojea de verdad.
+
+| | Antes | Después |
+|---|---|---|
+| **CPU 4×, ritmo seguido, botón ›** | **sin curl** | **342 ms** |
+| **CPU 4×, ritmo seguido, botón ‹** | **sin curl** | **332 ms** |
+| **CPU 4×, ritmo seguido, deslizar adelante** | **sin curl** | **232 ms** |
+| **CPU 4×, ritmo seguido, deslizar atrás** | **sin curl** | **235 ms** |
+| Rasterizaciones solapando el gesto (4×, seguido) | 1-3 | **0 en los cuatro** |
+| p95 del peor camino (1×) | 4773 ms | **57 ms** |
+| Caras rasterizadas por volteo | 4 | **2** (0,5 releyendo) |
+| PNG intermedio por cara | 688×964, 707 kB | **516×723, 416 kB** |
+| Heap tras los 10 capítulos ida y vuelta (4×) | 42 MB | **17 MB** |
+| Tipografía de la cara que gira | otra fuente, sin capitular | **igual que la página quieta** |
+| `flippingTime` | 900 ms | 900 ms — **sin decidir, es de Gus** |
+
+«Sin curl» no es una forma de hablar: el volteo entero se pintaba con el pliegue
+plano del DOM, sin un solo frame de la hoja enrollándose.
+
 ## Qué se mide, y por qué eso
 
 | Número | Qué es |

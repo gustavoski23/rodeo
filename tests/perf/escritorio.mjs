@@ -9,7 +9,8 @@
      node tests/perf/escritorio.mjs
 
    Deja capturas en tests/perf/resultados/escritorio-*.png. */
-import { mkdir, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { RAIZ, abrirNavegador, dormir, esperarCache, servir } from './libro-harness.mjs';
@@ -17,6 +18,28 @@ import { sonda } from './instrumentacion.mjs';
 
 const SALIDA = path.join(RAIZ, 'tests/perf/resultados');
 await mkdir(SALIDA, { recursive: true });
+
+/* `--sin-fork` construye la vista apuntando al <Book> del paquete original y
+   corre exactamente la misma comprobación. Es la única forma honesta de decir
+   si un fallo de escritorio lo trajo el fork o ya estaba: sin la comparación,
+   «no dibujó curl» es una acusación sin pruebas. Deja el archivo como estaba. */
+const VISTA = path.join(RAIZ, 'src/views/libro/index.tsx');
+const SIN_FORK = process.argv.includes('--sin-fork');
+const fuenteOriginal = await readFile(VISTA, 'utf8');
+if (SIN_FORK) {
+  await writeFile(
+    VISTA,
+    fuenteOriginal
+      .replace("import { Book } from '@/vendor/mantine-book';", "import { Book } from '@gfazioli/mantine-book';")
+      .replace("import { invalidarCaras } from '@/vendor/mantine-book/curl-cache';", 'const invalidarCaras = () => {};'),
+  );
+  const build = spawnSync('npx', ['vite', 'build', '--config', 'tests/perf/vite.perf.config.mjs'], {
+    cwd: RAIZ,
+    encoding: 'utf8',
+  });
+  await writeFile(VISTA, fuenteOriginal);
+  if (build.status !== 0) throw new Error(`build sin fork falló: ${build.stderr?.slice(0, 400)}`);
+}
 
 const servidor = await servir({ dist: 'dist-perf', puerto: 4181 });
 const browser = await abrirNavegador();
@@ -74,7 +97,9 @@ try {
        página antes de que la textura estuviera: daba «no dibujó curl» sobre un
        libro que estaba bien. Se vio porque el volteo hacia ATRÁS —cuya textura
        ya estaba en caché— sí dibujaba. */
-    await esperarCache(page);
+    // Sin fork no hay caché que mirar: allí se espera por el cronómetro.
+    if (!SIN_FORK) await esperarCache(page);
+    else await dormir(6000);
     await page.evaluate(() => window.__reset());
     await page.click(`button[aria-label="${etiqueta}"]`);
     await dormir(120);
@@ -115,7 +140,10 @@ try {
   servidor.cerrar();
 }
 
-await writeFile(path.join(SALIDA, 'escritorio.json'), JSON.stringify(informe, null, 2));
+await writeFile(
+  path.join(SALIDA, SIN_FORK ? 'escritorio-sin-fork.json' : 'escritorio.json'),
+  JSON.stringify(informe, null, 2),
+);
 console.log(JSON.stringify(informe, null, 2));
 
 const fallos = [];
@@ -129,7 +157,7 @@ if (informe.atras.draws === 0) fallos.push('el volteo hacia atrás no dibujó cu
 if (!cara(informe.trasAdelante1, informe.trasAbrir)) fallos.push('adelante no movió el libro');
 if (!cara(informe.trasAdelante2, informe.trasAdelante1)) fallos.push('el segundo adelante no movió el libro');
 if (informe.trasAtras.cara !== informe.trasAdelante1.cara) fallos.push('atrás no volvió a la plana anterior');
-if (informe.generacionDespues <= informe.generacionAntes) fallos.push('A+ no invalidó las texturas');
+if (!SIN_FORK && informe.generacionDespues <= informe.generacionAntes) fallos.push('A+ no invalidó las texturas');
 if (informe.trasAdelante2.carasConTexto < 2) fallos.push('la plana no muestra dos caras de texto');
-console.log(fallos.length ? `\nFALLOS: ${fallos.join(' · ')}` : '\nEscritorio OK');
+console.log(`\n${SIN_FORK ? '[SIN FORK] ' : ''}${fallos.length ? `FALLOS: ${fallos.join(' · ')}` : 'Escritorio OK'}`);
 process.exitCode = fallos.length ? 1 : 0;
