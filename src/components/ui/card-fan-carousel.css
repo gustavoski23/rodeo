@@ -58,10 +58,31 @@
      72px del chevron de cerrar + 52px de holgura + 121.6px de caída + 12px. */
   --cf-cromo: 21.6rem;
   --cf-tope: 26rem;
-  --cf-alto: clamp(14rem, calc((100dvh - var(--cf-cromo)) * 1.062), var(--cf-tope));
+  /* La barra de casa del iPhone NO estaba en el presupuesto. La capa reserva
+     `padding-bottom: calc(72px + env(safe-area-inset-bottom))` (aurora.css), y
+     --cf-cromo contabiliza los 72px del chevron pero no el inset: en un iPhone
+     son ~34px que el abanico se cree suyos y no lo son. El conjunto sale ~34px
+     más alto que su caja, las flechas y los puntos quedan pisando el borde de
+     abajo, y al TOCARLOS Safari los mete en vista desplazando el contenedor —
+     el mismo saltico vertical, ahora sin deslizar nada. En Android y en el
+     escritorio el inset es 0, y por eso ahí nunca se vio. */
+  --cf-alto: clamp(
+    14rem,
+    calc((100dvh - var(--cf-cromo) - env(safe-area-inset-bottom, 0px)) * 1.062),
+    var(--cf-tope)
+  );
   box-sizing: content-box;
   height: var(--cf-alto);
   padding-top: var(--cf-holgura);
+  /* El abanico se hojea de lado: lo horizontal es NUESTRO y lo vertical sigue
+     siendo del navegador. Sin esta línea el valor es `auto` y el navegador se
+     queda con el gesto entero desde el primer píxel; en iOS eso significa que
+     un deslizamiento lateral con una pizca de vertical arranca el rebote
+     elástico de la página — el "saltico como de recargar" del reporte. Va
+     junto al preventDefault del touchmove del componente, no en su lugar:
+     pan-y evita que el navegador reclame lo horizontal, y el preventDefault
+     corta lo vertical una vez que sabemos que el dedo va de lado. */
+  touch-action: pan-y;
   /* 7.3rem de caída del flanco − lo que ya sobresale la carta central. */
   padding-bottom: calc(7.6rem - var(--cf-alto) * 0.0585);
 }

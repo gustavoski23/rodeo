@@ -294,6 +294,21 @@
   }
   html {
     height: 100%;
+    /* REGRESIÓN DEL PORT, no una precaución: la app legacy lo declaraba
+       (public/legacy.html:292) y al portar a React se perdió. Sin esto el valor
+       es `auto`, y entonces WebKit (iPhone) y Chrome con el tamaño de letra del
+       sistema cambiado (Android) aplican su AUTOAJUSTE de texto: inflan la letra
+       de un bloque según el ancho del bloque contra el del viewport, y la
+       RECALCULAN en cada relayout. Se ve como que "cambia el tipo de letra sola"
+       — el caso que reportó el amigo de Chile al pasar página, y que también
+       salió en el Android de Gus. Medido en el video: la escala guardada seguía
+       en 115% en los cinco cuadros del salto (el A−/A+ nunca se tocó) y el texto
+       reflowó igual, así que el cambio no venía de la app.
+       El bloque de texto del libro es justo el que lo dispara: vive en una caja
+       estrecha de ancho fijo (--pw) cuyo ancho pintado se mueve durante el
+       volteo. Con 100% el navegador respeta el font-size que pide el CSS. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   body {
     min-height: 100%;
@@ -314,6 +329,14 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    /* `overflow: hidden` NO deja el elemento quieto: sigue siendo desplazable
+       por código y por el rebote del navegador. Medido con el carrusel abierto
+       a 390×560: #root tenía scrollHeight 602 contra clientHeight 560 — 42px de
+       holgura escondida con scrollTop 0. Esos 42px son la superficie contra la
+       que iOS hace el rebote elástico cuando un gesto del abanico se le escapa
+       en vertical, y es el "saltico como de recargar" del iPhone. El de `body`
+       no cubre este cajón: hay que declararlo aquí. */
+    overscroll-behavior: none;
   }
 }
 

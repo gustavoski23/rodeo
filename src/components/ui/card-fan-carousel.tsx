@@ -133,15 +133,45 @@ export default function SocialCards({ cards }: SocialCardsProps) {
 
   /* Adaptación RODEO (swipe): deslizar el dedo sobre el abanico pagina igual
      que las flechas. Umbral de 40px y dominancia horizontal para no pelearse
-     con el scroll vertical de la página. */
+     con el scroll vertical de la página.
+
+     El touchmove NO es decoración y NO puede ser passive. Antes solo había
+     touchstart/touchend, los dos passive: el gesto se leía al soltar, pero
+     mientras el dedo se movía el navegador seguía siendo el dueño. En iOS eso
+     se ve como un tirón vertical de toda la capa —el "saltico como de recargar
+     la página" que reportó el amigo desde Chile deslizando de lado—, porque
+     Safari rebota contra la holgura escondida del contenedor (medido: 42px en
+     #root con el carrusel abierto). Al declarar el eje en el primer tramo del
+     arrastre y hacer preventDefault cuando resulta horizontal, el gesto es
+     nuestro y no queda vertical que rebotar. El que empieza vertical se deja
+     pasar entero: esa es la vía de scroll de la página y no se toca. */
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !needsPagination) return;
     let x0 = 0;
     let y0 = 0;
+    /* null = todavía no sabemos hacia dónde va el dedo. Se decide UNA vez por
+       gesto y no se revisa: cambiar de eje a mitad de arrastre es justo lo que
+       produce el tirón que estamos quitando. */
+    let eje: "x" | "y" | null = null;
+    // 8px: pasada la zona muerta del temblor del dedo, antes de los 40px que
+    // deciden si hay paginación — hay que reclamar el gesto ANTES de que el
+    // navegador empiece a desplazar, no después.
+    const ZONA_MUERTA = 8;
+
     const onStart = (e: TouchEvent) => {
       x0 = e.touches[0].clientX;
       y0 = e.touches[0].clientY;
+      eje = null;
+    };
+    const onMove = (e: TouchEvent) => {
+      const dx = e.touches[0].clientX - x0;
+      const dy = e.touches[0].clientY - y0;
+      if (eje === null) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < ZONA_MUERTA) return;
+        eje = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (eje === "x" && e.cancelable) e.preventDefault();
     };
     const onEnd = (e: TouchEvent) => {
       const dx = e.changedTouches[0].clientX - x0;
@@ -150,11 +180,14 @@ export default function SocialCards({ cards }: SocialCardsProps) {
         // Deslizar a la izquierda trae la carta siguiente (gesto natural).
         cycle(dx < 0 ? "right" : "left");
       }
+      eje = null;
     };
     container.addEventListener("touchstart", onStart, { passive: true });
+    container.addEventListener("touchmove", onMove, { passive: false });
     container.addEventListener("touchend", onEnd, { passive: true });
     return () => {
       container.removeEventListener("touchstart", onStart);
+      container.removeEventListener("touchmove", onMove);
       container.removeEventListener("touchend", onEnd);
     };
   }, [cycle, needsPagination]);
