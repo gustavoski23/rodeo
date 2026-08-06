@@ -255,6 +255,14 @@ test('the book keeps its glosses tappable and its A−/A+ working', { timeout: 6
        La vista tiene que llamar a invalidarCaras(). Se comprueba mirando
        cuántas caras quedan guardadas justo después del cambio. */
     const antes = await page.evaluate(() => document.querySelector('[aria-live="polite"]')?.textContent ?? '');
+    /* Esperar la caché ANTES de leerla, no leerla en un instante arbitrario.
+       Sin esto la prueba era flaky de manual: con la misma configuración pasaba
+       una corrida y fallaba la siguiente, según si las capturas de las dos hojas
+       calientes habían terminado o no cuando le tocaba mirar. Una aserción sobre
+       «la caché se está usando» tiene que esperar a la caché. */
+    await page
+      .waitForFunction(() => (window.__curlCache?.carasGuardadas() ?? 0) > 0, { timeout: 30_000, polling: 200 })
+      .catch(() => {});
     const guardadasAntes = await page.evaluate(() => window.__curlCache?.carasGuardadas() ?? -1);
     const generacionAntes = await page.evaluate(() => window.__curlCache?.generacionActual() ?? -1);
     await page.evaluate(() => window.__reset?.());
