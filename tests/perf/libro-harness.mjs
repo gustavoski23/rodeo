@@ -296,6 +296,32 @@ export async function esperarQuietas(page, { quieto = 700, techo = 45_000 } = {}
   return false;
 }
 
+/* La misma espera, pero SIN el cronómetro de snapdom: mira cuántas caras tiene
+   guardadas la caché del fork y espera a que el número deje de moverse.
+
+   `esperarQuietas` solo sirve con el bundle instrumentado, porque cuenta
+   rasterizaciones. Contra el `dist` de verdad ese contador es siempre 0 y la
+   espera termina enseguida — que fue exactamente lo que hizo fallar la prueba de
+   regresión: deslizaba antes de que la textura estuviera y luego se quejaba de
+   que no había curl. `window.__curlCache` existe en los dos builds. */
+export async function esperarCache(page, { quieto = 500, techo = 30_000 } = {}) {
+  const hasta = Date.now() + techo;
+  let n = -1;
+  let desde = Date.now();
+  while (Date.now() < hasta) {
+    const actual = await page.evaluate(() => window.__curlCache?.carasGuardadas() ?? -1);
+    if (actual < 0) return false; // build sin el fork: que decida quien llama
+    if (actual !== n) {
+      n = actual;
+      desde = Date.now();
+    } else if (actual > 0 && Date.now() - desde >= quieto) {
+      return true;
+    }
+    await dormir(100);
+  }
+  return false;
+}
+
 /**
  * Corre un gesto y devuelve los tiempos del volteo.
  *

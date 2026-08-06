@@ -61,19 +61,33 @@ try {
   informe.alAbrir = await estado();
   await page.screenshot({ path: path.join(SALIDA, 'escritorio-portada.png') });
 
-  const pulsar = async (etiqueta) => {
+  /* UNA HOJA SON DOS CARAS, y en la plana las dos se ven a la vez. Así que ›
+     una sola vez NO voltea nada: cambia la cara "actual" a la otra mitad de la
+     misma plana, que ya estaba delante. Para voltear hoja hay que avanzar DOS.
+     (La primera versión de esta comprobación pulsaba una vez y concluía que el
+     libro no se movía y que el curl no dibujaba. Ni una cosa ni la otra: el
+     libro estaba bien y la prueba estaba mal.) */
+  const voltearHoja = async (etiqueta) => {
     await page.evaluate(() => window.__reset());
     await page.click(`button[aria-label="${etiqueta}"]`);
-    await dormir(2200);
+    await dormir(120);
+    await page.click(`button[aria-label="${etiqueta}"]`);
+    await dormir(2400);
     return page.evaluate(() => ({ draws: window.__perf.draws.length, capturas: window.__perf.caps.length }));
   };
 
-  informe.adelante1 = await pulsar('Página siguiente');
+  /* La TAPA es aparte: con `withCover` la primera y la última hoja son `hard`
+     —cartón rígido con rotateY— y ahí la librería NO usa el curl WebGL a
+     propósito (`webglActive = rounded && folding && hard !== true`). Que no
+     dibuje curl al abrir es lo correcto, no un fallo. */
+  informe.abrirTapa = await voltearHoja('Página siguiente');
+  informe.trasAbrir = await estado();
+  informe.adelante1 = await voltearHoja('Página siguiente');
   informe.trasAdelante1 = await estado();
-  informe.adelante2 = await pulsar('Página siguiente');
+  informe.adelante2 = await voltearHoja('Página siguiente');
   informe.trasAdelante2 = await estado();
   await page.screenshot({ path: path.join(SALIDA, 'escritorio-plana.png') });
-  informe.atras = await pulsar('Página anterior');
+  informe.atras = await voltearHoja('Página anterior');
   informe.trasAtras = await estado();
 
   // Y el A−/A+, que tira la caché de texturas.
@@ -98,12 +112,16 @@ await writeFile(path.join(SALIDA, 'escritorio.json'), JSON.stringify(informe, nu
 console.log(JSON.stringify(informe, null, 2));
 
 const fallos = [];
+const cara = (a, b) => a.cara !== b.cara;
 if (!/Portada/.test(informe.alAbrir.cara)) fallos.push('no arrancó en la portada');
-if (informe.adelante1.draws === 0) fallos.push('el primer volteo no dibujó curl');
-if (informe.adelante2.draws === 0) fallos.push('el segundo volteo no dibujó curl');
+if (!cara(informe.trasAbrir, informe.alAbrir)) fallos.push('la tapa no abrió');
+// La tapa es `hard` a propósito: ahí NO se le pide curl.
+if (informe.adelante1.draws === 0) fallos.push('el volteo de hoja hacia adelante no dibujó curl');
+if (informe.adelante2.draws === 0) fallos.push('el segundo volteo de hoja no dibujó curl');
 if (informe.atras.draws === 0) fallos.push('el volteo hacia atrás no dibujó curl');
-if (informe.trasAdelante2.cara === informe.alAbrir.cara) fallos.push('el libro no se movió');
-if (informe.trasAtras.cara !== informe.trasAdelante1.cara) fallos.push('atrás no volvió a la cara anterior');
+if (!cara(informe.trasAdelante1, informe.trasAbrir)) fallos.push('adelante no movió el libro');
+if (!cara(informe.trasAdelante2, informe.trasAdelante1)) fallos.push('el segundo adelante no movió el libro');
+if (informe.trasAtras.cara !== informe.trasAdelante1.cara) fallos.push('atrás no volvió a la plana anterior');
 if (informe.generacionDespues <= informe.generacionAntes) fallos.push('A+ no invalidó las texturas');
 if (informe.trasAdelante2.carasConTexto < 2) fallos.push('la plana no muestra dos caras de texto');
 console.log(fallos.length ? `\nFALLOS: ${fallos.join(' · ')}` : '\nEscritorio OK');

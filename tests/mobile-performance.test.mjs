@@ -172,7 +172,7 @@ test('the book turns pages with a real finger and the curl starts fast', { timeo
 
     /* 2. DESLIZAR ADELANTE: lo hace el arrastre nativo del componente sobre la
           mitad derecha, con su curl siguiendo el dedo. */
-    await arnes.esperarQuietas(page);
+    await arnes.esperarCache(page);
     pasos.adelante = await arnes.medirVolteo(page, () => arnes.deslizar(page, -1));
     pasos.trasAdelante = await arnes.anuncio(page);
 
@@ -180,7 +180,7 @@ test('the book turns pages with a real finger and the curl starts fast', { timeo
           izquierda, que en el móvil está fuera del marco). Lo atiende nuestro
           handler, que le manda un `pointercancel` al libro para quitarle el
           gesto y salta la página en el tick siguiente. */
-    await arnes.esperarQuietas(page);
+    await arnes.esperarCache(page);
     pasos.atras = await arnes.medirVolteo(page, () => arnes.deslizar(page, +1));
     pasos.trasAtras = await arnes.anuncio(page);
 
@@ -271,7 +271,15 @@ test('the book keeps its glosses tappable and its A−/A+ working', { timeout: 6
        llenarla enseguida, así que un conteo a los 300 ms sería una carrera. La
        generación solo sube cuando alguien invalida de verdad. */
     const generacionDespues = await page.evaluate(() => window.__curlCache?.generacionActual() ?? -1);
-    await arnes.esperarQuietas(page);
+    /* Y esperar a que la caché se vuelva a llenar hay que hacerlo MIRÁNDOLA.
+       `esperarQuietas` cuenta rasterizaciones de snapdom, y ese contador solo
+       existe en el build instrumentado: contra el `dist` de verdad devuelve 0
+       siempre y la espera termina en 700 ms, antes de que ninguna captura haya
+       acabado. Se leía como «la caché no se rellenó» cuando lo único que pasaba
+       es que la prueba miraba demasiado pronto. */
+    await page
+      .waitForFunction(() => (window.__curlCache?.carasGuardadas() ?? 0) > 0, { timeout: 30_000, polling: 200 })
+      .catch(() => {});
     const guardadasLuego = await page.evaluate(() => window.__curlCache?.carasGuardadas() ?? -1);
 
     return {
