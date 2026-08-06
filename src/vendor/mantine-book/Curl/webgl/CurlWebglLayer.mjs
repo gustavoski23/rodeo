@@ -59,9 +59,16 @@ function renderFold(renderer, fold, flipped, width, maxRadius, shadowOpacity, sh
 
    El original usa el mismo `min(devicePixelRatio, 2)` para las dos cosas, y no
    son la misma cosa: el render es la malla WebGL que se mira, y el snapshot es
-   la textura de una cara que gira ~400 ms deformada sobre un cilindro. Aquí
-   solo se abre la costura; los dos siguen en 2. */
-const TOPE_DPR_SNAPSHOT = 2;
+   la textura de una cara que gira ~400 ms deformada sobre un cilindro.
+
+   Medido con las dos variantes construidas y los mismos gestos
+   (tests/perf/dpr-snapshot.mjs), el PNG por cara pasa de 688×964 / 707 kB a
+   516×723 / 416 kB y la rasterización por volteo de 171 ms a 89 ms: −48 % de
+   tiempo y −41 % de bytes. El criterio para revertir era que la pérdida se
+   notara en la cara PLANA, y la plana sale idéntica — el render sigue en 2, lo
+   único que baja es la textura de la cara que gira. La comparación lado a lado
+   está en tests/perf/resultados/dpr-snapshot.png. */
+const TOPE_DPR_SNAPSHOT = 1.5;
 const dprRender = () => (typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2));
 const dprSnapshot = () =>
   typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, TOPE_DPR_SNAPSHOT);

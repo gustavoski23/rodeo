@@ -153,6 +153,88 @@ Verne» describía cuándo se nota, no de dónde viene.
 | **T1b** | `views/libro/index.tsx`, `libro.css` | La **capitular** pasa de `::first-letter` a un `<span>` real: los pseudo-elementos no existen para snapdom, y el snapshot salía sin ella. |
 | **T2** | `src/vendor/mantine-book/` | Fork de la librería. `flipped` sale de la clave de captura (mitad del trabajo, gratis), caché LRU de 6 caras, la captura espera a que el hilo esté quieto, y `embedFonts: true`. Detalle en [FORK.md](src/vendor/mantine-book/FORK.md). |
 
+### Después (T1 + T2), mismo banco, mismos gestos
+
+**CPU 1× (N = 4-5)** — medianas, y `p95` sobre las mismas muestras:
+
+| Ritmo | Camino | curl antes → después | p95 antes → después |
+|---|---|---:|---:|
+| asentado | botón › | 82 → 90 ms | 209 → **108** |
+| asentado | botón ‹ | 103 → **80** ms | 148 → **89** |
+| asentado | deslizar adelante | 150 → **49** ms | **4773 → 57** |
+| asentado | deslizar atrás | 53 → 60 ms | 88 → **69** |
+| seguido | botón › | 76 → 73 ms | 102 → **80** |
+| seguido | botón ‹ | 146 → **77** ms | 222 → **86** |
+| seguido | deslizar adelante | 49 → 52 ms | 53 → 74 |
+| seguido | deslizar atrás | 70 → **51** ms | 119 → **56** |
+
+A 1× la mediana ya estaba bien y sigue bien. **Lo que se cae es la cola**: el
+peor caso pasa de 4773 ms a 57 ms.
+
+**CPU 4× (N = 3)** — aquí está lo que se arregló:
+
+| Ritmo | Camino | curl antes → después | capturas solapando |
+|---|---|---:|---:|
+| asentado | botón › | 400 → 385 ms | 0 → 0 |
+| asentado | botón ‹ | 670 → **367** ms | 0 → 0 |
+| asentado | deslizar adelante | 259 → **233** ms | 0 → 0 |
+| asentado | deslizar atrás | 229 → 232 ms | 0 → 0 |
+| seguido | botón › | **sin curl → 342 ms** | **2 → 0** |
+| seguido | botón ‹ | **sin curl → 332 ms** | **1 → 0** |
+| seguido | deslizar adelante | **sin curl → 232 ms** | **2 → 0** |
+| seguido | deslizar atrás | **sin curl → 235 ms** | **3 → 0** |
+
+Los cuatro caminos que a ritmo de lectura real **no dibujaban curl ni una vez**
+ahora lo dibujan, y sin ninguna rasterización dentro del gesto.
+
+**Memoria**, paseo por los 10 capítulos ida y vuelta:
+
+| | antes | después |
+|---|---:|---:|
+| CPU 1× | 11 → **54 MB** | 10 → **35 MB** |
+| CPU 4× | 11 → **42 MB** | 10 → **17 MB** |
+
+Guardar caras gasta MENOS memoria que no guardarlas, que suena al revés y no lo
+es: antes cada volteo rasterizaba cuatro PNG nuevos y los viejos se apilaban
+esperando al recolector.
+
+**Coste de rasterización por volteo** (ida y vuelta entre dos caras, 1×):
+**0,5 capturas y 706 ms**, contra las **4 capturas** que hacía la librería en
+cada aterrizaje (contadas en la traza: el contador pasa de 2 a 6 tras un solo
+volteo). En lectura lineal, donde cada volteo estrena hoja, el fork hace 2 —
+las dos caras de la hoja nueva— en vez de 4.
+
+### Y la tipografía, mirada (regla #1)
+
+`tests/perf/resultados/base-curl-a-mitad.png` contra `t2-curl-a-mitad.png`, las
+dos con el dedo apoyado a mitad del gesto para que la cara curvada esté quieta:
+
+| | Antes | Después |
+|---|---|---|
+| Capitular | **no aparece** | aparece |
+| Fuente del snapshot | serif del sistema (más estrecha) | Libre Baskerville |
+| Saltos de línea | **caen en otro sitio** que en la página quieta | los mismos |
+| Línea ES | «y se va» condensado | normal |
+
+Y la cara PLANA sale idéntica a la de antes: mover la capitular de
+`::first-letter` a un `<span>` no cambió un píxel de la página quieta.
+
+### T3 — el dpr del snapshot
+
+El snapshot no tiene por qué rasterizarse al mismo dpr que el render: es la
+textura de una cara que gira ~400 ms deformada sobre un cilindro, no la página
+que se lee. Medido con `tests/perf/dpr-snapshot.mjs` (dos builds, mismos gestos):
+
+| | dpr 2 | dpr 1,5 |
+|---|---:|---:|
+| PNG intermedio | 688 × 964 px, 707 kB | **516 × 723 px, 416 kB** |
+| Rasterización por volteo | 171 ms | **89 ms** |
+
+**−48 % de tiempo y −41 % de bytes.** El criterio para revertir era que la
+pérdida se notara en la **cara plana**, y la cara plana es idéntica: el render
+sigue en dpr 2, solo bajó el snapshot. Comparación lado a lado en
+`tests/perf/resultados/dpr-snapshot.png`.
+
 ---
 
 ## Cómo reproducir esto
