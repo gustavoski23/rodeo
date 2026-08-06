@@ -12,10 +12,12 @@
    del DOM. Guardar las caras ya rasterizadas es lo que corta ese trabajo.
 
    POR QUÉ ESTÁ ACOTADA. Son PNG de 688×964 (≈700 kB cada uno) más su bitmap
-   decodificado. Sin tope, hojear los 10 capítulos acumularía las 22 caras y en
-   un teléfono de 3 GB eso tumba la pestaña. TOPE = 6 caras: las dos vecinas que
-   la librería mantiene calientes, más holgura para ir y volver dentro de un
-   capítulo sin volver a rasterizar.
+   decodificado. Sin tope, hojear los 10 capítulos acumularía las 22 hojas y en
+   un teléfono de 3 GB eso tumba la pestaña. TOPE = 6 HOJAS, y una hoja son sus
+   dos caras: en el móvil eso es 6 caras de contenido más sus dorsos en blanco
+   (que son papel liso y no pesan), y en escritorio 12 caras de contenido, donde
+   además hay memoria de sobra. Seis da para las dos vecinas que la librería
+   mantiene calientes y para ir y volver dentro de un capítulo sin rasterizar.
 
    SOBRE `gl.deleteTexture()`. No aplica, y conviene dejarlo escrito para que
    nadie lo busque: el pool de la librería (Curl/webgl/pool.mjs) tiene UN solo

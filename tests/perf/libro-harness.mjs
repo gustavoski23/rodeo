@@ -272,9 +272,16 @@ export async function esperarQuietas(page, { quieto = 700, techo = 45_000 } = {}
   let n = -1;
   let desde = Date.now();
   while (Date.now() < hasta) {
-    const actual = await page.evaluate(() => window.__perf.caps.length);
-    if (actual !== n) {
-      n = actual;
+    // Se miran las TERMINADAS y las EN VUELO. Solo con las terminadas, una
+    // captura de 5 s (que a 4× es lo normal) se ve igual que no tener nada
+    // rasterizando: el contador no crece mientras corre, y el arnés daba por
+    // asentada una página con el hilo principal ocupado.
+    const { fin, vuelo } = await page.evaluate(() => ({
+      fin: window.__perf.caps.length,
+      vuelo: window.__perf.enVuelo ?? 0,
+    }));
+    if (fin !== n || vuelo > 0) {
+      n = fin;
       desde = Date.now();
     } else if (Date.now() - desde >= quieto) {
       return true;

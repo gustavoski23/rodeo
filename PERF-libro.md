@@ -152,3 +152,67 @@ Verne» describía cuándo se nota, no de dónde viene.
 | **T1** | `index.html`, `libro.css`, `views/libro/index.tsx` | Preload de las tres woff2, `font-display: block`, y el libro no abre hasta que `document.fonts` confirma las tres caras. |
 | **T1b** | `views/libro/index.tsx`, `libro.css` | La **capitular** pasa de `::first-letter` a un `<span>` real: los pseudo-elementos no existen para snapdom, y el snapshot salía sin ella. |
 | **T2** | `src/vendor/mantine-book/` | Fork de la librería. `flipped` sale de la clave de captura (mitad del trabajo, gratis), caché LRU de 6 caras, la captura espera a que el hilo esté quieto, y `embedFonts: true`. Detalle en [FORK.md](src/vendor/mantine-book/FORK.md). |
+
+---
+
+## Cómo reproducir esto
+
+```bash
+# 1. puppeteer-core va en el scratchpad, NO en el repo (LIBRO-runbook §5.1)
+mkdir -p /tmp/pptr && cd /tmp/pptr && npm init -y && npm i puppeteer-core
+
+# 2. el bundle instrumentado (producción + un cronómetro sobre snapdom)
+cd <repo> && npx vite build --config tests/perf/vite.perf.config.mjs
+
+# 3. las corridas
+export RODEO_PUPPETEER=/tmp/pptr/node_modules
+node tests/perf/medir.mjs --etiqueta loquesea       # 1×, 4× y 6×
+node tests/perf/fuentes.mjs --lenta                 # tipografía, caché fría y Slow 3G
+node tests/perf/coste-rasterizado.mjs               # con fork y sin fork, lado a lado
+node tests/perf/dpr-snapshot.mjs                    # T3: dpr 2 vs 1,5
+node tests/perf/flipping-time.mjs                   # T4: tira de fotogramas por valor
+
+# 4. y la regresión, que no necesita nada de lo anterior
+npm run build && node --test tests/mobile-performance.test.mjs
+```
+
+Todo sale en `tests/perf/resultados/` (ignorado por git: son megas de PNG y se
+regeneran corriendo lo de arriba).
+
+> **Los scripts que PARCHEAN código** —`dpr-snapshot.mjs`, `flipping-time.mjs` y
+> `coste-rasterizado.mjs`— tocan un archivo del repo, construyen, miden y lo
+> dejan como estaba, también si revientan; al terminar comprueban que volvió
+> byte a byte. Si alguno te deja el árbol sucio, es un fallo suyo: mirá
+> `git diff` antes de seguir.
+
+---
+
+## El punto de decisión, y qué haríamos si no basta
+
+El banco es headless y sin GPU: **no puede responder cuál es el p95 en el
+iPhone de Gus**. Lo que sí dice es de qué está hecho el retardo que queda, y eso
+sí viaja: con `camino` en 0 y `gl` en 0 ms, los ~50-100 ms que sobran a 1× **no
+son rasterización ni GPU** — son el ida y vuelta de React (evento → `setCara` →
+render → `queueStep` del `<Book>` → efecto del `flippedProp` → primer `rAF` del
+animador → `active` → efecto de capa → `drawElements`), o sea dos o tres frames
+de fontanería. En un teléfono con GPU y una CPU 3-5× más rápida que este banco,
+eso son ~16-33 ms.
+
+**Si al probarlo en el teléfono el p95 se queda por encima de ~120 ms**, la
+siguiente palanca NO es seguir optimizando el snapshot: es cambiar de técnica.
+
+### La alternativa: doblez con CSS 3D sobre el DOM real
+
+`rotateY` + `backface-visibility` sobre las caras vivas, sin WebGL y sin
+snapshot.
+
+| Se gana | Se pierde |
+|---|---|
+| **Cero rasterización.** No hay snapdom, no hay PNG de 700 kB, no hay caché que acotar ni que invalidar. | **El curl suave se va.** Queda un pliegue rígido de cartulina, no una hoja que se enrolla. Es el efecto que Gus dijo que quería conservar. |
+| **El problema de la tipografía desaparece de raíz**, con él la capitular y el `embedFonts`: la cara que gira ES el DOM. | Hay que rehacer la sombra y el brillo a mano; el shader hoy los calcula por normal de superficie. |
+| **El texto sigue vivo mientras gira**: las glosas se pueden tocar sin hitboxes encima. | El compositor tiene que promover cada cara a su capa; con 22 hojas hay que vigilar la memoria de texturas del compositor, que no se mide con `performance.memory`. |
+| Se acaba el pooling de contextos WebGL y su modo degradado. | Safari compone el 3D distinto: hay que volver a probar los tres casos táctiles desde cero. |
+
+**No está implementada y no debería implementarse sin discutirlo**: cambia el
+efecto que motivó elegir esta librería. La decisión es de Gus, no de la
+medición.

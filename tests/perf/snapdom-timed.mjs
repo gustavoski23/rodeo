@@ -19,6 +19,13 @@ export const snapdom = new Proxy(real, {
     if (clave !== 'toPng') return Reflect.get(destino, clave, receptor);
     return async (nodo, opciones) => {
       const t0 = performance.now();
+      /* Contador de rasterizaciones EN VUELO. Sin él, el arnés no distingue
+         «no hay nada rasterizando» de «hay una captura de 5 s corriendo»: en
+         los dos casos el número de capturas TERMINADAS deja de crecer, y
+         `esperarQuietas` daba por asentada una página que en realidad tenía el
+         hilo principal ocupado. Eso ensuciaba justo la columna «asentado». */
+      const p0 = bolsa();
+      p0.enVuelo = (p0.enVuelo ?? 0) + 1;
       let img;
       try {
         img = await real.toPng(nodo, opciones);
@@ -27,6 +34,7 @@ export const snapdom = new Proxy(real, {
         // lo lee como "WebGL no disponible" y se cae al pliegue plano PARA
         // SIEMPRE. Sin dejar rastro aquí, una medición del curl acabaría
         // midiendo el DOM sin enterarse.
+        p0.enVuelo--;
         (bolsa().caps ??= []).push({ t0, t1: performance.now(), ms: -1, error: String(e?.message ?? e) });
         throw e;
       }
@@ -40,6 +48,7 @@ export const snapdom = new Proxy(real, {
       }
       const t1 = performance.now();
       const p = bolsa();
+      p.enVuelo--;
       (p.caps ??= []).push({ t0, t1, ms: t1 - t0, dpr: opciones?.dpr ?? null });
       return img;
     };
