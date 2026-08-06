@@ -19,6 +19,7 @@ import { callJSON } from '@/lib/api';
 import { getDNA } from '@/lib/dna';
 import { store } from '@/lib/storage';
 import { NOTA_STT_BILINGUE } from '@/lib/speech';
+import { ESPANOL_NEUTRO_EN } from '@/lib/espanol-neutro';
 
 /* ── Contexto del usuario (L3044-3061) ────────────────────────────────────
    El viejo los cacheaba en `state`; aquí se leen de su clave en cada uso, que
@@ -48,6 +49,27 @@ export function nivelUsuario(): string {
 /** Área/trabajo del onboarding. '' si nunca lo dio. */
 export function areaUsuario(): string {
   return String(store.get<string>('rodeo_area', '') || '').trim();
+}
+
+/* RETRATO DEL ALUMNO, armado con lo que contestó ÉL.
+
+   Antes esta línea estaba escrita a mano y decía «is Venezuelan, lives in
+   Medellín, Colombia, … for work (crypto/tech startup)». Era el perfil de Gus
+   incrustado en el código: a Migue, que la abrió desde Chile, el coach le
+   hablaba de una ciudad donde no vive y de un sector que no es el suyo.
+
+   El onboarding pregunta nombre, idioma, nivel, intereses y área — NO pregunta
+   de dónde es nadie. Así que aquí no se inventa una ubicación ni se cambia una
+   por otra: sencillamente no se menciona. Lo que sí dio el usuario entra; lo
+   que no dio, se calla. Un dato de menos no rompe el prompt; uno inventado sí
+   rompe la confianza. */
+export function retratoAlumno(nivel?: string): string {
+  const nom = nombreUsuario() || 'Gus';
+  const area = areaUsuario();
+  const trabajo = area ? ` works in ${area},` : '';
+  return (nivel ?? nivelUsuario()) === 'A1'
+    ? `${nom} is a Spanish speaker,${trabajo} absolute beginner A1 — they barely know any English.`
+    : `${nom} is a Spanish speaker,${trabajo} level B2+ working toward C1 for work and daily life.`;
 }
 
 /* ── Memoria A1 — inyección en prompts ──────────────────────────────────
@@ -247,9 +269,7 @@ export function talkSystemPrompt(scenarioPrompt: string, sit: Situacion, avoidOp
       : '';
   const nom = nombreUsuario() || 'Gus';
   const esA1 = nivel === 'A1';
-  const nivelDesc = esA1
-    ? `${nom} is Venezuelan, lives in Medellín, Colombia, absolute beginner A1 — they barely know any English.`
-    : `${nom} is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life.`;
+  const nivelDesc = retratoAlumno(esA1 ? 'A1' : nivel);
 
   return `You are ${nom}'s conversation partner inside RODEO, a personal English trainer. ${nivelDesc} Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
 
@@ -284,6 +304,8 @@ CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
 - To underline the tricky part, wrap it INSIDE "reply" with these EXACT markers: ⟦english chunk||explicación corta y cercana, en español⟧. The explanation is contextual and buddy-style, the way a bilingual friend riffs — NEVER a grammar book. GOOD: ⟦three times in a row||así dicen los gringos eso de "X veces seguidas" — sirve para intentos, días, victorias, lo que sea⟧. BAD: "estructura adverbial de frecuencia".
 - Use the SAME ⟦english||español⟧ markers when you fold a correction into your reply, or when you drop an idiom / phrasal verb he probably won't fully catch. AT MOST 1-2 marked chunks per reply, and ONLY when it truly helps — most casual turns have zero.
 - The markers are the ONLY place Spanish may appear inside "reply"; everything else stays natural English. NEVER leave a ⟦ or a ⟧ unmatched, and never mark the same phrase both inline with ⟦||⟧ and again in the glosses array.
+
+${ESPANOL_NEUTRO_EN}
 ${SOBRE_LA_APP}
 
 SPEED: do NOT deliberate or plan before answering. No preamble, no reasoning.

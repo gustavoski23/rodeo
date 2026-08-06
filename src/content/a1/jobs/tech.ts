@@ -2,13 +2,13 @@
 
    El tronco (A1_CURSO) te enseña a llegar, saludar y sobrevivir la reunión.
    Este pack es lo que se dice DESPUÉS: el standup de las 9, el bug que se te
-   coló a producción y el "prestame un ojo" cuando ya llevás dos horas pegado.
+   coló a producción y el "prestame un ojo" cuando ya llevas dos horas pegado.
 
    Los ids de chunk van prefijados con `c-tech-` a propósito: son la llave del
    SRS (rodeo_a1_srs) y no pueden chocar nunca con los del tronco. Renombrar
    uno le borra el progreso a quien ya lo tenía.
 
-   Voz: Alfred, paisa, voseo. why_es SIEMPRE con analogía y sin metalenguaje. */
+   Voz: Alfred, español latino neutro. why_es SIEMPRE con analogía y sin metalenguaje. */
 
 import type { JobPack } from '@/content/a1/tipos';
 
@@ -18,9 +18,9 @@ export const PACK_TECH: JobPack = {
   promesa_es: 'Sobrevivir el standup, reportar un bug y pedir ayuda sin quedar de mudo.',
   emoji: '💻',
   intro_es: [
-    'Ah, vos sos de los que programan. Fresco, ese inglés es más fácil de lo que parece.',
-    'La mitad de las palabras ya las decís en español: bug, deploy, push, build. Lo que falta es la frasecita alrededor.',
-    'Te doy el standup, el reporte del bug y el "echame una mano". Con eso pasás la semana.',
+    'Ah, tú eres de los que programan. Fresco, ese inglés es más fácil de lo que parece.',
+    'La mitad de las palabras ya las dices en español: bug, deploy, push, build. Lo que falta es la frasecita alrededor.',
+    'Te doy el standup, el reporte del bug y el "echame una mano". Con eso pasas la semana.',
   ],
   units: [
     {
@@ -28,7 +28,7 @@ export const PACK_TECH: JobPack = {
       order: 101,
       title_es: 'El día a día del dev',
       subtitle_es: 'Standup, bugs y pedir una mano.',
-      arc_es: 'Ya no sos el que asiente en el standup. Ahora hablás y te entienden.',
+      arc_es: 'Ya no eres el que asiente en el standup. Ahora hablas y te entienden.',
       emoji: '🐛',
       cardTheme: 'blue',
       icon: '💻',
@@ -45,7 +45,7 @@ export const PACK_TECH: JobPack = {
           scene_es: 'Todos parados en círculo (o en el Meet) y te toca hablar 30 segundos.',
           icon: '⏱️',
           setup_es: [
-            'El standup es cortico y siempre igual: qué hiciste ayer, qué hacés hoy, qué te tiene trabado.',
+            'El standup es cortico y siempre igual: qué hiciste ayer, qué haces hoy, qué te tiene trabado.',
             'Tres frases y ya. Ni una más, que el que se alarga en el standup cae mal.',
           ],
           analogy_es: 'El standup es como el parte del vigilante al cambiar el turno: lo de anoche, lo de hoy y qué quedó dañado. Nadie pide la novela completa.',
@@ -55,7 +55,7 @@ export const PACK_TECH: JobPack = {
               en: 'Yesterday I worked on the login.',
               es: 'Ayer trabajé en el login.',
               sounds_es: 'iésterdei ái guórkt on de lóguin',
-              why_es: 'La primera de las tres del standup, y siempre arranca igual: "Yesterday I worked on…". Le colgás al final lo que tocaste ayer y listo. Es un molde, no una frase que haya que inventar cada mañana.',
+              why_es: 'La primera de las tres del standup, y siempre arranca igual: "Yesterday I worked on…". Le cuelgas al final lo que tocaste ayer y listo. Es un molde, no una frase que haya que inventar cada mañana.',
               sayWhen_es: 'En el standup, contando lo de ayer.',
               who_es: 'con el equipo',
               frame: 'Yesterday I worked on ___.',
@@ -87,8 +87,8 @@ export const PACK_TECH: JobPack = {
               en: "I'm blocked on this.",
               es: 'Estoy trabado con esto.',
               sounds_es: 'áim blókt on dis',
-              why_es: 'La tercera del standup, y la más importante. Decir que estás trabado NO es confesar que sos malo: es prender la luz del carro varado pa\' que alguien pare a ayudarte. El que se queda callado dos días es el que queda mal.',
-              sayWhen_es: 'Cuando algo te tiene detenido y necesitás que lo sepan.',
+              why_es: 'La tercera del standup, y la más importante. Decir que estás trabado NO es confesar que eres malo: es prender la luz del carro varado pa\' que alguien pare a ayudarte. El que se queda callado dos días es el que queda mal.',
+              sayWhen_es: 'Cuando algo te tiene detenido y necesitas que lo sepan.',
               who_es: 'con el equipo',
               frame: null,
               swaps: null,
@@ -103,7 +103,7 @@ export const PACK_TECH: JobPack = {
               en: 'No blockers on my side.',
               es: 'Por mi lado, nada trabado.',
               sounds_es: 'nou blókers on mái sáid',
-              why_es: 'La respuesta de "todo bien, sigo". "On my side" es "por mi lado": marcás tu pedacito de cancha y no respondés por el de los demás. Cortica, y cerrás tu turno sin enredarte.',
+              why_es: 'La respuesta de "todo bien, sigo". "On my side" es "por mi lado": marcas tu pedacito de cancha y no respondes por el de los demás. Cortica, y cierras tu turno sin enredarte.',
               sayWhen_es: 'En el standup, cuando nada te detiene.',
               who_es: 'con el equipo',
               frame: null,
@@ -126,7 +126,7 @@ export const PACK_TECH: JobPack = {
             'Se rompió algo. Lo primero no es arreglarlo: es AVISAR, y avisar clarito.',
             'Y sí, la frase mítica del "en mi máquina sí funciona" también te la enseño. Se usa, pero con cuidado.',
           ],
-          analogy_es: 'Reportar un bug es como avisar de una fuga de agua: decís QUÉ se moja y DÓNDE. Si solo gritás "¡ayuda!", el plomero llega y no sabe ni por dónde empezar.',
+          analogy_es: 'Reportar un bug es como avisar de una fuga de agua: dices QUÉ se moja y DÓNDE. Si solo gritas "¡ayuda!", el plomero llega y no sabe ni por dónde empezar.',
           chunks: [
             {
               id: 'c-tech-found-a-bug',
@@ -134,7 +134,7 @@ export const PACK_TECH: JobPack = {
               es: 'Encontré un bug en producción.',
               sounds_es: 'ái fáund a bag in prodákshon',
               why_es: '"bug" es bicho: el gringo se imagina un animalito metido en la máquina dañándola. Decilo con el DÓNDE pegado (in production, in the login) — sin el dónde, el aviso no sirve pa\' nada.',
-              sayWhen_es: 'Cuando encontrás algo roto y toca avisar.',
+              sayWhen_es: 'Cuando encuentras algo roto y toca avisar.',
               who_es: 'con el equipo',
               frame: 'I found a bug in ___.',
               swaps: ['production', 'the login', 'the app'],
@@ -149,7 +149,7 @@ export const PACK_TECH: JobPack = {
               en: 'The build is not working.',
               es: 'El build no está funcionando.',
               sounds_es: 'de bild is not guórkin',
-              why_es: 'Tu molde pa\' decir que algo NO sirve, sin drama y sin culpar a nadie. Le cambiás el sujeto —the build, the app, the server— y ya tenés reporte pa\' cualquier cosa que se caiga.',
+              why_es: 'Tu molde pa\' decir que algo NO sirve, sin drama y sin culpar a nadie. Le cambias el sujeto —the build, the app, the server— y ya tienes reporte pa\' cualquier cosa que se caiga.',
               sayWhen_es: 'Cuando algo dejó de funcionar.',
               who_es: 'con el equipo',
               frame: '___ is not working.',
@@ -165,9 +165,9 @@ export const PACK_TECH: JobPack = {
               en: 'It works on my machine.',
               es: 'En mi máquina sí funciona.',
               sounds_es: 'it guórks on mái mashín',
-              why_es: 'El chiste más viejo del gremio, y por eso hay que decirlo con sonrisa. Solita suena a "el problema es tuyo"; pegale un "let\'s check together" detrás y pasás de escurrir el bulto a ser el que ayuda.',
-              sayWhen_es: 'Cuando a vos te corre bien y al otro no.',
-              who_es: 'con el parcero',
+              why_es: 'El chiste más viejo del gremio, y por eso hay que decirlo con sonrisa. Solita suena a "el problema es tuyo"; pegale un "let\'s check together" detrás y pasas de escurrir el bulto a ser el que ayuda.',
+              sayWhen_es: 'Cuando a ti te corre bien y al otro no.',
+              who_es: 'con un compañero',
               frame: null,
               swaps: null,
               distractors_es: ['It work on my machine.', 'It works in my machine.'],
@@ -179,10 +179,10 @@ export const PACK_TECH: JobPack = {
             {
               id: 'c-tech-can-you-reproduce',
               en: 'Can you reproduce it?',
-              es: '¿Lo podés reproducir?',
+              es: '¿Lo puedes reproducir?',
               sounds_es: 'kan iú riprodiús it',
               why_es: '"reproduce" acá es volver a hacer que pase, como repetir la jugada en cámara lenta pa\' ver dónde se cayó. Si el bug no se repite, no hay qué arreglar: por eso esta pregunta es la primera de toda investigación.',
-              sayWhen_es: 'Cuando te reportan algo y necesitás verlo pasar.',
+              sayWhen_es: 'Cuando te reportan algo y necesitas verlo pasar.',
               who_es: 'con el equipo',
               frame: null,
               swaps: null,
@@ -198,22 +198,22 @@ export const PACK_TECH: JobPack = {
           id: 'job-tech-s3-ayuda',
           order: 3,
           title_es: 'Pedir una mano con el código',
-          scene_es: 'Llevás dos horas pegado en lo mismo. Toca pedir ayuda.',
+          scene_es: 'Llevas dos horas pegado en lo mismo. Toca pedir ayuda.',
           icon: '🤝',
           setup_es: [
             'Dos horas pegado en lo mismo ya es demasiado. Acá pedir ayuda no es rendirse, es sentido común.',
-            'Tres frases: que te miren, que se sienten con vos, y avisar cuando ya lo arreglaste.',
+            'Tres frases: que te miren, que se sienten contigo, y avisar cuando ya lo arreglaste.',
           ],
-          analogy_es: 'Pedir que te miren el código es como pedirle a alguien que relea tu mensaje antes de mandarlo: vos ya no ves el error porque llevás una hora mirándolo. Ojos frescos lo cazan en diez segundos.',
+          analogy_es: 'Pedir que te miren el código es como pedirle a alguien que relea tu mensaje antes de mandarlo: tú ya no ves el error porque llevas una hora mirándolo. Ojos frescos lo cazan en diez segundos.',
           chunks: [
             {
               id: 'c-tech-take-a-look',
               en: 'Can you take a look?',
-              es: '¿Le podés echar un ojo?',
+              es: '¿Le puedes echar un ojo?',
               sounds_es: 'kan iú téik a luk',
               why_es: 'El "echame un ojo" de toda la vida. Pide poquito —una mirada, no que te resuelvan el día— y por eso casi nadie te dice que no. Es la forma más barata de pedir ayuda que existe.',
-              sayWhen_es: 'Cuando querés que alguien te revise algo.',
-              who_es: 'con el parcero',
+              sayWhen_es: 'Cuando quieres que alguien te revise algo.',
+              who_es: 'con un compañero',
               frame: null,
               swaps: null,
               distractors_es: ['Can you take a see?', 'Can you look a take?'],
@@ -227,9 +227,9 @@ export const PACK_TECH: JobPack = {
               en: 'Can we pair on this?',
               es: '¿Lo hacemos juntos?',
               sounds_es: 'kan güi per on dis',
-              why_es: '"pair" es de a dos, como bailar: uno maneja el teclado y el otro va viendo el camino. Pedirlo no es pedir que te lo hagan — es pedir compañía mientras vos manejás.',
-              sayWhen_es: 'Cuando querés resolver algo acompañado.',
-              who_es: 'con el parcero',
+              why_es: '"pair" es de a dos, como bailar: uno maneja el teclado y el otro va viendo el camino. Pedirlo no es pedir que te lo hagan — es pedir compañía mientras tú manejas.',
+              sayWhen_es: 'Cuando quieres resolver algo acompañado.',
+              who_es: 'con un compañero',
               frame: null,
               swaps: null,
               distractors_es: ['Can we pair in this?', 'Can we pair this?'],
@@ -243,7 +243,7 @@ export const PACK_TECH: JobPack = {
               en: 'I pushed the fix.',
               es: 'Ya subí el arreglo.',
               sounds_es: 'ái pusht de fix',
-              why_es: 'El aviso de "listo, ya está arriba". Cortica y con peso: cierra el asunto y le dice al equipo que puede seguir. Sin este aviso, el bug sigue vivo en la cabeza de todos aunque vos ya lo hayás matado.',
+              why_es: 'El aviso de "listo, ya está arriba". Cortica y con peso: cierra el asunto y le dice al equipo que puede seguir. Sin este aviso, el bug sigue vivo en la cabeza de todos aunque tú ya lo hayas matado.',
               sayWhen_es: 'Cuando ya subiste la solución.',
               who_es: 'con el equipo',
               frame: 'I pushed the ___.',
@@ -262,7 +262,7 @@ export const PACK_TECH: JobPack = {
         intro_es: 'Bueno, son las 9 y arranca el standup. Después se cae algo. Día normal, pues…',
         steps: [
           {
-            goal_es: 'Te toca tu turno en el standup. Contá en qué andás hoy.',
+            goal_es: 'Te toca tu turno en el standup. Cuenta en qué andas hoy.',
             answerChunkId: 'c-tech-today-working-on',
             reaction_es: '¡Eso! Treinta segundos y ya cumpliste.',
           },
@@ -272,12 +272,12 @@ export const PACK_TECH: JobPack = {
             reaction_es: 'Perfecto, y con el "in production" pegado. Así saben dónde buscar.',
           },
           {
-            goal_es: 'Llevás dos horas pegado. Pedile a alguien que te revise.',
+            goal_es: 'Llevas dos horas pegado. Pedile a alguien que te revise.',
             answerChunkId: 'c-tech-take-a-look',
-            reaction_es: 'De una, parce. Dos horas pegado ya es mucho — y nadie te va a decir que no.',
+            reaction_es: 'De una. Dos horas pegado ya es mucho — y nadie te va a decir que no.',
           },
         ],
-        done_es: 'Ya sabés MOVERTE COMO DEV EN INGLÉS. ✓',
+        done_es: 'Ya sabes MOVERTE COMO DEV EN INGLÉS. ✓',
       },
     },
   ],

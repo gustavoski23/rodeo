@@ -7,7 +7,7 @@
    Los ids van prefijados con `c-ven-`: son la llave del SRS (rodeo_a1_srs) y
    no pueden chocar con los del tronco ni con los de otro pack.
 
-   Voz: Alfred, paisa, voseo. why_es SIEMPRE con analogía y sin metalenguaje. */
+   Voz: Alfred, español latino neutro. why_es SIEMPRE con analogía y sin metalenguaje. */
 
 import type { JobPack } from '@/content/a1/tipos';
 
@@ -17,9 +17,9 @@ export const PACK_VENTAS: JobPack = {
   promesa_es: 'Presentar el producto, hablar de plata y cerrar la llamada sin sudar.',
   emoji: '📈',
   intro_es: [
-    'Uy, ventas. Vos ya sabés vender, parce — lo que te falta es el idioma, no la maña.',
+    'Uy, ventas. Tú ya sabes vender — lo que te falta es el idioma, no la maña.',
     'Y en inglés la venta es un guion cortico: qué hacemos, cuánto vale, ¿arrancamos?, y el "te escribo el viernes".',
-    'Te doy esas cuatro puertas. Lo de convencer ya lo tenés vos.',
+    'Te doy esas cuatro puertas. Lo de convencer ya lo tienes tú.',
   ],
   units: [
     {
@@ -27,34 +27,34 @@ export const PACK_VENTAS: JobPack = {
       order: 102,
       title_es: 'La llamada de venta, de punta a punta',
       subtitle_es: 'Del "hola" al "te escribo el viernes".',
-      arc_es: 'Entrás a la llamada con el guion en la mano. Salís con un próximo paso.',
+      arc_es: 'Entras a la llamada con el guion en la mano. Sales con un próximo paso.',
       emoji: '🤝',
       cardTheme: 'green',
       icon: '📞',
       survival: false,
       companionSetup_es: [
-        'Una llamada de venta tiene tres tramos: mostrás, hablás de plata, y cerrás con un próximo paso.',
-        'Si te aprendés uno por tramo ya podés sostener la llamada entera. Vamos por partes.',
+        'Una llamada de venta tiene tres tramos: muestras, hablas de plata, y cierras con un próximo paso.',
+        'Si te aprendes uno por tramo ya puedes sostener la llamada entera. Vamos por partes.',
       ],
       scenes: [
         {
           id: 'job-ventas-s1-presentar',
           order: 1,
           title_es: 'Presentar el producto',
-          scene_es: 'Se abre la llamada. Tenés dos minutos pa\' que entiendan qué vendés.',
+          scene_es: 'Se abre la llamada. Tienes dos minutos pa\' que entiendan qué vendes.',
           icon: '✨',
           setup_es: [
-            'Los primeros dos minutos no son pa\' lucirte: son pa\' que el otro entienda qué le vendés.',
-            'Fijate que las tres frases hablan del CLIENTE, no del producto. Ese es el truco.',
+            'Los primeros dos minutos no son pa\' lucirte: son pa\' que el otro entienda qué le vendes.',
+            'Fíjate que las tres frases hablan del CLIENTE, no del producto. Ese es el truco.',
           ],
-          analogy_es: 'Presentar el producto es como mostrar una casa: no arrancás con los metros cuadrados, arrancás con "mirá la luz que entra por acá". Primero lo que gana el otro, después la ficha técnica.',
+          analogy_es: 'Presentar el producto es como mostrar una casa: no arrancas con los metros cuadrados, arrancas con "mira la luz que entra por acá". Primero lo que gana el otro, después la ficha técnica.',
           chunks: [
             {
               id: 'c-ven-let-me-show-you',
               en: 'Let me show you what we do.',
               es: 'Te muestro qué hacemos.',
               sounds_es: 'let mi shóu iú guát güi du',
-              why_es: 'Tu puerta de entrada, suavecita. "Let me…" es pedir permiso y arrancar en el mismo movimiento — como cuando abrís la puerta del carro y decís "subite, te llevo". No preguntás si querés mostrar: ya estás mostrando.',
+              why_es: 'Tu puerta de entrada, suavecita. "Let me…" es pedir permiso y arrancar en el mismo movimiento — como cuando abres la puerta del carro y dices "subite, te llevo". No preguntas si quieres mostrar: ya estás mostrando.',
               sayWhen_es: 'Al arrancar la presentación del producto.',
               who_es: 'con el cliente',
               frame: 'Let me show you ___.',
@@ -71,7 +71,7 @@ export const PACK_VENTAS: JobPack = {
               es: 'Te ayuda a ahorrar tiempo.',
               sounds_es: 'it jelps iú séiv táim',
               why_es: 'La frase que convierte el producto en un beneficio. Ojo al orden: primero el CLIENTE ("you") y después lo que gana. Nadie compra un taladro: compra el hueco en la pared.',
-              sayWhen_es: 'Cuando explicás para qué le sirve al cliente.',
+              sayWhen_es: 'Cuando explicas para qué le sirve al cliente.',
               who_es: 'con el cliente',
               frame: 'It helps you ___.',
               swaps: ['save time', 'save money', 'sell more'],
@@ -84,9 +84,9 @@ export const PACK_VENTAS: JobPack = {
             {
               id: 'c-ven-any-questions',
               en: 'Do you have any questions?',
-              es: '¿Tenés alguna pregunta?',
+              es: '¿Tienes alguna pregunta?',
               sounds_es: 'du iú jav éni kuéschons',
-              why_es: 'El respiro que separa tu discurso de la conversación de verdad. Si no lo hacés, seguís hablando solo y no te enterás de que el otro se perdió hace rato. Es abrir la ventana pa\' que entre aire.',
+              why_es: 'El respiro que separa tu discurso de la conversación de verdad. Si no lo haces, sigues hablando solo y no te enteras de que el otro se perdió hace rato. Es abrir la ventana pa\' que entre aire.',
               sayWhen_es: 'Al terminar de explicar, antes de seguir.',
               who_es: 'con el cliente',
               frame: null,
@@ -116,7 +116,7 @@ export const PACK_VENTAS: JobPack = {
               en: "It's fifty dollars per month.",
               es: 'Son cincuenta dólares al mes.',
               sounds_es: 'its fífti dólars per manz',
-              why_es: 'El precio, derechito y sin adornos. "per month" es el "al mes" de la factura del gas: cambiás el número y sirve pa\' cualquier plan. Decilo completo y hacé silencio — el silencio después del precio es parte de la venta.',
+              why_es: 'El precio, derechito y sin adornos. "per month" es el "al mes" de la factura del gas: cambias el número y sirve pa\' cualquier plan. Decilo completo y haz silencio — el silencio después del precio es parte de la venta.',
               sayWhen_es: 'Cuando te preguntan cuánto vale.',
               who_es: 'con el cliente',
               frame: "It's ___ per month.",
@@ -132,8 +132,8 @@ export const PACK_VENTAS: JobPack = {
               en: 'We can offer a discount.',
               es: 'Podemos darte un descuento.',
               sounds_es: 'güi kan ófer a discáunt',
-              why_es: 'Fijate que dice "we", no "I": el descuento lo da la empresa, no vos de tu bolsillo. Eso te protege — no quedás de blandito ni te lo van a pedir cada vez que hablen con vos.',
-              sayWhen_es: 'Cuando el precio le aprieta y podés ceder un poco.',
+              why_es: 'Fíjate que dice "we", no "I": el descuento lo da la empresa, no tú de tu bolsillo. Eso te protege — no quedas de blandito ni te lo van a pedir cada vez que hablen contigo.',
+              sayWhen_es: 'Cuando el precio le aprieta y puedes ceder un poco.',
               who_es: 'con el cliente',
               frame: null,
               swaps: null,
@@ -148,7 +148,7 @@ export const PACK_VENTAS: JobPack = {
               en: 'Does that fit your budget?',
               es: '¿Eso te cabe en el presupuesto?',
               sounds_es: 'das dat fit iór bádyet',
-              why_es: '"fit" es caber, como un zapato. En vez de preguntar "¿lo vas a comprar?" —que asusta— preguntás si le queda cómodo. Es la misma pregunta con guantes, y el otro te contesta la verdad.',
+              why_es: '"fit" es caber, como un zapato. En vez de preguntar "¿lo vas a comprar?" —que asusta— preguntas si le queda cómodo. Es la misma pregunta con guantes, y el otro te contesta la verdad.',
               sayWhen_es: 'Después de decir el precio, pa\' medir la reacción.',
               who_es: 'con el cliente',
               frame: null,
@@ -178,7 +178,7 @@ export const PACK_VENTAS: JobPack = {
               en: 'Are you ready to start?',
               es: '¿Arrancamos?',
               sounds_es: 'ar iú rédi tu start',
-              why_es: 'El cierre, y suena a invitación en vez de a presión. No pregunta "¿me comprás?", pregunta si ya está listo — como cuando el taxi ya está abajo y solo falta que bajés. La decisión ya se ve tomada.',
+              why_es: 'El cierre, y suena a invitación en vez de a presión. No pregunta "¿me compras?", pregunta si ya está listo — como cuando el taxi ya está abajo y solo falta que bajes. La decisión ya se ve tomada.',
               sayWhen_es: 'Cuando ves que ya está convencido.',
               who_es: 'con el cliente',
               frame: null,
@@ -195,7 +195,7 @@ export const PACK_VENTAS: JobPack = {
               es: 'Te mando la propuesta hoy.',
               sounds_es: 'áil send iú de propóusal tudéi',
               why_es: 'Una promesa con fecha pegada. Sin el "today" la frase se vuelve humo y la propuesta se te queda en borradores. Poner el cuándo es lo que la convierte en compromiso.',
-              sayWhen_es: 'Cuando quedás de mandar algo por escrito.',
+              sayWhen_es: 'Cuando quedas de mandar algo por escrito.',
               who_es: 'con el cliente',
               frame: "I'll send you the proposal ___.",
               swaps: ['today', 'tomorrow', 'this week'],
@@ -210,7 +210,7 @@ export const PACK_VENTAS: JobPack = {
               en: "I'll follow up on Friday.",
               es: 'Te escribo el viernes.',
               sounds_es: 'áil fólou ap on fráidei',
-              why_es: '"follow up" es seguirle el rastro al asunto pa\' que no se enfríe. Decir el día exacto es lo que te salva: el cliente sabe cuándo esperar tu mensaje y vos ya no quedás de intenso cuando llegue.',
+              why_es: '"follow up" es seguirle el rastro al asunto pa\' que no se enfríe. Decir el día exacto es lo que te salva: el cliente sabe cuándo esperar tu mensaje y tú ya no quedas de intenso cuando llegue.',
               sayWhen_es: 'Al cerrar la llamada, poniendo fecha al siguiente contacto.',
               who_es: 'con el cliente',
               frame: "I'll follow up on ___.",
@@ -226,7 +226,7 @@ export const PACK_VENTAS: JobPack = {
               en: 'Thanks for your time today.',
               es: 'Gracias por tu tiempo hoy.',
               sounds_es: 'zanks for iór táim tudéi',
-              why_es: 'El cierre elegante, compre o no compre. Le agradecés el TIEMPO, que es lo único que seguro te dio. Con esa frase la puerta queda abierta pa\' volver en tres meses sin pena.',
+              why_es: 'El cierre elegante, compre o no compre. Le agradeces el TIEMPO, que es lo único que seguro te dio. Con esa frase la puerta queda abierta pa\' volver en tres meses sin pena.',
               sayWhen_es: 'Al despedirte de una llamada de venta.',
               who_es: 'con el cliente',
               frame: null,
@@ -242,25 +242,25 @@ export const PACK_VENTAS: JobPack = {
       ],
       task: {
         id: 'job-ventas-u1-task',
-        intro_es: 'Listo, se abre el Zoom y del otro lado hay un cliente gringo. Tranquilo, vos ya sabés vender…',
+        intro_es: 'Listo, se abre el Zoom y del otro lado hay un cliente gringo. Tranquilo, tú ya sabes vender…',
         steps: [
           {
-            goal_es: 'Arranca la llamada. Abrí mostrando qué hacen ustedes.',
+            goal_es: 'Arranca la llamada. Abre mostrando qué hacen ustedes.',
             answerChunkId: 'c-ven-let-me-show-you',
             reaction_es: '¡Eso! Entraste sin pedir permiso dos veces.',
           },
           {
-            goal_es: 'Te preguntan cuánto vale. Decí el precio del plan mensual.',
+            goal_es: 'Te preguntan cuánto vale. Di el precio del plan mensual.',
             answerChunkId: 'c-ven-price-per-month',
             reaction_es: 'Derechito y sin temblar. Así se dice la plata.',
           },
           {
-            goal_es: 'Se acaba la llamada y quedó interesado. Amarrá el próximo contacto.',
+            goal_es: 'Se acaba la llamada y quedó interesado. Amarra el próximo contacto.',
             answerChunkId: 'c-ven-follow-up-friday',
-            reaction_es: 'Perfecto, parce. Con fecha puesta, esa venta no se enfría.',
+            reaction_es: 'Perfecto. Con fecha puesta, esa venta no se enfría.',
           },
         ],
-        done_es: 'Ya sabés SOSTENER UNA LLAMADA DE VENTA EN INGLÉS. ✓',
+        done_es: 'Ya sabes SOSTENER UNA LLAMADA DE VENTA EN INGLÉS. ✓',
       },
     },
   ],

@@ -10,7 +10,7 @@ import { tokenTema } from './mapa';
 /* PORTADA DE UNIDAD — la antesala entre el mapa y el loop.
 
    Acá vive `companionSetup_es`: las dos líneas con las que Alfred presenta la
-   situación completa ("bueno, primer día, respirá…"). El legacy nunca las
+   situación completa ("bueno, primer día, respira…"). El legacy nunca las
    pintó y por eso se sentía que uno caía en la escena 1 sin que nadie le
    dijera en qué se estaba metiendo. Un principiante necesita saber a qué
    entra ANTES de que aparezca la primera palabra en inglés.

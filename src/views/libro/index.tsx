@@ -901,7 +901,7 @@ export default function LibroView() {
       const dy = e.clientY - ini.y;
       const k = caraRef.current;
 
-      // Quieto = tap. En la portada, abre. (El botón «tocá para abrir» tiene
+      // Quieto = tap. En la portada, abre. (El botón «toca para abrir» tiene
       // su propio click; no hay que contarlo dos veces.)
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
         if (k === 0 && !(e.target as HTMLElement).closest?.('.libro-abrir')) irLuego(1);
@@ -928,8 +928,8 @@ export default function LibroView() {
   const pie =
     cara === 0
       ? movil
-        ? 'Portada · tocá para abrir'
-        : 'Portada · arrastrá o tocá para abrir'
+        ? 'Portada · toca para abrir'
+        : 'Portada · arrastra o toca para abrir'
       : cara >= TOTAL - 1
         ? 'Fin · The End'
         : capActual
@@ -1167,7 +1167,7 @@ export default function LibroView() {
                     <ChevronRight strokeWidth={2.4} />
                   </div>
                   <button type="button" className="libro-abrir" onClick={() => ir(1)} aria-label="Abrir el libro">
-                    <i>tocá para abrir</i>
+                    <i>toca para abrir</i>
                     <ChevronRight strokeWidth={2.6} />
                   </button>
                 </>

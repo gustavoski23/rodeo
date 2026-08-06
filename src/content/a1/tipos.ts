@@ -39,7 +39,7 @@ export type A1Scene = {
   title_es: string;
   scene_es: string;
   icon: string;
-  /** Alfred presenta la escena (2 líneas, voseo paisa). */
+  /** Alfred presenta la escena (2 líneas, español latino neutro). */
   setup_es: string[];
   analogy_es: string;
   chunks: A1Chunk[];

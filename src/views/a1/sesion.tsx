@@ -33,10 +33,10 @@ import { BotonAudio, FraseCard, Molde } from './frase-card';
    (segmentación: el principiante no puede con dos cosas a la vez):
 
      1 ESCENA        Alfred monta la situación. CERO inglés todavía.
-     2 ANTICIPACIÓN  el silencio incómodo — intentás decirlo antes de verlo.
+     2 ANTICIPACIÓN  el silencio incómodo — intentas decirlo antes de verlo.
      3 REVEAL        la frase, grande, y sonando de verdad.
      4 EL PORQUÉ     la analogía y el molde: por qué se dice así.
-     5 SHADOWING     la producís en voz alta, sin nota y sin nadie oyendo.
+     5 SHADOWING     la produces en voz alta, sin nota y sin nadie oyendo.
      6 AUTOEVAL      Clavado / Casi / Todavía no — y el SRS mueve la caja.
 
    El paso 2 cambia de forma según la caja Leitner (el "rung"): la primera vez
@@ -45,7 +45,7 @@ import { BotonAudio, FraseCard, Molde } from './frase-card';
    creciente — eso es lo que la fija.
 
    El paso de VOZ (A1.3) entra como paso 5b, después de producir y antes de
-   autoevaluarse: primero la decís sin juez, después el micrófono opina, y la
+   autoevaluarse: primero la dices sin juez, después el micrófono opina, y la
    última palabra sigue siendo tuya. Si el workstream de voz no está montado,
    el loop queda en los seis del legacy y no se nota el hueco. */
 
@@ -75,7 +75,7 @@ const ORDEN_CON_VOZ: Paso[] = [
    sentir bruto. */
 const REACCION: Record<Nota, string> = {
   clavado: '¡Eso! Ni mandado a hacer. Esa ya es tuya.',
-  casi: 'Casi, casi. Escuchala una vez más y la repetís conmigo. Vas bien.',
+  casi: 'Casi, casi. Escuchala una vez más y la repites conmigo. Vas bien.',
   todavia:
     "Tranquilo, esa se enreda al principio. Te la repasamos pronto pa' que no se te vaya. Nadie nace sabiendo.",
 };
@@ -326,10 +326,10 @@ export function Sesion({
         return (
           <AlfredBloque
             lineas={[
-              'Listo, ese repaso quedó. Cada vuelta se te pega más, parce.',
+              'Listo, ese repaso quedó. Cada vuelta se te pega más.',
               m.salen > 0
-                ? `Ya llevás ${m.salen}${m.salen === 1 ? ' frase que te sale sola.' : ' frases que te salen solas.'}`
-                : 'Volvé mañana y seguimos; así es como se pegan.',
+                ? `Ya llevas ${m.salen}${m.salen === 1 ? ' frase que te sale sola.' : ' frases que te salen solas.'}`
+                : 'Vuelve mañana y seguimos; así es como se pegan.',
             ]}
           />
         );
@@ -338,7 +338,7 @@ export function Sesion({
         <AlfredBloque
           lineas={[
             'Listo, esa escena la sacaste. Eso hace un rato no lo tenías.',
-            'Volvé cuando querás y seguimos con la próxima, sin afán.',
+            'Vuelve cuando quieras y seguimos con la próxima, sin afán.',
           ]}
         />
       );
@@ -418,8 +418,8 @@ export function Sesion({
             <>
               <AlfredBloque
                 lineas={[
-                  'Esta ya te sale. Ahora hacela tuya: cambiá la pieza por lo que sea TU caso.',
-                  'Mirá el molde, decilo en voz alta con lo tuyo. Después te muestro el ejemplo.',
+                  'Esta ya te sale. Ahora hacela tuya: cambia la pieza por lo que sea TU caso.',
+                  'Mira el molde, decilo en voz alta con lo tuyo. Después te muestro el ejemplo.',
                 ]}
               />
               <Molde chunk={c} titulo="Tu molde" />
@@ -430,9 +430,9 @@ export function Sesion({
           <AlfredBloque
             lineas={[
               run.rung === 'producir'
-                ? `Esta ya la conocés. ¿Cómo era pa' decir «${c.es}»? De memoria, sin mirar.`
-                : `A ver… querés decir «${c.es}». ¿Cómo suena en inglés?`,
-              'Probá en voz alta, como te salga. Nadie te oye — ese es el punto.',
+                ? `Esta ya la conoces. ¿Cómo era pa' decir «${c.es}»? De memoria, sin mirar.`
+                : `A ver… quieres decir «${c.es}». ¿Cómo suena en inglés?`,
+              'Prueba en voz alta, como te salga. Nadie te oye — ese es el punto.',
             ]}
           />
         );
@@ -480,7 +480,7 @@ export function Sesion({
         return (
           <>
             <AlfredBloque
-              lineas={['Ahora vos. Repetila en voz alta, como suena. Nadie te oye, dale sin pena.']}
+              lineas={['Ahora tú. Repetila en voz alta, como suena. Nadie te oye, dale sin pena.']}
             />
             <FraseCard chunk={c} />
             {ttsOn && (
@@ -513,9 +513,9 @@ export function Sesion({
               lineas={[
                 '¿Y qué tal? ¿Te salió?',
                 run.vozLograda === true
-                  ? 'Te oí y te salió. Igual vos sos quien sabe cómo lo sentiste.'
+                  ? 'Te oí y te salió. Igual tú eres quien sabe cómo lo sentiste.'
                   : run.vozLograda === false
-                    ? 'Tranquilo, el micrófono no es juez. Vos decís cómo te fue.'
+                    ? 'Tranquilo, el micrófono no es juez. Tú dices cómo te fue.'
                     : null,
               ]}
             />
@@ -611,7 +611,7 @@ export function Sesion({
           <AlfredBloque
             lineas={[
               run.acierto
-                ? '¡Eso! Esa era. La tenés fresca.'
+                ? '¡Eso! Esa era. La tienes fresca.'
                 : 'Casi. Era la que quedó marcada — tranquilo, ya te la refresco.',
             ]}
           />
@@ -627,7 +627,7 @@ export function Sesion({
     const partes = String(c.frame).split('___');
     return (
       <>
-        <AlfredBloque lineas={['Completá el hueco. ¿Cuál ficha va acá?']} />
+        <AlfredBloque lineas={['Completa el hueco. ¿Cuál ficha va acá?']} />
         <div
           className="rounded-[20px] border px-4 py-5"
           style={{ background: 'var(--bg-surface)', borderColor: 'var(--borde-sutil)' }}

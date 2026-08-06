@@ -35,7 +35,7 @@ function Cognado({ c }: { c: A1Cognate }) {
       type="button"
       onClick={() => setVolteada((v) => !v)}
       aria-pressed={volteada}
-      aria-label={`${c.en} — tocá para ver el español`}
+      aria-label={`${c.en} — toca para ver el español`}
       className="relative cursor-pointer"
       style={{ perspective: 700 }}
     >
@@ -105,7 +105,7 @@ export function Onboarding({ onListo }: { onListo: () => void }) {
   const setView = useApp((s) => s.setView);
   const intro = A1_CURSO.companion.intro_es;
   const ultimo = beat === TOTAL - 1;
-  const etiqueta = beat === 0 ? "Dale, contame" : ultimo ? "Empezar" : "Seguir";
+  const etiqueta = beat === 0 ? "Dale, cuéntame" : ultimo ? "Empezar" : "Seguir";
 
   /* SHELL CANÓNICO. Era la ÚNICA pantalla de la app sin ← y sin título mono:
      los cuatro beats se pintaban sueltos sobre el fondo del tema, así que el
@@ -180,7 +180,7 @@ export function Onboarding({ onListo }: { onListo: () => void }) {
               {beat === 2 && (
                 <>
                   <Burbuja>
-                    Mirá estas y decime si no las entendés… Tocá cada una y
+                    Mira estas y dime si no las entiendes… Toca cada una y
                     volteala.
                   </Burbuja>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5">
@@ -192,7 +192,7 @@ export function Onboarding({ onListo }: { onListo: () => void }) {
                     className="text-[0.88rem] leading-[1.5]"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    ¿Viste? Ya te sabías un montón y no lo sabías. Arrancás con
+                    ¿Viste? Ya te sabías un montón y no lo sabías. Arrancas con
                     ventaja.
                   </p>
                 </>

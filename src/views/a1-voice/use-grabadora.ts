@@ -114,7 +114,7 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
      stream tal cual y le pasa el Content-Type a Deepgram). */
   const transcribir = useCallback(
     async (blob: Blob) => {
-      if (!blob.size) return fallar('No se grabó nada — probá de nuevo');
+      if (!blob.size) return fallar('No se grabó nada — prueba de nuevo');
       if (blob.size > MAX_BYTES) return fallar('Muy largo — decilo más cortito');
 
       const ctrl = new AbortController();
@@ -143,7 +143,7 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
 
         const texto = String(data.text ?? '').trim();
         if (!vivoRef.current) return;
-        if (!texto) return fallar('No te escuché — acercate al micrófono y dale otra vez');
+        if (!texto) return fallar('No te escuché — acércate al micrófono y dale otra vez');
 
         setEstado('idle');
         onTranscriptRef.current(texto);
@@ -284,7 +284,7 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
     const sinHardware = nombre === 'NotFoundError' || nombre === 'OverconstrainedError';
     fallar(
       denegado
-        ? 'No me diste permiso del micrófono. Podés seguir sin hablar.'
+        ? 'No me diste permiso del micrófono. Puedes seguir sin hablar.'
         : sinHardware
           ? 'No encuentro micrófono en este aparato.'
           : 'No pude abrir el micrófono.',

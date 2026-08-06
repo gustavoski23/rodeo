@@ -8,7 +8,7 @@ import { useApp } from '@/stores/app';
 import { useSlang, type SlangMode } from '@/stores/slang';
 
 import { DropBar, DropPane } from './drop-pane';
-import { PaisaBar, PaisaPane, usePaisaInput } from './paisa-pane';
+import { JergaBar, JergaPane, useJergaInput } from './jerga-pane';
 import './slang.css';
 
 /* Vista SLANG — REDISEÑO al lenguaje visual del chat de CHARLA (encargo de Gus:
@@ -22,11 +22,11 @@ import './slang.css';
    · el contenido vive DENTRO de una <Card> rounded-[22px] shadow-sm que hace de
      scroller, con la barra de scroll apagada por utilidades (SIN_BARRA);
    · la acción principal baja a una barra inferior, como la ConversationBar: el
-     botón DROP en CALLE/TRABAJO y el compositor de frase en PAISA.
+     botón DROP en CALLE/TRABAJO y el compositor de frase en JERGA.
 
    Lo que NO cambia (funcionalidad intacta): los tres modos y su patrón de tabs
    accesible (flechas + roving tabindex), CALLE y TRABAJO comparten feed y solo
-   cambian la categoría del prompt, PAISA sigue siendo su isla con resultados
+   cambian la categoría del prompt, JERGA sigue siendo su isla con resultados
    invertidos, y el modo NO se persiste (al recargar vuelve a CALLE).
 
    Alcance sin tocar: el "DROP del día" (rodeo_drop_hoy / rodeo_drop_manana) es
@@ -35,13 +35,13 @@ import './slang.css';
 const TABS: { modo: SlangMode; label: string }[] = [
   { modo: 'calle', label: 'CALLE' },
   { modo: 'trabajo', label: 'TRABAJO' },
-  { modo: 'paisa', label: 'PAISA → GRINGO' },
+  { modo: 'jerga', label: 'JERGA → GRINGO' },
 ];
 
 const idTab = (m: SlangMode) => `rd-slang-tab-${m}`;
 /* CALLE y TRABAJO comparten pane (mismo feed), así que comparten panel: el
    tabpanel se identifica por el pane que se está pintando, no por la pestaña. */
-const idPanel = (m: SlangMode) => `rd-slang-panel-${m === 'paisa' ? 'paisa' : 'drop'}`;
+const idPanel = (m: SlangMode) => `rd-slang-panel-${m === 'jerga' ? 'jerga' : 'drop'}`;
 
 /* Mismas dos constantes que la sesión de charla, con el mismo porqué: la vista
    es una COLUMNA (no una sábana) y el scroll funciona sin pintar barra. */
@@ -54,11 +54,11 @@ export default function SlangView() {
   const setView = useApp((s) => s.setView);
   const tablistRef = useRef<HTMLDivElement | null>(null);
 
-  /* El compositor de PAISA vive en la barra de abajo y sus resultados en la
+  /* El compositor de JERGA vive en la barra de abajo y sus resultados en la
      tarjeta, así que el texto se sostiene aquí (un solo hook, siempre montado:
      en CALLE/TRABAJO simplemente no se usa). Sin esto, el "Intentar de nuevo"
      del error —que se pinta dentro del feed— no podría reenviar la frase. */
-  const paisa = usePaisaInput();
+  const jerga = useJergaInput();
 
   /* Patrón de tabs completo: flechas ←/→ mueven entre pestañas (Home/End a los
      extremos) y solo la activa entra en el orden de Tab (roving tabindex). Al
@@ -171,7 +171,7 @@ export default function SlangView() {
           tabIndex={0}
           className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-3 sm:px-4', SIN_BARRA)}
         >
-          {mode === 'paisa' ? <PaisaPane onReintentar={paisa.enviar} /> : <DropPane />}
+          {mode === 'jerga' ? <JergaPane onReintentar={jerga.enviar} /> : <DropPane />}
         </div>
       </Card>
 
@@ -179,7 +179,7 @@ export default function SlangView() {
           El sitio del que la charla dispara su turno: aquí dispara el DROP o la
           traducción, según el modo. */}
       <div className={cn(COLUMNA, 'shrink-0 pt-3')}>
-        {mode === 'paisa' ? <PaisaBar ctrl={paisa} /> : <DropBar />}
+        {mode === 'jerga' ? <JergaBar ctrl={jerga} /> : <DropBar />}
       </div>
     </div>
   );

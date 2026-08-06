@@ -7,7 +7,7 @@
    Los ids van prefijados con `c-sop-`: son la llave del SRS (rodeo_a1_srs) y
    no pueden chocar con los del tronco ni con los de otro pack.
 
-   Voz: Alfred, paisa, voseo. why_es SIEMPRE con analogía y sin metalenguaje. */
+   Voz: Alfred, español latino neutro. why_es SIEMPRE con analogía y sin metalenguaje. */
 
 import type { JobPack } from '@/content/a1/tipos';
 
@@ -18,7 +18,7 @@ export const PACK_SOPORTE: JobPack = {
   emoji: '🎧',
   intro_es: [
     'Soporte, ¿cierto? Ese es el trabajo donde el inglés te llega bravo y con prisa.',
-    'Pero fijate en algo: la mitad de lo que vas a decir no arregla nada técnico — solo baja la temperatura. Y eso es lo que salva el ticket.',
+    'Pero fíjate en algo: la mitad de lo que vas a decir no arregla nada técnico — solo baja la temperatura. Y eso es lo que salva el ticket.',
     'Te doy el saludo, cómo sacarle los datos sin pelear, y cómo cerrar dejando al cliente contento.',
   ],
   units: [
@@ -33,7 +33,7 @@ export const PACK_SOPORTE: JobPack = {
       icon: '🛠️',
       survival: false,
       companionSetup_es: [
-        'Todo ticket es el mismo baile: saludás, entendés qué pasó, y cerrás con algo resuelto.',
+        'Todo ticket es el mismo baile: saludas, entiendes qué pasó, y cierras con algo resuelto.',
         'Vamos por esos tres momentos. Y ojo con el primero, que es donde se gana o se pierde todo.',
       ],
       scenes: [
@@ -45,16 +45,16 @@ export const PACK_SOPORTE: JobPack = {
           icon: '👋',
           setup_es: [
             'Los primeros diez segundos deciden todo. Si el cliente siente que lo estás atendiendo, se calma solito.',
-            'Tres frases: abrís, reconocés que la embarraron, y avisás que vas a mirar.',
+            'Tres frases: abres, reconoces que la embarraron, y avisas que vas a mirar.',
           ],
-          analogy_es: 'Atender un ticket bravo es como recibir a alguien empapado en la puerta: primero le pasás la toalla, después preguntás por qué salió sin sombrilla. Al revés, se te va.',
+          analogy_es: 'Atender un ticket bravo es como recibir a alguien empapado en la puerta: primero le pasas la toalla, después preguntas por qué salió sin sombrilla. Al revés, se te va.',
           chunks: [
             {
               id: 'c-sop-how-can-i-help',
               en: 'How can I help you today?',
               es: '¿En qué te puedo ayudar hoy?',
               sounds_es: 'jáu kan ái jelp iú tudéi',
-              why_es: 'Tu frase de apertura, y no falla nunca. Fijate que no pregunta "¿qué pasó?" sino qué podés hacer VOS: desde el primer segundo te ponés del lado del cliente, no enfrente. Es abrir la puerta y hacerse a un lado.',
+              why_es: 'Tu frase de apertura, y no falla nunca. Fíjate que no pregunta "¿qué pasó?" sino qué puedes hacer VOS: desde el primer segundo te pones del lado del cliente, no enfrente. Es abrir la puerta y hacerse a un lado.',
               sayWhen_es: 'Al abrir cualquier ticket o llamada.',
               who_es: 'con el cliente',
               frame: null,
@@ -86,8 +86,8 @@ export const PACK_SOPORTE: JobPack = {
               en: 'Let me check that for you.',
               es: 'Déjame revisarlo.',
               sounds_es: 'let mi chek dat for iú',
-              why_es: 'Tu salvavidas cuando no sabés la respuesta todavía. Compra tiempo SIN dejar al cliente colgado, porque el "for you" le dice que alguien ya está haciendo algo por él. Es el "ya voy" del mesero: no llegó el plato, pero sabés que viene.',
-              sayWhen_es: 'Cuando necesitás mirar algo antes de responder.',
+              why_es: 'Tu salvavidas cuando no sabes la respuesta todavía. Compra tiempo SIN dejar al cliente colgado, porque el "for you" le dice que alguien ya está haciendo algo por él. Es el "ya voy" del mesero: no llegó el plato, pero sabes que viene.',
+              sayWhen_es: 'Cuando necesitas mirar algo antes de responder.',
               who_es: 'con el cliente',
               frame: null,
               swaps: null,
@@ -106,18 +106,18 @@ export const PACK_SOPORTE: JobPack = {
           scene_es: 'Te contó el problema, pero sin un solo dato útil.',
           icon: '🔎',
           setup_es: [
-            'Ya sabés que algo falló, pero no tenés con qué buscarlo. Toca pedir datos sin sonar a interrogatorio.',
+            'Ya sabes que algo falló, pero no tienes con qué buscarlo. Toca pedir datos sin sonar a interrogatorio.',
             'El truco está en pedir de a uno. Tres preguntas de golpe y el cliente se enreda o se enoja.',
           ],
-          analogy_es: 'Pedir datos es como pedir la dirección de una casa: sin el número no llegás, por más que el otro te insista en que es la de la reja verde. Preguntás el número, y ahí sí arrancás.',
+          analogy_es: 'Pedir datos es como pedir la dirección de una casa: sin el número no llegas, por más que el otro te insista en que es la de la reja verde. Preguntas el número, y ahí sí arrancas.',
           chunks: [
             {
               id: 'c-sop-your-order-number',
               en: 'Can I have your order number?',
               es: '¿Me das tu número de orden?',
               sounds_es: 'kan ái jav iór órder námber',
-              why_es: 'La llave pa\' encontrar al cliente en el sistema, pedida con educación. "Can I have…" es tu molde pa\' pedir CUALQUIER dato: le cambiás la cola y sirve pa\' el correo, el apellido, lo que sea. Uno solo por vez.',
-              sayWhen_es: 'Cuando necesitás un dato pa\' poder buscar.',
+              why_es: 'La llave pa\' encontrar al cliente en el sistema, pedida con educación. "Can I have…" es tu molde pa\' pedir CUALQUIER dato: le cambias la cola y sirve pa\' el correo, el apellido, lo que sea. Uno solo por vez.',
+              sayWhen_es: 'Cuando necesitas un dato pa\' poder buscar.',
               who_es: 'con el cliente',
               frame: 'Can I have your ___?',
               swaps: ['order number', 'email', 'last name'],
@@ -146,10 +146,10 @@ export const PACK_SOPORTE: JobPack = {
             {
               id: 'c-sop-send-a-screenshot',
               en: 'Can you send me a screenshot?',
-              es: '¿Me mandás una captura?',
+              es: '¿Me mandas una captura?',
               sounds_es: 'kan iú send mi a scrínshot',
-              why_es: 'La foto vale más que veinte mensajes explicando. "screenshot" es literal la pantalla disparada, una foto de lo que el cliente está viendo — y con eso te ahorrás la mitad del ticket.',
-              sayWhen_es: 'Cuando la explicación no te alcanza y necesitás ver.',
+              why_es: 'La foto vale más que veinte mensajes explicando. "screenshot" es literal la pantalla disparada, una foto de lo que el cliente está viendo — y con eso te ahorras la mitad del ticket.',
+              sayWhen_es: 'Cuando la explicación no te alcanza y necesitas ver.',
               who_es: 'con el cliente',
               frame: null,
               swaps: null,
@@ -168,10 +168,10 @@ export const PACK_SOPORTE: JobPack = {
           scene_es: 'El problema te quedó grande, o ya lo resolviste. Toca cerrar bien.',
           icon: '✅',
           setup_es: [
-            'Hay tickets que te quedan grandes. Pasarlos NO es fracasar: fracasar es tener al cliente una hora dando vueltas con vos.',
+            'Hay tickets que te quedan grandes. Pasarlos NO es fracasar: fracasar es tener al cliente una hora dando vueltas contigo.',
             'Y si lo resolviste, hay que cerrar bien. Un cierre flojo daña un ticket bueno.',
           ],
-          analogy_es: 'Escalar es como pasar la llamada en una casa: "esperá que te paso a mi mamá, que ella sí sabe". Nadie se ofende — lo que ofende es que le insistás sin saber.',
+          analogy_es: 'Escalar es como pasar la llamada en una casa: "espera que te paso a mi mamá, que ella sí sabe". Nadie se ofende — lo que ofende es que le insistas sin saber.',
           chunks: [
             {
               id: 'c-sop-transfer-you',
@@ -194,8 +194,8 @@ export const PACK_SOPORTE: JobPack = {
               en: 'Our team will fix it today.',
               es: 'Mi equipo lo arregla hoy.',
               sounds_es: 'áuar tim güil fix it tudéi',
-              why_es: 'Promesa con fecha, que es la única clase de promesa que calma a un cliente. "Our team" reparte el peso: no quedás vos solito cargando el compromiso, responde la empresa entera.',
-              sayWhen_es: 'Cuando ya sabés cuándo se resuelve y podés comprometerte.',
+              why_es: 'Promesa con fecha, que es la única clase de promesa que calma a un cliente. "Our team" reparte el peso: no quedas tú solito cargando el compromiso, responde la empresa entera.',
+              sayWhen_es: 'Cuando ya sabes cuándo se resuelve y puedes comprometerte.',
               who_es: 'con el cliente',
               frame: 'Our team will fix it ___.',
               swaps: ['today', 'tomorrow', 'this week'],
@@ -210,7 +210,7 @@ export const PACK_SOPORTE: JobPack = {
               en: 'Is it working now?',
               es: '¿Ya te funciona?',
               sounds_es: 'is it guórkin náu',
-              why_es: 'La pregunta que cierra de verdad. Si no la hacés, el ticket queda cerrado en tu pantalla pero abierto en la cabeza del cliente — y vuelve mañana más bravo. Es probar la puerta después de arreglar la chapa.',
+              why_es: 'La pregunta que cierra de verdad. Si no la haces, el ticket queda cerrado en tu pantalla pero abierto en la cabeza del cliente — y vuelve mañana más bravo. Es probar la puerta después de arreglar la chapa.',
               sayWhen_es: 'Después de aplicar la solución, antes de cerrar.',
               who_es: 'con el cliente',
               frame: null,
@@ -242,7 +242,7 @@ export const PACK_SOPORTE: JobPack = {
       ],
       task: {
         id: 'job-soporte-u1-task',
-        intro_es: 'Bueno, entra un chat y el cliente ya viene caliente. Fresco, vos tenés con qué…',
+        intro_es: 'Bueno, entra un chat y el cliente ya viene caliente. Fresco, tú tienes con qué…',
         steps: [
           {
             goal_es: 'Te acaba de contar que lleva tres días con el problema. Reconocelo antes de nada.',
@@ -250,17 +250,17 @@ export const PACK_SOPORTE: JobPack = {
             reaction_es: '¡Eso! Con esa sola frase ya le bajaste la mitad de la rabia.',
           },
           {
-            goal_es: 'No lo encontrás en el sistema. Pedile el dato que te falta.',
+            goal_es: 'No lo encuentras en el sistema. Pedile el dato que te falta.',
             answerChunkId: 'c-sop-your-order-number',
             reaction_es: 'Perfecto, y de a uno. Tres preguntas de golpe lo habrían enredado.',
           },
           {
-            goal_es: 'Ya aplicaste la solución. Confirmá antes de cerrar.',
+            goal_es: 'Ya aplicaste la solución. Confirma antes de cerrar.',
             answerChunkId: 'c-sop-is-it-working-now',
-            reaction_es: 'Así se cierra, parce. Sin esa pregunta el ticket vuelve mañana.',
+            reaction_es: 'Así se cierra. Sin esa pregunta el ticket vuelve mañana.',
           },
         ],
-        done_es: 'Ya sabés LLEVAR UN TICKET DE PUNTA A PUNTA. ✓',
+        done_es: 'Ya sabes LLEVAR UN TICKET DE PUNTA A PUNTA. ✓',
       },
     },
   ],

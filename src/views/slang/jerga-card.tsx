@@ -1,14 +1,14 @@
 import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
-import type { PaisaCard } from '@/stores/slang';
+import type { JergaCard } from '@/stores/slang';
 
-/* Tarjeta de resultado de PAISA → GRINGO — port de L4888-4900.
+/* Tarjeta de resultado de JERGA → GRINGO — port de L4888-4900.
    Sin rotación (el viejo no la aplica aquí), sin botón de guardar y sin TTS:
    es una consulta puntual, no material que se colecciona. El titular es la
    frase que escribió el usuario, entre comillas; `d.phrase` del modelo se
    ignora a propósito en el store. */
-export function PaisaCardView({ card }: { card: PaisaCard }) {
+export function JergaCardView({ card }: { card: JergaCard }) {
   return (
     <motion.div
       className={cn('rd-slang-card', card.theme.text)}
@@ -17,7 +17,7 @@ export function PaisaCardView({ card }: { card: PaisaCard }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
     >
-      <span className="label-mini">paisa → gringo</span>
+      <span className="label-mini">jerga → gringo</span>
       <div className="term" style={{ fontSize: 'clamp(1.8rem, 8vw, 2.6rem)' }}>
         "{card.phrase}"
       </div>

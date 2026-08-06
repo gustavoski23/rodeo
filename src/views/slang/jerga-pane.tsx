@@ -6,9 +6,9 @@ import { Card } from '@/components/ui/card';
 import { useSlang } from '@/stores/slang';
 
 import { ErrorSlang } from './error-slang';
-import { PaisaCardView } from './paisa-card';
+import { JergaCardView } from './jerga-card';
 
-/* Pane PAISA → GRINGO — REDISEÑO al lenguaje del chat de CHARLA.
+/* Pane JERGA → GRINGO — REDISEÑO al lenguaje del chat de CHARLA.
 
    La vista se parte en dos como el chat: los resultados viven en la tarjeta
    (arriba) y el compositor —input + botón de enviar— baja a la barra inferior,
@@ -24,7 +24,7 @@ import { PaisaCardView } from './paisa-card';
    El texto del input lo sostiene la vista (index.tsx) con este hook, porque el
    campo y el botón "Intentar de nuevo" del error viven en dos sitios distintos
    del layout nuevo y tienen que compartir la misma frase. */
-export function usePaisaInput() {
+export function useJergaInput() {
   const [texto, setTexto] = useState('');
   const traducir = useSlang((s) => s.traducir);
   const traduciendo = useSlang((s) => s.traduciendo);
@@ -37,14 +37,14 @@ export function usePaisaInput() {
   return { texto, setTexto, enviar, traduciendo };
 }
 
-export type PaisaCtrl = ReturnType<typeof usePaisaInput>;
+export type JergaCtrl = ReturnType<typeof useJergaInput>;
 
-export function PaisaPane({ onReintentar }: { onReintentar: () => void }) {
-  const paisa = useSlang((s) => s.paisa);
+export function JergaPane({ onReintentar }: { onReintentar: () => void }) {
+  const jerga = useSlang((s) => s.jerga);
   const traduciendo = useSlang((s) => s.traduciendo);
-  const errorPaisa = useSlang((s) => s.errorPaisa);
+  const errorJerga = useSlang((s) => s.errorJerga);
 
-  const vacio = paisa.length === 0 && !traduciendo && !errorPaisa;
+  const vacio = jerga.length === 0 && !traduciendo && !errorJerga;
 
   return (
     /* `shrink-0` por lo mismo que en DropPane: sin él, el reparto de flex del
@@ -57,7 +57,7 @@ export function PaisaPane({ onReintentar }: { onReintentar: () => void }) {
             style={{ color: 'var(--accent)' }}
           >
             <span className="h-0.5 w-5 shrink-0 rounded-sm bg-current" />
-            Paisa → gringo
+            Jerga → gringo
             <span className="h-0.5 w-5 shrink-0 rounded-sm bg-current" />
           </p>
           <p
@@ -67,7 +67,8 @@ export function PaisaPane({ onReintentar }: { onReintentar: () => void }) {
             ¿Cómo digo eso <span style={{ color: 'var(--accent)' }}>en inglés?</span>
           </p>
           <p className="max-w-[340px] text-[0.9rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
-            Escribe tu frase paisa abajo y te la devuelvo dicha como gringo de verdad.
+            Escribe abajo tu frase en español —como la dirías tú, con jerga y todo— y te la
+            devuelvo dicha como gringo de verdad.
           </p>
         </div>
       )}
@@ -85,18 +86,18 @@ export function PaisaPane({ onReintentar }: { onReintentar: () => void }) {
           </p>
         </div>
       )}
-      {!traduciendo && errorPaisa && <ErrorSlang mensaje={errorPaisa} onReintentar={onReintentar} />}
-      {paisa.map((card) => (
-        <PaisaCardView key={card.id} card={card} />
+      {!traduciendo && errorJerga && <ErrorSlang mensaje={errorJerga} onReintentar={onReintentar} />}
+      {jerga.map((card) => (
+        <JergaCardView key={card.id} card={card} />
       ))}
     </div>
   );
 }
 
-/* ── La barra de abajo de PAISA ────────────────────────────────────────────
+/* ── La barra de abajo de JERGA ────────────────────────────────────────────
    Misma silueta que la ConversationBar: Card baja, campo a la izquierda y el
    botón redondo de enviar a la derecha. Enter sigue enviando. */
-export function PaisaBar({ ctrl }: { ctrl: PaisaCtrl }) {
+export function JergaBar({ ctrl }: { ctrl: JergaCtrl }) {
   const { texto, setTexto, enviar, traduciendo } = ctrl;
 
   return (

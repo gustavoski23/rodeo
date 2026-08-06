@@ -67,7 +67,7 @@ export default function OficinaView() {
             className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
             style={{ color: 'var(--accent)' }}
           >
-            Oficina · elegí tu trabajo
+            Oficina · elige tu trabajo
           </span>
         </div>
 

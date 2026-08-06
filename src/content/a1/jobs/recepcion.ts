@@ -2,12 +2,12 @@
 
    Recepción es la primera cara de la empresa: el visitante decide en diez
    segundos si el lugar es serio. Por eso acá el registro es de USTED aunque
-   Alfred te hable de vos — la traducción va pa'l visitante, no pa' vos.
+   Alfred te hable de ti — la traducción va pa'l visitante, no pa' tú.
 
    Los ids van prefijados con `c-rec-`: son la llave del SRS (rodeo_a1_srs) y
    no pueden chocar con los del tronco ni con los de otro pack.
 
-   Voz: Alfred, paisa, voseo. why_es SIEMPRE con analogía y sin metalenguaje. */
+   Voz: Alfred, español latino neutro. why_es SIEMPRE con analogía y sin metalenguaje. */
 
 import type { JobPack } from '@/content/a1/tipos';
 
@@ -17,8 +17,8 @@ export const PACK_RECEPCION: JobPack = {
   promesa_es: 'Recibir visitas, anunciar a quien llega y tomar el recado sin enredos.',
   emoji: '🛎️',
   intro_es: [
-    'Recepción. Vos sos la primera cara que ve el que entra — y el que entra decide en diez segundos si esto es serio.',
-    'Lo bueno es que es un guion cortico y siempre el mismo: recibís, anunciás, y si no está, tomás el recado.',
+    'Recepción. Tú eres la primera cara que ve el que entra — y el que entra decide en diez segundos si esto es serio.',
+    'Lo bueno es que es un guion cortico y siempre el mismo: recibes, anuncias, y si no está, tomas el recado.',
     'Ah, y ojo con las frases pa\' indicar el camino. Esas son las que más se piden y las que menos se estudian.',
   ],
   units: [
@@ -34,27 +34,27 @@ export const PACK_RECEPCION: JobPack = {
       survival: false,
       companionSetup_es: [
         'Todo lo que pasa en tu mostrador cabe en tres momentos: recibir, anunciar y mandar pa\' el lado correcto.',
-        'Son frases cortas y muy repetidas. Te las aprendés una vez y te sirven todos los días del año.',
+        'Son frases cortas y muy repetidas. Te las aprendes una vez y te sirven todos los días del año.',
       ],
       scenes: [
         {
           id: 'job-recepcion-s1-recibir',
           order: 1,
           title_es: 'Recibir visitas',
-          scene_es: 'Se abre la puerta de vidrio y entra alguien que no conocés.',
+          scene_es: 'Se abre la puerta de vidrio y entra alguien que no conoces.',
           icon: '🚪',
           setup_es: [
-            'Entra alguien. Antes de que abra la boca, la frase la tenés que soltar vos: eso ya te pone al mando.',
-            'Después revisás si tiene cita, lo hacés firmar y lo sentás. Cuatro pasos, cuatro frases.',
+            'Entra alguien. Antes de que abra la boca, la frase la tienes que soltar tú: eso ya te pone al mando.',
+            'Después revisas si tiene cita, lo haces firmar y lo sientas. Cuatro pasos, cuatro frases.',
           ],
-          analogy_es: 'Recibir es como abrir la puerta de tu casa: saludás, preguntás a quién busca y lo hacés seguir a la sala. Nadie deja a la visita parada en el andén averiguando sola.',
+          analogy_es: 'Recibir es como abrir la puerta de tu casa: saludas, preguntas a quién busca y lo haces seguir a la sala. Nadie deja a la visita parada en el andén averiguando sola.',
           chunks: [
             {
               id: 'c-rec-welcome-how-can-i-help',
               en: 'Welcome! How can I help you?',
               es: '¡Bienvenido! ¿En qué le ayudo?',
               sounds_es: 'guélcom! jáu kan ái jelp iú',
-              why_es: 'Tu frase de puerta, y va antes de que el otro diga nada. El que saluda primero manda la conversación: el visitante entra perdido y vos le das el primer escalón. Con esa sola ya el lugar se siente ordenado.',
+              why_es: 'Tu frase de puerta, y va antes de que el otro diga nada. El que saluda primero manda la conversación: el visitante entra perdido y tú le das el primer escalón. Con esa sola ya el lugar se siente ordenado.',
               sayWhen_es: 'Apenas alguien entra y se acerca al mostrador.',
               who_es: 'con la visita',
               frame: null,
@@ -70,7 +70,7 @@ export const PACK_RECEPCION: JobPack = {
               en: 'Do you have an appointment?',
               es: '¿Tiene cita?',
               sounds_es: 'du iú jav an apóintment',
-              why_es: 'La pregunta que ordena todo lo que sigue: con cita lo anunciás, sin cita tomás el recado. Es el semáforo de tu mostrador — de la respuesta depende para dónde arranca el resto.',
+              why_es: 'La pregunta que ordena todo lo que sigue: con cita lo anuncias, sin cita tomas el recado. Es el semáforo de tu mostrador — de la respuesta depende para dónde arranca el resto.',
               sayWhen_es: 'Apenas te dicen a quién vienen a ver.',
               who_es: 'con la visita',
               frame: null,
@@ -87,7 +87,7 @@ export const PACK_RECEPCION: JobPack = {
               es: 'Firme aquí, por favor.',
               sounds_es: 'plís sáin in jíar',
               why_es: 'Una orden vuelta favor gracias al "please" adelante. Sin ese "please" suena a policía pidiendo papeles; con él, suena a la casa recibiéndote. Misma instrucción, dos mundos distintos.',
-              sayWhen_es: 'Cuando le pasás el registro de visitantes.',
+              sayWhen_es: 'Cuando le pasas el registro de visitantes.',
               who_es: 'con la visita',
               frame: null,
               swaps: null,
@@ -122,10 +122,10 @@ export const PACK_RECEPCION: JobPack = {
           scene_es: 'La visita pregunta por alguien. A veces está, a veces no.',
           icon: '📝',
           setup_es: [
-            'Ya sabés a quién busca. Ahora hay dos caminos: o lo anunciás, o le explicás que no está.',
+            'Ya sabes a quién busca. Ahora hay dos caminos: o lo anuncias, o le explicas que no está.',
             'Y si no está, el recado. Ese pedacito es el que más se embarra en todas las recepciones del mundo.',
           ],
-          analogy_es: 'Tomar un recado es como recibir un paquete de un vecino: mientras esté en tus manos es tuyo, y no queda entregado hasta que se lo pasás al dueño. Por eso siempre se promete la entrega en voz alta.',
+          analogy_es: 'Tomar un recado es como recibir un paquete de un vecino: mientras esté en tus manos es tuyo, y no queda entregado hasta que se lo pasas al dueño. Por eso siempre se promete la entrega en voz alta.',
           chunks: [
             {
               id: 'c-rec-let-her-know',
@@ -164,7 +164,7 @@ export const PACK_RECEPCION: JobPack = {
               en: 'Can I take a message?',
               es: '¿Le tomo un recado?',
               sounds_es: 'kan ái téik a mésach',
-              why_es: 'La salida elegante cuando no está la persona. En vez de dejar al visitante con las manos vacías, le ofrecés algo — y el "no está" deja de ser un viaje perdido. Es la libretica del mostrador hecha frase.',
+              why_es: 'La salida elegante cuando no está la persona. En vez de dejar al visitante con las manos vacías, le ofreces algo — y el "no está" deja de ser un viaje perdido. Es la libretica del mostrador hecha frase.',
               sayWhen_es: 'Cuando la persona no está y hay que dejar razón.',
               who_es: 'con la visita',
               frame: null,
@@ -210,7 +210,7 @@ export const PACK_RECEPCION: JobPack = {
               en: "It's on the second floor.",
               es: 'Es en el segundo piso.',
               sounds_es: 'its on de sécond flóar',
-              why_es: 'Tu molde pa\' mandar a alguien a un piso: cambiás el número y ya está. Es la etiqueta del ascensor hecha frase, y es lo primero que hay que decir — el piso ordena todo lo demás.',
+              why_es: 'Tu molde pa\' mandar a alguien a un piso: cambias el número y ya está. Es la etiqueta del ascensor hecha frase, y es lo primero que hay que decir — el piso ordena todo lo demás.',
               sayWhen_es: 'Cuando preguntan en qué piso queda algo.',
               who_es: 'con la visita',
               frame: "It's on the ___ floor.",
@@ -226,8 +226,8 @@ export const PACK_RECEPCION: JobPack = {
               en: "It's down the hall on the right.",
               es: 'Es por el pasillo a la derecha.',
               sounds_es: 'its dáun de jol on de ráit',
-              why_es: '"down the hall" no es "abajo": es derecho por el pasillo, como cuando decís "seguí derecho" aunque el piso esté plano. Y el lado va de último, que es el orden en que la persona lo va a necesitar: primero camina, después voltea.',
-              sayWhen_es: 'Cuando explicás cómo llegar en el mismo piso.',
+              why_es: '"down the hall" no es "abajo": es derecho por el pasillo, como cuando dices "sigue derecho" aunque el piso esté plano. Y el lado va de último, que es el orden en que la persona lo va a necesitar: primero camina, después voltea.',
+              sayWhen_es: 'Cuando explicas cómo llegar en el mismo piso.',
               who_es: 'con la visita',
               frame: "It's down the hall on the ___.",
               swaps: ['right', 'left'],
@@ -242,8 +242,8 @@ export const PACK_RECEPCION: JobPack = {
               en: 'Follow me, please.',
               es: 'Sígame, por favor.',
               sounds_es: 'fólou mi, plís',
-              why_es: 'Cuando la explicación se enreda, dejás de explicar y caminás. Es la que salva cualquier indicación fallida: en vez de tres frases que el otro no entendió, veinte pasos juntos y llegaron.',
-              sayWhen_es: 'Cuando preferís acompañar en vez de explicar.',
+              why_es: 'Cuando la explicación se enreda, dejas de explicar y caminas. Es la que salva cualquier indicación fallida: en vez de tres frases que el otro no entendió, veinte pasos juntos y llegaron.',
+              sayWhen_es: 'Cuando prefieres acompañar en vez de explicar.',
               who_es: 'con la visita',
               frame: null,
               swaps: null,
@@ -258,10 +258,10 @@ export const PACK_RECEPCION: JobPack = {
       ],
       task: {
         id: 'job-recepcion-u1-task',
-        intro_es: 'Listo. Se abre la puerta de vidrio, entra un gringo con maletín y viene derecho pa\' vos…',
+        intro_es: 'Listo. Se abre la puerta de vidrio, entra un gringo con maletín y viene derecho pa\' tú…',
         steps: [
           {
-            goal_es: 'Se acerca al mostrador y todavía no dice nada. Arrancá vos.',
+            goal_es: 'Se acerca al mostrador y todavía no dice nada. Arranca tú.',
             answerChunkId: 'c-rec-welcome-how-can-i-help',
             reaction_es: '¡Eso! Saludaste primero y ya quedaste al mando.',
           },
@@ -271,12 +271,12 @@ export const PACK_RECEPCION: JobPack = {
             reaction_es: 'Perfecto. Con eso el visitante ya sabe que te moviste.',
           },
           {
-            goal_es: 'Le toca subir a la sala de juntas. Decile en qué piso queda.',
+            goal_es: 'Le toca subir a la sala de juntas. Dile en qué piso queda.',
             answerChunkId: 'c-rec-on-the-second-floor',
-            reaction_es: 'De una, parce. Con el piso primero, ya no se pierde.',
+            reaction_es: 'De una. Con el piso primero, ya no se pierde.',
           },
         ],
-        done_es: 'Ya sabés SER LA PRIMERA CARA DE LA EMPRESA EN INGLÉS. ✓',
+        done_es: 'Ya sabes SER LA PRIMERA CARA DE LA EMPRESA EN INGLÉS. ✓',
       },
     },
   ],

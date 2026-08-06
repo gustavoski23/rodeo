@@ -118,7 +118,7 @@ export default function StoryView() {
               textShadow: '0 1px 12px oklch(6% 0.012 265 / 0.55)',
             }}
           >
-            Un thriller por capítulos donde practicás sin darte cuenta: leés por saber qué pasa
+            Un thriller por capítulos donde practicas sin darte cuenta: lees por saber qué pasa
             después, y el inglés se te queda de paso.
           </p>
           <p

@@ -1,5 +1,7 @@
 import type { ChatMessage } from '@/lib/api';
 import { NOTA_STT_BILINGUE } from '@/lib/speech';
+import { ESPANOL_NEUTRO_ES } from '@/lib/espanol-neutro';
+import { areaUsuario, nombreUsuario } from '@/views/talk/prompts';
 
 /* Prompts de SUBE — VERBATIM de public/legacy.html:6782 y 6905-6983.
    No se tocan ni una coma: cambiar el texto cambia lo que devuelve el modelo,
@@ -15,19 +17,29 @@ export const EX_B2 = ["i think it's good.", 'the meeting was very long.', "that'
 
 export type Veta = 'trabajo' | 'calle' | 'fallos' | 'own';
 
-const SYS_GENERADOR =
-  'You upgrade B2 English to precise, natural, idiomatic C1 for Gus (Venezuelan in Medellín, aiming C1 for crypto/tech and daily life). Never thesaurus-dumping, never textbook. The C1 must be genuinely more precise/idiomatic, NOT just longer. STRICT JSON only.';
+/* Deja de ser una constante para dejar de ser el perfil de UNA persona: decía
+   «for Gus (Venezuelan in Medellín, aiming C1 for crypto/tech and daily life)».
+   El área sale del onboarding y la ubicación no se sustituye por otra — no se
+   pregunta, así que no se nombra. */
+function sysGenerador(): string {
+  const area = areaUsuario();
+  const para = area ? ` aiming C1 for ${area} and daily life` : ' aiming C1 for work and daily life';
+  return `You upgrade B2 English to precise, natural, idiomatic C1 for a Spanish-speaking learner,${para}. Never thesaurus-dumping, never textbook. The C1 must be genuinely more precise/idiomatic, NOT just longer. ${ESPANOL_NEUTRO_ES} STRICT JSON only.`;
+}
 
 /** startVeta L6905-6910. `avoid` son los últimos 60 b2 vistos o 'ninguna'. */
 export function msgsGenerador(veta: Veta, avoid: string, ownPhrase?: string): ChatMessage[] {
+  const area = areaUsuario();
   const target =
     veta === 'own'
-      ? `Genera 3 versiones-peldaño C1 de ESTA frase de Gus: "${ownPhrase}".`
+      ? `Genera 3 versiones-peldaño C1 de ESTA frase del usuario: "${ownPhrase}".`
       : `Genera exactamente 5 peldaños de registro para la veta ${
-          veta === 'trabajo' ? 'TRABAJO (reuniones, negociación, cripto/tech)' : 'CALLE (vida diaria, casual, social)'
+          veta === 'trabajo'
+            ? `TRABAJO (reuniones, negociación${area ? `, ${area}` : ''})`
+            : 'CALLE (vida diaria, casual, social)'
         }.`;
   return [
-    { role: 'system', content: SYS_GENERADOR },
+    { role: 'system', content: sysGenerador() },
     {
       role: 'user',
       content: `${target}\nYa vistos, NO repitas: ${avoid}.\nReturn a STRICT JSON array. Each object keys: b2, context_en, c1, swap ("old→new"), register ("casual"|"neutral"|"pro"), note_es (español, una línea).\nInclude this FILLED EXAMPLE — NEVER reuse its content, generate fresh:\n${LADDER_EXAMPLE}`,
@@ -47,7 +59,7 @@ export function msgsJuez(b2: string, c1: string, attempt: string): ChatMessage[]
     },
     {
       role: 'user',
-      content: `B2: "${b2}". Ideal C1: "${c1}". Gus wrote: "${attempt}". Return STRICT JSON {"verdict":"nailed|close|off","one_liner_es":"","better":""}. Example: {"verdict":"close","one_liner_es":"Subiste el registro, pero 'has potential' suena a informe; 'has real legs' es más natural.","better":"I'm sold on it — it's got real legs."}`,
+      content: `B2: "${b2}". Ideal C1: "${c1}". ${nombreUsuario() || 'The learner'} wrote: "${attempt}". Return STRICT JSON {"verdict":"nailed|close|off","one_liner_es":"","better":""}. ${ESPANOL_NEUTRO_ES} Example: {"verdict":"close","one_liner_es":"Subiste el registro, pero 'has potential' suena a informe; 'has real legs' es más natural.","better":"I'm sold on it — it's got real legs."}`,
     },
   ];
 }

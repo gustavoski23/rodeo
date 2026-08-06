@@ -112,7 +112,7 @@ function distancia(a: string, b: string, max: number): number {
 
 /** ¿Son la misma palabra? Tolera UNA letra de diferencia a partir de 4 letras
     ("morning" ↔ "mornin"), que es el error típico de un micrófono de celular
-    con acento paisa. En palabras cortas no se tolera nada: "in" y "on" son
+    con acento hispanohablante. En palabras cortas no se tolera nada: "in" y "on" son
     palabras distintas y confundirlas SÍ es un fallo que vale la pena señalar. */
 export function mismaPalabra(a: string, b: string): boolean {
   if (a === b) return true;

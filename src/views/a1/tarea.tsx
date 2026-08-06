@@ -12,13 +12,13 @@ import { FraseCard } from './frase-card';
 /* MISIÓN TBLT + LOGRO DE UNIDAD — port de openA1Task/paintTaskBeat/
    unitAchievement (public/js/a1-office.js:1562-1672).
 
-   Acá se cierra el trato: Alfred plantea la meta POR INTENCIÓN ("decile a tu
-   jefa que sos nuevo"), nunca la frase en inglés. Eso obliga a RECUPERAR de
+   Acá se cierra el trato: Alfred plantea la meta POR INTENCIÓN ("dile a tu
+   jefa que eres nuevo"), nunca la frase en inglés. Eso obliga a RECUPERAR de
    memoria, que es lo único que de verdad fija — reconocer la frase en una
    lista no prueba nada. Cero IA: la reacción de Alfred ya está escrita, la
    escribió alguien que sabe qué decirle a un principiante.
 
-   Y el cierre es de CAPACIDAD, no de puntos: "Ya sabés LLEGAR A LA OFICINA ✓".
+   Y el cierre es de CAPACIDAD, no de puntos: "Ya sabes LLEGAR A LA OFICINA ✓".
    Nada de XP, nada de medallas — lo que celebra es algo que ayer no podía
    hacer y hoy sí. */
 
@@ -87,7 +87,7 @@ export function Tarea({ unit, onSalir, onPanico }: { unit: A1Unit; onSalir: () =
               <>
                 <TarjetaMision eyebrow="Tu misión" texto={unit.task.intro_es} />
                 <AlfredBloque
-                  lineas={['Sin mirar nada. Yo te digo la situación y vos soltás la frase, de memoria.']}
+                  lineas={['Sin mirar nada. Yo te digo la situación y tú sueltas la frase, de memoria.']}
                 />
               </>
             )}
@@ -95,7 +95,7 @@ export function Tarea({ unit, onSalir, onPanico }: { unit: A1Unit; onSalir: () =
             {fase === 'goal' && paso && (
               <>
                 <TarjetaMision eyebrow={`Situación ${i + 1}/${pasos.length}`} texto={paso.goal_es} />
-                <AlfredBloque lineas={['¿Cómo se lo decís? Dale, en voz alta — de memoria.']} />
+                <AlfredBloque lineas={['¿Cómo se lo dices? Dale, en voz alta — de memoria.']} />
               </>
             )}
 
@@ -138,7 +138,7 @@ export function Tarea({ unit, onSalir, onPanico }: { unit: A1Unit; onSalir: () =
                 </motion.div>
 
                 <AlfredBloque
-                  lineas={['Eso ayer no lo tenías, parce. Mañana seguimos y ya vas con ventaja.']}
+                  lineas={['Eso ayer no lo tenías. Mañana seguimos y ya vas con ventaja.']}
                 />
               </div>
             )}

@@ -18,7 +18,7 @@ export type SlangTerm = {
   context_en: string;
   /** El término tal como aparece en context_en, para poder blanquearlo. */
   target: string;
-  /** Glosa en español (colombiano cuando aplica). */
+  /** Glosa en español latino neutro. */
   gloss_es: string;
   /** Respuestas aceptadas (base + flexiones + con pronombre). */
   accept: string[];

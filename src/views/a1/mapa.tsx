@@ -26,7 +26,7 @@ import { AlfredBloque, Barra, Eyebrow } from './alfred';
    ctaHTML/hookHTML (public/js/a1-office.js:255-460).
 
    El orden de la pantalla es una decisión, no una lista: primero lo que YA
-   lográs (la métrica honesta), después Alfred diciéndote qué toca hoy, después
+   logras (la métrica honesta), después Alfred diciéndote qué toca hoy, después
    UNA acción clara (repasar o seguir donde ibas) y solo al final el catálogo
    completo. Un principiante frente a siete unidades no elige: se paraliza.
 
@@ -73,7 +73,7 @@ export function tokenTema(nombre: string): string {
    quien está en A1 no entra por una frase en inglés, entra por un miedo. */
 const GANCHOS: { unit: string; q: string }[] = [
   { unit: 'u1-llegar', q: '¿Saludar sin quedar mudo?' },
-  { unit: 'u2-supervivencia', q: '¿Y si no entendés nada?' },
+  { unit: 'u2-supervivencia', q: '¿Y si no entiendes nada?' },
   { unit: 'u5-ayuda', q: '¿Pedir un descanso o la hora?' },
   { unit: 'u3-presentarte', q: '¿Presentarte al equipo?' },
   { unit: 'u4-smalltalk', q: '¿Caer bien en el cafecito?' },
@@ -248,15 +248,15 @@ export function Mapa({
 
   const saludo =
     datos.due > 0
-      ? 'Buenas, parce. Hoy toca repaso de pasillo: ' +
+      ? 'Buenas. Hoy toca repaso de pasillo: ' +
         n +
         (n === 1 ? ' frase' : ' frases') +
         " pa' refrescar" +
         (datos.hayNuevos ? ' y algo nuevo.' : '.') +
         ' ¿Le entramos?'
       : datos.hayNuevos
-        ? 'Todo fresco, parce. Nada que repasar hoy — arranquemos algo nuevo, suave.'
-        : 'Vas al día. Cuando querás repasamos lo que ya tenés, sin afán.';
+        ? 'Todo fresco. Nada que repasar hoy — arranquemos algo nuevo, suave.'
+        : 'Vas al día. Cuando quieras repasamos lo que ya tienes, sin afán.';
 
   const pct = Math.round((datos.m.salen / datos.total) * 100);
   const delTronco = unidades.slice(0, tronco);
@@ -299,7 +299,7 @@ export function Mapa({
                   Ya te salen solas: <strong style={{ color: 'var(--text-primary)' }}>{datos.m.salen}</strong>
                 </>
               ) : (
-                'Apenas arrancás — pronto se te van saliendo solas.'
+                'Apenas arrancas — pronto se te van saliendo solas.'
               )}
             </p>
           </div>
@@ -328,7 +328,7 @@ export function Mapa({
 
             {datos.retomar && (
               <CtaGrande
-                eyebrow="Seguí donde ibas"
+                eyebrow="Sigue donde ibas"
                 principal={`${datos.retomar.unit.title_es} · escena ${datos.retomar.sceneNum}/${datos.retomar.sceneTotal}`}
                 accion="Seguir →"
                 onClick={onSeguir}
@@ -338,7 +338,7 @@ export function Mapa({
 
           {/* ── Ganchos ── */}
           <div className="flex shrink-0 flex-col gap-2.5">
-            <Eyebrow>¿Sabés decir…?</Eyebrow>
+            <Eyebrow>¿Sabes decir…?</Eyebrow>
             <div className="flex flex-wrap gap-2">
               {GANCHOS.filter((g) => unidades.some((u) => u.id === g.unit)).map((g) => {
                 const abierta = estaDesbloqueada(g.unit);
@@ -372,7 +372,7 @@ export function Mapa({
           </div>
 
           {/* ── Lo del trabajo elegido (A1.2). Va después del tronco a propósito:
-              primero sobrevivís la oficina, después hablás de lo tuyo. ── */}
+              primero sobrevives la oficina, después hablas de lo tuyo. ── */}
           {delPack.length > 0 && (
             <div className="flex shrink-0 flex-col gap-2.5">
               <Eyebrow acento>{pack ? `Lo tuyo · ${pack.nombre_es}` : 'Lo tuyo'}</Eyebrow>

@@ -14,7 +14,7 @@ import HomeView from '@/views/home';
 import GateView from '@/views/gate';
 // SLANG ahora ES la experiencia de sticker peel (Pélala) — decisión de Gus: la
 // carta SLANG del carrusel abre directo el sticker que se pela para aprender.
-// El SlangView clásico (CALLE/TRABAJO/PAISA) sigue en el repo (src/views/slang),
+// El SlangView clásico (CALLE/TRABAJO/JERGA) sigue en el repo (src/views/slang),
 // sin rutear, por si vuelve como sub-modo.
 import { useSuscripcion } from '@/stores/suscripcion';
 

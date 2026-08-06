@@ -8,15 +8,15 @@ import { useTalk } from '@/stores/talk';
 import {
   CATEGORIA_CALLE,
   CATEGORIA_TRABAJO,
-  PAISA_SYSTEM,
+  JERGA_SYSTEM,
   SLANG_SYSTEM,
-  paisaUserPrompt,
+  jergaUserPrompt,
   slangUserPrompt,
 } from '@/views/slang/prompts';
 
-/* Estado de SLANG — port de #drop-btn y translatePaisa
+/* Estado de SLANG — port de #drop-btn y translateJerga
    (public/legacy.html:4719-4917). El DOM del viejo era el estado: aquí el feed
-   y los resultados de paisa son datos y la vista los pinta.
+   y los resultados de jerga son datos y la vista los pinta.
 
    Tres decisiones de port que NO son cosméticas:
 
@@ -49,7 +49,7 @@ import {
    regenera y paga la edición todos los días. La Parte B de spec-slang.md le toca
    a quien porte STORY. */
 
-export type SlangMode = 'calle' | 'trabajo' | 'paisa';
+export type SlangMode = 'calle' | 'trabajo' | 'jerga';
 
 /* L4721-4727, VERBATIM. `text` es decorativo: el CSS iguala light-text y
    dark-text a --card-ink (la paleta pasó a pastel CLARO y el blanco sería
@@ -83,13 +83,13 @@ export type SlangCard = {
   guardada: boolean;
 };
 
-export type PaisaEquivalente = { en: string; register: string; example: string; note_es: string };
+export type JergaEquivalente = { en: string; register: string; example: string; note_es: string };
 
-export type PaisaCard = {
+export type JergaCard = {
   id: number;
   /** La frase del USUARIO, no la que devuelve el modelo (`d.phrase` se ignora). */
   phrase: string;
-  equivalents: PaisaEquivalente[];
+  equivalents: JergaEquivalente[];
   theme: CardTheme;
 };
 
@@ -132,8 +132,8 @@ type SlangState = {
   mode: SlangMode;
   /** Feed acumulativo de calle+trabajo: cambiar de pill NO lo limpia (L4729). */
   feed: SlangCard[];
-  /** Resultados de paisa, más nuevos primero (el viejo hacía `prepend`). */
-  paisa: PaisaCard[];
+  /** Resultados de jerga, más nuevos primero (el viejo hacía `prepend`). */
+  jerga: JergaCard[];
   /** Términos ya vistos; se persisten recortados a 200. */
   seenSlang: string[];
   /** El héroe se oculta con el primer DROP y no vuelve en toda la sesión. */
@@ -144,7 +144,7 @@ type SlangState = {
   desde: number | null;
   /** Últimos errores, para pintarlos en sitio además del toast. */
   error: string | null;
-  errorPaisa: string | null;
+  errorJerga: string | null;
 
   setMode: (m: SlangMode) => void;
   generar: () => Promise<void>;
@@ -156,7 +156,7 @@ export const useSlang = create<SlangState>((set, get) => ({
   // `slangMode` NO se persiste en el viejo: al recargar vuelve a 'calle'.
   mode: 'calle',
   feed: [],
-  paisa: [],
+  jerga: [],
   seenSlang: (() => {
     const xs = store.get<string[]>('rodeo_seen_slang', []);
     return Array.isArray(xs) ? xs.filter((x): x is string => typeof x === 'string') : [];
@@ -166,7 +166,7 @@ export const useSlang = create<SlangState>((set, get) => ({
   traduciendo: false,
   desde: null,
   error: null,
-  errorPaisa: null,
+  errorJerga: null,
 
   setMode: (mode) => set({ mode }),
 
@@ -233,20 +233,20 @@ export const useSlang = create<SlangState>((set, get) => ({
     }
   },
 
-  /* translatePaisa (L4858-4917). Devuelve true en éxito: el input se limpia
+  /* translateJerga (L4858-4917). Devuelve true en éxito: el input se limpia
      SOLO entonces, como en el viejo. */
   traducir: async (phrase: string) => {
     const limpia = phrase.trim();
     if (!limpia || get().traduciendo || estaOcupado()) return false;
     marcarOcupado(true);
-    set({ traduciendo: true, errorPaisa: null });
+    set({ traduciendo: true, errorJerga: null });
 
     try {
       const { parsed } = await callJSON(
         'creative',
         [
-          { role: 'system', content: PAISA_SYSTEM },
-          { role: 'user', content: paisaUserPrompt(limpia) },
+          { role: 'system', content: JERGA_SYSTEM },
+          { role: 'user', content: jergaUserPrompt(limpia) },
         ],
         2600,
       );
@@ -254,24 +254,24 @@ export const useSlang = create<SlangState>((set, get) => ({
       const d = esObjeto(parsed) ? parsed : null;
       if (!d || !Array.isArray(d.equivalents)) throw new Error('No pude traducir eso, intenta de nuevo');
 
-      const equivalents: PaisaEquivalente[] = (d.equivalents as unknown[]).filter(esObjeto).map((eq) => ({
+      const equivalents: JergaEquivalente[] = (d.equivalents as unknown[]).filter(esObjeto).map((eq) => ({
         en: str(eq.en),
         register: str(eq.register),
         example: str(eq.example),
         note_es: str(eq.note_es),
       }));
 
-      const card: PaisaCard = {
+      const card: JergaCard = {
         id: ++seq,
         phrase: limpia, // la del usuario; `d.phrase` se ignora a propósito
         equivalents,
         theme: CARD_THEMES[Math.floor(Math.random() * CARD_THEMES.length)]!,
       };
-      set((s) => ({ paisa: [card, ...s.paisa] }));
+      set((s) => ({ jerga: [card, ...s.jerga] }));
       return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      set({ errorPaisa: msg });
+      set({ errorJerga: msg });
       toast('Error: ' + msg);
       return false;
     } finally {

@@ -90,7 +90,7 @@ export default function A1View({
     const u = unidades.find((x) => x.id === unitId);
     if (!u || !u.scenes.length) return;
     if (!estaDesbloqueada(u.id)) {
-      toast('Esa se abre cuando termines la de antes, parce. Sin afán.');
+      toast('Esa se abre cuando termines la de antes. Sin afán.');
       return;
     }
     if (escenasHechas(u) && u.task && !tareaHecha(u.task.id)) {
@@ -99,7 +99,7 @@ export default function A1View({
     }
     const scene = proximaEscena(u);
     if (!scene || !scene.chunks.length) {
-      toast('Esta escena todavía no tiene frases, parce.');
+      toast('Esta escena todavía no tiene frases.');
       return;
     }
     if (unidadVirgen(u)) {
@@ -115,7 +115,7 @@ export default function A1View({
   function abrirRepaso() {
     const { cola } = construirColaRepaso();
     if (!cola.length) {
-      toast('Hoy no tenés nada pendiente, parce. Vas al día.');
+      toast('Hoy no tienes nada pendiente. Vas al día.');
       return;
     }
     setPantalla({ tipo: 'sesion', arranque: { modo: 'repaso', cola } });

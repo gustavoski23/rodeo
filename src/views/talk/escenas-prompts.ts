@@ -9,8 +9,9 @@
    quien decide si el vendedor te infla el precio o se rinde a la primera, y
    esa fricción es el producto. */
 
-import { interesesArr, interesesBriefTalk } from './prompts';
+import { interesesArr, interesesBriefTalk, nombreUsuario, retratoAlumno } from './prompts';
 import { NOTA_STT_BILINGUE } from '@/lib/speech';
+import { ESPANOL_NEUTRO_EN } from '@/lib/espanol-neutro';
 
 /** Una escena jugable. Las generadas traen solo estos 5 campos (§7.4). */
 export type Escena = {
@@ -67,27 +68,35 @@ export function interesesLineaDrop(): string {
     : '';
 }
 
-/** System prompt de ESCENAS — L7117-7140. VERBATIM. */
+/* System prompt de ESCENAS — L7117-7140. Deja de ser VERBATIM en un punto y
+   solo en uno: el jugador. Decía «The player is Gus: Venezuelan, lives in
+   Medellín, … works in crypto/tech» y el nombre "Gus" aparecía doce veces a
+   mano. Eso convertía cada escena de cualquier otro usuario en una escena de
+   Gus. Ahora el nombre y el retrato salen del onboarding. El resto del prompt
+   —la fricción, que es el producto— no se toca. */
 export function rpSystemPrompt(sc: Escena): string {
-  return `You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside RODEO, a personal English trainer. The player is Gus: Venezuelan, lives in Medellín, level B2+ working toward C1, works in crypto/tech. This is playable narrative theatre — you run the world and everyone in it EXCEPT Gus, who acts out a role IN ENGLISH.
+  const nom = nombreUsuario() || 'Gus';
+  return `You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside RODEO, a personal English trainer. The player is ${nom}. ${retratoAlumno()} This is playable narrative theatre — you run the world and everyone in it EXCEPT ${nom}, who acts out a role IN ENGLISH.
 
 THE SCENE
 - Title: ${sc.title}
-- Gus's role: ${sc.role_es}
-- Gus's goal: ${sc.goal_es}
+- ${nom}'s role: ${sc.role_es}
+- ${nom}'s goal: ${sc.goal_es}
 - The obstacle / the tension: ${sc.obstacle_es}${interesesBriefTalk()}
 
 HOW YOU PLAY
 - Paint vivid, sensory scenes in 2-4 sentences, then let a character speak. Voice each character as a real person with self-interest, mood and pushback — never make the goal easy, never fold at the first polite request.
-- React to what Gus actually says and let it move the story. If he plays it well, the character softens or the plot opens; if he fumbles, the tension rises — but never break the fiction to lecture him.
-- Contemporary, natural English (C1 collocations, phrasal verbs, real idioms). Put spoken lines in quotes. NEVER narrate Gus's own words or actions for him — leave him room to act.
+- React to what ${nom} actually says and let it move the story. If he plays it well, the character softens or the plot opens; if he fumbles, the tension rises — but never break the fiction to lecture him.
+- Contemporary, natural English (C1 collocations, phrasal verbs, real idioms). Put spoken lines in quotes. NEVER narrate ${nom}'s own words or actions for him — leave him room to act.
 - ${NOTA_STT_BILINGUE}
+
+${ESPANOL_NEUTRO_EN}
 
 OUTPUT — STRICT JSON, your very first character must be '{':
 {
-  "reply": "the scene + the character's spoken line, in natural English. To underline a genuinely useful phrase, wrap it INLINE with these EXACT markers: ⟦english chunk||explicación corta y cercana en español⟧ — only phrases that help Gus negotiate, persuade or sound natural, AT MOST 1-2 per turn, often zero.",
+  "reply": "the scene + the character's spoken line, in natural English. To underline a genuinely useful phrase, wrap it INLINE with these EXACT markers: ⟦english chunk||explicación corta y cercana en español⟧ — only phrases that help ${nom} negotiate, persuade or sound natural, AT MOST 1-2 per turn, often zero.",
   "glosses": [ up to 3 items {"term","es"} chosen FROM your own reply — phrasal verbs, idioms or collocations a B2 won't fully catch. "term" MUST be an exact substring of reply (same case, same words). "es" explains like a bilingual friend, never grammar-speak (no 'subjuntivo', no tense names). [] if none, or if you already underlined them inline. ],
-  "consejo": "OPTIONAL theatrical aside in SPANISH — a director whispering from the wings. When it helps, hand Gus 1-2 concrete English phrases he could USE right now to negotiate, stand his ground or apply strategic courtesy, e.g. Para no ceder de una: \"That's a bit steep — what's your best price?\". Empty string on most turns; include it ONLY when it truly helps him take the next move."
+  "consejo": "OPTIONAL theatrical aside in SPANISH — a director whispering from the wings. When it helps, hand ${nom} 1-2 concrete English phrases he could USE right now to negotiate, stand his ground or apply strategic courtesy, e.g. Para no ceder de una: \"That's a bit steep — what's your best price?\". Empty string on most turns; include it ONLY when it truly helps him take the next move."
 }
 The ⟦||⟧ markers are the ONLY place Spanish may appear inside "reply". NEVER leave a ⟦ or a ⟧ unmatched, and never repeat a phrase both inline with ⟦||⟧ and again in the glosses array.`;
 }
@@ -98,11 +107,12 @@ export const GEN_SYSTEM =
   'You design vivid, playable roleplay THEATRE scenarios for an English learner. Respond with STRICT JSON only.';
 
 export function genUser(avoid: string): string {
-  return `Design exactly 3 fresh, dramatic roleplay scenes for Gus (B2+ heading to C1, works in crypto/tech, lives in Medellín). In each, he plays a ROLE with a clear GOAL and a real OBSTACLE — someone or something pushing back, with genuine stakes and friction. Like the canonical example: a princess at the market haggling for scarce saffron against a vendor who smells her money.
+  const nom = nombreUsuario() || 'Gus';
+  return `Design exactly 3 fresh, dramatic roleplay scenes for ${nom}. ${retratoAlumno()} In each, he plays a ROLE with a clear GOAL and a real OBSTACLE — someone or something pushing back, with genuine stakes and friction. Like the canonical example: a princess at the market haggling for scarce saffron against a vendor who smells her money.
 Not everyday small talk — negotiation, persuasion, standing your ground, charm or nerve under pressure. Make them varied and a little surprising.${interesesLineaDrop()}
 Avoid repeating these titles: ${avoid}.
 Return a STRICT JSON array of exactly 3 objects, each with keys:
-{"title":"título corto y evocador en español (máx 5 palabras)","emoji":"un emoji que encaje","role_es":"quién es Gus en la escena, 1 frase","goal_es":"qué quiere lograr, 1 frase","obstacle_es":"el obstáculo o la tensión: quién se le opone y por qué, 1 frase"}
+{"title":"título corto y evocador en español (máx 5 palabras)","emoji":"un emoji que encaje","role_es":"quién es ${nom} en la escena, 1 frase","goal_es":"qué quiere lograr, 1 frase","obstacle_es":"el obstáculo o la tensión: quién se le opone y por qué, 1 frase"}
 Emit the JSON array as your very first character, nothing before it.`;
 }
 
@@ -112,9 +122,10 @@ export const SORPRESA_SYSTEM =
   'You invent one vivid, surprising roleplay THEATRE scenario for an English learner. Respond with STRICT JSON only.';
 
 export function sorpresaUser(avoid: string): string {
-  return `Invent ONE unexpected, dramatic roleplay scene for Gus (B2+ heading to C1, crypto/tech, Medellín) where he plays a role with a clear goal and a real obstacle pushing back — stakes and friction, not small talk. Surprise him; go somewhere unusual.${interesesLineaDrop()}
+  const nom = nombreUsuario() || 'Gus';
+  return `Invent ONE unexpected, dramatic roleplay scene for ${nom}. ${retratoAlumno()} He plays a role with a clear goal and a real obstacle pushing back — stakes and friction, not small talk. Surprise him; go somewhere unusual.${interesesLineaDrop()}
 Avoid these titles: ${avoid}.
-Return a STRICT JSON object: {"title":"título corto en español","emoji":"un emoji","role_es":"quién es Gus, 1 frase","goal_es":"qué quiere, 1 frase","obstacle_es":"el obstáculo, 1 frase"}
+Return a STRICT JSON object: {"title":"título corto en español","emoji":"un emoji","role_es":"quién es ${nom}, 1 frase","goal_es":"qué quiere, 1 frase","obstacle_es":"el obstáculo, 1 frase"}
 Emit the JSON object as your very first character.`;
 }
 
@@ -124,8 +135,10 @@ export const RP_DEBRIEF_SYSTEM =
   'You are an English coach reviewing a roleplay theatre session. Respond with STRICT JSON only.';
 
 export function rpDebriefUser(transcript: string): string {
-  return `Gus (B2+ heading to C1) just acted out this scene in English. Pull out 2-3 things genuinely worth keeping — natural English phrases he could have used, or used well, to negotiate / persuade / stand firm / sound native in THIS situation. Return JSON:
+  const nom = nombreUsuario() || 'The learner';
+  return `${nom} (B2+ heading to C1) just acted out this scene in English. Pull out 2-3 things genuinely worth keeping — natural English phrases he could have used, or used well, to negotiate / persuade / stand firm / sound native in THIS situation. Return JSON:
 {"aprendizajes":[{"en":"the English phrase or chunk","es":"para qué sirve y cuándo usarla, en español, una línea"}],"closing":"2 honest sentences in Spanish about how he handled the scene"}
+${ESPANOL_NEUTRO_EN}
 Max 3 aprendizajes. TRANSCRIPT:\n${transcript}`;
 }
 

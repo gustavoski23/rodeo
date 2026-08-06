@@ -62,8 +62,8 @@ export function HojaPanico({ abierta, onClose }: { abierta: boolean; onClose: ()
       <TituloHoja
         id="a1-panico-titulo"
         eyebrow="🆘 Tus salvavidas"
-        titulo="SI TE TRABÁS"
-        sub="Estas cinco te sacan de cualquier lío en la vida real. Nadie se enoja si las decís."
+        titulo="SI TE TRABAS"
+        sub="Estas cinco te sacan de cualquier lío en la vida real. Nadie se enoja si las dices."
       />
 
       <div className="flex flex-col gap-2.5">
@@ -119,12 +119,12 @@ export function HojaGuardadas({
         id="a1-guardadas-titulo"
         eyebrow="★ Mis frases"
         titulo="LAS TUYAS"
-        sub="Las que marcaste pa' tenerlas a la mano. Tocá una pa' verla completa."
+        sub="Las que marcaste pa' tenerlas a la mano. Toca una pa' verla completa."
       />
 
       {guardadas.length === 0 ? (
         <p className="text-[0.9rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
-          Todavía no guardaste ninguna. Tocá la ★ en las frases que te gusten y acá te quedan a la mano.
+          Todavía no guardaste ninguna. Toca la ★ en las frases que te gusten y acá te quedan a la mano.
         </p>
       ) : (
         <div className="flex flex-col gap-2">
@@ -210,7 +210,7 @@ export function HojaDetalle({ id, onClose }: { id: string | null; onClose: () =>
      vacía abierta. */
   useEffect(() => {
     if (id && !chunk) {
-      toast('Esa frase ya no está, parce.');
+      toast('Esa frase ya no está.');
       onClose();
     }
   }, [id, chunk, onClose]);

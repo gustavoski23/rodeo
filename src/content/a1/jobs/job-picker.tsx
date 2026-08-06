@@ -7,7 +7,7 @@ import type { JobPack, JobPackId } from '@/content/a1/tipos';
    Elegir trabajo es la única decisión de identidad que toma el usuario en el
    módulo, así que se pinta con el vocabulario más "físico" que tiene la app:
    la tarjeta-sticker pastel de src/views/talk/escena-card.tsx. Cuatro papelitos
-   de colores en una grilla se leen como "escogé uno", no como un formulario.
+   de colores en una grilla se leen como "escoge uno", no como un formulario.
 
    Este componente NO decide dónde se guarda la elección: solo avisa con
    onPick. Quién persiste (rodeo_a1_job) y cuándo, lo cablea el integrador —

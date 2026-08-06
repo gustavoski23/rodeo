@@ -27,7 +27,7 @@ import './ladder.css';
    héroe "SUBE TU INGLÉS." a 3,4 rem — el título de la vista vive ahora en la
    barra mono de arriba, junto al ← de volver. El progreso B2→C1, las vetas y
    el peldaño viven DENTRO de una Card que hace de scroller, y la frase propia
-   baja a la barra de acción de abajo, que es donde SLANG tiene su PaisaBar.
+   baja a la barra de acción de abajo, que es donde SLANG tiene su JergaBar.
 
    Lo que NO cambia (comportamiento intacto): enterLadder al montar, el guard
    `busy` leído del store vivo, el filtro EX_B2, la key={idx} que remonta el
@@ -311,7 +311,7 @@ export default function LadderView() {
       </Card>
 
       {/* ── La barra de abajo ────────────────────────────────────────────────
-          Espejo de la PaisaBar de SLANG: la acción de escribir TU frase vive
+          Espejo de la JergaBar de SLANG: la acción de escribir TU frase vive
           donde la charla tiene su ConversationBar, no perdida entre las vetas. */}
       <div className={cn(COLUMNA, 'shrink-0 pt-3')}>
         <Card className="w-full flex-row items-center gap-2 rounded-[22px] p-2 shadow-lg">
