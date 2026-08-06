@@ -269,6 +269,26 @@ regeneran corriendo lo de arriba).
 
 ---
 
+## Qué quedó sin resolver
+
+- **El primer volteo del libro sigue sin curl.** El tap en la portada da 0
+  frames de curl, antes y después, a 1× y a 4×. La textura de la tapa es una
+  lámina a sangre de 1400×1960 —la cara más cara de todo el libro— y el dedo
+  llega antes de que esté. No es una regresión y puede ser exagerado por el
+  banco (aquí esa captura tarda 1,4-1,9 s; el runbook midió 180-360 ms en un
+  equipo de verdad). **Comprobarlo en el teléfono antes de tocar nada.**
+- **El p95 en el iPhone de Gus no está medido.** Este banco es headless y sin
+  GPU; puede decir qué se rompe y en qué orden, no cuántos milisegundos ve un
+  usuario. Ver el punto de decisión, más abajo.
+- **`flippingTime` sigue en 900 ms.** T4 genera la tira de fotogramas de 900,
+  500, 450 y 400 (`tests/perf/resultados/flippingTime.png`) pero **no elige**:
+  es tacto, y lo elige Gus.
+- **El `fps` del volteo a 4× está entre 5 y 17**, y no es rasterización: `gl`
+  mide 0 ms. Es el JS del hilo principal del propio animador —`computeNormals`
+  recorre una malla de 56×40 en cada frame— y eso no lo toca este trabajo.
+
+---
+
 ## El punto de decisión, y qué haríamos si no basta
 
 El banco es headless y sin GPU: **no puede responder cuál es el p95 en el
