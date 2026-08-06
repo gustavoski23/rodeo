@@ -26,11 +26,18 @@
    de verdad es la <img> con su bitmap decodificado, y de eso se encarga el
    TOPE: soltar la referencia deja que el recolector se lleve el bitmap.
 
-   Medido con el paseo de los 10 capítulos ida y vuelta (tests/perf/medir.mjs):
-   el heap acaba en 41 MB con esta caché contra 54 MB sin ella, y en 21 MB con
-   la CPU frenada 4×. Menos memoria que antes, no más, aunque ahora se guarden
-   caras que antes se tiraban — porque antes se rasterizaban una y otra vez y
-   los PNG viejos se acumulaban esperando al recolector. */
+   CUÁNTO CUESTA, medido de verdad (tests/perf/memoria.mjs: recorrer los 10
+   capítulos ida y vuelta, forzar `HeapProfiler.collectGarbage` y recién ahí
+   leer, tres pasadas de cada variante):
+
+     sin fork   15, 15, 15 MB
+     con fork   16, 16, 16 MB
+
+   Un mega más. Guardar caras CUESTA memoria, como es de esperar; lo que hace el
+   tope es que ese coste no crezca con el libro. Se apunta porque la primera vez
+   se midió mal —`performance.memory` a secas, sin forzar el GC— y salió que la
+   caché AHORRABA memoria, con lecturas de entre 17 y 54 MB que en realidad solo
+   decían cuándo había pasado el recolector. */
 
 const TOPE = 6;
 

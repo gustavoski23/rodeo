@@ -27,7 +27,7 @@ hojea de verdad.
 | p95 del peor camino (1×) | 4773 ms | **57 ms** |
 | Caras rasterizadas por volteo | 4 | **2** (0 releyendo) |
 | PNG intermedio por cara | 688×964, 707 kB | **516×723, 416 kB** |
-| Heap tras los 10 capítulos ida y vuelta (4×) | 42 MB | **32 MB** |
+| Heap tras los 10 capítulos (GC forzado) | 15 MB | 16 MB — la caché **cuesta** ~1 MB |
 | Tipografía de la cara que gira | otra fuente, sin capitular | **igual que la página quieta** |
 | `flippingTime` | 900 ms | 900 ms — **sin decidir, es de Gus** |
 
@@ -231,20 +231,28 @@ dentro de la ventana del gesto**.
 **0 capturas, 0 ms**. Todo lo sirve la caché. En lectura lineal son 2 —las dos
 caras de la hoja nueva— contra las 4 del original.
 
-**Memoria**, paseo por los 10 capítulos ida y vuelta:
+### Memoria — y una afirmación que hubo que retirar
 
-| | antes | después |
-|---|---:|---:|
-| CPU 1× | 11 → **54 MB** | 10 → **35 MB** |
-| CPU 4× | 11 → **42 MB** | 10 → **32 MB** |
+**La caché cuesta ~1 MB. No ahorra memoria.** Medido con
+`tests/perf/memoria.mjs`: recorrer los 10 capítulos ida y vuelta, forzar
+`HeapProfiler.collectGarbage` y recién entonces leer, tres pasadas de cada
+variante.
 
-El heap varía bastante entre corridas (el recolector no es determinista): la
-misma configuración dio 17 MB en una pasada y 32 MB en otra. Lo que se sostiene
-es la dirección, no la cifra exacta.
+| | Heap final |
+|---|---|
+| sin fork | 15, 15, 15 MB |
+| con fork | 16, 16, 16 MB |
 
-Guardar caras gasta MENOS memoria que no guardarlas, que suena al revés y no lo
-es: antes cada volteo rasterizaba cuatro PNG nuevos y los viejos se apilaban
-esperando al recolector.
+Reproducible al mega. Guardar caras cuesta memoria, como es de esperar; lo que
+hace el tope de 6 hojas es que ese coste **no crezca con el libro**.
+
+> Esto se midió mal primero, y el error merece quedar escrito porque es fácil de
+> repetir. Se leía `performance.memory` tal cual al final del paseo, y ese
+> número no dice cuánto hay retenido: dice cuánta basura queda sin recoger, o
+> sea **cuándo pasó el recolector**. Once corridas dieron entre 17 y 54 MB, con
+> los rangos del baseline y del fork solapados enteros — y el baseline con la
+> CPU más frenada marcó la lectura MÁS BAJA de todas. Con eso se llegó a afirmar
+> que la caché ahorraba 25 MB. No solo era la magnitud: era el signo.
 
 ### Y la tipografía, mirada (regla #1)
 

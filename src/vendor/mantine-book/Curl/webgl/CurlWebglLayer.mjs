@@ -353,8 +353,8 @@ function CurlWebglLayer(props) {
      en cuanto `warm` y `active` eran falsos. Se quitó: con él, volver una
      página atrás obligaba a rasterizar otra vez las dos caras. El par vive
      ahora en la LRU acotada de curl-cache.mjs, que lo suelta al pasar del tope
-     de 6 caras. Menos memoria, no más: medido, el paseo por los 10 capítulos
-     ida y vuelta acaba en 41 MB contra los 54 MB de antes. */
+     de 6 hojas. Cuesta memoria —medido con GC forzado, 16 MB contra 15— y por
+     eso el tope: para que ese coste no crezca con el libro. */
 
   useEffect(() => {
     const lease = leaseRef.current;
