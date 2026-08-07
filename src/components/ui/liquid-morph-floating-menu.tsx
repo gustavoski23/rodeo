@@ -183,12 +183,14 @@ export default function FloatingMenu({ items, initialOpen = false }: FloatingMen
           scale: { duration: 0.25, ease },
         }}
       >
-        {/* Yellow background layer */}
+        {/* Base layer — mismo oscuro cerrado y abierto (pedido de Gus,
+            2026-08-07: la píldora cerrada se veía amarilla; ahora usa el
+            mismo #242424 que ya pintaba el círculo al abrir). */}
         <motion.div
           className="absolute inset-0"
           animate={{
-            backgroundColor: isOpen ? "#FFE862" : "#FFE862",
-            borderColor: isOpen ? "#FFE862" : "#d1bb3b",
+            backgroundColor: "#242424",
+            borderColor: "#242424",
           }}
           transition={{ duration: isOpen ? 0.1 : 0.3, ease }}
           style={{
@@ -254,7 +256,7 @@ export default function FloatingMenu({ items, initialOpen = false }: FloatingMen
               hueco es aire para las entradas. La X queda como único cierre. */}
           <motion.span
             className="text-[14px] md:text-[20px] leading-none"
-            animate={{ color: isOpen ? "#f7f1ed" : "#242424", opacity: isOpen ? 0 : 1 }}
+            animate={{ color: "#f7f1ed", opacity: isOpen ? 0 : 1 }}
             transition={{ duration: 0.3, ease }}
             aria-hidden={isOpen || undefined}
           >
@@ -267,7 +269,7 @@ export default function FloatingMenu({ items, initialOpen = false }: FloatingMen
               animate={{
                 rotate: isOpen ? 45 : 0,
                 y: isOpen ? 0 : -3,
-                backgroundColor: isOpen ? "#f7f1ed" : "#242424",
+                backgroundColor: "#f7f1ed",
               }}
               transition={{ duration: 0.4, ease }}
             />
@@ -276,7 +278,7 @@ export default function FloatingMenu({ items, initialOpen = false }: FloatingMen
               animate={{
                 rotate: isOpen ? -45 : 0,
                 y: isOpen ? 0 : 3,
-                backgroundColor: isOpen ? "#f7f1ed" : "#242424",
+                backgroundColor: "#f7f1ed",
               }}
               transition={{ duration: 0.4, ease }}
             />

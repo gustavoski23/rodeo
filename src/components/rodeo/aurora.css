@@ -981,10 +981,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  border: 1px solid #d1bb3b;
+  border: 1px solid #242424;
   border-radius: 999px;
-  background: #ffe862;
-  color: #242424;
+  /* Mismo oscuro que pinta el círculo del FloatingMenu al abrir (pedido de
+     Gus, 2026-08-07): antes esta píldora —el placeholder que se ve mientras
+     el FloatingMenu real carga en diferido— era amarilla. */
+  background: #242424;
+  color: #f7f1ed;
   cursor: pointer;
   font-family: 'Aeonik TRIAL', 'Inter', sans-serif;
   font-size: 14px;
@@ -1003,7 +1006,7 @@
   width: 18px;
   height: 2px;
   border-radius: 999px;
-  background: #242424;
+  background: #f7f1ed;
 }
 .menu-flotante__hamburger i:first-child { transform: translateY(-4px); }
 .menu-flotante__hamburger i:last-child { transform: translateY(2px); }
