@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 
 import { A1_CURSO } from '@/content/a1/core';
+import { T0_UNIDADES } from '@/content/a1/t0-antes-de-hablar';
+import { T3_UNIDADES } from '@/content/a1/t3-viaje';
+import { PENDIENTES, TRAMOS } from '@/content/a1/tramos';
 import type { A1Chunk, A1Scene, A1Unit, JobPackId } from '@/content/a1/tipos';
+import type { A1ChunkRuta, A1SceneRuta, A1Tramo, A1TramoId, A1UnitRuta } from '@/content/a1/tipos-ruta';
 import { store } from '@/lib/storage';
 
 /* MOTOR DE OFICINA (A1) — port de public/js/a1-office.js (capas 1-4: progreso,
@@ -36,6 +40,12 @@ const K_SRS = 'rodeo_a1_srs'; // cerebro Leitner, AISLADO del DNA de Gus
 const K_STREAK = 'rodeo_a1_streak'; // racha propia, NO punitiva (nunca rodeo_streak)
 const K_SAVED = 'rodeo_a1_saved'; // "Mis frases" (mini-DNA propio, JAMÁS rodeo_dna)
 const K_JOB = 'rodeo_a1_job'; // el pack de trabajo elegido (A1.2)
+/* El tramo que el usuario está mirando. Clave NUEVA (las otras rodeo_a1_* son
+   del legacy y no se les toca ni el nombre ni la forma). Guarda el id pelado
+   —'t3'— y como todo pasa por `store`, en disco queda el JSON `"t3"`. Se lee
+   validando contra TRAMOS: un id de un tramo que ya no existe se descarta en
+   vez de dejar la barra midiendo la nada. */
+const K_TRAMO = 'rodeo_a1_tramo';
 
 /* ═══════════════════ Tipos del estado guardado ═══════════════════ */
 
@@ -155,18 +165,27 @@ function leerJob(): JobPackId | null {
   const v = store.get<string | null>(K_JOB, null);
   return v === 'tech' || v === 'ventas' || v === 'soporte' || v === 'recepcion' ? v : null;
 }
+function leerTramoVisto(): A1TramoId | null {
+  const v = store.get<string | null>(K_TRAMO, null);
+  return TRAMOS.some((t) => t.id === v) ? (v as A1TramoId) : null;
+}
 
 /* ═══════════════════ Índice plano del catálogo ═══════════════════ */
 
+/* El índice sale tipado con los tipos ANCHOS de la ruta (A1SceneRuta /
+   A1UnitRuta). No es cosmética: el repaso saca la escena de un chunk de acá, y
+   con `Record<string, A1Scene>` el `nodeKind` desaparecía del sistema de tipos
+   justo en el camino donde la sesión lo necesita para elegir su loop. */
 type Indice = {
   chunk: Record<string, A1Chunk>;
-  escenaDe: Record<string, A1Scene>;
-  unidadDe: Record<string, A1Unit>;
+  escenaDe: Record<string, A1SceneRuta>;
+  unidadDe: Record<string, A1UnitRuta>;
   supervivencia: A1Chunk[];
 };
 
-function construirIndice(unidades: readonly A1Unit[]): Indice {
+function construirIndice(unidades: readonly A1UnitRuta[]): Indice {
   const ix: Indice = { chunk: {}, escenaDe: {}, unidadDe: {}, supervivencia: [] };
+  const yaSos = new Set<string>();
   unidades.forEach((u) => {
     u.scenes.forEach((s) => {
       s.chunks.forEach((c) => {
@@ -174,24 +193,96 @@ function construirIndice(unidades: readonly A1Unit[]): Indice {
         ix.chunk[c.id] = c;
         ix.escenaDe[c.id] = s;
         ix.unidadDe[c.id] = u;
-        if (c.survival) ix.supervivencia.push(c);
+        /* El guard NO es paranoia: el contenido REUSA el mismo chunk en dos
+           escenas a propósito (una palabra que se ve en cognados y vuelve en la
+           parada de pronunciación) para no inventarle un id nuevo — el SRS
+           indexa por id y duplicar el id le cobraría dos veces al usuario la
+           misma palabra. O sea que compartir es lo correcto y lo que hay que
+           arreglar es el índice. Sin este `if`, la lista de supervivencia trae
+           el mismo chunk dos veces y HojaPanico pinta dos elementos de React
+           con la misma key. */
+        if (c.survival && !yaSos.has(c.id)) {
+          yaSos.add(c.id);
+          ix.supervivencia.push(c);
+        }
       });
     });
   });
   return ix;
 }
 
-const porOrden = (a: A1Unit, b: A1Unit) => (a.order || 0) - (b.order || 0);
+/* ═══════════════════ El catálogo se arma desde TRAMOS ═══════════════════
 
-const TRONCO: A1Unit[] = A1_CURSO.units.slice().sort(porOrden);
+   El orden de `unidades` ES el currículo: nuevos() lo recorre en orden y de ahí
+   salen las frases nuevas de cada repaso. Antes esto era
+   `A1_CURSO.units.slice().sort(porOrden)` y eso ya no da.
+
+   MEDIDO: de las 21 unidades que existen hoy, 20 empatan en `order` — el core
+   usa 1-7, el Tramo 0 usa 1-6 y el Tramo 3 usa 1-8. El empate NO da un orden
+   aleatorio (Array.sort es estable desde ES2019): daba siempre el mismo, y por
+   eso era peor. El resultado real era
+     u1-llegar → t0-cognados → t3-aeropuerto → u2-supervivencia → t0-sonidos → …
+   un intercalado perfecto de oficina / pre-A1 / aeropuerto que se ve estable y
+   parece intencional. Un bug que parece diseño no lo reporta nadie.
+
+   Ahora manda tramos.ts: se recorre TRAMOS en orden y cada id de `unitIds` se
+   resuelve contra el mapa de unidades disponibles. Un id que no resuelve —las
+   PENDIENTES, que todavía no tienen contenido— NO entra al catálogo. El mapa
+   las pinta igual con candado y "pronto", pero eso lo hace leyendo
+   TRAMOS/PENDIENTES por su cuenta; meterlas acá obligaría a filtrarlas en cada
+   consulta del motor y tarde o temprano alguien se olvidaría de una.
+
+   El pack de trabajo entra en la POSICIÓN DEL TRAMO 5 ("Tu trabajo",
+   `unitIds: []` con el comentario "lo llena el pack activo"), no al final.
+   Antes era `[...TRONCO, ...extra]`, que con el catálogo por tramos habría
+   dejado el inglés de TU puesto después de "Ayer y mañana" — el nodo que
+   cierra A1. Elegir trabajo tiene que dar algo pronto, no en tres meses.
+
+   Ojo con el tipo: cada unidad sale con su `tramo` puesto acá, aunque el
+   contenido viejo (core.ts, los packs) no lo declare. Así `u.tramo` es
+   confiable para todos y nadie tiene que preguntarle a TRAMOS de nuevo. */
+
+/** Una unidad tal como la trae el contenido: todavía sin saber de qué tramo es. */
+type UnidadFuente = Omit<A1UnitRuta, 'tramo'>;
+
+/* El Tramo 3 entra por acá y por ningún otro lado. Sus 8 paradas ya declaran
+   `tramo: 't3'` en el contenido, pero eso NO es lo que las ordena: el orden y la
+   pertenencia salen de TRAMOS.unitIds igual que las del Tramo 0. Que el archivo
+   de contenido y tramos.ts coincidan es una comodidad, no la fuente de verdad —
+   si algún día discreparan, manda tramos.ts y el id huérfano simplemente no
+   entra al catálogo.
+   Antes de esto, t3-viaje.ts existía y no lo importaba nadie: sus ids no estaban
+   ni en el catálogo ni en PENDIENTES, así que el mapa ni siquiera pintaba el
+   capítulo. Ocho paradas invisibles. */
+const DISPONIBLES: UnidadFuente[] = [...A1_CURSO.units, ...T0_UNIDADES, ...T3_UNIDADES];
+
+function construirCatalogo(pack: readonly A1Unit[]): A1UnitRuta[] {
+  const porId = new Map<string, UnidadFuente>();
+  for (const u of [...DISPONIBLES, ...pack]) porId.set(u.id, u);
+
+  const out: A1UnitRuta[] = [];
+  for (const t of TRAMOS) {
+    // El tramo 'job' no lista ids: los pone el pack elegido, en su propio orden.
+    const ids = t.branch === 'job' && !t.unitIds.length ? pack.map((u) => u.id) : t.unitIds;
+    for (const id of ids) {
+      if (PENDIENTES.has(id)) continue;
+      const u = porId.get(id);
+      if (!u) continue;
+      out.push({ ...u, tramo: t.id });
+    }
+  }
+  return out;
+}
+
+const CATALOGO_BASE = construirCatalogo([]);
 
 /* ═══════════════════ Store ═══════════════════ */
 
 type A1State = {
-  /** Catálogo vivo: tronco común + unidades del pack elegido (A1.2), en ese orden. */
-  unidades: A1Unit[];
-  /** Cuántas unidades del catálogo son del tronco (el resto es pack). */
-  tronco: number;
+  /** Catálogo vivo, en orden de TRAMOS. Cada unidad sabe su tramo (`u.tramo`),
+      que es lo que reemplazó al viejo `tronco: number`: con ocho tramos, un
+      índice de corte ya no describe nada. */
+  unidades: A1UnitRuta[];
   indice: Indice;
 
   onboarded: boolean;
@@ -200,10 +291,16 @@ type A1State = {
   racha: A1Racha;
   guardadas: A1Guardada[];
   job: JobPackId | null;
+  /** El tramo que el usuario está mirando (rodeo_a1_tramo). null = nunca entró
+      a una parada, o sea que todavía no hay nada que recordar. */
+  tramoVisto: A1TramoId | null;
 
-  /** Monta encima del tronco las unidades del pack activo. Idempotente. */
+  /** Rearma el catálogo metiendo el pack activo en el Tramo 5. Idempotente. */
   setPackUnits: (units: readonly A1Unit[]) => void;
   setJob: (id: JobPackId | null) => void;
+  /** Anota en qué tramo está parado el usuario. Lo llama el mapa al tocar un
+      nodo — es el único momento en que el usuario DICE dónde quiere estar. */
+  verTramo: (id: A1TramoId | null) => void;
 
   marcarOnboarded: () => void;
   guardarProgreso: (patch: Partial<A1Progreso>) => void;
@@ -219,9 +316,8 @@ type A1State = {
 };
 
 export const useA1 = create<A1State>((set, get) => ({
-  unidades: TRONCO,
-  tronco: TRONCO.length,
-  indice: construirIndice(TRONCO),
+  unidades: CATALOGO_BASE,
+  indice: construirIndice(CATALOGO_BASE),
 
   onboarded: store.get<boolean>(K_ONBOARDED, false),
   progreso: leerProgreso(),
@@ -229,25 +325,32 @@ export const useA1 = create<A1State>((set, get) => ({
   racha: leerRacha(),
   guardadas: leerGuardadas(),
   job: leerJob(),
+  tramoVisto: leerTramoVisto(),
 
-  /* El pack va DESPUÉS del tronco y ordenado por su propio `order`: elegir
-     trabajo agrega unidades, nunca reordena ni pisa las de todos. Se compara
-     por identidad de ids porque la vista lo llama desde un efecto y volver a
-     construir el índice en cada render sería un ciclo. */
+  /* Elegir trabajo AGREGA unidades, nunca reordena ni pisa las de todos: el
+     catálogo se reconstruye entero desde TRAMOS y el pack cae en el hueco del
+     Tramo 5. Se compara la lista de ids resultante antes de escribir porque la
+     vista llama esto desde un efecto y rearmar el índice en cada render sería
+     un ciclo. */
   setPackUnits: (units) => {
-    const extra = units.slice().sort(porOrden);
+    const unidades = construirCatalogo(units);
     const actual = get().unidades;
-    const igual =
-      actual.length === TRONCO.length + extra.length &&
-      extra.every((u, i) => actual[TRONCO.length + i]?.id === u.id);
-    if (igual) return;
-    const unidades = [...TRONCO, ...extra];
-    set({ unidades, tronco: TRONCO.length, indice: construirIndice(unidades) });
+    if (actual.length === unidades.length && unidades.every((u, i) => actual[i]?.id === u.id)) return;
+    set({ unidades, indice: construirIndice(unidades) });
   },
 
   setJob: (job) => {
     store.set(K_JOB, job);
     set({ job });
+  },
+
+  /* Se corta si no cambió: el mapa llama esto en CADA toque de nodo y sin la
+     guarda cada toque sería una escritura a localStorage más un render de toda
+     la vista. Escribir lo mismo dos veces no es gratis en un Android viejo. */
+  verTramo: (id) => {
+    if (get().tramoVisto === id) return;
+    store.set(K_TRAMO, id);
+    set({ tramoVisto: id });
   },
 
   marcarOnboarded: () => {
@@ -420,18 +523,192 @@ export function tareaHecha(taskId: string): boolean {
   return useA1.getState().progreso.doneTasks.includes(taskId);
 }
 
-/* Desbloqueo: la primera de cada bloque y el kit de supervivencia están
-   abiertos desde el día 1; el resto se abre al terminar las escenas de la
-   anterior. "Bloque" es el tronco o el pack: si el pack empezara encadenado al
-   final del tronco, elegir trabajo no daría NADA hoy — y elegirlo es
-   justamente lo que promete el selector de A1.2. */
+/* ── Desbloqueo: primero el TRAMO, después la cadena dentro del tramo ──────
+
+   Antes esto asumía dos bloques (`idx === 0 || idx === tronco`). Con ocho
+   tramos no sirve. Las reglas de ahora:
+
+     · Un tramo está ABIERTO si es el primero con contenido, o si el tramo
+       anterior CON CONTENIDO está cerrado. Un tramo sin ninguna unidad resuelta
+       (hoy t4, t6 y t7, que son todo PENDIENTES) es transparente para la
+       cadena: se saltea. Si no se salteara, todo lo que viene después quedaría
+       muerto para siempre en vez de "pronto".
+     · Un tramo está CERRADO si todas sus unidades resueltas tienen las escenas
+       hechas. Sin unidades resueltas no está cerrado: está vacío.
+     · Dentro de un tramo abierto la cadena corre sobre las unidades RESUELTAS,
+       no sobre `unidades[idx-1]` a secas.
+
+   ⚠️ `survival` YA NO DESBLOQUEA UNIDADES. Antes acá había un
+   `if (unidades[idx].survival) return true`, y hoy eso afectaba a una sola
+   unidad (u2-supervivencia). Con el contenido nuevo son SIETE, y tres viven en
+   el Tramo 3 (t3-migracion, t3-moverte, t3-se-dana): el viaje entero quedaría
+   medio abierto desde el minuto cero y el atajo de viaje —que ya está prendido,
+   unas líneas más abajo— no tendría nada que abrir. Peor todavía: migración,
+   que es la segunda parada, se abriría ANTES que el aeropuerto, que es la
+   primera. Hay test que lo clava.
+
+   Esto NO deja a nadie sin salvavidas, y conviene saber por qué antes de
+   revertirlo: las frases SOS no se leen entrando a una unidad, se leen en la
+   HOJA DE PÁNICO (views/a1/hojas.tsx), que se alimenta de `indice.supervivencia`
+   —el índice GLOBAL del catálogo, sin filtrar por desbloqueo— y está enganchada
+   por `onPanico` desde el mapa, la portada, la sesión y la tarea. O sea que
+   están a un toque desde cualquier pantalla el día 1. Medido hoy con el Tramo 3
+   adentro: 67 frases (t0=24 · t1=5 · t3=38), no menos.
+   `survival` ahora marca FRASES (qué entra al salvavidas), no puertas. */
+
+/** Tramos con al menos una unidad resuelta, en orden de camino. */
+function tramosVivos(unidades: readonly A1UnitRuta[]): A1TramoId[] {
+  return TRAMOS.filter((t) => unidades.some((u) => u.tramo === t.id)).map((t) => t.id);
+}
+
+function unidadesDelTramo(unidades: readonly A1UnitRuta[], tramo: A1TramoId): A1UnitRuta[] {
+  return unidades.filter((u) => u.tramo === tramo);
+}
+
+export function tramoCerrado(tramo: A1TramoId): boolean {
+  const us = unidadesDelTramo(useA1.getState().unidades, tramo);
+  return us.length > 0 && us.every(escenasHechas);
+}
+
+/* ── EL ATAJO DE VIAJE ────────────────────────────────────────────────────
+
+   Acá vivía un `const ATAJO_VIAJE = false` con la regla preparada y apagada.
+   Se prendió, y al prenderse dejó de ser un booleano: son DOS preguntas
+   distintas y confundirlas rompe la píldora del mapa.
+
+     · abrePorCadena  — la fila de siempre: el tramo anterior CON CONTENIDO
+                        cerrado. Los tramos vacíos (t4, t6, t7: todo PENDIENTES)
+                        son transparentes, si no todo lo de atrás quedaría
+                        muerto en vez de "pronto".
+     · abrePorAtajo   — con el PRIMER tramo del camino cerrado, un tramo
+                        `branch: 'viaje'` se abre sin haber hecho la fila. Quien
+                        vuela la otra semana no va a hacer cuarenta nodos de
+                        pasillo primero: cierra la app y no vuelve.
+
+   `tramoAbierto` es la O de las dos y es PERMANENTE: una vez que el atajo
+   abrió el tramo, sigue abierto pase lo que pase (arrancar el aeropuerto y
+   encontrártelo cerrado al día siguiente sería la peor versión de esto).
+
+   Lo que el atajo NO hace: marcar nada. Los tramos 1 y 2 quedan exactamente
+   donde estaban, abiertos y sin hacer, esperando a que vuelva del viaje. El
+   atajo salta la fila, no la borra — hay test que lo clava.
+
+   Ojo con el `!== tramo` en abrePorAtajo: si el tramo de viaje fuera el primero
+   del camino, ya abre por cadena y preguntar si está cerrado consigo mismo
+   sería preguntar si se abre por haberse terminado. */
+
+function abrePorCadena(tramo: A1TramoId, vivos: readonly A1TramoId[]): boolean {
+  const i = vivos.indexOf(tramo);
+  if (i < 0) return false;
+  if (i === 0) return true;
+  return tramoCerrado(vivos[i - 1]!);
+}
+
+function abrePorAtajo(tramo: A1TramoId, vivos: readonly A1TramoId[]): boolean {
+  if (!vivos.includes(tramo)) return false;
+  if (TRAMOS.find((t) => t.id === tramo)?.branch !== 'viaje') return false;
+  const primero = vivos[0];
+  return !!primero && primero !== tramo && tramoCerrado(primero);
+}
+
+export function tramoAbierto(tramo: A1TramoId): boolean {
+  const vivos = tramosVivos(useA1.getState().unidades);
+  return abrePorCadena(tramo, vivos) || abrePorAtajo(tramo, vivos);
+}
+
+/** ¿El mapa tiene que OFRECER el atajo de este tramo?
+
+    Distinta pregunta que `tramoAbierto`, y por tres motivos que se ven en
+    pantalla:
+
+    1. Si el tramo ya abría por la cadena, esto no es un atajo: es el camino. Una
+       píldora que ofrece entrar a donde ya se puede entrar caminando es ruido.
+    2. Si el usuario ya entró al tramo, la oferta caducó. "¿Viajás la otra
+       semana? Empezá por acá" cuando ya empezaste no es una invitación, es una
+       pantalla que no se enteró. Se mide con `unidadVirgen` (ninguna escena
+       cerrada y ningún chunk suyo en el SRS) en vez de guardar una marca
+       "atajo_tomado": el progreso que ya existe alcanza para saberlo, y las
+       claves rodeo_a1_* no reciben campos nuevos por cosas que se pueden
+       deducir.
+    3. La píldora desaparece pero la puerta NO se cierra: el tramo sigue abierto
+       por `tramoAbierto`. Lo que caduca es el ofrecimiento, no el acceso. */
+export function atajoDisponible(tramo: A1TramoId): boolean {
+  const { unidades } = useA1.getState();
+  const vivos = tramosVivos(unidades);
+  if (!abrePorAtajo(tramo, vivos)) return false;
+  if (abrePorCadena(tramo, vivos)) return false;
+  return unidadesDelTramo(unidades, tramo).every(unidadVirgen);
+}
+
 export function estaDesbloqueada(unitId: string): boolean {
-  const { unidades, tronco } = useA1.getState();
-  const idx = unidades.findIndex((u) => u.id === unitId);
-  if (idx < 0) return false;
-  if (idx === 0 || idx === tronco) return true; // primera del tronco / primera del pack
-  if (unidades[idx]!.survival) return true;
-  return escenasHechas(unidades[idx - 1]!);
+  const { unidades } = useA1.getState();
+  const u = unidades.find((x) => x.id === unitId);
+  if (!u) return false; // las PENDIENTES ni siquiera entran al catálogo
+  if (!tramoAbierto(u.tramo)) return false;
+  const hermanas = unidadesDelTramo(unidades, u.tramo);
+  const k = hermanas.findIndex((x) => x.id === unitId);
+  if (k <= 0) return true; // la primera resuelta del tramo abre con el tramo
+  return escenasHechas(hermanas[k - 1]!);
+}
+
+/* ── El TRAMO ACTIVO y su barra ────────────────────────────────────────────
+
+   La barra del mapa y la del logro se pintaban con totalChunks() de
+   denominador. Con el Tramo 0 adentro eso las rompe: 12 frases dominadas eran
+   12/63 (19%) y pasan a 12/158 (8%) — la barra dice que retrocediste por haber
+   agregado contenido. Con el Tramo 3 ya cableado son 12/222, o sea 5%: empeora
+   sola con cada tramo que entre. El texto "Ya te salen solas: 12" NO tiene ese
+   problema —es un número absoluto y ningún copy muestra el denominador— así que
+   lo único que se mueve es la barra.
+
+   Chunks por tramo, medido hoy con el Tramo 3 adentro:
+     t0=96 · t1=20 · t2=39 · t3=68 · el resto 0 · catálogo=222
+   (222 y no 223 porque tres chunks se comparten entre unidades a propósito:
+   w-help, w-v-seven y c-where-is-bathroom viven en dos paradas cada uno.)
+
+   El numerador también se acota al tramo. Si se dejara global, el día que
+   `salen` supere el tamaño del tramo la barra se clavaría en 100% mintiendo. */
+
+export type ProgresoTramo = { tramo: A1Tramo | null; salen: number; total: number; pct: number };
+
+/** Dónde estás parado. Primero el tramo RECORDADO (rodeo_a1_tramo, lo escribe
+    el mapa al tocar un nodo); si no hay, el de la primera unidad sin terminar;
+    y si ya no queda ninguna, el último — nadie "vuelve" al primero por haber
+    terminado.
+
+    La memoria no es comodidad, la trajo el atajo. Quien se salta la fila y se
+    va al aeropuerto deja los tramos 1 y 2 abiertos y sin hacer, así que "la
+    primera unidad sin terminar" sigue siendo la de la oficina: sin recordar,
+    la barra y el rótulo del mapa medirían el pasillo mientras el tipo estudia
+    migración. El recordado se descarta solo cuando el tramo ya no tiene nada
+    pendiente, y ahí el cálculo vuelve a mandar — la barra avanza sola sin que
+    nadie tenga que "cambiar de tramo" a mano. */
+export function tramoActivo(): A1TramoId | null {
+  const { unidades, tramoVisto } = useA1.getState();
+  if (!unidades.length) return null;
+  if (tramoVisto && unidades.some((u) => u.tramo === tramoVisto && !escenasHechas(u))) return tramoVisto;
+  const pendiente = unidades.find((u) => !escenasHechas(u));
+  return (pendiente ?? unidades[unidades.length - 1]!).tramo;
+}
+
+export function progresoDelTramo(): ProgresoTramo {
+  const { unidades, srs } = useA1.getState();
+  const id = tramoActivo();
+  const tramo = TRAMOS.find((t) => t.id === id) ?? null;
+  const vistos = new Set<string>();
+  let salen = 0;
+  for (const u of unidades) {
+    if (u.tramo !== id) continue;
+    for (const s of u.scenes) {
+      for (const c of s.chunks) {
+        if (vistos.has(c.id)) continue;
+        vistos.add(c.id);
+        if ((srs[c.id]?.box ?? 0) >= 4) salen++;
+      }
+    }
+  }
+  const total = vistos.size;
+  return { tramo, salen, total, pct: total ? Math.round((salen / total) * 100) : 0 };
 }
 
 /** Dominio de una unidad: cuántos de sus chunks llegaron a caja>=3. */
@@ -455,7 +732,13 @@ export function unidadDominada(m: { total: number; box3: number }): boolean {
   return m.total > 0 && m.box3 >= Math.ceil(m.total * 0.8);
 }
 
-export type Retomar = { unit: A1Unit; scene: A1Scene; chunkIdx: number; sceneNum: number; sceneTotal: number };
+export type Retomar = {
+  unit: A1UnitRuta;
+  scene: A1SceneRuta;
+  chunkIdx: number;
+  sceneNum: number;
+  sceneTotal: number;
+};
 
 /** "Seguí donde ibas": la última escena tocada que quedó a medias. Al
     terminarla, chunkIdx queda fuera de rango y deja de aparecer sola. */
@@ -481,8 +764,10 @@ export function unidadVirgen(u: A1Unit): boolean {
   return u.scenes.every((s) => !progreso.doneScenes.includes(s.id) && s.chunks.every((c) => !srs[c.id]));
 }
 
-/** La escena por la que sigue una unidad: la primera sin terminar. */
-export function proximaEscena(u: A1Unit): A1Scene | null {
+/** La escena por la que sigue una unidad: la primera sin terminar. Devuelve
+    A1SceneRuta —no A1Scene— porque quien la recibe (la sesión) decide su loop
+    mirando `nodeKind`, y con el tipo angosto ese campo no existía. */
+export function proximaEscena(u: A1UnitRuta): A1SceneRuta | null {
   const hechas = useA1.getState().progreso.doneScenes;
   return u.scenes.find((s) => !hechas.includes(s.id)) ?? u.scenes[0] ?? null;
 }
@@ -556,9 +841,27 @@ export function construirColaRepaso(): { cola: EnCola[]; dueCount: number; newCo
      caja 3           → Producir   (de memoria, sin ayuda)
      caja 4-5 c/molde → Swap       (el molde con TU situación)
    Las frases fijas (frame:null) saltan cloze y swap: el motor no inventa un
-   hueco donde no lo hay. Solo el repaso escala; lo nuevo se enseña completo. */
+   hueco donde no lo hay. Solo el repaso escala; lo nuevo se enseña completo.
+
+   LAS PALABRAS SUELTAS NUNCA VAN A MCQ. Medido: opcionesMcq() pone `chunk.en`
+   como correcta y `distractors_es` como incorrectas, y en el Tramo 0 los
+   distractores de una palabra son GLOSAS EN ESPAÑOL ("information" contra
+   «inmigración» y «instalación»). O sea que la opción correcta es la única
+   palabra en inglés de la pantalla y se acierta sin saber nada — y rungDe
+   mandaba mcq en cajas 1 y 2, o sea el día después de aprender cada palabra.
+   Para una palabra el repaso honesto es producirla: ves el español, la dices.
+
+   El `kind` sale de A1ChunkRuta. La firma de armar.ts declara que pal() y fr()
+   devuelven A1Chunk y eso borra `kind` del sistema de tipos, así que acá va un
+   cast puntual. Cuando tipos-ruta.ts se fusione en tipos.ts, armar.ts debería
+   declarar A1ChunkRuta y este cast se cae solo. */
+export function esPalabra(chunk: A1Chunk): boolean {
+  return (chunk as A1ChunkRuta).kind === 'palabra';
+}
+
 export function rungDe(chunk: A1Chunk, clase: Clase): Rung {
   if (clase !== 'due') return 'teach';
+  if (esPalabra(chunk)) return 'producir';
   const box = useA1.getState().srs[chunk.id]?.box || 1;
   const molde = !!chunk.frame;
   if (box <= 1) return 'mcq';

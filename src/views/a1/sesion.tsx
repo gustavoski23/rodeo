@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState, type ComponentType, type Reac
 import { AnimatePresence, motion } from 'motion/react';
 import { Check, Eye } from 'lucide-react';
 
-import type { A1Chunk, A1Scene, A1Unit, PasoVozProps } from '@/content/a1/tipos';
+import type { A1Chunk, PasoVozProps } from '@/content/a1/tipos';
+import type { A1SceneRuta, A1UnitRuta, NodeKind } from '@/content/a1/tipos-ruta';
 import { speak, useTts } from '@/lib/speech';
 import {
   barajar,
@@ -22,7 +23,7 @@ import {
   type Rung,
 } from '@/stores/a1';
 
-import { AlfredBloque, ENTRADA } from './alfred';
+import { AlfredBloque, ENTRADA, Eyebrow } from './alfred';
 import { Cabecera } from './cabecera';
 import { BotonAudio, FraseCard, Molde } from './frase-card';
 
@@ -47,15 +48,40 @@ import { BotonAudio, FraseCard, Molde } from './frase-card';
    El paso de VOZ (A1.3) entra como paso 5b, después de producir y antes de
    autoevaluarse: primero la dices sin juez, después el micrófono opina, y la
    última palabra sigue siendo tuya. Si el workstream de voz no está montado,
-   el loop queda en los seis del legacy y no se nota el hueco. */
+   el loop queda en los seis del legacy y no se nota el hueco.
 
-export type Meta = { clase: Clase; scene: A1Scene | null; unit: A1Unit | null };
+   ── LOS NODOS CORTOS DEL TRAMO 0 ────────────────────────────────────────
+   El loop de arriba no puede correr para una palabra suelta: anticipación +
+   reveal + porqué + shadowing + voz + autoeval para enseñar "taxi" es una
+   ceremonia absurda para algo que se resuelve en cinco segundos. Con diez
+   palabras por escena serían setenta taps para aprender diez cognados.
+
+   Por eso la SECUENCIA es un valor POR BEAT y no por sesión: sale del
+   `nodeKind` de la escena de ese beat. Tiene que ser por beat porque en modo
+   repaso la cola mezcla escenas de distinto tipo — una palabra del Tramo 0 y
+   una frase de la oficina pueden caer seguidas.
+
+   Si el nodeKind falta o no se reconoce, cae al loop de siempre. Nadie tiene
+   que acordarse de apagar nada. */
+
+export type Meta = { clase: Clase; scene: A1SceneRuta | null; unit: A1UnitRuta | null };
 
 export type Arranque =
-  | { modo: 'escena'; unit: A1Unit; scene: A1Scene; desde: number }
+  | { modo: 'escena'; unit: A1UnitRuta; scene: A1SceneRuta; desde: number }
   | { modo: 'repaso'; cola: EnCola[] };
 
-type Paso = 'escena' | 'anticipacion' | 'reveal' | 'porque' | 'shadowing' | 'voz' | 'autoeval';
+type Paso =
+  | 'escena'
+  | 'anticipacion'
+  | 'reveal'
+  | 'porque'
+  | 'shadowing'
+  | 'voz'
+  | 'autoeval'
+  /** Tarjeta de palabra suelta: la ves, suena, la repetís, siguiente. */
+  | 'palabra'
+  /** El par mínimo del fonema ("very" ≠ "berry"), con los dos audios. */
+  | 'par';
 
 /** Los seis del legacy, en orden. */
 const ORDEN: Paso[] = ['escena', 'anticipacion', 'reveal', 'porque', 'shadowing', 'autoeval'];
@@ -70,6 +96,33 @@ const ORDEN_CON_VOZ: Paso[] = [
   'autoeval',
 ];
 
+/** El nodeKind de la escena de este beat, saneado. */
+function nodoDe(m: Meta): NodeKind {
+  const k = m.scene?.nodeKind;
+  return k === 'palabras' || k === 'sonido' ? k : 'escena';
+}
+
+/* ¿Este beat CIERRA la tanda de palabras? Una tanda es una corrida de beats
+   'palabras' seguidos, y solo el último lleva autoeval: preguntarle "¿te
+   salió?" diez veces seguidas por diez cognados es justamente la ceremonia que
+   estos nodos existen para evitar. La nota que se dé al final se aplica a toda
+   la tanda. */
+function cierraTanda(meta: readonly Meta[], i: number): boolean {
+  if (nodoDe(meta[i]!) !== 'palabras') return false;
+  const sig = meta[i + 1];
+  return !sig || nodoDe(sig) !== 'palabras';
+}
+
+function secuenciaDe(nodo: NodeKind, conVoz: boolean, cierra: boolean): Paso[] {
+  if (nodo === 'palabras') return cierra ? ['palabra', 'autoeval'] : ['palabra'];
+  /* El fonema: ves el contraste, lo oís, lo repetís, y si hay micrófono que
+     opine el micrófono. Sin micrófono, autoeval como siempre. */
+  if (nodo === 'sonido') {
+    return conVoz ? ['par', 'shadowing', 'voz', 'autoeval'] : ['par', 'shadowing', 'autoeval'];
+  }
+  return conVoz ? ORDEN_CON_VOZ : ORDEN;
+}
+
 /* Reacciones de Alfred a la autoeval. "Todavía no" es NEUTRO y reconfortante a
    propósito: modela el error, no lo castiga. Nadie vuelve a una app que lo hace
    sentir bruto. */
@@ -78,6 +131,14 @@ const REACCION: Record<Nota, string> = {
   casi: 'Casi, casi. Escuchala una vez más y la repites conmigo. Vas bien.',
   todavia:
     "Tranquilo, esa se enreda al principio. Te la repasamos pronto pa' que no se te vaya. Nadie nace sabiendo.",
+};
+
+/** La misma reacción cuando la nota fue de toda la tanda, no de una sola. */
+const REACCION_TANDA: Record<Nota, string> = {
+  clavado: '¡Uy! Y eran varias de una. Esas ya las tienes encima.',
+  casi: 'Bien ahí. Las que se enredaron te las vuelvo a poner en el repaso, sin afán.',
+  todavia:
+    'Tranquilo, son hartas de una sentada. Te las voy soltando de a poquitas en los repasos. Así se pegan.',
 };
 
 type Run = {
@@ -97,6 +158,13 @@ type Run = {
   nota: Nota | null;
   /** Resultado del paso de voz (A1.3). null = no hubo o se saltó. */
   vozLograda: boolean | null;
+  /** Ids de la tanda de palabras que todavía no se calificaron.
+      Salirse a la mitad de una tanda las deja SIN entrar al SRS, y está bien:
+      una palabra que viste una vez y abandonaste no es una palabra aprendida —
+      cuando vuelvas te la vuelve a enseñar. La posición sí se guarda igual
+      (guardarProgreso corre por beat), así que "seguí donde ibas" te devuelve a
+      la palabra exacta. */
+  tanda: string[];
   requeued: Record<string, true>;
   setupVisto: Record<string, true>;
 };
@@ -109,7 +177,7 @@ function rungValido(rung: Rung, c: A1Chunk): Rung {
   return rung;
 }
 
-function arrancar(a: Arranque): Run {
+function arrancar(a: Arranque, conVoz: boolean): Run {
   const chunks = a.modo === 'escena' ? a.scene.chunks.slice() : a.cola.map((q) => q.chunk);
   const meta: Meta[] =
     a.modo === 'escena'
@@ -134,24 +202,29 @@ function arrancar(a: Arranque): Run {
     cloze: null,
     nota: null,
     vozLograda: null,
+    tanda: [],
     requeued: {},
     setupVisto: {},
   };
-  return entrar(base, i);
+  return entrar(base, i, conVoz);
 }
 
-/* Entrar a una frase: vuelve al paso 1, recalcula el rung y decide si esta es
-   la primera de su escena (la única que se presenta entera). */
-function entrar(run: Run, i: number): Run {
+/* Entrar a una frase: vuelve al PRIMER paso de la secuencia que le toca a este
+   beat (que no siempre es 'escena': una palabra suelta arranca en su tarjeta),
+   recalcula el rung y decide si esta es la primera de su escena — la única que
+   se presenta entera. `tanda` NO se toca acá: sobrevive de beat a beat, que es
+   justamente lo que hace que la autoeval sea una sola al final. */
+function entrar(run: Run, i: number, conVoz: boolean): Run {
   const c = run.chunks[i]!;
   const m = run.meta[i]!;
   const rung = rungValido(rungDe(c, m.clase), c);
   const escenaId = m.scene?.id ?? null;
   const setupAhora = !!escenaId && !run.setupVisto[escenaId];
+  const seq = secuenciaDe(nodoDe(m), conVoz, cierraTanda(run.meta, i));
   return {
     ...run,
     i,
-    paso: 'escena',
+    paso: seq[0]!,
     fase: 'beat',
     rung,
     setupAhora,
@@ -198,6 +271,67 @@ function BotonPaso({
   );
 }
 
+/** El regalo del cognado ("con esta regla te salen gratis: national, …").
+    Vive en dos pasos distintos (el porqué del loop largo y la tarjeta de
+    palabra), así que se saca a componente en vez de duplicar el estilo. */
+function Gancho({ texto }: { texto: string }) {
+  return (
+    <motion.p
+      {...ENTRADA}
+      className="rounded-[18px] border px-4 py-3 text-[0.86rem] leading-[1.45]"
+      style={{
+        borderColor: 'color-mix(in oklch, var(--warn) 35%, transparent)',
+        background: 'color-mix(in oklch, var(--warn) 10%, transparent)',
+        color: 'var(--text-secondary)',
+      }}
+    >
+      {texto}
+    </motion.p>
+  );
+}
+
+/* El par mínimo del nodo 'sonido'. Los DOS suenan y los dos se leen: el punto
+   pedagógico es la diferencia, y una diferencia no se enseña mostrando un lado
+   solo. El ≠ va en el medio y no un "vs": no están compitiendo, son distintas.
+
+   A 390 px las dos cajas entran holgadas (los pares más largos del contenido
+   son "works"/"work" y "berry"/"very"), pero igual llevan min-w-0 + break-words
+   por si mañana entra un par largo — el contenido lo escribe otra gente. */
+function ParMinimo({ par }: { par: readonly [string, string] }) {
+  return (
+    <motion.div {...ENTRADA} data-par-minimo className="flex flex-col gap-2">
+      <Eyebrow>El contraste</Eyebrow>
+      <div className="flex items-stretch gap-2">
+        {par.map((palabra, i) => (
+          <span key={palabra} className="contents">
+            {i > 0 && (
+              <span
+                aria-hidden="true"
+                className="font-display self-center text-[1.1rem] font-bold"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                ≠
+              </span>
+            )}
+            <span
+              className="flex min-w-0 flex-1 flex-col items-center gap-2 rounded-[20px] border px-3 py-3.5"
+              style={{
+                background: 'var(--bg-surface)',
+                borderColor: i === 0 ? 'color-mix(in oklch, var(--accent) 45%, transparent)' : 'var(--borde-sutil)',
+              }}
+            >
+              <span className="font-display text-center text-[1.25rem] leading-[1.15] font-bold tracking-[-0.02em] break-words">
+                {palabra}
+              </span>
+              <BotonAudio en={palabra} tamano={38} tono="claro" />
+            </span>
+          </span>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 function LineaQuien({ texto }: { texto: string }) {
   if (!texto) return null;
   return (
@@ -224,15 +358,20 @@ export function Sesion({
   onSalir: () => void;
   onPanico: () => void;
   /** La unidad quedó completa y su misión TBLT sigue pendiente. */
-  onTarea: (u: A1Unit) => void;
+  onTarea: (u: A1UnitRuta) => void;
 }) {
-  const [run, setRun] = useState<Run>(() => arrancar(arranque));
+  const conVoz = !!PasoVoz;
+  const [run, setRun] = useState<Run>(() => arrancar(arranque, conVoz));
   const { ttsOn } = useTts();
 
   const c = run.chunks[run.i]!;
   const meta = run.meta[run.i]!;
   const ultima = run.i >= run.chunks.length - 1;
   const repaso = arranque.modo === 'repaso';
+  const nodo = nodoDe(meta);
+  /** ¿La nota de este beat califica una tanda entera de palabras? */
+  const enTanda = nodo === 'palabras';
+  const cierra = cierraTanda(run.meta, run.i);
 
   /* Posición persistida (rodeo_a1_progress): recargar en mitad de una escena
      vuelve a ESTA frase, no al principio. El repaso NO la toca — sus frases
@@ -247,21 +386,24 @@ export function Sesion({
   }, [arranque, run.i]);
 
   /* La frase suena sola al revelarse (el tap de "Ver la frase" ya desbloqueó el
-     audio del navegador). El guard por clave evita el doble disparo de
-     StrictMode: son datos que salen por la red, no un efecto gratis. */
+     audio del navegador). Los nodos cortos no tienen 'reveal': su tarjeta ES el
+     reveal, así que suenan al entrar. El guard por clave evita el doble disparo
+     de StrictMode: son datos que salen por la red, no un efecto gratis. */
   const yaSono = useRef('');
   useEffect(() => {
-    if (run.fase !== 'beat' || run.paso !== 'reveal' || !ttsOn) return;
+    if (run.fase !== 'beat' || !ttsOn) return;
+    if (run.paso !== 'reveal' && run.paso !== 'palabra' && run.paso !== 'par') return;
     const clave = `${run.i}:${c.id}`;
     if (yaSono.current === clave) return;
     yaSono.current = clave;
     void speak(c.en, { trackReplay: false });
   }, [run.fase, run.paso, run.i, c.id, c.en, ttsOn]);
 
-  /* La secuencia del loop se decide UNA vez, según si el paso de voz llegó por
-     props. Así el "PASO 4/7" y el botón de avanzar leen de la misma lista y no
-     se pueden desincronizar. */
-  const secuencia = PasoVoz ? ORDEN_CON_VOZ : ORDEN;
+  /* La secuencia sale del BEAT, no de la sesión: el nodeKind de su escena y si
+     el paso de voz llegó por props. Así el "PASO 4/7" y el botón de avanzar
+     leen de la misma lista y no se pueden desincronizar — la cabecera hace
+     indexOf/length y nunca estuvo cableada a 6 ni a 7. */
+  const secuencia = secuenciaDe(nodo, conVoz, cierra);
 
   const avanzar = useCallback(
     (desde: Paso) => {
@@ -273,24 +415,32 @@ export function Sesion({
   );
 
   /** Autoeval → Leitner. "Todavía no" re-encola la frase UNA vez en esta
-      sesión: nadie se queda con la sensación de que se le escapó. */
+      sesión: nadie se queda con la sensación de que se le escapó.
+
+      En una tanda de palabras la nota va a TODAS las de la tanda, en bucle
+      sobre `calificar()`. Y ahí NO se re-encola: volver a meter diez beats
+      convertiría un "todavía no" honesto en un castigo, y el Leitner ya las
+      dejó agendadas para mañana (caja 1, due +1). */
   const calificarYReaccionar = useCallback(
     (nota: Nota) => {
-      useA1.getState().calificar(c.id, nota);
+      const st = useA1.getState();
+      const ids = enTanda ? Array.from(new Set([...run.tanda, c.id])) : [c.id];
+      ids.forEach((id) => st.calificar(id, nota));
       if (repaso) quizaCerrarEscena(meta.scene);
       setRun((r) => {
-        const reencolar = nota === 'todavia' && !r.requeued[c.id];
+        const reencolar = !enTanda && nota === 'todavia' && !r.requeued[c.id];
         return {
           ...r,
           fase: 'react',
           nota,
+          tanda: [],
           chunks: reencolar ? [...r.chunks, c] : r.chunks,
           meta: reencolar ? [...r.meta, meta] : r.meta,
           requeued: reencolar ? { ...r.requeued, [c.id]: true } : r.requeued,
         };
       });
     },
-    [c, meta, repaso],
+    [c, meta, repaso, enTanda, run.tanda],
   );
 
   const finalizar = useCallback(() => {
@@ -364,12 +514,42 @@ export function Sesion({
               </span>
             </motion.div>
           )}
-          <AlfredBloque lineas={[REACCION[run.nota ?? 'clavado']]} />
+          <AlfredBloque lineas={[(enTanda ? REACCION_TANDA : REACCION)[run.nota ?? 'clavado']]} />
         </>
       );
     }
 
     switch (run.paso) {
+      /* ── NODO CORTO · una PALABRA suelta ─────────────────────────────
+         Todo en una pantalla: la palabra grande, el español, la muleta
+         "suena:", el porqué de Alfred (que en un cognado ES la lección: "le
+         cortaron la cola", "-CIÓN se vuelve -TION") y el regalo si lo hay.
+         Un tap y sigue. Sin MCQ y sin producción. */
+      case 'palabra':
+        return (
+          <>
+            {run.setupAhora && meta.scene && (
+              <AlfredBloque lineas={[...meta.scene.setup_es, meta.scene.analogy_es]} />
+            )}
+            <FraseCard chunk={c} completa etiqueta="Palabra" />
+            <AlfredBloque lineas={[c.why_es]} />
+            {c.cognateHook_es && <Gancho texto={c.cognateHook_es} />}
+          </>
+        );
+
+      /* ── NODO CORTO · un FONEMA (el par mínimo) ──────────────────────── */
+      case 'par':
+        return (
+          <>
+            {run.setupAhora && meta.scene && (
+              <AlfredBloque lineas={[...meta.scene.setup_es, meta.scene.analogy_es]} />
+            )}
+            {meta.scene?.parMinimo && <ParMinimo par={meta.scene.parMinimo} />}
+            <FraseCard chunk={c} completa etiqueta="La palabra" />
+            <AlfredBloque lineas={[c.why_es]} />
+          </>
+        );
+
       /* ── 1 · ESCENA ─────────────────────────────────────────────────── */
       case 'escena': {
         if (repaso && meta.clase === 'due') {
@@ -458,19 +638,7 @@ export function Sesion({
           <>
             <AlfredBloque lineas={[c.why_es]} />
             <Molde chunk={c} />
-            {c.cognateHook_es && (
-              <motion.p
-                {...ENTRADA}
-                className="rounded-[18px] border px-4 py-3 text-[0.86rem] leading-[1.45]"
-                style={{
-                  borderColor: 'color-mix(in oklch, var(--warn) 35%, transparent)',
-                  background: 'color-mix(in oklch, var(--warn) 10%, transparent)',
-                  color: 'var(--text-secondary)',
-                }}
-              >
-                {c.cognateHook_es}
-              </motion.p>
-            )}
+            {c.cognateHook_es && <Gancho texto={c.cognateHook_es} />}
             <LineaQuien texto={c.who_es} />
           </>
         );
@@ -511,7 +679,12 @@ export function Sesion({
           <>
             <AlfredBloque
               lineas={[
-                '¿Y qué tal? ¿Te salió?',
+                /* Una sola pregunta para toda la tanda: es el punto entero de
+                   los nodos de palabras. Se nombra la cantidad para que quede
+                   claro que la nota no es solo de la última. */
+                enTanda
+                  ? `Listo esa tanda. ¿Cómo te fue con las ${Math.max(run.tanda.length + 1, 2)}?`
+                  : '¿Y qué tal? ¿Te salió?',
                 run.vozLograda === true
                   ? 'Te oí y te salió. Igual tú eres quien sabe cómo lo sentiste.'
                   : run.vozLograda === false
@@ -698,14 +871,47 @@ export function Sesion({
       );
     }
     if (run.fase === 'react') {
-      const etiqueta = ultima ? (repaso ? 'Cerrar el repaso ✓' : 'Cerrar la escena ✓') : 'Siguiente frase →';
+      const etiqueta = ultima
+        ? repaso
+          ? 'Cerrar el repaso ✓'
+          : 'Cerrar la escena ✓'
+        : enTanda
+          ? 'Seguimos →'
+          : 'Siguiente frase →';
       return (
-        <BotonPaso variante="acento" onClick={() => (ultima ? finalizar() : setRun((r) => entrar(r, r.i + 1)))}>
+        <BotonPaso
+          variante="acento"
+          onClick={() => (ultima ? finalizar() : setRun((r) => entrar(r, r.i + 1, conVoz)))}
+        >
           {etiqueta}
         </BotonPaso>
       );
     }
     switch (run.paso) {
+      /* La palabra que NO cierra la tanda salta al siguiente beat sin pasar por
+         autoeval, y de paso se apunta en `tanda` para que la nota del final la
+         alcance. La que cierra sí avanza a la autoeval de todas. */
+      case 'palabra':
+        return (
+          <BotonPaso
+            variante="acento"
+            onClick={() => {
+              if (cierra) {
+                avanzar('palabra');
+                return;
+              }
+              setRun((r) => ({ ...entrar(r, r.i + 1, conVoz), tanda: [...r.tanda, c.id] }));
+            }}
+          >
+            {cierra ? 'Ya las repetí ✓' : 'Siguiente palabra →'}
+          </BotonPaso>
+        );
+      case 'par':
+        return (
+          <BotonPaso variante="acento" onClick={() => avanzar('par')}>
+            Ya los oí, ahora yo ↓
+          </BotonPaso>
+        );
       case 'escena':
         return <BotonPaso onClick={() => avanzar('escena')}>Dale ↓</BotonPaso>;
       case 'anticipacion':
@@ -757,7 +963,9 @@ export function Sesion({
       <Cabecera
         activo={Math.min(run.i, run.chunks.length - 1)}
         total={run.chunks.length}
-        sub={run.fase === 'beat' ? `PASO ${pasoNum}/${secuencia.length}` : undefined}
+        /* "PASO 1/1" no informa nada: en un nodo de palabras el avance ya lo
+           cuentan los puntos de arriba (frase N de la tanda). */
+        sub={run.fase === 'beat' && secuencia.length > 1 ? `PASO ${pasoNum}/${secuencia.length}` : undefined}
         onSalir={onSalir}
         onPanico={onPanico}
       />

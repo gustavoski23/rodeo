@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 
 import type { A1Unit } from '@/content/a1/tipos';
 import { speak, useTts } from '@/lib/speech';
-import { metricas, totalChunks, useA1 } from '@/stores/a1';
+import { metricas, progresoDelTramo, useA1 } from '@/stores/a1';
 
 import { AlfredBloque, Barra, ENTRADA, Eyebrow } from './alfred';
 import { Cabecera } from './cabecera';
@@ -61,7 +61,11 @@ export function Tarea({ unit, onSalir, onPanico }: { unit: A1Unit; onSalir: () =
   }, [fase, i, chunk, ttsOn]);
 
   const m = metricas();
-  const pct = Math.round((m.salen / (totalChunks() || 1)) * 100);
+  /* La misma barra del mapa y con el mismo denominador: el TRAMO activo, no el
+     catálogo entero. Si acá siguiera midiendo contra las 158 frases del
+     catálogo, cerrar una misión —el momento más celebratorio del módulo— movería
+     la barra un pelo y se sentiría a burla. */
+  const tramo = progresoDelTramo();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -124,7 +128,15 @@ export function Tarea({ unit, onSalir, onPanico }: { unit: A1Unit; onSalir: () =
                 </motion.div>
 
                 <motion.div {...ENTRADA} className="flex flex-col gap-2">
-                  <Barra pct={pct} />
+                  {tramo.tramo && (
+                    <span
+                      className="font-mono text-[0.58rem] font-bold tracking-[0.16em] uppercase"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <span aria-hidden="true">{tramo.tramo.icon}</span> {tramo.tramo.title_es}
+                    </span>
+                  )}
+                  <Barra pct={tramo.pct} />
                   <p className="text-[0.85rem] leading-[1.45]" style={{ color: 'var(--text-secondary)' }}>
                     {m.salen > 0 ? (
                       <>

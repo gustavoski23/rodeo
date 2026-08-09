@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useState, type ComponentType } from 'react';
 
-import type { A1Scene, A1Unit, JobPack, PasoVozProps } from '@/content/a1/tipos';
+import type { JobPack, PasoVozProps } from '@/content/a1/tipos';
+import type { A1SceneRuta, A1UnitRuta } from '@/content/a1/tipos-ruta';
 import { pedirPermisoMic } from '@/lib/permisos';
 import {
   construirColaRepaso,
@@ -14,6 +15,8 @@ import {
 } from '@/stores/a1';
 import { toast } from '@/stores/toast';
 
+import { Coach } from './coach';
+import { abrirCoach } from './coach-turno';
 import { HojaDetalle, HojaGuardadas, HojaPanico } from './hojas';
 import { Mapa } from './mapa';
 import { Onboarding } from './onboarding';
@@ -39,11 +42,16 @@ import { Tarea } from './tarea';
      pasos (se cuela después de producir); si no llega, queda exactamente el
      loop del legacy. Nadie tiene que acordarse de apagar nada. */
 
+/* A1UnitRuta y no A1Unit: con el catálogo por tramos, `nodeKind`, `tramo` y
+   `coach` viajan en las unidades y la sesión los necesita para elegir su loop.
+   Tipar esto como A1Unit los borraba antes de que llegaran a la vista. */
 type Pantalla =
   | { tipo: 'mapa' }
-  | { tipo: 'portada'; unit: A1Unit; scene: A1Scene }
+  | { tipo: 'portada'; unit: A1UnitRuta; scene: A1SceneRuta }
   | { tipo: 'sesion'; arranque: Arranque }
-  | { tipo: 'tarea'; unit: A1Unit };
+  | { tipo: 'tarea'; unit: A1UnitRuta }
+  /** La conversación con el personaje de la parada. Se llega solo tocándola. */
+  | { tipo: 'coach'; unit: A1UnitRuta };
 
 export default function A1View({
   packsExtra,
@@ -69,12 +77,22 @@ export default function A1View({
     useA1.getState().setPackUnits(pack?.units ?? []);
   }, [pack]);
 
-  /* Permiso de micrófono al ENTRAR a OFICINA: el paso de producción hablada
+  /* Permiso de micrófono al ENTRAR a la RUTA: el paso de producción hablada
      (A1.3) dicta, y pedirlo recién al tocar el mic dejaba al usuario con un
      "no me diste permiso" sin que el navegador hubiera preguntado nunca.
-     Fire-and-forget (ver lib/permisos.ts): no bloquea el render del mapa. */
+     Fire-and-forget (ver lib/permisos.ts): no bloquea el render del mapa.
+
+     MUDO (`avisar: false`), y esta vista es la razón de que ese modo exista.
+     Desde que el nivel A1 aterriza acá (F0), esta es la PRIMERA pantalla de la
+     app para un principiante: si el mic está bloqueado, el toast de 6s salía
+     encima del CTA "Dale, cuéntame" de Alfred y lo primero que leía el usuario
+     era un error de algo que nunca pidió. El aviso no se pierde — cuando toque
+     el mic de verdad, use-grabadora pinta su propio mensaje al lado del botón
+     ("No me diste permiso del micrófono. Puedes seguir sin hablar."), que
+     además está donde el usuario está mirando. CHARLA sigue avisando con toast
+     como siempre: ahí el usuario entró explícitamente a hablar. */
   useEffect(() => {
-    void pedirPermisoMic();
+    void pedirPermisoMic({ avisar: false });
   }, []);
 
   /* ── Abrir una unidad (a1AbrirUnidad, L487) ──
@@ -119,6 +137,18 @@ export default function A1View({
       return;
     }
     setPantalla({ tipo: 'sesion', arranque: { modo: 'repaso', cola } });
+  }
+
+  /* ── Abrir la conversación de una parada ──
+     No hay ruta de rescate ni "seguí donde ibas" acá a propósito: una charla a
+     medias no se retoma, se vuelve a empezar. Reanudar una conversación de tres
+     días atrás con el mesero esperando tu respuesta es más raro que rehacerla,
+     y rehacerla cuesta cuatro turnos. */
+  function abrirConversacion(unitId: string) {
+    const u = unidades.find((x) => x.id === unitId);
+    if (!u || !u.coach) return;
+    if (!abrirCoach(u)) return;
+    setPantalla({ tipo: 'coach', unit: u });
   }
 
   function seguir() {
@@ -168,10 +198,13 @@ export default function A1View({
         />
       ) : pantalla.tipo === 'tarea' ? (
         <Tarea unit={pantalla.unit} onSalir={alMapa} onPanico={() => setPanico(true)} />
+      ) : pantalla.tipo === 'coach' ? (
+        <Coach unit={pantalla.unit} onSalir={alMapa} onPanico={() => setPanico(true)} />
       ) : (
         <Mapa
           pack={pack}
           onUnidad={abrirUnidad}
+          onCoach={abrirConversacion}
           onRepaso={abrirRepaso}
           onSeguir={seguir}
           onGuardadas={() => setGuardadas(true)}
