@@ -6,6 +6,7 @@ import { FondoTema } from '@/components/rodeo/fondo-tema';
 import { Toaster } from '@/components/rodeo/toaster';
 import { MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
+import { useEnLeccion } from '@/stores/a1-leccion';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useOnboarding } from '@/stores/onboarding';
@@ -72,6 +73,17 @@ export default function App() {
      orden de hooks. */
   const enCharla = useEnCharla();
   const charlaEnSesion = view === 'talk' && enCharla;
+
+  /* A1 DENTRO DE LA LECCIÓN — el mismo trato que pidió CHARLA, por el mismo
+     motivo (stores/a1-leccion.ts). En la portada, la sesión, la misión y la
+     charla de parada, la cabecera propia del loop (←, los puntos, el bombillo,
+     Alfred) YA es el header: la fila de arriba era una segunda cabecera encima
+     de la primera. En el MAPA la señal es false y la fila sigue ahí, que es
+     desde donde se navega el módulo.
+     El hook va SUELTO, nunca dentro de un `&&`: cortocircuitarlo lo saltaría en
+     los renders de las otras vistas y rompería el orden de hooks. */
+  const enLeccionA1 = useEnLeccion();
+  const a1EnLeccion = view === 'a1' && enLeccionA1;
 
   /* El gate de login es LO PRIMERO que se ve (pedido de Gus): antes que el
      Home aurora. `listo` evita el flash — hasta resolver getSession no se
@@ -160,12 +172,27 @@ export default function App() {
               // del px-5 del main). En PC la fila se queda: ahí sobra alto y el
               // toggler es de todas las pantallas.
               view === 'libro' && 'max-[739px]:hidden',
+              /* Y la lección del A1 entra en la MISMA excepción que el libro:
+                 en el teléfono la fila entera se va. El corte es `max-md`
+                 (≤767px) porque es literalmente la cláusula de ancho de
+                 MODO_LIGERO (lib/device.ts) — la definición que ya tiene la app
+                 de "esto es un teléfono"—, y no un número nuevo.
+                 En PC se queda, igual que en el libro: allá sobra alto y el
+                 toggler es de todas las pantallas (regla 3 del contrato). */
+              a1EnLeccion && 'max-md:hidden',
             )}
           />
 
           <main
             className={cn(
               'flex min-h-0 flex-1 flex-col px-5',
+              /* Cuando la fila superior se esconde, alguien tiene que poner el
+                 hueco del notch: era ELLA quien lo ponía. Se copia su misma
+                 expresión (max(14px, safe-area-top)) para que en el iPhone la
+                 cabecera del loop quede exactamente donde estaba el Menu, ni un
+                 píxel debajo de la muesca. Solo en el rango donde la fila
+                 desaparece; en PC la fila sigue montada y ya lo hace ella. */
+              a1EnLeccion && 'max-md:pt-[max(14px,env(safe-area-inset-top))]',
               // El pb reserva 84px para la tab bar… que hoy está OCULTA (ver
               // abajo). En sesión ya se recortaba a 12px. SLANG (Pélala) también
               // lo recorta: su columna (sticker + significado + chat de práctica)
@@ -175,7 +202,12 @@ export default function App() {
               // LIBRO entra en la misma excepción que SLANG: la hoja se mide
               // contra el alto disponible, así que 84px muertos ahí abajo le
               // recortan la página al libro entero, no solo un margen.
-              enSesion || view === 'slang' || view === 'libro'
+              // Y la LECCIÓN del A1 se suma a la lista: medido a 390×844, la
+              // portada pagaba 84px de franja muerta bajo el "Dale, arranquemos"
+              // por una barra que nadie monta, mientras arriba la tarjeta de la
+              // unidad se recortaba por falta de alto. En PC va igual: la tab bar
+              // no existe en ningún ancho.
+              enSesion || view === 'slang' || view === 'libro' || a1EnLeccion
                 ? 'pb-[max(14px,env(safe-area-inset-bottom))]'
                 : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
             )}

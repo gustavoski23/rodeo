@@ -13,6 +13,7 @@ import {
   unidadVirgen,
   useA1,
 } from '@/stores/a1';
+import { useA1Leccion } from '@/stores/a1-leccion';
 import { toast } from '@/stores/toast';
 
 import { Coach } from './coach';
@@ -76,6 +77,44 @@ export default function A1View({
   useLayoutEffect(() => {
     useA1.getState().setPackUnits(pack?.units ?? []);
   }, [pack]);
+
+  /* ── La señal de "estoy dentro de la lección" (stores/a1-leccion.ts) ──
+     Todo lo que no es el mapa es lección: portada, sesión, misión y la charla de
+     la parada. En el mapa la fila superior se queda, que ahí el menú es el
+     centro de navegación del módulo.
+
+     useLayoutEffect y no useEffect por lo de siempre en este archivo: con
+     useEffect, React pinta la portada CON la fila superior y recién después la
+     esconde — un cuadro de fila visible y un salto de 74px hacia arriba, justo
+     en la transición que se quería limpia. */
+  const enLeccion = pantalla.tipo !== 'mapa';
+  useLayoutEffect(() => {
+    useA1Leccion.getState().setEnLeccion(enLeccion);
+
+    /* Y de paso se BAJA EL TOAST. El toaster vive en top:14 y su comentario
+       justifica esa posición diciendo que lo único que puede tapar ahí arriba es
+       la fila Menu + toggle: "navegación, nunca el único camino para avanzar".
+       Esa premisa se acaba de romper — al esconder la fila, esos 14px los ocupa
+       la cabecera del loop (el ←, los puntos, el bombillo y Alfred), y un aviso
+       encima de eso sí tapa cosas que hacen falta.
+       Se publica el borde de abajo de la cabecera como variable CSS y el toaster
+       la lee, que es el mismo mecanismo con el que TALK coloca su tip
+       (--rd-tip-arriba). Se limpia al salir para que el resto de la app
+       recupere el top de siempre. */
+    const raiz = document.documentElement;
+    if (enLeccion) raiz.style.setProperty('--rd-toast-arriba', 'calc(78px + env(safe-area-inset-top))');
+    else raiz.style.removeProperty('--rd-toast-arriba');
+    /* Las llaves NO son estilo: removeProperty devuelve el valor viejo (string)
+       y el limpiador de un efecto tiene que devolver void. Sin ellas, tsc falla. */
+    return () => {
+      raiz.style.removeProperty('--rd-toast-arriba');
+    };
+  }, [enLeccion]);
+  /* El apagado al desmontar va SEPARADO y con deps vacías: si el usuario se va
+     al Home desde dentro de una sesión (el menú no está, pero el hash o un
+     setView sí pueden), esta vista muere con la señal encendida y la fila
+     superior no volvería nunca más en toda la app. */
+  useLayoutEffect(() => () => useA1Leccion.getState().setEnLeccion(false), []);
 
   /* Permiso de micrófono al ENTRAR a la RUTA: el paso de producción hablada
      (A1.3) dicta, y pedirlo recién al tocar el mic dejaba al usuario con un

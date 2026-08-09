@@ -82,7 +82,14 @@ export function Toaster() {
       aria-live="polite"
       /* pointer-events-none manda sobre toda la capa: es lo que hace que el
          toque llegue al CTA de abajo. La píldora ya no lo sobreescribe. */
-      className="pointer-events-none fixed inset-x-0 top-[calc(14px+env(safe-area-inset-top))] z-[200] flex flex-col items-center gap-2 px-4"
+      /* El top es NEGOCIABLE por la vista, con el de siempre como respaldo.
+         Arriba solo puede taparse la fila Menu + toggle, que es navegación y
+         nunca el único camino para avanzar — pero hay vistas que esconden esa
+         fila y ponen sus propios mandos ahí (la lección del A1 pone el ←, los
+         puntos, el bombillo y Alfred). Esas publican --rd-toast-arriba con el
+         borde de abajo de SU cabecera y el aviso cae debajo. Mismo mecanismo
+         que --rd-tip-arriba de TALK. */
+      className="pointer-events-none fixed inset-x-0 top-[var(--rd-toast-arriba,calc(14px+env(safe-area-inset-top)))] z-[200] flex flex-col items-center gap-2 px-4"
     >
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
