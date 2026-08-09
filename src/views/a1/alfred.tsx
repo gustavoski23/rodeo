@@ -28,10 +28,14 @@ export const ENTRADA = {
 };
 
 export function AlfredAvatar({ size = 30 }: { size?: number }) {
-  /* El fondo durazno se queda DEBAJO de la foto, no en su lugar: es el aro que
-     hace que Alfred se reconozca a 30 px, cuando de la cara ya no se distingue
-     nada. Y si la imagen no está, ese mismo aro con la inicial es el avatar de
-     siempre — el fallback no es un caso de error, es el estado anterior. */
+  /* El durazno de fondo NO se ve mientras haya foto: la imagen es opaca y cubre
+     el círculo entero. Se queda porque es exactamente el avatar de siempre, y
+     por eso el fallback no es un estado de error sino el estado anterior — si
+     la imagen no carga, Alfred sigue estando.
+     Lo de reconocerlo a 30 px lo resuelve el propio recorte: se probó a 30, 34 y
+     66, y a 30 todavía se le leen los ojos y la sonrisa porque el naranja del
+     fondo le da contraste al pelo oscuro. Un recorte a fondo plano oscuro se
+     volvía una mancha a ese tamaño. */
   const [sinCara, setSinCara] = useState(false);
 
   return (
