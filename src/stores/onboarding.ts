@@ -54,6 +54,19 @@ export const useOnboarding = create<OnboardingState>((set) => ({
        sin este empujón el Home saludaría sin nombre hasta la próxima recarga. */
     useApp.setState((s) => ({ nombre: nombre || s.nombre, nivel: datos.nivel }));
 
+    /* Quien acaba de decir "A1 Básico" aterriza en la RUTA, no en el Home: el
+       carrusel de features no le sirve de nada a alguien que todavía no sabe
+       decir "hello". (En el arranque en frío la misma decisión la toma
+       vistaInicial() de stores/app.ts, que lee las claves del disco.)
+
+       Va ACÁ y no en un `if` dentro del render de App.tsx porque completar() ya
+       ES el lugar donde "lo que el usuario dijo" se traduce a "estado de la
+       app" — la línea de arriba hace exactamente eso con nombre y nivel.
+       Meterlo en el switch de vistas sería colar una decisión de producto
+       adentro de un router, y el próximo que agregue un nivel tendría que
+       acordarse de tocar App.tsx en vez de este archivo. */
+    if (datos.nivel === 'A1') useApp.setState({ view: 'a1' });
+
     set({ necesario: false });
   },
 }));

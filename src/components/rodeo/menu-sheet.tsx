@@ -9,8 +9,12 @@ import { useApp, type View } from '@/stores/app';
    Cuando toque re-activarlas, se devuelven a ENTRADAS. */
 
 const ENTRADAS: { view: View; titulo: string; sub: string; Icon: typeof Dna }[] = [
-  // OFICINA estrena el diseño nuevo: curso A1 de Alfred con trabajos y voz.
-  { view: 'a1', titulo: 'OFICINA', sub: 'Inglés de oficina desde cero, con Alfred', Icon: Briefcase },
+  /* La vista 'a1' se llama RUTA de cara al usuario (F0): es el nombre que lleva
+     su carta en el carrusel y el rótulo de sus pantallas. El id de vista sigue
+     siendo 'a1' — cambiarlo rompería el #/a1 de la URL y el demo. Esta hoja hoy
+     no se monta (ver App.tsx), pero si vuelve tiene que decir lo mismo que el
+     resto o el usuario cree que son dos secciones distintas. */
+  { view: 'a1', titulo: 'RUTA', sub: 'Tu ruta de inglés desde cero, con Alfred', Icon: Briefcase },
   // { view: 'dna', titulo: 'TU DNA', sub: 'Tus errores, tu jerga y tus upgrades', Icon: Dna },
   // { view: 'ladder', titulo: 'SUBE', sub: 'Peldaños B2 → C1 con juez', Icon: TrendingUp },
 ];

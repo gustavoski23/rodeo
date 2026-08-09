@@ -136,7 +136,13 @@ export function Onboarding({ onListo }: { onListo: () => void }) {
           className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
           style={{ color: "var(--accent)" }}
         >
-          Oficina · te presento a Alfred
+          {/* RUTA y no "Oficina": la carta del carrusel dice RUTA y desde F0
+              esta es la pantalla de bienvenida de un A1 — entrar por "RUTA" y
+              aterrizar en "OFICINA" es sentir que te equivocaste de puerta. El
+              nombre interno del módulo (vista 'a1', archivos, claves
+              rodeo_a1_*, el port de a1-office.js) NO se toca: eso nombra de
+              dónde salió el código, no lo que el usuario está haciendo. */}
+          Ruta · te presento a Alfred
         </span>
       </div>
 

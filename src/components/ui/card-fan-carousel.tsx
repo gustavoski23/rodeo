@@ -16,7 +16,11 @@
       EXACTAMENTE MAX_VISIBLE cartas el original dejaba el abanico estático
       —sin flechas, puntos ni swipe, y las cartas de los flancos intocables—;
       con `>=` esas 7 ya rotan. Es el único cambio de comportamiento; la
-      geometría del abanico, el GSAP y el hover siguen intactos. */
+      geometría del abanico, el GSAP y el hover siguen intactos.
+   6. Prop `centroInicial?` — CON QUÉ CARTA NACE el abanico. Opcional y sin
+      default propio: omitirla deja EXACTAMENTE el cálculo de siempre, así que
+      quien no la pasa no se entera de que existe. El componente sigue siendo
+      genérico: recibe un índice, no sabe qué carta es ni por qué. */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
@@ -35,6 +39,9 @@ export interface CardItem {
 
 interface SocialCardsProps {
   cards: CardItem[];
+  /** Adaptación RODEO (6): índice de la carta que nace centrada. Se lee UNA vez
+      (es el valor inicial del useState); después manda la paginación. */
+  centroInicial?: number;
 }
 
 const MAX_VISIBLE = 7;
@@ -93,7 +100,7 @@ function getSlotConfig(totalCards: number, slot: number) {
 const ARROW_CLASSES =
   "relative flex items-center justify-center rounded-full border-[1.5px] border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 backdrop-blur-[16px] text-black/40 dark:text-white/55 cursor-pointer shrink-0 z-30 outline-none shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-black/25 dark:hover:border-white/25 hover:text-black/70 dark:hover:text-white/80 active:opacity-70 transition-colors duration-300 before:content-[''] before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] dark:before:border-white/[0.04] before:pointer-events-none";
 
-export default function SocialCards({ cards }: SocialCardsProps) {
+export default function SocialCards({ cards, centroInicial }: SocialCardsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isAnimating = useRef(false);
   const hasEntered = useRef(false);
@@ -108,7 +115,15 @@ export default function SocialCards({ cards }: SocialCardsProps) {
      abría la del centro). Con `>=`, 7 cartas ya rotan: vuelve el deslizar y las
      dos flechas glass de abajo, y cualquier carta se trae al frente para tocar. */
   const needsPagination = totalCards >= MAX_VISIBLE;
-  const [centerIndex, setCenterIndex] = useState(needsPagination ? HALF : totalCards >> 1);
+  /* Adaptación RODEO (6). Sin `centroInicial` la expresión es la del original,
+     carácter por carácter. Con ella se acota al rango de cartas: un índice
+     inventado dejaría getVisibleMap mapeando slots a cartas que no existen y el
+     abanico saldría con huecos. */
+  const [centerIndex, setCenterIndex] = useState(
+    typeof centroInicial === "number"
+      ? Math.min(Math.max(centroInicial | 0, 0), Math.max(totalCards - 1, 0))
+      : needsPagination ? HALF : totalCards >> 1,
+  );
 
   const getVisibleMap = useCallback((center: number) => {
     const map = new Map<number, number>();

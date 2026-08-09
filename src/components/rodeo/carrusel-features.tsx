@@ -40,6 +40,10 @@ import './aurora.css';
     donde nace su centerIndex al paginar. Ahí ponemos SLANG. */
 const CENTRO_INICIAL = 3;
 
+/** …salvo para un A1, que abre con su RUTA al frente: la carta 0. Ver la nota
+    de `ruta` más abajo — no alcanza con ponerla primera en el arreglo. */
+const CENTRO_A1 = 0;
+
 /* Overlay de una feature real. Dos registros según dónde esté la carta:
    - CENTRADA: gradiente oscuro desde abajo + eyebrow mono + el bloque de texto
      (título display, subtítulo y la línea en español).
@@ -101,7 +105,18 @@ function abrirFeature(view: View) {
 
 export function CarruselFeatures() {
   const lienzoRef = useRef<HTMLDivElement>(null);
-  const [centro, setCentro] = useState(CENTRO_INICIAL);
+  // El nivel del onboarding decide dónde cae la carta RUTA (ver más abajo).
+  const nivel = useApp((s) => s.nivel);
+  /* `undefined` fuera de A1 A PROPÓSITO, no CENTRO_INICIAL: sin la prop el
+     abanico usa su propio cálculo (`needsPagination ? HALF : totalCards >> 1`)
+     y queda idéntico al de hoy pase lo que pase con el número de cartas.
+     Pasarle un 3 fijo empataría con las 7 de ahora y mentiría el día que sean
+     menos de 7 —ahí el original centra en totalCards>>1, no en 3—. */
+  const centroInicial = nivel === 'A1' ? CENTRO_A1 : undefined;
+  /* El estado local espeja el centro del componente para pintar `data-centro`;
+     tiene que ARRANCAR en el mismo índice, o el primer render dibujaría el
+     overlay rico sobre una carta que no es la del frente. */
+  const [centro, setCentro] = useState(centroInicial ?? CENTRO_INICIAL);
 
   /* Qué carta está centrada. El componente de Gus no lo publica (y no se
      toca), pero SÍ lo pinta: el punto de paginación activo lleva la utilidad
@@ -133,12 +148,40 @@ export function CarruselFeatures() {
     return () => observador.disconnect();
   }, []);
 
+  /* La RUTA (antes OFICINA). Sale del arreglo de abajo porque su POSICIÓN
+     depende del nivel: para un A1 es la carta con la que se entra a la app —
+     literalmente su curso—, así que va PRIMERA. Para cualquier otro nivel se
+     queda de última, exactamente donde está desde siempre.
+     El nivel se lee del store y no de localStorage: useApp ya lo hidrata al
+     crearse Y lo actualiza completar() del onboarding, así que la carta se
+     reordena sin esperar una recarga.
+
+     MEDIDO, y por eso hay DOS cambios y no uno: "primera en el arreglo" no es
+     "la que se ve". El abanico nace centrado en su HALF (=3), así que con la
+     RUTA en el índice 0 la vitrina abría en Alicia y la RUTA quedaba en el
+     flanco izquierdo, a tres toques de ‹ — o sea, un A1 seguía sin ver su
+     ruta. Por eso además le pasamos `centroInicial` al abanico (adaptación 6
+     de card-fan-carousel). El componente sigue sin saber qué es "RUTA": recibe
+     un número. Quien sabe de features es este archivo. */
+  const ruta: CardItem = {
+    imgUrl: '/carrusel/oficina.jpg',
+    alt: 'RUTA · Tu ruta de inglés, paso a paso',
+    onClick: () => abrirFeature('a1'),
+    contenido: (
+      <OverlayFeature
+        titulo="RUTA"
+        subtitulo="Tu ruta de inglés, paso a paso"
+        linea="Desde cero y con packs por profesión."
+      />
+    ),
+  };
+
   // Siete cartas, todas con foto real, ordenadas para que SLANG quede al frente
   // (índice 3, el centro del abanico fijo). A su izquierda inmediata, los dos
   // LIBROS —los recién horneados, bien grandes—; luego DNA cierra ese flanco. A
-  // la derecha, STORY → CONVERSACIÓN → OFICINA. Es el orden de lectura rotado:
+  // la derecha, STORY → CONVERSACIÓN → RUTA. Es el orden de lectura rotado:
   // conserva la vecindad cíclica, solo centrado en SLANG.
-  const cards: CardItem[] = [
+  const resto: CardItem[] = [
     {
       imgUrl: '/carrusel/dna.jpg',
       alt: 'DNA · Tu archivo de lenguaje, siempre contigo',
@@ -222,23 +265,15 @@ export function CarruselFeatures() {
         />
       ),
     },
-    {
-      imgUrl: '/carrusel/oficina.jpg',
-      alt: 'OFICINA · Inglés de trabajo con Alfred',
-      onClick: () => abrirFeature('a1'),
-      contenido: (
-        <OverlayFeature
-          titulo="OFICINA"
-          subtitulo="Inglés de trabajo con Alfred"
-          linea="Desde cero y con packs por profesión."
-        />
-      ),
-    },
   ];
+
+  /* `[...resto, ruta]` reproduce el arreglo de siempre carta por carta — la
+     RUTA era la última. El único caso que cambia es A1. */
+  const cards: CardItem[] = nivel === 'A1' ? [ruta, ...resto] : [...resto, ruta];
 
   return (
     <div ref={lienzoRef} className="aurora-carrusel__lienzo" data-centro={centro}>
-      <SocialCards cards={cards} />
+      <SocialCards cards={cards} centroInicial={centroInicial} />
     </div>
   );
 }

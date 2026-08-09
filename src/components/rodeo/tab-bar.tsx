@@ -7,7 +7,9 @@ const TABS: { view: View; label: string; Icon: typeof AudioLines }[] = [
   { view: 'talk', label: 'TALK', Icon: AudioLines },
   { view: 'story', label: 'STORY', Icon: BookOpenText },
   { view: 'slang', label: 'SLANG', Icon: MessageSquareText },
-  { view: 'a1', label: 'OFICINA', Icon: Briefcase },
+  // RUTA, no OFICINA: mismo nombre de cara al usuario que la carta del carrusel
+  // y las cabeceras del módulo (F0). El `view` sigue siendo 'a1'.
+  { view: 'a1', label: 'RUTA', Icon: Briefcase },
 ];
 
 /* Tab bar glass flotante. El nivel A1 la oculta (html.nivel-a1), como en la

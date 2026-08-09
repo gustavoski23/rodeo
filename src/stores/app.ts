@@ -18,12 +18,30 @@ const VISTAS: readonly View[] = ['home', 'talk', 'story', 'slang', 'ladder', 'dn
    sin escribir la URL de vuelta. Con eso alcanza para lo que hace falta —
    mandarle a alguien el enlace de una sección, y que el demo single-file
    (scripts/hacer-demo.mjs con DEMO_VIEW) aterrice donde toca en vez de obligar
-   a cruzar el carrusel. Si el hash trae cualquier otra cosa, Home. */
+   a cruzar el carrusel.
+
+   El hash SIEMPRE gana: es la puerta de debug y de la que depende el demo. La
+   regla del nivel A1 va DESPUÉS, y solo cuando no hay hash que respetar. */
 function vistaInicial(): View {
   if (typeof location === 'undefined') return 'home';
   const m = location.hash.match(/^#\/?([a-z0-9]+)/i);
   const v = m?.[1]?.toLowerCase() as View | undefined;
-  return v && VISTAS.includes(v) ? v : 'home';
+  if (v && VISTAS.includes(v)) return v;
+
+  /* Quien dijo "A1 Básico" en el onboarding no arranca en el Home aurora: un
+     carrusel de siete features y una píldora de charla libre no son una puerta
+     para alguien que todavía no sabe decir "hello". Arranca en la RUTA.
+
+     Pero solo HASTA QUE la conozca: en cuanto rodeo_a1_onboarded está en alto,
+     manda el Home de siempre. A esa altura ya sabe volver sola a la ruta, y
+     seguir forzándola sería secuestrarle la app.
+
+     Se lee con `store.get` y NO con localStorage.getItem a pelo: la
+     persistencia de este repo pasa por JSON.stringify, así que en disco
+     rodeo_nivel vale "A1" CON comillas y un getItem crudo nunca empataría. */
+  const esA1 = store.get<string | null>('rodeo_nivel', null) === 'A1';
+  const yaVioLaRuta = store.get<boolean>('rodeo_a1_onboarded', false);
+  return esA1 && !yaVioLaRuta ? 'a1' : 'home';
 }
 
 type AppState = {
