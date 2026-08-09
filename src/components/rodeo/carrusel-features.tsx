@@ -177,27 +177,29 @@ export function CarruselFeatures() {
   };
 
   // Siete cartas, todas con foto real, ordenadas para que SLANG quede al frente
-  // (índice 3, el centro del abanico fijo). A su izquierda inmediata, los dos
-  // LIBROS —los recién horneados, bien grandes—; luego DNA cierra ese flanco. A
-  // la derecha, STORY → CONVERSACIÓN → RUTA. Es el orden de lectura rotado:
-  // conserva la vecindad cíclica, solo centrado en SLANG.
+  // (índice 3, el centro del abanico fijo). A su izquierda inmediata, los TRES
+  // LIBROS (One Good Part, Verne, Alicia). A la derecha, CONVERSACIÓN → RUTA, y
+  // DNA cierra. Se quitó la carta STORY (pedido de Gus); la vista `story` sigue
+  // existiendo, solo sale de la vitrina. El total sigue en 7, así que el
+  // centrado del abanico (HALF=3) no cambia.
   const resto: CardItem[] = [
     {
-      imgUrl: '/carrusel/dna.jpg',
-      alt: 'DNA · Tu archivo de lenguaje, siempre contigo',
-      onClick: () => abrirFeature('dna'),
+      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en la
+      // vitrina es literalmente lo que se abre al tocar. Son TRES libros ahora
+      // (pedido de Gus): cada carta entra al suyo y dispara su propia precarga.
+      // El más nuevo, One Good Part, va primero.
+      imgUrl: '/libro/o00-portada.webp',
+      alt: 'LIBRO · One Good Part',
+      onClick: () => abrirLibro('tiempo'),
       contenido: (
         <OverlayFeature
-          titulo="DNA"
-          subtitulo="Tu archivo de lenguaje, siempre contigo"
-          linea="Tus fallos, tu jerga y tus upgrades, vivos."
+          titulo="LIBRO"
+          subtitulo="One Good Part"
+          linea="Diez saltos en el tiempo, sembrados de phrasal verbs."
         />
       ),
     },
     {
-      // La carta usa la MISMA portada que la tapa del libro: lo que se ve en la
-      // vitrina es literalmente lo que se abre al tocar. Son DOS libros ahora
-      // (pedido de Gus): cada carta entra al suyo y dispara su propia precarga.
       imgUrl: '/libro/v00-portada.webp',
       alt: 'LIBRO · Around the World in Eighty Days',
       onClick: () => abrirLibro('vuelta'),
@@ -234,18 +236,6 @@ export function CarruselFeatures() {
       ),
     },
     {
-      imgUrl: '/carrusel/story.jpg',
-      alt: 'STORY · Modo historia',
-      onClick: () => abrirFeature('story'),
-      contenido: (
-        <OverlayFeature
-          titulo="STORY"
-          subtitulo="Modo historia"
-          linea="Un thriller por capítulos donde practicas sin darte cuenta."
-        />
-      ),
-    },
-    {
       imgUrl: '/carrusel/conversacion.jpg',
       alt: 'CONVERSACIÓN · Habla 24/7 con tu coach',
       /* La carta abre la PORTADA de TALK, no una sesión ya empezada.
@@ -262,6 +252,21 @@ export function CarruselFeatures() {
           titulo="CONVERSACIÓN"
           subtitulo="Habla 24/7 con tu coach"
           linea="Practica hablando con la voz, como con un amigo."
+        />
+      ),
+    },
+    {
+      // DNA iba primera; se corrió al final para hacerle sitio al tercer libro
+      // sin mover a SLANG del índice 3 (el HALF del abanico) ni cambiar el total
+      // de 7 cartas. Se llega a ella deslizando, como a cualquier carta del flanco.
+      imgUrl: '/carrusel/dna.jpg',
+      alt: 'DNA · Tu archivo de lenguaje, siempre contigo',
+      onClick: () => abrirFeature('dna'),
+      contenido: (
+        <OverlayFeature
+          titulo="DNA"
+          subtitulo="Tu archivo de lenguaje, siempre contigo"
+          linea="Tus fallos, tu jerga y tus upgrades, vivos."
         />
       ),
     },

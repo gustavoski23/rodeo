@@ -78,7 +78,7 @@ export const useApp = create<AppState>((set) => ({
   nombre: store.get<string | null>('rodeo_nombre', null),
   nivel: store.get<string | null>('rodeo_nivel', null),
   cost: store.get<number>('rodeo_cost', 0),
-  libroActivo: 'vuelta',
+  libroActivo: 'tiempo',
   setLibroActivo: (libroActivo) => set({ libroActivo }),
   setView: (view) => set({ view }),
   setTema: (tema) => set({ tema }),

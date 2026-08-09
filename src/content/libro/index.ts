@@ -1,13 +1,14 @@
 /* Registro de los libros interactivos.
 
    La vista (src/views/libro) es UNA sola y se maneja por `libroActivo` (store).
-   Aquí los dos libros se normalizan al shape común de tipos.ts. Alicia trae
+   Aquí los TRES libros se normalizan al shape común de tipos.ts. Alicia trae
    `imgMedio`/`altMedio` (1 lámina de la mitad) de su archivo original; se mapea a
-   `imgDentro`/`altDentro` (1 elemento) SIN tocar alicia.ts. Around the World ya
-   viene con `imgDentro`/`altDentro` de 3. */
+   `imgDentro`/`altDentro` (1 elemento) SIN tocar alicia.ts. Around the World y
+   One Good Part ya vienen con `imgDentro`/`altDentro` de 3. */
 
 import { CAPITULOS as ALICIA_CAPS, IMAGENES as ALICIA_IMG, PHRASALS_TOTAL as ALICIA_PH } from './alicia';
 import { CAPITULOS as VUELTA_CAPS, IMAGENES as VUELTA_IMG, PHRASALS_TOTAL as VUELTA_PH } from './vueltamundo';
+import { CAPITULOS as TIEMPO_CAPS, IMAGENES as TIEMPO_IMG, PHRASALS_TOTAL as TIEMPO_PH } from './onegoodpart';
 import type { Capitulo, Libro } from './tipos';
 
 /** Alicia → shape común. Su única lámina interna (la de la mitad) se vuelve el
@@ -48,10 +49,27 @@ export const VUELTA: Libro = {
   precargaKey: 'rodeo_libro_vuelta_precargado',
 };
 
-export const LIBROS = { vuelta: VUELTA, alicia: ALICIA } as const;
+/* One Good Part: adaptación libre de The Time Machine. Diez saltos entre seis
+   ciudades reales y siete épocas (1889 a 2141), con el vocabulario de resolver
+   problemas de verdad — nada de léxico de fantasía. Ver onegoodpart.ts. */
+export const TIEMPO: Libro = {
+  id: 'tiempo',
+  titulo: 'One Good Part',
+  portada: TIEMPO_IMG.portada,
+  portadaAlt:
+    'Rooke y Nia tomados de la mano frente a un enorme engranaje dorado y brillante, con siluetas de tejados y un rascacielos futurista disolviéndose en la niebla dorada alrededor.',
+  fin: TIEMPO_IMG.fin,
+  finAlt:
+    'Primer plano de un banco de trabajo: las manos arrugadas de un hombre mayor guían las manos de una joven mientras sostiene un engranaje diminuto; a un costado, un radiocasete portátil viejo.',
+  capitulos: TIEMPO_CAPS,
+  phrasalsTotal: TIEMPO_PH,
+  precargaKey: 'rodeo_libro_tiempo_precargado',
+};
+
+export const LIBROS = { tiempo: TIEMPO, vuelta: VUELTA, alicia: ALICIA } as const;
 export type LibroId = keyof typeof LIBROS;
 
 /** Orden en la vitrina del carrusel: el libro nuevo primero. */
-export const LIBRO_LISTA: Libro[] = [VUELTA, ALICIA];
+export const LIBRO_LISTA: Libro[] = [TIEMPO, VUELTA, ALICIA];
 
 export type { Libro, Capitulo, Pagina } from './tipos';
