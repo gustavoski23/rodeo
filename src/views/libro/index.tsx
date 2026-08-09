@@ -97,6 +97,12 @@ const ESCALA_MAX = 1.75;
 const PASO_ESCALA = 0.15;
 const CLAVE_ESCALA = 'rodeo_libro_escala';
 const CLAVE_FLECHA = 'rodeo_libro_leer_visto';
+/* El mini-tutorial de una vez que enseña que LEER abre el capítulo COMPLETO: la
+   abrebocas es solo el prólogo, y por inercia la gente sigue hojeando con las
+   flechas en vez de tocar (queja literal de Gus). Se muestra en las abrebocas
+   del móvil hasta que se abre el lector la primera vez; después manda la
+   flechita fija de siempre. */
+const CLAVE_TUTO = 'rodeo_libro_leer_tuto';
 
 /* ────────────────────────────────────────────────────────────────────────────
    LAS CARAS — y por qué son DOS libros distintos.
@@ -541,11 +547,14 @@ function CaraTexto({
   onLeer,
   flecha,
   movil,
+  tuto,
 }: {
   cara: Extract<Cara, { t: 'texto' }>;
   onLeer: () => void;
   flecha: boolean;
   movil: boolean;
+  /** Muestra el coach-mark de "toca LEER" (solo la abrebocas, solo móvil). */
+  tuto: boolean;
 }) {
   const { cap, p } = cara;
   const pagina = cap.paginas[p];
@@ -604,12 +613,24 @@ function CaraTexto({
                 e.stopPropagation();
                 onLeer();
               }}
-              className="libro-leer"
+              className={cn('libro-leer', tuto && 'libro-leer--tuto')}
             >
               <BookOpen size="1.15em" strokeWidth={2.2} />
               Leer
             </button>
           </div>
+          {/* Coach-mark de una vez: la abrebocas es el prólogo; el capítulo
+              entero está detrás de LEER, hay que TOCAR. Papelito de pergamino
+              con pico al botón — vive en el mundo del libro, no en el de la app.
+              Se va al primer LEER (abrirLector limpia `tuto`). */}
+          {tuto && (
+            <div className="libro-tuto" aria-hidden="true">
+              <span className="libro-tuto-ceja">Solo el prólogo</span>
+              <span className="libro-tuto-msg">
+                Toca <b>Leer</b> para leerlo completo
+              </span>
+            </div>
+          )}
           <div className="libro-chips">
             {cap.phrasals.map((x) => (
               <span key={x}>{x}</span>
@@ -626,6 +647,7 @@ function pintarCara(
   onLeer: (c: Capitulo) => void,
   flecha: boolean,
   movil: boolean,
+  tuto: boolean,
 ): ReactNode {
   // Sin cara = el envés de una hoja del móvil: papel y nada más. Es lo que se
   // ve de refilón mientras la página gira.
@@ -636,6 +658,8 @@ function pintarCara(
       cara={cara}
       movil={movil}
       onLeer={() => onLeer(cara.cap)}
+      // El coach-mark solo en el móvil (donde LEER es el único camino).
+      tuto={tuto && movil}
       /* En el TELÉFONO la flechita se queda para siempre y en todos los
          capítulos: allí LEER no es un extra, es el ÚNICO camino al capítulo
          completo (pedido de Gus: «de nuevo le dejas el leelo completo, porque
@@ -801,6 +825,7 @@ export default function LibroView() {
   const [escala, setEscala] = useState(() => store.get<number>(CLAVE_ESCALA, 0));
   const [mudo, setMudo] = useState(() => libroMudo());
   const [flecha, setFlecha] = useState(() => !store.get<boolean>(CLAVE_FLECHA, false));
+  const [tuto, setTuto] = useState(() => !store.get<boolean>(CLAVE_TUTO, false));
 
   useLayoutEffect(() => {
     const el = cajaRef.current;
@@ -905,6 +930,13 @@ export default function LibroView() {
 
   const abrirLector = (c: Capitulo) => {
     setLeyendo(c);
+    if (tuto) {
+      // Tocaron LEER: el tutorial cumplió y no vuelve. Se invalida la textura de
+      // la cara para que el coach-mark no quede pegado en la hoja que gira.
+      setTuto(false);
+      store.set(CLAVE_TUTO, true);
+      invalidarCaras();
+    }
     if (flecha) {
       setFlecha(false); // la flechita cumplió su trabajo: no vuelve
       store.set(CLAVE_FLECHA, true);
@@ -1270,8 +1302,8 @@ export default function LibroView() {
                          withCover cierra el libro como debe. */
                       disabled={movil && i === hojas.length - 1}
                     >
-                      <Book.Page.Front>{pintarCara(hoja[0], abrirLector, flecha, movil)}</Book.Page.Front>
-                      <Book.Page.Back>{pintarCara(hoja[1], abrirLector, flecha, movil)}</Book.Page.Back>
+                      <Book.Page.Front>{pintarCara(hoja[0], abrirLector, flecha, movil, tuto)}</Book.Page.Front>
+                      <Book.Page.Back>{pintarCara(hoja[1], abrirLector, flecha, movil, tuto)}</Book.Page.Back>
                     </Book.Page>
                   ))}
                 </Book>
