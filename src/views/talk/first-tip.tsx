@@ -33,12 +33,13 @@ export function tipPrimeraVez(key: string, texto: string): void {
 export function FirstTip() {
   const texto = useTip((s) => s.texto);
   const cerrar = useTip((s) => s.cerrar);
-  /* El tip y el toast se turnan los extremos de la pantalla: el toaster está
-     ARRIBA en sesión y ABAJO fuera de ella (toaster.tsx), así que el tip hace
-     exactamente lo contrario. Sin esto, cerrar una escena con el tip de 8 s
-     todavía vivo devolvía el toaster abajo, justo encima del tip lavanda, y el
-     aviso quedaba medio tapado. Fuera de sesión el tip baja de la cabecera (no
-     la pisa) en vez de irse al borde de arriba. */
+  /* El tip cambia de extremo con la sesión: en sesión se va abajo (sobre la
+     barra de voz) y fuera de ella baja de la cabecera, sin pisarla.
+     OJO, esto ya NO es "el contrario del toaster": el toast se mudó ARRIBA en
+     todas las pantallas (ver el porqué medido en toaster.tsx). No chocan igual
+     — el toast ocupa 14..60 y este tip fuera de sesión aterriza en
+     --rd-tip-arriba, que TALK publica en 174px. Si alguno de los dos se mueve,
+     volver a medir. */
   const enSesion = useEnSesion();
 
   useEffect(() => {

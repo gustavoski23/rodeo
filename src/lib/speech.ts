@@ -126,15 +126,25 @@ function pararAudio() {
   }
 }
 
-// Si Deepgram falla, el coach queda en silencio. El usuario prefirió esto a que
-// Windows sustituya a Helena/Draco con una voz robótica sin pedir permiso.
+/* Si Deepgram falla, el coach queda en silencio. El usuario prefirió esto a que
+   Windows sustituya a Helena/Draco con una voz robótica sin pedir permiso.
+
+   DOS PÚBLICOS, DOS MENSAJES. El aviso decía «falló la voz Deepgram: HTTP 502»
+   — el nombre del proveedor y un código HTTP no le dicen nada a quien está
+   practicando; lo que necesita saber es que no va a oír nada y que la lección
+   sigue igual. El detalle técnico no se pierde: el console.warn de acá se lleva
+   el motivo Y el error entero (sin recortar a 120 caracteres, como antes), que
+   es donde lo busca quien desarrolla. De paso el texto corto cabe en UNA línea
+   de píldora en vez de dos — 44px en lugar de 67 a 390px. */
 function avisarFalloVoz(motivo: string, err?: unknown) {
   (window as unknown as { __vozMotor?: string }).__vozMotor = 'sin_voz';
-  const detalle = err ? String((err as Error)?.message || err) : '';
   console.warn('[voz] Deepgram no disponible —', motivo, err || '');
   if (!avisoTTSDado) {
     avisoTTSDado = true;
-    toast('Voz no disponible — ' + motivo + (detalle ? ': ' + detalle.slice(0, 120) : ''), 6000);
+    // "sigue", no "seguí": lib/espanol-neutro.ts manda español latino neutro con
+    // "tú" en todo lo que le habla al usuario, y un aviso del sistema también
+    // es la app hablando. Se coló en voseo al reescribir este mensaje.
+    toast('Sin voz ahora mismo — sigue con la lección igual', 6000);
   }
 }
 
