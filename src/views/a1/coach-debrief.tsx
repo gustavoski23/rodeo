@@ -98,7 +98,7 @@ export function CoachDebrief({
           </Bloque>
 
           {/* 2 · UNA COSA. Una. La más rentable. */}
-          <Bloque eyebrow="Una cosa pa' la próxima">
+          <Bloque eyebrow="Una cosa para la próxima">
             <p className="text-[0.95rem] leading-[1.5]" style={{ color: 'var(--text-secondary)' }}>
               {cierre.unaCosa_es}
             </p>

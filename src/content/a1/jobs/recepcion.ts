@@ -18,7 +18,7 @@ export const PACK_RECEPCION: JobPack = {
   emoji: '🛎️',
   intro_es: [
     'Recepción. Tú eres la primera cara que ve el que entra — y el que entra decide en diez segundos si esto es serio.',
-    'Lo bueno es que es un guion cortico y siempre el mismo: recibes, anuncias, y si no está, tomas el recado.',
+    'Lo bueno es que es un guion cortito y siempre el mismo: recibes, anuncias, y si no está, tomas el recado.',
     'Ah, y ojo con las frases pa\' indicar el camino. Esas son las que más se piden y las que menos se estudian.',
   ],
   units: [
@@ -27,7 +27,7 @@ export const PACK_RECEPCION: JobPack = {
       order: 104,
       title_es: 'La primera cara de la empresa',
       subtitle_es: 'Recibir, anunciar, orientar.',
-      arc_es: 'Entra un visitante gringo. Sale sabiendo exactamente para dónde va.',
+      arc_es: 'Entra un visitante que no habla español. Sale sabiendo exactamente para dónde va.',
       emoji: '🚪',
       cardTheme: 'peach',
       icon: '🛎️',
@@ -47,7 +47,7 @@ export const PACK_RECEPCION: JobPack = {
             'Entra alguien. Antes de que abra la boca, la frase la tienes que soltar tú: eso ya te pone al mando.',
             'Después revisas si tiene cita, lo haces firmar y lo sientas. Cuatro pasos, cuatro frases.',
           ],
-          analogy_es: 'Recibir es como abrir la puerta de tu casa: saludas, preguntas a quién busca y lo haces seguir a la sala. Nadie deja a la visita parada en el andén averiguando sola.',
+          analogy_es: 'Recibir es como abrir la puerta de tu casa: saludas, preguntas a quién busca y lo haces seguir a la sala. Nadie deja a la visita parada en la puerta averiguando sola.',
           chunks: [
             {
               id: 'c-rec-welcome-how-can-i-help',
@@ -76,7 +76,7 @@ export const PACK_RECEPCION: JobPack = {
               frame: null,
               swaps: null,
               distractors_es: ['Do you have appointment?', 'Have you an appointment?'],
-              cognateHook_es: 'Ojo: "appointment" suena a "apuntamiento" — usalo de gancho, porque es justo eso: lo que quedó apuntado en la agenda.',
+              cognateHook_es: 'Ojo: "appointment" suena a "apuntamiento" — úsalo de gancho, porque es justo eso: lo que quedó apuntado en la agenda.',
               forms: null,
               audio: null,
               survival: false,
@@ -102,7 +102,7 @@ export const PACK_RECEPCION: JobPack = {
               en: 'Please take a seat.',
               es: 'Tome asiento, por favor.',
               sounds_es: 'plís téik a sit',
-              why_es: 'La frase que convierte la espera en algo cómodo. Mientras el visitante está de pie se siente en el limbo; apenas se sienta, ya está adentro y espera tranquilo. Es la silla la que dice "usted ya está atendido".',
+              why_es: 'La frase que convierte la espera en algo cómodo. Mientras el visitante está de pie se siente en el limbo; apenas se sienta, ya está adentro y espera tranquilo. Es la silla la que dice "ya te estamos atendiendo".',
               sayWhen_es: 'Mientras el visitante espera a que lo reciban.',
               who_es: 'con la visita',
               frame: null,
@@ -146,9 +146,9 @@ export const PACK_RECEPCION: JobPack = {
             {
               id: 'c-rec-shes-in-a-meeting',
               en: "She's in a meeting right now.",
-              es: 'Está en una reunión ahorita.',
+              es: 'Está en una reunión en este momento.',
               sounds_es: 'shis in a mítin ráit náu',
-              why_es: 'La forma amable de decir "no lo puede atender". El "right now" es clave: dice que es solo por ahorita, no un portazo. Nadie se va bravo si siente que el no tiene fecha de vencimiento.',
+              why_es: 'La forma amable de decir "no lo puede atender". El "right now" es clave: dice que es solo por ahora, no un portazo. Nadie se va molesto si siente que el no tiene fecha de vencimiento.',
               sayWhen_es: 'Cuando la persona buscada no está disponible.',
               who_es: 'con la visita',
               frame: "___ in a meeting right now.",
@@ -164,7 +164,7 @@ export const PACK_RECEPCION: JobPack = {
               en: 'Can I take a message?',
               es: '¿Le tomo un recado?',
               sounds_es: 'kan ái téik a mésach',
-              why_es: 'La salida elegante cuando no está la persona. En vez de dejar al visitante con las manos vacías, le ofreces algo — y el "no está" deja de ser un viaje perdido. Es la libretica del mostrador hecha frase.',
+              why_es: 'La salida elegante cuando no está la persona. En vez de dejar al visitante con las manos vacías, le ofreces algo — y el "no está" deja de ser un viaje perdido. Es la libretita del mostrador hecha frase.',
               sayWhen_es: 'Cuando la persona no está y hay que dejar razón.',
               who_es: 'con la visita',
               frame: null,
@@ -258,7 +258,7 @@ export const PACK_RECEPCION: JobPack = {
       ],
       task: {
         id: 'job-recepcion-u1-task',
-        intro_es: 'Listo. Se abre la puerta de vidrio, entra un gringo con maletín y viene derecho pa\' tú…',
+        intro_es: 'Listo. Se abre la puerta de vidrio, entra un visitante con maletín y viene derecho hacia ti…',
         steps: [
           {
             goal_es: 'Se acerca al mostrador y todavía no dice nada. Arranca tú.',
@@ -266,7 +266,7 @@ export const PACK_RECEPCION: JobPack = {
             reaction_es: '¡Eso! Saludaste primero y ya quedaste al mando.',
           },
           {
-            goal_es: 'Viene a ver a la gerente, y ella sí está. Avisale que llegó.',
+            goal_es: 'Viene a ver a la gerente, y ella sí está. Avísale que llegó.',
             answerChunkId: 'c-rec-let-her-know',
             reaction_es: 'Perfecto. Con eso el visitante ya sabe que te moviste.',
           },

@@ -17,7 +17,7 @@ export const PACK_SOPORTE: JobPack = {
   promesa_es: 'Atender el ticket, sacarle los datos al cliente y cerrar con solución.',
   emoji: '🎧',
   intro_es: [
-    'Soporte, ¿cierto? Ese es el trabajo donde el inglés te llega bravo y con prisa.',
+    'Soporte, ¿cierto? Ese es el trabajo donde el inglés te llega enojado y con prisa.',
     'Pero fíjate en algo: la mitad de lo que vas a decir no arregla nada técnico — solo baja la temperatura. Y eso es lo que salva el ticket.',
     'Te doy el saludo, cómo sacarle los datos sin pelear, y cómo cerrar dejando al cliente contento.',
   ],
@@ -27,7 +27,7 @@ export const PACK_SOPORTE: JobPack = {
       order: 103,
       title_es: 'El ticket, de principio a fin',
       subtitle_es: 'Calmar, entender, resolver.',
-      arc_es: 'Entra un cliente bravo. Sale un cliente que dice gracias.',
+      arc_es: 'Entra un cliente enojado. Sale un cliente que dice gracias.',
       emoji: '🎫',
       cardTheme: 'lavender',
       icon: '🛠️',
@@ -45,16 +45,16 @@ export const PACK_SOPORTE: JobPack = {
           icon: '👋',
           setup_es: [
             'Los primeros diez segundos deciden todo. Si el cliente siente que lo estás atendiendo, se calma solito.',
-            'Tres frases: abres, reconoces que la embarraron, y avisas que vas a mirar.',
+            'Tres frases: abres, reconoces que algo salió mal, y avisas que vas a mirar.',
           ],
-          analogy_es: 'Atender un ticket bravo es como recibir a alguien empapado en la puerta: primero le pasas la toalla, después preguntas por qué salió sin sombrilla. Al revés, se te va.',
+          analogy_es: 'Atender a un cliente enojado es como recibir a alguien empapado en la puerta: primero le pasas la toalla, después preguntas por qué salió sin sombrilla. Al revés, se te va.',
           chunks: [
             {
               id: 'c-sop-how-can-i-help',
               en: 'How can I help you today?',
               es: '¿En qué te puedo ayudar hoy?',
               sounds_es: 'jáu kan ái jelp iú tudéi',
-              why_es: 'Tu frase de apertura, y no falla nunca. Fíjate que no pregunta "¿qué pasó?" sino qué puedes hacer VOS: desde el primer segundo te pones del lado del cliente, no enfrente. Es abrir la puerta y hacerse a un lado.',
+              why_es: 'Tu frase de apertura, y no falla nunca. Fíjate que no pregunta "¿qué pasó?" sino qué puedes hacer TÚ: desde el primer segundo te pones del lado del cliente, no enfrente. Es abrir la puerta y hacerse a un lado.',
               sayWhen_es: 'Al abrir cualquier ticket o llamada.',
               who_es: 'con el cliente',
               frame: null,
@@ -178,7 +178,7 @@ export const PACK_SOPORTE: JobPack = {
               en: 'Let me transfer you to my manager.',
               es: 'Te paso con mi jefe.',
               sounds_es: 'let mi tránsfer iú tu mái mánayer',
-              why_es: 'Pasar el ticket no es rendirse: es reconocer que hay alguien que lo resuelve más rápido. Decilo con seguridad, como quien entrega una posta en una carrera — no como quien se quita un problema de encima.',
+              why_es: 'Pasar el ticket no es rendirse: es reconocer que hay alguien que lo resuelve más rápido. Dilo con seguridad, como quien entrega una posta en una carrera — no como quien se quita un problema de encima.',
               sayWhen_es: 'Cuando el caso te queda grande y toca pasarlo.',
               who_es: 'con el cliente',
               frame: 'Let me transfer you to ___.',
@@ -210,7 +210,7 @@ export const PACK_SOPORTE: JobPack = {
               en: 'Is it working now?',
               es: '¿Ya te funciona?',
               sounds_es: 'is it guórkin náu',
-              why_es: 'La pregunta que cierra de verdad. Si no la haces, el ticket queda cerrado en tu pantalla pero abierto en la cabeza del cliente — y vuelve mañana más bravo. Es probar la puerta después de arreglar la chapa.',
+              why_es: 'La pregunta que cierra de verdad. Si no la haces, el ticket queda cerrado en tu pantalla pero abierto en la cabeza del cliente — y vuelve mañana más molesto. Es probar la puerta después de arreglar la chapa.',
               sayWhen_es: 'Después de aplicar la solución, antes de cerrar.',
               who_es: 'con el cliente',
               frame: null,
@@ -242,7 +242,7 @@ export const PACK_SOPORTE: JobPack = {
       ],
       task: {
         id: 'job-soporte-u1-task',
-        intro_es: 'Bueno, entra un chat y el cliente ya viene caliente. Fresco, tú tienes con qué…',
+        intro_es: 'Bueno, entra un chat y el cliente ya viene enojado. Tranquilo, tú tienes con qué…',
         steps: [
           {
             goal_es: 'Te acaba de contar que lleva tres días con el problema. Reconocelo antes de nada.',
@@ -250,7 +250,7 @@ export const PACK_SOPORTE: JobPack = {
             reaction_es: '¡Eso! Con esa sola frase ya le bajaste la mitad de la rabia.',
           },
           {
-            goal_es: 'No lo encuentras en el sistema. Pedile el dato que te falta.',
+            goal_es: 'No lo encuentras en el sistema. Pídele el dato que te falta.',
             answerChunkId: 'c-sop-your-order-number',
             reaction_es: 'Perfecto, y de a uno. Tres preguntas de golpe lo habrían enredado.',
           },

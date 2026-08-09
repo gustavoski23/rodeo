@@ -587,7 +587,7 @@ function CaraTexto({
             <i>Phrasal verbs</i>
             {flecha && (
               <span className="libro-flecha" aria-hidden="true">
-                leelo completo
+                léelo completo
                 {/* Flecha →, no ↘: señala AL BOTÓN, que está a su derecha.
                     La de esquina apuntaba hacia abajo, donde no hay nada. */}
                 <MoveRight strokeWidth={2.4} />
@@ -770,7 +770,7 @@ function Lector({ cap, onCerrar, escala }: { cap: Capitulo; onCerrar: () => void
           </div>
 
           <p className="mt-4 text-center text-[0.68rem] italic" style={{ color: 'oklch(50% 0.05 62)' }}>
-            Tocá cualquier palabra subrayada para ver qué significa y guardarla en tu DNA.
+            Toca cualquier palabra subrayada para ver qué significa y guardarla en tu DNA.
           </p>
         </div>
       </motion.div>

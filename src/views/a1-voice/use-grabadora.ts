@@ -115,7 +115,7 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
   const transcribir = useCallback(
     async (blob: Blob) => {
       if (!blob.size) return fallar('No se grabó nada — prueba de nuevo');
-      if (blob.size > MAX_BYTES) return fallar('Muy largo — decilo más cortito');
+      if (blob.size > MAX_BYTES) return fallar('Muy largo — dilo más corto');
 
       const ctrl = new AbortController();
       abortRef.current = ctrl;
@@ -237,7 +237,7 @@ export function useGrabadora({ keyterms, onTranscript, onError }: OpcionesGrabad
         // que la UI se entere y salga de "Escuchando". Se limpia en parar().
         cortaRef.current = setTimeout(parar, MAX_MS);
       } catch {
-        fallar('Tu navegador no deja grabar audio — usá Chrome', true);
+        fallar('Tu navegador no deja grabar audio — usa Chrome', true);
       }
     },
     // Todas son useCallback de deps vacías: la identidad de alStreamListo

@@ -156,7 +156,7 @@ export function HojaPanico({ abierta, onClose }: { abierta: boolean; onClose: ()
 
       {!ttsOn && (
         <p className="mt-3 text-[0.82rem] leading-[1.45]" style={{ color: 'var(--text-muted)' }}>
-          Tu celu acá no las dice en voz alta, pero léelas como están en "suena:". Igual funciona, tranquilo.
+          Tu celular acá no las dice en voz alta, pero léelas como están en "suena:". Igual funciona, tranquilo.
         </p>
       )}
 
@@ -184,7 +184,7 @@ export function HojaGuardadas({
         id="a1-guardadas-titulo"
         eyebrow="★ Mis frases"
         titulo="LAS TUYAS"
-        sub="Las que marcaste pa' tenerlas a la mano. Toca una pa' verla completa."
+        sub="Las que marcaste para tenerlas a la mano. Toca una para verla completa."
       />
 
       {guardadas.length === 0 ? (

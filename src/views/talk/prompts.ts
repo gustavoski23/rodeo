@@ -120,7 +120,7 @@ export const CHIPS: { seccion: string; items: { key: ScenarioKey; emoji: string;
   {
     seccion: 'Trabajo',
     items: [
-      { key: 'work-meeting', emoji: '🧑‍💻', label: 'Reunión con el equipo gringo' },
+      { key: 'work-meeting', emoji: '🧑‍💻', label: 'Reunión con el equipo de afuera' },
       { key: 'work-negotiation', emoji: '🤝', label: 'Negociar con un inversionista' },
       { key: 'work-interview', emoji: '💼', label: 'Entrevista de trabajo' },
       { key: 'work-pitch', emoji: '🚀', label: 'Pitch de tu producto' },
@@ -300,8 +300,8 @@ ${esA1 ? `LANGUAGE MODE — A1 (absolute beginner):
 - ${NOTA_STT_BILINGUE}${avoid}${dnaBrief()}${interesesBriefTalk()}${esA1 ? a1LessonsBrief() : ''}
 
 CÓMO-DIGO & UNDERLINED CHUNKS — a signature feature, get this right:
-- ${nom} sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a gringo would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
-- To underline the tricky part, wrap it INSIDE "reply" with these EXACT markers: ⟦english chunk||explicación corta y cercana, en español⟧. The explanation is contextual and buddy-style, the way a bilingual friend riffs — NEVER a grammar book. GOOD: ⟦three times in a row||así dicen los gringos eso de "X veces seguidas" — sirve para intentos, días, victorias, lo que sea⟧. BAD: "estructura adverbial de frecuencia".
+- ${nom} sometimes switches to Spanish or Spanglish to ask how to say something, e.g. "oye cómo digo que hice tres veces seguidas el ensayo y no salió". Detect it yourself, no flag needed. When he does, your "reply" hands him the exact natural English a native speaker would really use, dropped in like a friend ("Ah, you'd just say...") — not a lesson, and not a list of options unless he asks for alternatives.
+- To underline the tricky part, wrap it INSIDE "reply" with these EXACT markers: ⟦english chunk||explicación corta y cercana, en español⟧. The explanation is contextual and buddy-style, the way a bilingual friend riffs — NEVER a grammar book. GOOD: ⟦three times in a row||así dicen allá eso de "X veces seguidas" — sirve para intentos, días, victorias, lo que sea⟧. BAD: "estructura adverbial de frecuencia".
 - Use the SAME ⟦english||español⟧ markers when you fold a correction into your reply, or when you drop an idiom / phrasal verb he probably won't fully catch. AT MOST 1-2 marked chunks per reply, and ONLY when it truly helps — most casual turns have zero.
 - The markers are the ONLY place Spanish may appear inside "reply"; everything else stays natural English. NEVER leave a ⟦ or a ⟧ unmatched, and never mark the same phrase both inline with ⟦||⟧ and again in the glosses array.
 

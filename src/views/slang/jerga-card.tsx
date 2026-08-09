@@ -17,7 +17,7 @@ export function JergaCardView({ card }: { card: JergaCard }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
     >
-      <span className="label-mini">jerga → gringo</span>
+      <span className="label-mini">jerga → inglés real</span>
       <div className="term" style={{ fontSize: 'clamp(1.8rem, 8vw, 2.6rem)' }}>
         "{card.phrase}"
       </div>

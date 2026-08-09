@@ -498,7 +498,7 @@ export const T3_UNIDADES: A1UnitRuta[] = [
     icon: '🛍️',
     survival: false,
     companionSetup_es: [
-      'En las tiendas gringas te saludan apenas entras y eso pone nervioso al que no habla.',
+      'En las tiendas de allá te saludan apenas entras y eso pone nervioso al que no habla.',
       'Con una sola frase se resuelve ese momento. Y con las otras siete, la compra entera.',
     ],
     scenes: [

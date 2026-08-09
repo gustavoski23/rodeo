@@ -1,6 +1,41 @@
 # RODEO — Brief de rediseño
 
-**Producto:** app web personal de aprendizaje de inglés para Gus, un venezolano en Medellín, nivel B2+ trabajando hacia C1. Ya está construida, desplegada y funcionando en `https://rodeo-gustavoski23s-projects.vercel.app`. Vive todo en un solo `index.html` (vanilla JS + Tailwind CDN + GSAP). Se usa desde el celular (Chrome Android). Backend serverless en Vercel que hace proxy a modelos Kimi de OpenCode Zen.
+> ## ⚠️ QUÉ SIGUE VIGENTE Y QUÉ ES HISTORIA
+>
+> Este documento se escribió para el rediseño de la versión vieja de RODEO y
+> **nunca se actualizó**. Antes de sacar de acá permiso para hacer algo,
+> mirá en cuál de las dos listas cae:
+>
+> **VIGENTE — sigue siendo la verdad del proyecto:**
+> · §1 la personalidad del usuario y la regla dura de "nada que se vea generado
+>   por AI genérica" (§1, último punto).
+> · §2 los tokens de color, la tipografía (Bebas + Manrope) y los efectos
+>   ambientales: siguen siendo la paleta, ahora en `src/styles/tokens.css`.
+> · §3 la intención de cada módulo: qué hace y para qué está.
+>
+> **HISTORIA — describe una app que ya no existe, no la uses como referencia
+> técnica:**
+> · "Vive todo en un solo `index.html` (vanilla JS + Tailwind CDN + GSAP)".
+>   Hoy es **React 19 + Vite + Tailwind v4 + Zustand**, con el código en `src/`.
+>   Cualquier ruta, selector de DOM o número de línea que aparezca abajo apunta
+>   al archivo viejo y no existe.
+> · Las pantallas concretas, los ids de nodo y los flujos de §3 se movieron;
+>   la fuente de verdad de lo que hay hoy es `src/views/`.
+>
+> **EL REGISTRO DEL ESPAÑOL NO SE DECIDE ACÁ.** La autoridad única es
+> [`src/lib/espanol-neutro.ts`](src/lib/espanol-neutro.ts): español latino
+> neutro, con "tú", sin modismos de un solo país. Este brief nació cuando la
+> app era de un solo usuario paisa y por eso deja pasar esa voz; ya no aplica.
+> Si algo de acá choca con `espanol-neutro.ts`, manda `espanol-neutro.ts`.
+> El test `tests/registro.test.mjs` lo hace cumplir.
+
+**Producto:** app de aprendizaje de inglés para hispanohablantes de toda
+Latinoamérica, nivel A1 hasta B2+/C1. Nació como app personal de Gus (un
+venezolano en Medellín) y **hoy está abierta a amigos de varios países** — de
+ahí que nada en la app pueda dar por sentado Colombia, ni Medellín, ni "Gus".
+Desplegada en Vercel; se usa **desde el celular**, así que el móvil es el caso
+principal, no un caso de borde. Backend serverless en Vercel que hace proxy a
+los modelos.
 
 **Este documento es el handoff a diseño.** Cubre: contexto, estética actual, los 5 módulos con todas sus pantallas y botones, datos que persisten, comportamiento de las APIs, y qué SÍ y qué NO puedes cambiar.
 
@@ -8,7 +43,7 @@
 
 ## 1. Contexto del usuario
 
-- **Gus**, venezolano en Medellín (sin inmersión en inglés). Level B2+, meta C1 para trabajo cripto/tech y vida diaria.
+- El usuario tipo es **hispanohablante de cualquier país de Latinoamérica**, sin inmersión en inglés. El perfil original —Gus, venezolano en Medellín, B2+ hacia C1 para trabajo cripto/tech— sigue siendo el retrato de la motivación; lo que ya **no** vale es asumir que todos comparten su país ni su forma de hablar. (Ver el recuadro de arriba: el registro lo manda `src/lib/espanol-neutro.ts`.)
 - **Pierde el interés rápido.** Todo lo genérico lo aleja. Ama la energía de carruseles de Instagram: tipografía gigante, colores planos, memes de reacción, formatos "no digas X di Y", "A1: cook / C1: simmer".
 - Referencias visuales están en la carpeta del proyecto (`WhatsApp Image 2026-*.jpeg`, `151252.jpeg`, `jjuj.jpeg`, `jujuuju.jpeg`): captures de Instagram de cuentas de inglés — Sky English, Dennis English, English Mastery, Teacher Luis Miranda. Vocabulario grande en Bebas, memes de Michael Scott / Bob Esponja, colores saturados, layouts asimétricos, español de apoyo en itálica.
 - **Regla dura del proyecto:** nada que se vea generado por AI genérica (nada de gradientes púrpura, ningún grid uniforme de 3 cards con ícono + título + párrafo, nada de Inter/Roboto/Arial como display). Si el resultado no se ve intencional al lado de un sitio corporativo aburrido, no vale.
@@ -158,9 +193,24 @@ Aprender inglés SOBREVIVIENDO una historia, no leyéndola. Cada beat = producir
 ### 3.3 SLANG — expresiones que sí se usan
 Loop de dopamina estilo Instagram: 5 tarjetas por tap.
 
-#### 3 modos (chips arriba): CALLE · TRABAJO · PAISA → GRINGO
+#### 3 modos (chips arriba): CALLE · TRABAJO · JERGA → INGLÉS REAL
+
+> **El modo se llamaba PAISA → GRINGO y ya no.** Las dos mitades de ese nombre
+> nombraban un solo dialecto —"paisa" el de salida, "gringo" el de llegada—
+> cuando el puente va de **cualquier** español de América al inglés. El
+> comportamiento se generalizó primero (`JERGA_SYSTEM` en
+> `src/views/slang/prompts.ts` detecta de qué variante viene la frase en vez de
+> asumirla) y **el nombre tardó dos vueltas más en alcanzarlo**: primero perdió
+> el "paisa", después el "gringo". Hoy es `JERGA → INGLÉS REAL` en el código y
+> en pantalla.
+>
+> Sigue en pie la **excepción al registro neutro**: SLANG es la única vista
+> donde la jerga regional es el CONTENIDO QUE SE ENSEÑA y no la voz que enseña,
+> y `src/lib/espanol-neutro.ts` la exime por escrito. Esa exención es sobre las
+> frases que el usuario escribe y que la app traduce — **no** sobre cómo la app
+> le habla.
 - **CALLE / TRABAJO**: título hero Bebas `SLANG QUE SÍ SE USA.` + subtexto + botón grande **DROP** (verde acento). Cada tap genera 5 tarjetas frescas. Las tarjetas aparecen apiladas con rotación y colores rotados. Cada una: eyebrow del vibe, término Bebas gigante, significado en español, ejemplo en inglés en comillas, traducción en itálica, "cómo NO usarla" con borde superior punteado. Botón de **bookmark** (SVG) para guardar al DNA.
-- **PAISA → GRINGO**: input "¿cómo digo eso en inglés?" (ej: "está mamando gallo"). Devuelve una card con 2–4 equivalentes con registro (casual/neutral/vulgar/pro), ejemplos, matiz en español.
+- **JERGA → INGLÉS REAL**: input "¿cómo digo eso en inglés?" (ej: "me dejó en visto"). Devuelve una card con 2–4 equivalentes con registro (casual/neutral/vulgar/pro), ejemplos, matiz en español. El ejemplo de este brief era "está mamando gallo", de un solo país; se cambió por uno que se entiende en toda América, que es justo lo que el modo hace ahora.
 
 ### 3.4 SUBE (LEVEL UP) — sube tu inglés de B2 a C1 (fase 2)
 Loop rápido de "cook → simmer": la app da un B2 plano, Gus produce el C1, se compara.
@@ -265,7 +315,7 @@ Backend serverless en `/api/chat` (proxy a OpenCode Zen, modelos Kimi). Todo va 
 | TALK | cada turno | chat | 5–10s |
 | TALK | terminar sesión (debrief) | creative | 15–25s |
 | SLANG | tap DROP (5 cards) | creative | 15–25s |
-| SLANG | traducir paisa | creative | 10–15s |
+| SLANG | traducir jerga | creative | 10–15s |
 | STORY | arrancar episodio (BIBLE) | creative | 20–30s ⚠️ el pico más largo |
 | STORY | cada beat (npc + misión) | chat | 8–15s |
 | STORY | cada línea enviada (juez) | chat | 8–15s |

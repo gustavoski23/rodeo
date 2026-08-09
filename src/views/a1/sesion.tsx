@@ -128,17 +128,17 @@ function secuenciaDe(nodo: NodeKind, conVoz: boolean, cierra: boolean): Paso[] {
    sentir bruto. */
 const REACCION: Record<Nota, string> = {
   clavado: '¡Eso! Ni mandado a hacer. Esa ya es tuya.',
-  casi: 'Casi, casi. Escuchala una vez más y la repites conmigo. Vas bien.',
+  casi: 'Casi, casi. Escúchala una vez más y la repites conmigo. Vas bien.',
   todavia:
-    "Tranquilo, esa se enreda al principio. Te la repasamos pronto pa' que no se te vaya. Nadie nace sabiendo.",
+    'Tranquilo, esa se enreda al principio. Te la repasamos pronto para que no se te vaya. Nadie nace sabiendo.',
 };
 
 /** La misma reacción cuando la nota fue de toda la tanda, no de una sola. */
 const REACCION_TANDA: Record<Nota, string> = {
   clavado: '¡Uy! Y eran varias de una. Esas ya las tienes encima.',
-  casi: 'Bien ahí. Las que se enredaron te las vuelvo a poner en el repaso, sin afán.',
+  casi: 'Bien ahí. Las que se enredaron te las vuelvo a poner en el repaso, sin prisa.',
   todavia:
-    'Tranquilo, son hartas de una sentada. Te las voy soltando de a poquitas en los repasos. Así se pegan.',
+    'Tranquilo, son muchas de una sentada. Te las voy soltando poco a poco en los repasos. Así se pegan.',
 };
 
 type Run = {
@@ -488,7 +488,7 @@ export function Sesion({
         <AlfredBloque
           lineas={[
             'Listo, esa escena la sacaste. Eso hace un rato no lo tenías.',
-            'Vuelve cuando quieras y seguimos con la próxima, sin afán.',
+            'Vuelve cuando quieras y seguimos con la próxima, sin prisa.',
           ]}
         />
       );
@@ -598,8 +598,8 @@ export function Sesion({
             <>
               <AlfredBloque
                 lineas={[
-                  'Esta ya te sale. Ahora hacela tuya: cambia la pieza por lo que sea TU caso.',
-                  'Mira el molde, decilo en voz alta con lo tuyo. Después te muestro el ejemplo.',
+                  'Esta ya te sale. Ahora hazla tuya: cambia la pieza por lo que sea TU caso.',
+                  'Mira el molde, dilo en voz alta con lo tuyo. Después te muestro el ejemplo.',
                 ]}
               />
               <Molde chunk={c} titulo="Tu molde" />
@@ -610,7 +610,7 @@ export function Sesion({
           <AlfredBloque
             lineas={[
               run.rung === 'producir'
-                ? `Esta ya la conoces. ¿Cómo era pa' decir «${c.es}»? De memoria, sin mirar.`
+                ? `Esta ya la conoces. ¿Cómo era para decir «${c.es}»? De memoria, sin mirar.`
                 : `A ver… quieres decir «${c.es}». ¿Cómo suena en inglés?`,
               'Prueba en voz alta, como te salga. Nadie te oye — ese es el punto.',
             ]}
@@ -625,7 +625,7 @@ export function Sesion({
             {!ttsOn && (
               <AlfredBloque
                 lineas={[
-                  'Acá tu celu no la dice en voz alta, pero léela como está en «suena». Igual funciona, tranquilo.',
+                  'Acá tu celular no la dice en voz alta, pero léela como está en «suena». Igual funciona, tranquilo.',
                 ]}
               />
             )}
@@ -648,7 +648,7 @@ export function Sesion({
         return (
           <>
             <AlfredBloque
-              lineas={['Ahora tú. Repetila en voz alta, como suena. Nadie te oye, dale sin pena.']}
+              lineas={['Ahora tú. Repítela en voz alta, como suena. Nadie te oye, dale sin pena.']}
             />
             <FraseCard chunk={c} />
             {ttsOn && (
@@ -664,7 +664,7 @@ export function Sesion({
         if (!PasoVoz) return null;
         return (
           <>
-            <AlfredBloque lineas={['Dale, decila una vez más y yo te escucho. Sin pena que esto no es examen.']} />
+            <AlfredBloque lineas={['Dale, dila una vez más y yo te escucho. Sin pena que esto no es examen.']} />
             <PasoVoz
               chunk={c}
               onResultado={(r) => setRun((prev) => ({ ...prev, vozLograda: r.logrado, paso: 'autoeval' }))}
@@ -737,7 +737,7 @@ export function Sesion({
     const opciones = run.mcq ?? [];
     return (
       <>
-        <AlfredBloque lineas={[`Esta ya la viste. ¿Cuál era pa' decir «${c.es}»? Sin mirar.`]} />
+        <AlfredBloque lineas={[`Esta ya la viste. ¿Cuál era para decir «${c.es}»? Sin mirar.`]} />
         <div className="flex flex-col gap-2.5">
           {opciones.map((o) => {
             // Al responder se marca SIEMPRE la correcta, no solo el error: lo que
@@ -853,7 +853,7 @@ export function Sesion({
             lineas={[
               run.acierto
                 ? '¡Eso! Esa pieza va ahí. Así se arma el molde.'
-                : `Casi. La que iba es «${correcta}». Fresco, pa' eso repasamos.`,
+                : `Casi. La que iba es «${correcta}». Tranquilo, para eso repasamos.`,
             ]}
           />
         )}

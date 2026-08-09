@@ -911,7 +911,7 @@ export function Mapa({
          la escena, y los títulos de unidad ("Tu primer día: llegar y saludar")
          no entran en los 180 px de rótulo — se cortaban con elipsis. */
       actual.rotulo = {
-        titulo: (i >= 0 ? u!.scenes[i]!.title_es : '') || 'Seguí por acá',
+        titulo: (i >= 0 ? u!.scenes[i]!.title_es : '') || 'Sigue por acá',
         pie: u && i >= 0 ? `estás acá · ${i + 1}/${u.scenes.length}` : 'estás acá',
       };
     }
@@ -927,12 +927,12 @@ export function Mapa({
       ? 'Buenas. Hoy toca repaso de pasillo: ' +
         n +
         (n === 1 ? ' frase' : ' frases') +
-        " pa' refrescar" +
+        ' para refrescar' +
         (datos.hayNuevos ? ' y algo nuevo.' : '.') +
         ' ¿Le entramos?'
       : datos.hayNuevos
-        ? 'Todo fresco. Nada que repasar hoy — arranquemos algo nuevo, suave.'
-        : 'Vas al día. Cuando quieras repasamos lo que ya tienes, sin afán.';
+        ? 'Todo al día. Nada que repasar hoy — arranquemos algo nuevo, sin prisa.'
+        : 'Vas al día. Cuando quieras repasamos lo que ya tienes, sin prisa.';
 
   const pct = datos.tramo.pct;
 
@@ -1080,14 +1080,14 @@ export function Mapa({
               <CtaGrande
                 conHaz
                 eyebrow="Repaso de pasillo"
-                principal={`${n}${n === 1 ? ' frase lista' : ' frases listas'} pa' refrescar`}
+                principal={`${n}${n === 1 ? ' frase lista' : ' frases listas'} para refrescar`}
                 accion="Repasar →"
                 onClick={onRepaso}
               />
             ) : datos.hayNuevos ? (
               <CtaGrande
                 conHaz
-                eyebrow="Todo fresco"
+                eyebrow="Todo al día"
                 principal="Nada que repasar — arranquemos algo nuevo"
                 accion="Arrancar →"
                 onClick={onRepaso}

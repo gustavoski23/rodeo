@@ -108,7 +108,7 @@ export default function A1View({
     const u = unidades.find((x) => x.id === unitId);
     if (!u || !u.scenes.length) return;
     if (!estaDesbloqueada(u.id)) {
-      toast('Esa se abre cuando termines la de antes. Sin afán.');
+      toast('Esa se abre cuando termines la de antes. Sin prisa.');
       return;
     }
     if (escenasHechas(u) && u.task && !tareaHecha(u.task.id)) {

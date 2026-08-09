@@ -29,9 +29,9 @@
    dos veces y el usuario sentiría que le repiten lo que ya sabe.
 
    Los cuatro van VERBATIM del core: mismo why_es, mismo sayWhen_es, mismos
-   distractores, mismo frame y mismos swaps. Por eso hablan de "tú" y no de
-   "vos" como el resto del tramo — el texto ya estaba aprobado y cambiarlo no
-   era parte de la mudanza.
+   distractores, mismo frame y mismos swaps. (Este párrafo decía que hablaban
+   de "tú" a diferencia del resto del tramo, que era de "vos": ya no hay tal
+   diferencia — todo el tramo pasó a "tú" con la regla de lib/espanol-neutro.)
 
    Al llevarse las dos de `u1-s2-conocer`, esa escena quedaba con `chunks: []`
    y eso trababa `u1-llegar` para siempre (proximaEscena la devuelve infinito,
@@ -114,7 +114,7 @@ export const T0_UNIDADES: A1UnitRuta[] = [
         scene_es: 'Los letreros del aeropuerto están casi todos en español disfrazado.',
         icon: '✈️',
         setup_es: [
-          'Mira un letrero de aeropuerto gringo. Crees que no entiendes nada.',
+          'Mira un letrero de aeropuerto en Estados Unidos. Crees que no entiendes nada.',
           'Te apuesto a que entiendes ocho de cada diez. Vamos a ver.',
         ],
         analogy_es:
@@ -129,7 +129,7 @@ export const T0_UNIDADES: A1UnitRuta[] = [
           pal({ id: 'w-immigration', en: 'immigration', es: 'inmigración', s: 'imigréishon', why: 'Otra vez la regla: -CIÓN se vuelve -TION y suena "shon".', when: 'La fila donde te preguntan a qué vienes.', hook: 'Regalo: station, situation, reservation, vacation.', d: ['información', 'emigrante'] }),
           pal({ id: 'w-exit', en: 'exit', es: 'salida', s: 'égzit', why: '⚠️ Esta es trampa. NO es "éxito". "Exit" es SALIDA. Si en una entrevista dices "I want exit" estás pidiendo la puerta, no el triunfo.', when: 'El letrero verde que buscas cuando quieres salir.', hook: 'Éxito en inglés es "success". "Exit" es la puerta.', d: ['éxito', 'entrada'] }),
           pal({ id: 'w-control', en: 'control', es: 'control', s: 'contról', why: 'Idéntica, solo que el acento se va a la última: contról, no cóntrol.', when: 'Passport control: donde revisan documentos.', d: ['controlar', 'consulta'] }),
-          pal({ id: 'w-restaurant', en: 'restaurant', es: 'restaurante', s: 'réstorant', why: 'Sin la "e" final y con el acento adelante. Los gringos se comen la mitad de las vocales del medio.', when: 'Donde vas a comer.', d: ['tienda', 'baño'] }),
+          pal({ id: 'w-restaurant', en: 'restaurant', es: 'restaurante', s: 'réstorant', why: 'Sin la "e" final y con el acento adelante. En inglés se comen la mitad de las vocales del medio.', when: 'Donde vas a comer.', d: ['tienda', 'baño'] }),
         ],
       },
       {
@@ -512,7 +512,7 @@ export const T0_UNIDADES: A1UnitRuta[] = [
           pal({ id: 'w-n11', en: 'eleven', es: 'once', s: 'iléven', why: 'Del 11 al 12 son inventadas; del 13 en adelante hay regla.', when: 'Cuando te dan un número entre diez y veinte y dudas.', d: ['seven', 'twelve'] }),
           pal({ id: 'w-n15', en: 'fifteen', es: 'quince', s: 'fiftíin', why: '⚠️ El acento va ATRÁS: fifTÍIN. Ahí está la diferencia con "fifty".', when: 'Cuando te dicen un precio y dudas.', sos: true, d: ['fifty', 'five'] }),
           pal({ id: 'w-n50', en: 'fifty', es: 'cincuenta', s: 'fífti', why: '⚠️ Acento ADELANTE y termina en "i": FÍFti. Si no estás seguro, pregunta: "Five zero?"', when: 'Cuando te dicen un precio y dudas.', sos: true, d: ['fifteen', 'five'] }),
-          pal({ id: 'w-n20', en: 'twenty', es: 'veinte', s: 'tuéni', why: 'Los gringos se comen la T del medio: suena "tuéni", no "tuénti".', when: 'Precios y minutos. "Twenty dollars", "twenty minutes".', d: ['twelve', 'twenty-two'] }),
+          pal({ id: 'w-n20', en: 'twenty', es: 'veinte', s: 'tuéni', why: 'En Estados Unidos se comen la T del medio: suena "tuéni", no "tuénti".', when: 'Precios y minutos. "Twenty dollars", "twenty minutes".', d: ['twelve', 'twenty-two'] }),
           pal({ id: 'w-n30', en: 'thirty', es: 'treinta', s: 'zérti', why: 'Con TH al principio. Zérti.', when: 'La media hora: "nine thirty", "ten thirty".', d: ['thirteen', 'three'] }),
           pal({ id: 'w-n100', en: 'a hundred', es: 'cien', s: 'a jándred', why: 'Con "a" adelante, no solo "hundred". Y sirve pa\' todo: two hundred, three hundred.', when: 'Precios grandes: un hotel, un pasaje, una multa.', frame: '___ hundred', swaps: ['Two', 'Three', 'Five'], d: ['hundreds', 'thousand'] }),
         ],

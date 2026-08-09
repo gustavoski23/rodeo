@@ -59,14 +59,19 @@ Here is ONE example of a well-formed item — NEVER reuse its content, generate 
 Mix difficulty. Genuinely current and useful, zero textbook material.`;
 }
 
-/* L4870 — system de JERGA → GRINGO.
+/* L4870 — system de JERGA → INGLÉS REAL.
 
-   Era PAISA → GRINGO y el experto era «Colombian/Venezuelan Spanish ↔ real
-   native English». Eso funcionaba mientras el único usuario viviera en
+   Se llamó PAISA → GRINGO, y el experto era «Colombian/Venezuelan Spanish ↔
+   real native English». Eso funcionaba mientras el único usuario viviera en
    Medellín: a un chileno que escribe "me cargó la pana" o a un mexicano con
-   "no manches", el modelo le contestaba desde otro dialecto. Ahora el experto
+   "no manches", el modelo le contestaba desde otro dialecto. El experto ya
    cubre TODO el español de América y detecta de qué variante viene la frase en
-   vez de asumirla. */
+   vez de asumirla.
+
+   El NOMBRE tardó una vuelta más en alcanzar al comportamiento: quedó como
+   «JERGA → GRINGO» hasta que alguien lo leyó en pantalla. Las dos mitades del
+   nombre viejo nombraban un solo dialecto —"paisa" el de salida, "gringo" el de
+   llegada— cuando el puente va de cualquier español de América al inglés. */
 export const JERGA_SYSTEM =
   'You are a bilingual slang expert across ALL varieties of Latin American Spanish (Mexican, Caribbean, Andean, Rioplatense, Chilean, Central American) ↔ real native English. Identify which variety the phrase comes from and translate the INTENT, never the words. Respond with STRICT JSON only.';
 

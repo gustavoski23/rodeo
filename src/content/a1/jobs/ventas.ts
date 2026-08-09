@@ -17,8 +17,8 @@ export const PACK_VENTAS: JobPack = {
   promesa_es: 'Presentar el producto, hablar de plata y cerrar la llamada sin sudar.',
   emoji: '📈',
   intro_es: [
-    'Uy, ventas. Tú ya sabes vender — lo que te falta es el idioma, no la maña.',
-    'Y en inglés la venta es un guion cortico: qué hacemos, cuánto vale, ¿arrancamos?, y el "te escribo el viernes".',
+    'Uy, ventas. Tú ya sabes vender — lo que te falta es el idioma, no el oficio.',
+    'Y en inglés la venta es un guion cortito: qué hacemos, cuánto vale, ¿arrancamos?, y el "te escribo el viernes".',
     'Te doy esas cuatro puertas. Lo de convencer ya lo tienes tú.',
   ],
   units: [
@@ -54,7 +54,7 @@ export const PACK_VENTAS: JobPack = {
               en: 'Let me show you what we do.',
               es: 'Te muestro qué hacemos.',
               sounds_es: 'let mi shóu iú guát güi du',
-              why_es: 'Tu puerta de entrada, suavecita. "Let me…" es pedir permiso y arrancar en el mismo movimiento — como cuando abres la puerta del carro y dices "subite, te llevo". No preguntas si quieres mostrar: ya estás mostrando.',
+              why_es: 'Tu puerta de entrada, suavecita. "Let me…" es pedir permiso y arrancar en el mismo movimiento — como cuando le abres la puerta a alguien y le dices "sube, te llevo". No preguntas si quieres mostrar: ya estás mostrando.',
               sayWhen_es: 'Al arrancar la presentación del producto.',
               who_es: 'con el cliente',
               frame: 'Let me show you ___.',
@@ -109,14 +109,14 @@ export const PACK_VENTAS: JobPack = {
             'Llegó la plata. Acá el que titubea pierde: se dice el precio derechito y se calla.',
             'Y si toca ceder, hay una forma de ofrecer descuento sin regalar el producto.',
           ],
-          analogy_es: 'Decir el precio es como servir un tinto: se pone en la mesa y se suelta la taza. El que se queda con la taza en la mano, temblando, hace que el otro desconfíe del tinto.',
+          analogy_es: 'Decir el precio es como servir un café: se pone en la mesa y se suelta la taza. El que se queda con la taza en la mano, temblando, hace que el otro desconfíe del café.',
           chunks: [
             {
               id: 'c-ven-price-per-month',
               en: "It's fifty dollars per month.",
               es: 'Son cincuenta dólares al mes.',
               sounds_es: 'its fífti dólars per manz',
-              why_es: 'El precio, derechito y sin adornos. "per month" es el "al mes" de la factura del gas: cambias el número y sirve pa\' cualquier plan. Decilo completo y haz silencio — el silencio después del precio es parte de la venta.',
+              why_es: 'El precio, derechito y sin adornos. "per month" es el "al mes" de la factura del gas: cambias el número y sirve pa\' cualquier plan. Dilo completo y haz silencio — el silencio después del precio es parte de la venta.',
               sayWhen_es: 'Cuando te preguntan cuánto vale.',
               who_es: 'con el cliente',
               frame: "It's ___ per month.",
@@ -132,7 +132,7 @@ export const PACK_VENTAS: JobPack = {
               en: 'We can offer a discount.',
               es: 'Podemos darte un descuento.',
               sounds_es: 'güi kan ófer a discáunt',
-              why_es: 'Fíjate que dice "we", no "I": el descuento lo da la empresa, no tú de tu bolsillo. Eso te protege — no quedas de blandito ni te lo van a pedir cada vez que hablen contigo.',
+              why_es: 'Fíjate que dice "we", no "I": el descuento lo da la empresa, no tú de tu bolsillo. Eso te protege — no te ven blando ni te lo van a pedir cada vez que hablen contigo.',
               sayWhen_es: 'Cuando el precio le aprieta y puedes ceder un poco.',
               who_es: 'con el cliente',
               frame: null,
@@ -171,7 +171,7 @@ export const PACK_VENTAS: JobPack = {
             'Una llamada que termina sin próximo paso es una llamada perdida, así hayan quedado encantados.',
             'Estas cuatro amarran: el sí, la propuesta, la fecha del recordatorio y el gracias.',
           ],
-          analogy_es: 'Cerrar sin próximo paso es como dejar el carro en bajada sin freno de mano: se ve bien parqueado hasta que voltéas y ya se fue rodando.',
+          analogy_es: 'Cerrar sin próximo paso es como dejar el carro en bajada sin freno de mano: se ve bien estacionado hasta que volteas y ya se fue rodando.',
           chunks: [
             {
               id: 'c-ven-ready-to-start',
@@ -195,7 +195,7 @@ export const PACK_VENTAS: JobPack = {
               es: 'Te mando la propuesta hoy.',
               sounds_es: 'áil send iú de propóusal tudéi',
               why_es: 'Una promesa con fecha pegada. Sin el "today" la frase se vuelve humo y la propuesta se te queda en borradores. Poner el cuándo es lo que la convierte en compromiso.',
-              sayWhen_es: 'Cuando quedas de mandar algo por escrito.',
+              sayWhen_es: 'Cuando quedas en mandar algo por escrito.',
               who_es: 'con el cliente',
               frame: "I'll send you the proposal ___.",
               swaps: ['today', 'tomorrow', 'this week'],
@@ -210,7 +210,7 @@ export const PACK_VENTAS: JobPack = {
               en: "I'll follow up on Friday.",
               es: 'Te escribo el viernes.',
               sounds_es: 'áil fólou ap on fráidei',
-              why_es: '"follow up" es seguirle el rastro al asunto pa\' que no se enfríe. Decir el día exacto es lo que te salva: el cliente sabe cuándo esperar tu mensaje y tú ya no quedas de intenso cuando llegue.',
+              why_es: '"follow up" es seguirle el rastro al asunto pa\' que no se enfríe. Decir el día exacto es lo que te salva: el cliente sabe cuándo esperar tu mensaje y tú ya no pasas por pesado cuando llegue.',
               sayWhen_es: 'Al cerrar la llamada, poniendo fecha al siguiente contacto.',
               who_es: 'con el cliente',
               frame: "I'll follow up on ___.",
@@ -242,7 +242,7 @@ export const PACK_VENTAS: JobPack = {
       ],
       task: {
         id: 'job-ventas-u1-task',
-        intro_es: 'Listo, se abre el Zoom y del otro lado hay un cliente gringo. Tranquilo, tú ya sabes vender…',
+        intro_es: 'Listo, se abre el Zoom y del otro lado hay un cliente que solo habla inglés. Tranquilo, tú ya sabes vender…',
         steps: [
           {
             goal_es: 'Arranca la llamada. Abre mostrando qué hacen ustedes.',

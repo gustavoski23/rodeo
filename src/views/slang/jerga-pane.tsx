@@ -57,7 +57,11 @@ export function JergaPane({ onReintentar }: { onReintentar: () => void }) {
             style={{ color: 'var(--accent)' }}
           >
             <span className="h-0.5 w-5 shrink-0 rounded-sm bg-current" />
-            Jerga → gringo
+            {/* Se llamaba «Jerga → gringo», y antes de eso «Paisa → gringo». Las dos
+                nombraban a una sola punta de un puente que va de CUALQUIER español
+                de América al inglés: el modelo ya detecta la variante en vez de
+                asumirla (ver JERGA_SYSTEM en ./prompts). El nombre iba último. */}
+            Jerga → inglés real
             <span className="h-0.5 w-5 shrink-0 rounded-sm bg-current" />
           </p>
           <p
@@ -68,7 +72,7 @@ export function JergaPane({ onReintentar }: { onReintentar: () => void }) {
           </p>
           <p className="max-w-[340px] text-[0.9rem] leading-[1.55]" style={{ color: 'var(--text-secondary)' }}>
             Escribe abajo tu frase en español —como la dirías tú, con jerga y todo— y te la
-            devuelvo dicha como gringo de verdad.
+            devuelvo como se dice de verdad allá.
           </p>
         </div>
       )}
