@@ -8,9 +8,45 @@
 
    Los ids de chunk son la LLAVE del SRS (rodeo_a1_srs) y de las tareas
    (answerChunkId): renombrar uno le borra el progreso a quien ya lo tenía.
-   7 unidades · 19 escenas · 63 chunks. */
+   Por eso las cuatro frases pre-A1 que se fueron al Tramo 0 se MUDARON con el
+   id intacto: quien las tenía en caja 4 las sigue teniendo, ahora en el T0.
+   7 unidades · 18 escenas · 59 chunks propios (+1 que comparte con el T0). */
 
-import type { A1Course } from '@/content/a1/tipos';
+import type { A1Chunk, A1Course } from '@/content/a1/tipos';
+
+/* La pregunta del baño se enseñaba DOS veces: acá en u5 y otra vez en el Tramo
+   0 con el id `c-t0-where-bathroom`. Mismo inglés, dos ids = dos entradas
+   Leitner que vencen por separado para siempre, que es justo lo que el propio
+   contenido prohíbe. Ahora hay un solo objeto y el Tramo 0 lo importa: un chunk
+   puede vivir en dos escenas sin problema (construirIndice lo indexa por id y
+   nuevos() deduplica con un Set).
+
+   El id viejo se queda porque es el que tiene progreso guardado. El TEXTO, en
+   cambio, es el del Tramo 0: "está" en vez del "queda" colombiano, "uér" en vez
+   de "güér" (que en ortografía española se lee /gwer/), y un why_es que enseña
+   el molde sin amarrarlo a la oficina. Los `swaps` juntan los dos mundos:
+   primero los del viaje, después los de la oficina. */
+export const C_WHERE_IS_BATHROOM: A1Chunk = {
+  id: "c-where-is-bathroom",
+  en: "Where is the bathroom?",
+  es: "¿Dónde está el baño?",
+  sounds_es: "uér is de bázrum",
+  why_es: "La pregunta más hecha del planeta. Y con \"Where is the ___?\" ya preguntas por cualquier cosa: la salida, el taxi, la impresora.",
+  sayWhen_es: "En todas partes, siempre.",
+  who_es: "con cualquiera (seguro)",
+  frame: "Where is the ___?",
+  swaps: ["bathroom", "exit", "taxi", "printer", "kitchen"],
+  distractors_es: ["Where the bathroom?", "Where are the bathroom?"],
+  cognateHook_es: null,
+  forms: null,
+  audio: null,
+  /* Se queda en false a propósito, aunque la versión del T0 la traía en true:
+     construirIndice hace `ix.supervivencia.push(c)` SIN deduplicar por id, así
+     que un chunk compartido entre dos escenas saldría dos veces en la HojaPánico
+     (y con la misma `key` de React). Cuando el índice deduplique, esto puede
+     volver a true. */
+  survival: false,
+};
 
 export const A1_CURSO: A1Course = {
   version: 1,
@@ -129,80 +165,41 @@ export const A1_CURSO: A1Course = {
             },
           ],
         },
-        {
-          id: "u1-s2-conocer",
-          order: 2,
-          title_es: "Conocer a alguien",
-          scene_es: "Alguien del equipo se te acerca a conocerte.",
-          icon: "🤝",
-          setup_es: [
-            "Se te arrima un compañero a saludar. Con dos frasecitas quedas como gente.",
-            "Una pa' el saludo de mano, otra pa' preguntarle el nombre.",
-          ],
-          analogy_es: "Conocer a alguien es como el saludo de mano: se hace una sola vez, el primer día, y ahí arranca la relación.",
-          chunks: [
-            {
-              id: "c-nice-to-meet-you",
-              en: "Nice to meet you.",
-              es: "Mucho gusto.",
-              sounds_es: "náis tu mít iú",
-              why_es: "El apretón de manos hecho frase. Se dice UNA vez, el día que conoces a alguien. Como estrenar zapatos: solo el primer día.",
-              sayWhen_es: "El día que conoces a alguien, una sola vez.",
-              who_es: "con cualquiera (seguro)",
-              frame: null,
-              swaps: null,
-              distractors_es: ["Nice to see you again.", "Meet you nice."],
-              cognateHook_es: null,
-              forms: null,
-              audio: null,
-              survival: false,
-            },
-            {
-              id: "c-whats-your-name",
-              en: "What's your name?",
-              es: "¿Cómo te llamas?",
-              sounds_es: "guáts iór néim",
-              why_es: "La llave pa' conocer a cualquiera. Cortica y educada; con eso arrancas toda presentación.",
-              sayWhen_es: "Cuando quieres saber cómo se llama alguien.",
-              who_es: "con cualquiera (seguro)",
-              frame: null,
-              swaps: null,
-              distractors_es: ["What is your work?", "Where's your name?"],
-              cognateHook_es: null,
-              forms: null,
-              audio: null,
-              survival: false,
-            },
-          ],
-        },
+        /* Acá vivía `u1-s2-conocer`, y tenía exactamente dos frases:
+           "Nice to meet you." y "What's your name?". Las dos son pre-A1 puro y
+           se mudaron al Tramo 0 (t0-preguntas) con su id intacto.
+
+           La escena NO podía quedarse vacía. Con `chunks: []`, proximaEscena()
+           la devuelve para siempre, abrirUnidad() tostea "Esta escena todavía
+           no tiene frases" y no navega, y escenasHechas('u1-llegar') nunca da
+           true: u1-llegar queda imposible de terminar, para siempre. Un
+           callejón sin salida permanente por dos frases que se fueron.
+
+           Por eso se borra la escena entera y la unidad pasa de 3 escenas a 2.
+           El `order: 3` de la que sigue se deja como está: solo se usa como
+           clave de ordenamiento (el sort de `nuevos()`) y el hueco no molesta. */
         {
           id: "u1-s3-presentarte",
           order: 3,
           title_es: "Decir quién eres y despedirte",
           scene_es: "Te presentan y, al rato, se acaba el día.",
-          icon: "🪪",
+          /* Era 🪪 (U+1FAAA, Emoji 14.0 · 2021): en el Chrome de Windows 10 sale
+             cuadrito vacío, porque la Segoe UI Emoji de Win10 llega hasta 13.1.
+             📛 es Emoji 1.0 y dice lo mismo: el gafete con tu nombre. */
+          icon: "📛",
           setup_es: [
             "Primero tu escudo de nuevo, que nadie te va a exigir de más.",
             "Y al final, el chao del día, suavecito.",
           ],
           analogy_es: "Decir que eres nuevo no es debilidad: es un escudo. El que avisa que va llegando recibe ayuda en vez de exigencia.",
           chunks: [
-            {
-              id: "c-im-new-here",
-              en: "I'm new here.",
-              es: "Soy nuevo aquí.",
-              sounds_es: "áim niú jíar",
-              why_es: "Tu carné de recién llegado. Bájale a las expectativas y todo el mundo te ayuda. Es una frase-escudo, no una vergüenza.",
-              sayWhen_es: "Cuando quieres que te tengan paciencia.",
-              who_es: "con cualquiera (seguro)",
-              frame: null,
-              swaps: null,
-              distractors_es: ["I'm fine here.", "I'm not here."],
-              cognateHook_es: null,
-              forms: null,
-              audio: null,
-              survival: false,
-            },
+            /* `c-im-new-here` se mudó al Tramo 0 (t0-ser-estar): es un "I'm ___"
+               y ahí es donde se enseña la pieza. La escena queda con 2 frases,
+               que siguen siendo contenido suficiente.
+               La tarea `u1-task` lo sigue usando como answerChunkId y eso está
+               bien: tarea.tsx resuelve por el índice GLOBAL del catálogo
+               (indice.chunk), no por la unidad, así que el paso sigue existiendo
+               mientras el Tramo 0 esté cableado. */
             {
               id: "c-have-a-good-day",
               en: "Have a good day.",
@@ -269,7 +266,9 @@ export const A1_CURSO: A1Course = {
       arc_es: "Ya no entiendes algo. En vez de asentir y hacer la tarea mala, aprendes a pedir.",
       emoji: "🪂",
       cardTheme: "yellow",
-      icon: "🛟",
+      /* Era 🛟 (U+1F6DF, Emoji 14.0 · 2021) — mismo caso que el 🪪 de u1: tofu
+         en Windows 10. ⛑️ es de 2017 y significa lo mismo, rescate. */
+      icon: "⛑️",
       survival: true,
       companionSetup_es: [
         "Estas son las que te salvan de cualquier lío. Apréndetelas primero y ya nada te asusta.",
@@ -283,7 +282,7 @@ export const A1_CURSO: A1Course = {
           scene_es: "Te hablan en inglés y se te fue el hilo. Pasa.",
           icon: "🙉",
           setup_es: [
-            "Te hablaron y no cazaste nada. Fresco, a todos nos pasa.",
+            "Te hablaron y no cazaste nada. Tranquilo, a todos nos pasa.",
             "Nadie se enoja si pides que repitan: prefieren repetírtelo a que hagas algo mal.",
           ],
           analogy_es: "Pedir que repitan es de vivos, no de bobos. Es el botón de rebobinar: lo aprietas sin pena y listo.",
@@ -438,12 +437,12 @@ export const A1_CURSO: A1Course = {
         intro_es: "Bueno, ahora imaginate en una reunión y no entiendes nada. Saca tus salvavidas…",
         steps: [
           {
-            goal_es: "El jefe dijo algo rapidísimo. Pedile que lo repita.",
+            goal_es: "El jefe dijo algo rapidísimo. Pídele que lo repita.",
             answerChunkId: "c-repeat",
             reaction_es: "¡Eso! Y nadie se enojó, ¿viste?",
           },
           {
-            goal_es: "Habla como una metralleta. Pedile que hable despacio.",
+            goal_es: "Habla como una metralleta. Pídele que hable despacio.",
             answerChunkId: "c-speak-slowly",
             reaction_es: "De una. Ahí ya lo agarras todo.",
           },
@@ -593,27 +592,8 @@ export const A1_CURSO: A1Course = {
               audio: null,
               survival: false,
             },
-            {
-              id: "c-im-from-colombia",
-              en: "I'm from Colombia.",
-              es: "Soy de Colombia.",
-              sounds_es: "áim from colómbia",
-              why_es: "Tu molde pa' decir de dónde vienes: cambias el país y ya. Es la banderita que te pones en el pecho sin tener que explicar más.",
-              sayWhen_es: "Cuando te preguntan de dónde eres.",
-              who_es: "con cualquiera (seguro)",
-              frame: "I'm from ___.",
-              /* El molde es lo que se enseña y el país es solo el relleno, así
-                 que la lista cubre la región entera: quien lo abra desde Chile
-                 o desde México encuentra el suyo sin tener que imaginárselo.
-                 El `id` NO se toca aunque nombre a Colombia — es la clave del
-                 progreso y renombrarla se lo borra a quien ya lo hizo. */
-              swaps: ["Colombia", "Chile", "Mexico", "Peru", "Argentina", "Venezuela", "Ecuador", "Spain"],
-              distractors_es: ["I live in Colombia.", "I go to Colombia."],
-              cognateHook_es: null,
-              forms: null,
-              audio: null,
-              survival: false,
-            },
+            /* `c-im-from-colombia` se mudó al Tramo 0 (t0-ser-estar), junto al
+               resto de los "I'm ___". La escena queda con 3 frases. */
             {
               id: "c-my-first-week",
               en: "This is my first week.",
@@ -648,7 +628,7 @@ export const A1_CURSO: A1Course = {
             reaction_es: "De una. Ya saben de qué equipo eres.",
           },
           {
-            goal_es: "Quieres saber de la otra persona. Preguntale dónde trabaja.",
+            goal_es: "Quieres saber de la otra persona. Pregúntale dónde trabaja.",
             answerChunkId: "c-where-do-you-work",
             reaction_es: "Eso, devolviste la pregunta. Así no se muere la charla.",
           },
@@ -681,7 +661,10 @@ export const A1_CURSO: A1Course = {
             "Es lunes y arranca el ritual del cafecito: \"¿cómo te fue el finde?\".",
             "No es chisme, es el saludo largo. El que no lo hace queda de raro.",
           ],
-          analogy_es: "El small talk del lunes es como calentar el carro antes de arrancar: dos minuticos de charla boba y ya la relación anda suave todo el día.",
+          /* Era "calentar el carro… dos minuticos": "carro" toma partido en el
+             pleito carro/coche y el diminutivo en -ico marca país. "El motor"
+             no es de nadie y la imagen queda igual. */
+          analogy_es: "El small talk del lunes es como calentar el motor antes de arrancar: dos minutitos de charla boba y ya la relación anda suave todo el día.",
           chunks: [
             {
               id: "c-how-was-weekend",
@@ -766,7 +749,7 @@ export const A1_CURSO: A1Course = {
               en: "No problem.",
               es: "Con gusto / no hay lío.",
               sounds_es: "nou próblem",
-              why_es: "Cuando te dan las gracias, esta es la que rebotas con un compañero. Es el \"fresco, no hay lío\" de toda la vida: le quitas peso al favor.",
+              why_es: "Cuando te dan las gracias, esta es la que rebotas con un compañero. Es el \"tranquilo, no hay lío\" de toda la vida: le quitas peso al favor.",
               sayWhen_es: "Cuando te agradecen y respondes relajado.",
               who_es: "con un compañero",
               frame: null,
@@ -878,22 +861,9 @@ export const A1_CURSO: A1Course = {
           ],
           analogy_es: "Instalarte es como llegar a un salón de clase nuevo: ubicas el baño, agarras tu puesto y ya dejas de andar perdido mirando pa' todo lado.",
           chunks: [
-            {
-              id: "c-where-is-bathroom",
-              en: "Where is the bathroom?",
-              es: "¿Dónde queda el baño?",
-              sounds_es: "güér is de bázrum",
-              why_es: "Supervivencia pura, la primera que vas a necesitar. \"Where is the ___?\" es tu brújula: le metes lo que buscas y te ubican.",
-              sayWhen_es: "Cuando necesitas ubicar el baño (o lo que sea).",
-              who_es: "con cualquiera (seguro)",
-              frame: "Where is the ___?",
-              swaps: ["bathroom", "printer", "kitchen", "exit"],
-              distractors_es: ["Where is my bathroom?", "Where are the bathroom?"],
-              cognateHook_es: null,
-              forms: null,
-              audio: null,
-              survival: false,
-            },
+            /* El MISMO objeto que usa `t0-preguntas`. Definido arriba del curso
+               porque lo comparten dos tramos; el id no cambió. */
+            C_WHERE_IS_BATHROOM,
             {
               id: "c-this-is-my-desk",
               en: "This is my desk.",
@@ -1141,12 +1111,12 @@ export const A1_CURSO: A1Course = {
             reaction_es: "¡Eso! Esa es la primera que salva a todo el mundo.",
           },
           {
-            goal_es: "Te trabaste con algo. Pedí una mano.",
+            goal_es: "Te trabaste con algo. Pide una mano.",
             answerChunkId: "c-can-you-help-me",
             reaction_es: "Perfecto. El que pregunta llega, ¿si me entiendes?",
           },
           {
-            goal_es: "Necesitas que te pasen un archivo. Pedí que te lo manden.",
+            goal_es: "Necesitas que te pasen un archivo. Pide que te lo manden.",
             answerChunkId: "c-send-it-to-me",
             reaction_es: "De una. Con la flechita del \"to\" bien puesta.",
           },
@@ -1156,7 +1126,7 @@ export const A1_CURSO: A1Course = {
             reaction_es: "¡Eso! Preguntar cómo se usa algo es de vivo, no de bruto.",
           },
           {
-            goal_es: "Llevas horas sin parar. Pedile permiso al jefe pa' un descanso.",
+            goal_es: "Llevas horas sin parar. Pídele permiso al jefe pa' un descanso.",
             answerChunkId: "c-can-i-take-a-break",
             reaction_es: "Eso. Un respiro a tiempo y vuelves con toda.",
           },
@@ -1176,7 +1146,7 @@ export const A1_CURSO: A1Course = {
       survival: false,
       companionSetup_es: [
         "Llegó la reunión, la que a mí me tumbó la primera semana. Pero tú vas con ventaja.",
-        "Te doy con qué entrar, opinar sin pelear y salir sin morir. Fresco que yo te cubro.",
+        "Te doy con qué entrar, opinar sin pelear y salir sin morir. Tranquilo que yo te cubro.",
       ],
       scenes: [
         {
