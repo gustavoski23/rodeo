@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Message, MessageContent } from '@/components/elevenlabs/message';
 import { TextAnimate } from '@/components/magicui/text-animate';
 import { GlossText } from '@/components/rodeo/gloss-text';
-import { PencilLoader } from '@/components/rodeo/pencil-loader';
+import { LoadingBreadcrumb } from '@/components/rodeo/pencil-loader';
 import { MODO_LIGERO } from '@/lib/device';
 import { parseChunks } from '@/lib/gloss';
 import { REDUCED } from '@/lib/theme';
@@ -48,9 +48,9 @@ function Espera({ desde }: { desde: number }) {
   }, [desde]);
 
   return (
-    <PencilLoader size={4.4}>
-      {seg >= 3 && <span className="rd-wait">{seg < 25 ? `${seg}s` : `${seg}s · pensando`}</span>}
-    </PencilLoader>
+    <LoadingBreadcrumb text="Pensando">
+      {seg >= 3 && <span className="rd-wait">{seg}s</span>}
+    </LoadingBreadcrumb>
   );
 }
 

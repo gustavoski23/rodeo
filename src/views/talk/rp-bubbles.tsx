@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { motion } from 'motion/react';
 
 import { GlossText } from '@/components/rodeo/gloss-text';
-import { PencilLoader } from '@/components/rodeo/pencil-loader';
+import { LoadingBreadcrumb } from '@/components/rodeo/pencil-loader';
 import { parseChunks } from '@/lib/gloss';
 import type { RpBurbuja } from '@/stores/escenas';
 
@@ -111,7 +111,7 @@ export function RpFila({ b }: { b: RpBurbuja }) {
         }}
       >
         {/* Sin contador de segundos: eso es exclusivo de CHARLA (spec §1.8). */}
-        <PencilLoader size={4.4} label="Narrando" />
+        <LoadingBreadcrumb text="Narrando" />
         {b.nota && (
           <div className="mt-1.5 text-[0.78rem]" style={{ color: 'var(--text-secondary)' }}>
             {b.nota}
