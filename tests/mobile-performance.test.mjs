@@ -369,8 +369,12 @@ test('the vendored fork stays honest: only the files it claims to change', async
     assert.ok(delPaquete.has(rel), `${rel} no existe en el paquete: ¿sobra en el fork?`);
     const a = await leerArchivo(new URL(rel, fork), 'utf8');
     // Al copiar se quitan los .map, así que también la línea que los apunta.
+    // El `\r?` y el `[^\r\n]` no son decorativos: en JS el `.` no cruza un \r,
+    // así que con CRLF este reemplazo no enganchaba y dejaba la línea puesta,
+    // haciendo "distintos" a todos los archivos. Hoy .gitattributes fuerza LF y
+    // no debería pasar, pero un tar mal hecho del paquete lo repetiría.
     const b = (await leerArchivo(new URL(`dist/esm/${rel}`, paquete), 'utf8')).replace(
-      /\n\/\/# sourceMappingURL=.*\n?$/,
+      /\r?\n\/\/# sourceMappingURL=[^\r\n]*\r?\n?$/,
       '\n',
     );
     (a === b ? iguales : distintos).push(rel);
