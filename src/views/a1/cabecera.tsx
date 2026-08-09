@@ -1,5 +1,7 @@
 import { motion } from 'motion/react';
-import { ArrowLeft, LifeBuoy } from 'lucide-react';
+import { ArrowLeft, Lightbulb } from 'lucide-react';
+
+import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 
 import { AlfredAvatar, Puntos } from './alfred';
 
@@ -45,21 +47,44 @@ export function Cabecera({
         )}
       </div>
 
-      {/* El 🆘 vive DENTRO del loop: el momento de necesitarlo es justo este. */}
-      <motion.button
-        type="button"
-        whileTap={{ scale: 0.94 }}
-        onClick={onPanico}
-        aria-label="Frases de emergencia"
-        className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
-        style={{
-          borderColor: 'color-mix(in oklch, var(--accent) 35%, transparent)',
-          background: 'var(--accent-dim)',
-          color: 'var(--accent)',
-        }}
-      >
-        <LifeBuoy size={17} strokeWidth={2.2} />
-      </motion.button>
+      {/* El salvavidas vive DENTRO del loop: el momento de necesitarlo es justo
+          este. Era un aro salvavidas y pasó a ser la BOMBILLA de vidrio de
+          CHARLA — el mismo mando, el mismo lenguaje visual en las dos partes de
+          la app. Y el bombillo dice mejor lo que hace: no es una emergencia
+          náutica, es "dame una idea de qué decir".
+
+          `vidrio-tema` + <GlassStyles/> van acotados a este botón y no a la
+          pantalla: la clase declara --background/--foreground CRUDAS, y soltarla
+          en la raíz del módulo se las filtraría a todo lo que hay debajo. */}
+      <span className="vidrio-tema relative inline-flex shrink-0 items-center justify-center">
+        <GlassStyles />
+
+        {/* EL "ENCENDIDO". Un halo cálido que respira, por OPACIDAD y no por
+            escala: en el teléfono MODO_LIGERO fuerza reducedMotion:'always'
+            (App.tsx), que apaga las animaciones de transformada pero deja vivas
+            las de opacidad y color. Un latido por `scale` sencillamente no
+            existiría en el dispositivo para el que se hizo. */}
+        <motion.span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{ boxShadow: '0 0 0 1px oklch(85% 0.16 85 / 0.35), 0 0 16px 2px oklch(85% 0.16 85 / 0.45)' }}
+          animate={{ opacity: [0.35, 0.9, 0.35] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        <GlassButton
+          type="button"
+          size="icon"
+          onClick={onPanico}
+          aria-label="Dame una idea de qué decir"
+          /* El filamento en ámbar: es lo que lo lee como PRENDIDO y no como un
+             icono más. El color va en el contenido, no en el vidrio, para no
+             pelearse con el <style> que inyecta GlassStyles. */
+          contentClassName="text-[oklch(88%_0.15_85)]!"
+        >
+          <Lightbulb className="size-4" />
+        </GlassButton>
+      </span>
       <AlfredAvatar size={34} />
     </div>
   );

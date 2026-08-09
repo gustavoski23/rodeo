@@ -1,7 +1,12 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 
 import { A1_CURSO } from '@/content/a1/core';
+
+/** La cara de Alfred. Si el archivo no está —o falla la descarga— el avatar cae
+    a la inicial de siempre en vez de dejar un hueco: el compañero no puede
+    desaparecer porque un PNG no cargó. */
+const CARA = '/assets/alfred/cara.webp';
 
 /* Alfred en pantalla — port de alfredAvatar/bubbleOnly/alfredBlock/dotsHTML
    (public/js/a1-office.js:152-173, 609-614).
@@ -23,10 +28,16 @@ export const ENTRADA = {
 };
 
 export function AlfredAvatar({ size = 30 }: { size?: number }) {
+  /* El fondo durazno se queda DEBAJO de la foto, no en su lugar: es el aro que
+     hace que Alfred se reconozca a 30 px, cuando de la cara ya no se distingue
+     nada. Y si la imagen no está, ese mismo aro con la inicial es el avatar de
+     siempre — el fallback no es un caso de error, es el estado anterior. */
+  const [sinCara, setSinCara] = useState(false);
+
   return (
     <span
       aria-hidden="true"
-      className="font-display inline-flex shrink-0 items-center justify-center rounded-full font-extrabold"
+      className="font-display relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-extrabold"
       style={{
         width: size,
         height: size,
@@ -36,7 +47,21 @@ export function AlfredAvatar({ size = 30 }: { size?: number }) {
         boxShadow: '0 2px 10px oklch(0% 0 0 / 0.28)',
       }}
     >
-      {A1_CURSO.companion.avatarInitial}
+      {sinCara ? (
+        A1_CURSO.companion.avatarInitial
+      ) : (
+        <img
+          src={CARA}
+          alt=""
+          onError={() => setSinCara(true)}
+          /* `object-cover` + un pelín de escala: una cara recortada en cuadrado
+             y metida en un círculo pierde el mentón y la coronilla. Subirla un
+             2% deja la mirada en el centro óptico, que es donde el ojo la busca. */
+          className="size-full object-cover"
+          style={{ objectPosition: '50% 42%' }}
+          draggable={false}
+        />
+      )}
     </span>
   );
 }
