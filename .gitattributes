@@ -1,0 +1,39 @@
+# Finales de línea: LF en el índice Y en el árbol de trabajo, en todas partes.
+#
+# La máquina de desarrollo es Windows con core.autocrlf=true. Sin este archivo
+# el objeto commiteado ya era LF limpio (medido: index.mjs son 166 bytes, 0 CR
+# en el blob) y git le metía los CR AL HACER CHECKOUT (169 bytes, 3 CR en el
+# disco). Eso rompía siempre, y sólo en Windows, la prueba "the vendored fork
+# stays honest" de tests/mobile-performance.test.mjs: compara byte a byte
+# src/vendor/mantine-book/** contra lo que npm instala en
+# node_modules/@gfazioli/mantine-book/dist/esm/**, y npm instala con LF. Los 16
+# archivos que el fork NO toca salían "distintos" por un \r por línea; quitados
+# los CR eran idénticos. El fallo no era del fork: era del checkout.
+#
+# Por eso `eol=lf` y no sólo `text=auto`: hay que forzar la dirección de salida
+# (índice -> disco), que es donde estaba el daño. `text=auto` solo arregla la de
+# entrada, que ya estaba bien.
+#
+# Se deja para todo el repo, no sólo para src/vendor: Vercel construye en Linux,
+# así que LF es lo que corre en producción, y cualquier otra comparación contra
+# un paquete de npm caería en la misma trampa.
+#
+# Ojo si alguna vez entra un .bat o un .cmd: esos SÍ necesitan CRLF y hay que
+# exceptuarlos a mano. Hoy no hay ninguno en el repo.
+* text=auto eol=lf
+
+# Binarios: que git no los toque ni intente diffearlos. `text=auto` los detecta
+# por los bytes NUL, pero una detección fallida no avisa: corrompe el archivo en
+# silencio y sólo se descubre cuando el visor 3D o la tipografía revientan en el
+# teléfono. Es más barato declararlos.
+*.avif  binary
+*.glb   binary
+*.jpeg  binary
+*.jpg   binary
+*.mp3   binary
+*.png   binary
+*.ttf   binary
+*.wasm  binary
+*.wav   binary
+*.webp  binary
+*.woff2 binary
