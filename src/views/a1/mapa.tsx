@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Check, CornerDownRight, LifeBuoy, Lock, MessageCircle, Star, WifiOff } from 'lucide-react';
 
 import { BorderBeam } from '@/components/magicui/border-beam';
+import { IconoTinta } from '@/components/rodeo/tinta/icono-tinta';
 import { Card } from '@/components/ui/card';
 import type { JobPack } from '@/content/a1/tipos';
 import type { A1Tramo, A1TramoId } from '@/content/a1/tipos-ruta';
@@ -194,12 +195,17 @@ function Cabecera({ cap }: { cap: Capitulo }) {
       className="sticky top-0 z-20 -mx-3 flex items-start gap-2.5 px-3 pt-2.5 pb-2 sm:-mx-4 sm:px-4"
       style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--borde-sutil)' }}
     >
+      {/* El azulejo del tramo es un pastel PLENO en los dos temas: mismo caso
+          que el nodo `actual` (ver TINTA_NODO), así que lleva --card-ink y la
+          clase `suelo-claro`. Sin eso el icono de línea heredaría el
+          --text-primary del body y en tema oscuro saldría casi blanco sobre
+          menta claro. */}
       <span
         aria-hidden="true"
-        className="grid size-8 shrink-0 place-items-center rounded-[11px] text-[1rem]"
-        style={{ background: cap.color }}
+        className="suelo-claro grid size-8 shrink-0 place-items-center rounded-[11px] text-[1rem]"
+        style={{ background: cap.color, color: 'var(--card-ink)' }}
       >
-        {cap.tramo?.icon}
+        <IconoTinta emoji={cap.tramo?.icon} px={16} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="font-display truncate text-[0.95rem] leading-[1.15] font-bold tracking-[-0.02em]">
@@ -398,8 +404,55 @@ function NodoCamino({
       : n.estado === 'hecho'
         ? `color-mix(in oklab, ${color} 70%, ${TINTA_NEUTRA})`
         : apagado
-          ? 'var(--chip-bg-fuerte)'
+          ? /* Antes acá iba --chip-bg-fuerte con `opacity: 0.5` encima. Ver
+               TINTA_NODO: la opacidad se fue y este token la reemplaza. */
+            'var(--chip-bg)'
           : 'var(--bg-surface)';
+
+  /* ── LA TINTA DEL NODO — la deuda que trajo el icono de línea ─────────────
+
+     Con emoji daba igual: el emoji trae su propio color. Con un dibujo de una
+     sola tinta que hereda currentColor, un nodo que no fija `color` hereda el
+     del body — y el nodo `actual`, que va con el pastel PLENO del tramo, le
+     pondría tinta casi blanca sobre durazno claro. El icono desaparece.
+
+     La regla es del SUELO, no del estado: si el disco es pastel claro (pasa en
+     los DOS temas, porque los tokens --card-* son pastel en ambos) la tinta es
+     --card-ink; si el disco es una superficie del shell, la tinta sigue al
+     tema.
+
+     CONTRASTE WCAG MEDIDO SOBRE EL PÍXEL PINTADO, no calculado desde los
+     tokens: se recorta la caja del icono de la captura a dpr 3, el suelo es la
+     mediana de esa caja (o sea con la aguada y la lámina adentro) y el trazo es
+     el percentil 2/98, el que quede más lejos. Oscuro / claro:
+       hecho     6,82 / 8,02      actual    11,32 / 13,68
+       abierto  17,09 / 17,26     bloqueado  6,62 /  5,54
+       pendiente 6,68 /  7,08
+     Los cinco pasan AA (4,5:1) en los dos temas; el más flojo es la parada
+     cerrada sobre la lámina en tema claro.
+
+     Y LA OPACIDAD DEL 0,5 SE FUE, que es la mitad no obvia del arreglo. Sobre
+     papel blanco, un `opacity: 0.5` en el contenedor compone la tinta contra el
+     blanco: la luminancia del trazo nunca baja de 0,5 por más oscuro que uno lo
+     pinte, así que el máximo alcanzable contra el disco eran 2,7:1 — no hay
+     color que lo arregle, hay que sacar la opacidad. Lo apagado ahora se dice
+     con los tokens, y NO se ve distinto: --chip-bg tiene casi exactamente el
+     alfa que tenía --chip-bg-fuerte al 50% (0,045 contra 0,040 en claro), y lo
+     mismo --borde-sutil contra --borde-medio al 50% (0,13 contra 0,12). */
+  const sueloPastel = n.estado === 'actual' || n.estado === 'hecho';
+  const TINTA_NODO = sueloPastel
+    ? 'var(--card-ink)'
+    : apagado
+      ? /* --text-secondary y NO --text-muted, que es lo que pedía el instinto
+           para algo apagado. Motivo medido: el fondo de la parada cerrada
+           (--chip-bg) es casi transparente, así que el suelo real es LA LÁMINA
+           DE LA REGIÓN que pasa por debajo — papel, no la superficie de la
+           tarjeta. Contra ese papel, --text-muted daba 3,94:1 en tema claro (no
+           pasa AA); --text-secondary da 5,6:1. La diferencia entre los dos
+           tokens es de 8 puntos de L: no se ve como "menos apagado", se ve
+           como que se lee. */
+        'var(--text-secondary)'
+      : 'var(--text-primary)';
 
   /* ANILLO DE TINTA DE 1 px EN TODO NODO. Sin él, el nodo `abierto` —fondo
      --bg-surface, que en tema claro es blanco puro— desaparece sobre el papel
@@ -422,12 +475,15 @@ function NodoCamino({
         style={{ top: centro - NODO / 2, left: `calc(50% + ${n.dx}px)`, marginLeft: -NODO / 2, width: NODO, height: NODO }}
       >
         <span
-          className="relative grid size-full place-items-center rounded-full border-2"
+          /* `suelo-claro` solo donde el disco es pastel: le dice a la aguada
+             que multiplique aunque el tema sea oscuro (tinta.css). Sobre el
+             shell la aguada va en `screen` y esta clase la arruinaría. */
+          className={cn('relative grid size-full place-items-center rounded-full border-2', sueloPastel && 'suelo-claro')}
           style={{
-            borderColor: apagado ? 'var(--borde-medio)' : color,
+            borderColor: apagado ? 'var(--borde-sutil)' : color,
             borderStyle: n.estado === 'pendiente' ? 'dashed' : 'solid',
             background: relleno,
-            opacity: apagado ? 0.5 : 1,
+            color: TINTA_NODO,
             /* La escala del nodo actual va en el span y no en el botón para que
                el active:scale del toque siga funcionando encima. */
             transform: n.estado === 'actual' ? 'scale(1.06)' : undefined,
@@ -440,15 +496,29 @@ function NodoCamino({
           }}
         >
           {n.estado === 'pendiente' ? (
-            <Lock className="size-5" strokeWidth={2} style={{ color: 'var(--text-muted)' }} aria-hidden="true" />
+            /* Sin `style` de color: el candado hereda TINTA_NODO como todo lo
+               demás del disco, y así hay un solo sitio que decide la tinta. */
+            <Lock className="size-5" strokeWidth={2} aria-hidden="true" />
           ) : (
-            <span
-              aria-hidden="true"
-              className="text-[1.55rem] leading-none"
-              style={{ filter: n.estado === 'bloqueado' ? 'grayscale(1)' : undefined }}
-            >
-              {n.icono}
-            </span>
+            /* 26 px de DIBUJO en un disco de 68 (la caja mide 35: la aguada
+               desborda el contorno, ver aguada.ts). El concepto que todavía no
+               está dibujado cae al emoji de siempre, en la misma caja.
+
+               LA PARADA CERRADA VA SIN AGUADA, y no por gusto: MEDIDO. Con
+               aguada, en tema claro el suelo debajo del trazo caía de 0,91 a
+               0,66 de luminancia (el pigmento multiplicando) y el contraste del
+               icono se hundía a 3,69:1 — debajo de AA. Sin ella sube a 5,0:1.
+               Y encima es lo correcto en el dibujo: la parada cerrada se apaga
+               justamente para sacarle el color, así que pintar un lavado para
+               después grisearlo solo dejaba un manchón. De paso se ahorran dos
+               <use> en cada uno de los ~64 nodos apagados del camino.
+
+               `apagado` es lo que reemplaza al viejo `opacity: 0.5` del disco:
+               el componente lo aplica SOLO si salió emoji (que trae color
+               propio), nunca a la tinta (que ya viene apagada por TINTA_NODO y
+               a la que una opacidad le rompería el contraste). Comparado contra
+               una captura del árbol anterior: el emoji queda igual que estaba. */
+            <IconoTinta emoji={n.icono} px={26} sinAguada={apagado} apagado={apagado} />
           )}
 
           {/* Insignia: check en lo hecho, candado en lo cerrado. */}

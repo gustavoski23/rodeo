@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState, type ComponentType } from 'react';
 
+import { TintaDefs } from '@/components/rodeo/tinta/icono-tinta';
 import type { JobPack, PasoVozProps } from '@/content/a1/tipos';
 import type { A1SceneRuta, A1UnitRuta } from '@/content/a1/tipos-ruta';
 import { pedirPermisoMic } from '@/lib/permisos';
@@ -209,6 +210,13 @@ export default function A1View({
        Puesta acá vale para las cinco pantallas del módulo, y las COLUMNA
        internas del Mapa quedan idempotentes (640 dentro de 640). */
     <div className="mx-auto flex min-h-0 w-full max-w-[640px] flex-1 flex-col">
+      {/* Las tres manchas y el filtro de pluma de los iconos de tinta, una sola
+          vez para todo el módulo. Va acá y no en App.tsx porque A1 es un chunk
+          lazy: montarlo en la raíz de la app le cobraría el peso al arranque de
+          quien nunca abre la ruta. Es un <svg> de 0×0 posicionado absoluto —
+          no ocupa lugar en el flex. */}
+      <TintaDefs />
+
       {!onboarded ? (
         <Onboarding onListo={() => useA1.getState().marcarOnboarded()} />
       ) : pantalla.tipo === 'sesion' ? (

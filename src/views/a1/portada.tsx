@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 
 import { BorderBeam } from '@/components/magicui/border-beam';
+import { IconoTinta } from '@/components/rodeo/tinta/icono-tinta';
 import type { A1Scene, A1Unit } from '@/content/a1/tipos';
 
 import { AlfredBloque, ENTRADA, Eyebrow } from './alfred';
@@ -90,9 +91,14 @@ export function Portada({
                   className="flex items-center gap-3 rounded-[18px] border px-3.5 py-2.5"
                   style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)' }}
                 >
-                  <span aria-hidden="true" className="text-[1.1rem]">
-                    {s.icon}
-                  </span>
+                  {/* 18 px de DIBUJO (la caja mide 24: la aguada desborda el
+                      contorno a propósito, ver aguada.ts). El concepto que no
+                      esté dibujado todavía cae al emoji de siempre, en la misma
+                      caja, así que la fila no se mueve cuando se dibuje.
+                      No hace falta fijar `color`: la fila va sobre --bg-surface
+                      y hereda --text-primary, que es exactamente la tinta que
+                      corresponde en los dos temas. */}
+                  <IconoTinta emoji={s.icon} px={18} className="shrink-0" />
                   <span className="min-w-0 flex-1 text-[0.88rem] leading-[1.35]">{s.title_es}</span>
                 </motion.div>
               ))}

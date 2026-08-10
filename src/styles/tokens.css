@@ -71,6 +71,38 @@
   --card-ink:        oklch(24% 0.03 265);   /* texto primario sobre card  (>=7.7:1) */
   --card-ink-soft:   oklch(32% 0.03 265);   /* texto secundario/nota sobre card (>=4.5:1) */
 
+  /* ── PIGMENTO VERDEMAR — el único color NUEVO del sistema de iconos ──
+     Los iconos de escena se dibujan a tinta y aguada (components/rodeo/tinta/),
+     y esa aguada se pinta con dos pigmentos que se sortean por icono: uno
+     cálido y uno frío. El cálido ya existía —es la familia del durazno de
+     --accent—; el frío no existía en ninguna parte y sin él la aguada es
+     monocroma y se nota a los tres iconos.
+
+     DE DÓNDE SALE EL 202, medido y no elegido de oído:
+       · Es el HUECO de la paleta. Los dos tokens fríos que hay son
+         --card-blue (hue 248, cielo) y --card-green (hue 158, menta). 202 está
+         a 46 de uno y a 44 del otro, o sea casi exactamente en el punto medio:
+         es el tono más lejos posible de los dos, y por eso una mancha verdemar
+         nunca se lee como "se corrió el color de otro tramo".
+       · Y no compite con las láminas del mundo. Histograma de hue OKLCH
+         ponderado por croma sobre los 8 WebP horneados (427.888 píxeles
+         muestreados, 84.766 con croma > 0.02): la franja fría pica en 173 y
+         entre 190 y 260 hay CERO peso. O sea que el mundo no tiene nada en 202
+         — la aguada le suma un tono, no le repite el suyo.
+         OJO, esto corrige lo que decía el careo: el verde de las láminas NO es
+         verdemar, es verde-agua (165-175), que es territorio de --card-green.
+         Un pigmento ahí habría chocado con el color del tramo t0.
+
+     Los dos valores de L y C salen del barrido de alfas del careo (mirando
+     capturas, no calculándolos): sobre el shell casi-negro la aguada tiene que
+     ser PÁLIDA y desaturada o el `screen` la compone a barro; sobre papel puede
+     ser el pigmento de verdad y multiplicar. */
+  --pigmento-verdemar:       oklch(84% 0.035 202);  /* sobre el shell oscuro */
+  /* El mismo pigmento para cuando el SUELO es claro aunque el tema sea oscuro
+     (los discos pastel del mapa). Es un valor y no una copia: .suelo-claro y el
+     tema claro lo consumen por var(), así que hay una sola verdad. */
+  --pigmento-verdemar-papel: oklch(72% 0.055 202);
+
   /* SWAP (LEVEL UP) — tintas hue-locked oscuras que leen sobre CUALQUIER card.
      --swap-new pasó de lima a durazno entintado: es OSCURO (L40), así que contra
      las cards pastel claras contrasta por LUMINANCIA, no por tono — legible
@@ -163,6 +195,10 @@
 
   --card-ink:       oklch(21% 0.03 265);
   --card-ink-soft:  oklch(35% 0.03 265);
+
+  /* Sobre papel la aguada puede llevar el pigmento pleno y multiplicar (ver el
+     bloque de arriba). Es el MISMO valor que usa .suelo-claro. */
+  --pigmento-verdemar: var(--pigmento-verdemar-papel);
 
   --swap-new:       oklch(44% 0.13 60);
   --swap-old:       oklch(42% 0.20 27);
