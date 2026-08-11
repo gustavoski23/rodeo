@@ -93,3 +93,9 @@ git push        # al terminar (subir para la otra máquina)
 ```
 
 Así puedo seguir editando el código desde cualquier computadora donde tengas Claude Code.
+
+---
+
+## AI Design Orchestrator
+
+Este repo tiene un loop automatizado de diseño: **GPT revisa el preview del PR, Claude Code corrige, GitHub coordina** (label `ai-design-review` en el PR). Guía completa: [docs/AI_DESIGN_ORCHESTRATOR.md](docs/AI_DESIGN_ORCHESTRATOR.md).

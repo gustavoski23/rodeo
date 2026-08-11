@@ -41,3 +41,22 @@ midió para elegirlo.
 Se trabaja sobre la punta de `claude/rodeo-repo-info-nw2025` y se empuja como
 fast-forward; Vercel despliega solo. Un `#/<vista>` en la URL abre directo en
 una sección (`stores/app.ts` lo lee al crear el store).
+
+## AI Design Orchestrator
+
+Este repo tiene un loop automatizado de diseño — **GPT revisa screenshots del
+preview del PR, Claude corrige, GitHub coordina** (label `ai-design-review`).
+Guía completa: [docs/AI_DESIGN_ORCHESTRATOR.md](docs/AI_DESIGN_ORCHESTRATOR.md).
+Reglas que te aplican siempre:
+
+1. **Precedencia visual (no negociable):** `DESIGN_DIRECTOR_OVERRIDE` (comentario
+   humano en el PR) → `.ai-orchestrator/design-brief.md` → referencias aprobadas
+   → review de GPT → tu criterio técnico. Puedes proponer y explicar
+   limitaciones; **no puedes rediseñar por gusto propio** una decisión ya tomada
+   en un nivel superior.
+2. En PRs con el label, tu push dispara re-review automático. Deja un
+   `IMPLEMENTATION SUMMARY` corto en el body del PR (Goal / Changed / Visual /
+   Files / Tests / Limitations).
+3. Los comentarios con markers `<!-- ai-design-review:* -->` son estado del
+   sistema: no los edites ni los borres.
+4. `.ai-orchestrator/` y `.github/` son infraestructura, no parte de features.
