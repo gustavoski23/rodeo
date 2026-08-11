@@ -15,12 +15,14 @@ import {
   useA1,
 } from '@/stores/a1';
 import { useA1Leccion } from '@/stores/a1-leccion';
+import { useApp } from '@/stores/app';
 import { toast } from '@/stores/toast';
 
 import { Coach } from './coach';
 import { abrirCoach } from './coach-turno';
 import { HojaDetalle, HojaGuardadas, HojaPanico } from './hojas';
 import { Mapa } from './mapa';
+import { MapaExperiencia } from './mapa-experiencia';
 import { Onboarding } from './onboarding';
 import { Portada } from './portada';
 import { Sesion, type Arranque } from './sesion';
@@ -65,6 +67,7 @@ export default function A1View({
   const onboarded = useA1((s) => s.onboarded);
   const job = useA1((s) => s.job);
   const unidades = useA1((s) => s.unidades);
+  const nivel = useApp((s) => s.nivel);
 
   const [pantalla, setPantalla] = useState<Pantalla>({ tipo: 'mapa' });
   const [panico, setPanico] = useState(false);
@@ -247,6 +250,15 @@ export default function A1View({
         <Tarea unit={pantalla.unit} onSalir={alMapa} onPanico={() => setPanico(true)} />
       ) : pantalla.tipo === 'coach' ? (
         <Coach unit={pantalla.unit} onSalir={alMapa} onPanico={() => setPanico(true)} />
+      ) : nivel === 'A1' ? (
+        <MapaExperiencia
+          onUnidad={abrirUnidad}
+          onCoach={abrirConversacion}
+          onRepaso={abrirRepaso}
+          onSeguir={seguir}
+          onGuardadas={() => setGuardadas(true)}
+          onPanico={() => setPanico(true)}
+        />
       ) : (
         <Mapa
           pack={pack}
