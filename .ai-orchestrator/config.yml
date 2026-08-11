@@ -1,0 +1,82 @@
+# AI Design Orchestrator — configuración única (viewports, pantallas, límites).
+# Los scripts leen ESTE archivo; nada de esto se duplica en YAML de workflows.
+version: 1
+
+# ── Guardas de coste y de loop ────────────────────────────────────────────────
+maxRounds: 3                  # rondas automáticas GPT↔Claude; después: humano
+maxScreenshotsPerReview: 8
+maxReferenceImages: 4
+maxPacketChars: 24000
+maxConsoleErrors: 12
+maxUiFilesListed: 40
+
+review:
+  # Modelo del reviewer. Override por env: OPENAI_REVIEW_MODEL.
+  model: gpt-5.2
+  label: ai-design-review     # el workflow SOLO corre con este label en el PR
+  checkName: AI Design Review
+  maxOutputTokens: 6000
+
+preview:
+  provider: github-deployments   # Vercel Git integration → GitHub Deployments API
+  environmentHint: Preview
+  timeoutSeconds: 600
+  pollSeconds: 15
+
+capture:
+  settleMs: 1500              # espera para que asienten las animaciones de entrada
+  fullPage: true
+  maxFullPageHeightPx: 2400
+  deviceScaleFactor: 2
+  navTimeoutMs: 45000
+  # Estado inicial del navegador antes de cargar. El store (src/lib/storage)
+  # hace JSON.parse al leer ⇒ json: true en todo. El PIN viene del secret
+  # RODEO_APP_PASS — nunca de este archivo. rodeo_onboarding="1" salta las
+  # pantallas de onboarding. El GATE de login no se salta por storage (es por
+  # diseño: skip solo en memoria) — se toca su botón Skip como action.
+  localStorage:
+    - key: rodeo_pass
+      envVar: RODEO_APP_PASS
+      json: true
+    - key: rodeo_onboarding
+      value: "1"
+      json: true
+
+viewports:
+  desktop:         { width: 1440, height: 900 }
+  mobile-standard: { width: 390,  height: 844 }
+  mobile-large:    { width: 430,  height: 932 }
+
+# La app es una SPA React con deep-links por hash (#/<vista>, ver
+# src/stores/app.ts). En arranque frío el gate de login aparece SIEMPRE; su
+# botón "Skip" (texto fijo en ambos idiomas) es la salida sin cuenta.
+_gate_actions: &gate
+  - waitMs: 1200                                  # entrada animada del gate
+  - clickIfVisible: 'button:has-text("Skip")'
+  - waitMs: 1500                                  # transición gate → vista
+
+screens:
+  - id: home
+    path: /#/home
+    viewports: [mobile-standard, desktop]
+    actions: *gate
+
+  - id: talk
+    path: /#/talk
+    viewports: [mobile-standard]
+    actions: *gate
+
+  - id: story
+    path: /#/story
+    viewports: [mobile-standard]
+    actions: *gate
+
+  - id: slang
+    path: /#/slang
+    viewports: [mobile-standard]
+    actions: *gate
+
+  - id: a1
+    path: /#/a1
+    viewports: [mobile-standard]
+    actions: *gate

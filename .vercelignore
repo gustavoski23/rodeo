@@ -10,3 +10,7 @@ dev-server.mjs
 # Infra y docs internas: no son parte de la app servida.
 supabase
 *.md
+
+# AI Design Orchestrator — jamás se despliega
+.ai-orchestrator
+.github

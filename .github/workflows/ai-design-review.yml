@@ -1,0 +1,143 @@
+# AI Design Review — GPT dirige, Claude corrige, GitHub coordina.
+#
+# Loop: push al PR → preview de Vercel → screenshots (Playwright) → GPT
+# (OpenAI Responses, multimodal) → comment + check en el PR → si pide cambios
+# y quedan rondas, el job "resolve" lanza Claude Code, que corrige y hace push
+# → el push re-dispara este workflow. Guardas: máx 3 rondas, idempotencia por
+# SHA+brief+prompt, descarte de reviews obsoletos, jamás sobre forks.
+#
+# SEGURIDAD: evento pull_request (no pull_request_target) → los forks no ven
+# secrets. Además cada job exige que la rama viva en ESTE repo y que un humano
+# con permisos haya puesto el label `ai-design-review`.
+name: AI Design Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Número de PR a revisar"
+        required: true
+      force:
+        description: "Forzar re-review del mismo SHA (ignora idempotencia)"
+        type: boolean
+        default: false
+
+concurrency:
+  # Un push nuevo cancela la revisión en vuelo del push anterior: nunca se
+  # publica un REQUEST_CHANGES sobre un SHA que ya no es HEAD.
+  group: ai-design-review-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: GPT design review
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        contains(github.event.pull_request.labels.*.name, 'ai-design-review') &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: write
+      deployments: read
+    outputs:
+      decision: ${{ steps.run.outputs.decision }}
+      round: ${{ steps.run.outputs.round }}
+      proceed: ${{ steps.run.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .ai-orchestrator
+          # Solo hace falta el orquestador: la app que se revisa es la preview.
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: .ai-orchestrator/scripts/package-lock.json
+
+      - name: Install orchestrator
+        working-directory: .ai-orchestrator/scripts
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Review
+        id: run
+        working-directory: .ai-orchestrator/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_REVIEW_MODEL: ${{ vars.OPENAI_REVIEW_MODEL }}
+          RODEO_APP_PASS: ${{ secrets.RODEO_APP_PASS }}
+        run: |
+          ARGS=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ARGS="--pr ${{ inputs.pr_number }}"
+            if [ "${{ inputs.force }}" = "true" ]; then ARGS="$ARGS --force"; fi
+          fi
+          node bin/review.js $ARGS
+
+      - name: Upload screenshots + packet + findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-design-review-${{ github.event.pull_request.number || inputs.pr_number }}-r${{ steps.run.outputs.round || 0 }}
+          path: |
+            .ai-orchestrator/out/screenshots/
+            .ai-orchestrator/out/packet.json
+            .ai-orchestrator/out/findings.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  resolve:
+    name: Claude resuelve findings
+    runs-on: ubuntu-latest
+    needs: review
+    # Solo si GPT pidió cambios Y quedan rondas automáticas (proceed lo calcula
+    # review.js: decision==REQUEST_CHANGES && round < maxRounds). Solo en
+    # eventos pull_request: workflow_dispatch no trae head.ref para checkout.
+    if: needs.review.outputs.proceed == 'true' && github.event_name == 'pull_request'
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # La RAMA (no el SHA): Claude va a commitear y pushear encima.
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Download findings
+        uses: actions/download-artifact@v4
+        with:
+          name: ai-design-review-${{ github.event.pull_request.number || inputs.pr_number }}-r${{ needs.review.outputs.round }}
+          path: .ai-orchestrator/out
+
+      - name: Claude Code — resolver review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # El push de Claude llega vía la GitHub App (NO pasar github_token:
+          # con GITHUB_TOKEN el push no dispararía la siguiente ronda).
+          # El loop lo dispara claude[bot] (su propio push) o github-actions:
+          # sin listarlos, el action rechaza actores bot y el loop muere.
+          allowed_bots: "claude[bot],claude,github-actions[bot]"
+          track_progress: true
+          prompt: |
+            Lee y ejecuta .ai-orchestrator/prompts/claude-resolve-review.md al pie de la letra.
+            El review de GPT está en .ai-orchestrator/out/findings.json (PR #${{ github.event.pull_request.number }}, round ${{ needs.review.outputs.round }}).
+            Resuelve los findings uno por uno, verifica, commitea con el resolution report en el mensaje, y haz push a la rama del PR.
+          claude_args: |
+            --model claude-opus-5
+            --max-turns 100
+            --allowedTools "Edit,Write,Read,Glob,Grep,Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(node:*),Bash(npm:*),Bash(npx playwright:*),mcp__github_comment__update_claude_comment"

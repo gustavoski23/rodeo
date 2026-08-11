@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "properties": {
+    "version": { "type": "string", "description": "Versión del formato de salida. Siempre '1'." },
+    "decision": { "type": "string", "enum": ["APPROVE", "REQUEST_CHANGES"] },
+    "overallScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "summary": { "type": "string", "description": "2-4 frases: veredicto global y lo más importante." },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Identificador estable tipo VIS-001, incrementando entre rondas sin reusar IDs." },
+          "priority": { "type": "string", "enum": ["P0", "P1", "P2", "P3"] },
+          "category": {
+            "type": "string",
+            "enum": [
+              "brief-compliance", "visual-hierarchy", "layout", "proportions", "alignment",
+              "spacing", "typography", "color", "depth", "contrast", "density",
+              "brand-consistency", "affordance", "mobile-usability", "responsiveness",
+              "polish", "consistency", "empty-states", "loading-error-states", "motion", "accessibility", "regression"
+            ]
+          },
+          "screen": { "type": "string", "description": "id de pantalla + viewport, p.ej. 'talk-mobile-standard'." },
+          "problem": { "type": "string" },
+          "whyItMatters": { "type": "string" },
+          "requestedChange": { "type": "string" },
+          "acceptanceCriteria": { "type": "array", "items": { "type": "string" } },
+          "implementationHints": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Técnica/herramienta recomendada, la MENOS compleja que logre el resultado. Nunca código extenso."
+          }
+        },
+        "required": ["id", "priority", "category", "screen", "problem", "whyItMatters", "requestedChange", "acceptanceCriteria", "implementationHints"],
+        "additionalProperties": false
+      }
+    },
+    "approvedAspects": { "type": "array", "items": { "type": "string" } },
+    "nextAction": { "type": "string", "description": "Qué debe pasar ahora, en una frase." }
+  },
+  "required": ["version", "decision", "overallScore", "summary", "findings", "approvedAspects", "nextAction"],
+  "additionalProperties": false
+}
