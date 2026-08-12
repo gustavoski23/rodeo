@@ -225,7 +225,7 @@ export function SuscripcionOverlay() {
                           <Badge>Premium activo</Badge>
                         </div>
                         <p className="mb-4 text-sm text-muted-foreground">
-                          Con esta tarjeta pagaste tu suscripción — es la que está conectada a RODEO.
+                          Con esta tarjeta pagaste tu suscripción — es la que está conectada a Hablarte.
                         </p>
                         <ConnectedCards />
                       </>

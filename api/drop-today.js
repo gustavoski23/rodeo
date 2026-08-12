@@ -1,4 +1,4 @@
-// RODEO — GET /api/drop-today
+// Hablarte — GET /api/drop-today
 // Devuelve la edición GENÉRICA pre-cocinada por el cron desde KV (Upstash REST).
 // El frontend lo usa SOLO como fallback instantáneo cuando NO hay cache local
 // (store 'rodeo_drop_hoy') NI semillas del DNA que ameriten un drop personalizado.

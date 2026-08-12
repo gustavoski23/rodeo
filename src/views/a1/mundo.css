@@ -60,7 +60,7 @@
   background-position: center bottom;
 }
 
-/* El tema de RODEO es el atributo data-theme en <html> (tokens.css): oscuro es
+/* El tema de Hablarte es el atributo data-theme en <html> (tokens.css): oscuro es
    la AUSENCIA del atributo, no `[data-theme='dark']`. */
 :root:not([data-theme='light']) .mundo-lamina__papel {
   filter: brightness(0.42) contrast(1.22) sepia(0.18);

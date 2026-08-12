@@ -1,6 +1,6 @@
-# RODEO en Google Play como TWA — runbook real
+# Hablarte en Google Play como TWA — runbook real
 
-Guía concreta para empaquetar RODEO (PWA en Vercel) como **Trusted Web Activity**
+Guía concreta para empaquetar Hablarte (PWA en Vercel) como **Trusted Web Activity**
 y publicarla en Google Play. TWA = tu web corriendo dentro de un contenedor
 Android sin barra de URL, indistinguible de una app nativa. La lógica sigue
 siendo tu `index.html` servido desde Vercel; el APK/AAB es solo la cáscara.
@@ -14,14 +14,14 @@ exactamente o la verificación de Asset Links falla y la barra de URL no desapar
 
 ## (a) Prerequisitos — la app YA debe ser una PWA instalable
 
-Bubblewrap arranca desde un Web App Manifest. Antes de empaquetar, RODEO necesita:
+Bubblewrap arranca desde un Web App Manifest. Antes de empaquetar, Hablarte necesita:
 
 1. **`manifest.webmanifest` servido en la raíz.** HOY el repo NO lo tiene (index.html
    no enlaza ningún `<link rel="manifest">`). Hay que crearlo y enlazarlo. Mínimo:
    ```json
    {
-     "name": "RODEO — tu inglés 24/7",
-     "short_name": "RODEO",
+     "name": "Hablarte — tu inglés 24/7",
+     "short_name": "Hablarte",
      "start_url": "/",
      "scope": "/",
      "display": "standalone",
@@ -70,7 +70,7 @@ bubblewrap init --manifest https://rodeo-sigma.vercel.app/manifest.webmanifest
 
 Lo que pregunta y qué responder:
 - **Domain / host** → `rodeo-sigma.vercel.app` (lo deduce del manifest; confírmalo).
-- **Application name / launcher name** → `RODEO` (launcher name ≤ 12 chars idealmente).
+- **Application name / launcher name** → `Hablarte` (launcher name ≤ 12 chars idealmente).
 - **Application ID (package name)** → `app.vercel.rodeo`.
   ⚠️ Este string es **permanente**: identifica la app en Play para siempre y NO se
   puede cambiar tras publicar. Debe coincidir EXACTO con `package_name` en
@@ -184,8 +184,8 @@ La TWA solo esconde la barra de URL si Chrome verifica que el dominio y la app s
    (Español), tipo "App", gratis/pago.
 
 4. **Ficha de Play Store (Store listing):**
-   - **Título:** RODEO — tu inglés 24/7 (máx 30 chars → recorta a p.ej.
-     "RODEO: inglés 24/7").
+   - **Título:** Hablarte — tu inglés 24/7 (máx 30 chars → recorta a p.ej.
+     "Hablarte: inglés 24/7").
    - **Descripción corta** (≤80 chars) y **descripción larga** (≤4000): enfoque en
      lectura diaria de inglés B2→C1, drops, práctica de shadowing/pronunciación.
    - **Capturas de pantalla:** mínimo 2 de teléfono (Play recomienda 4–8). Toma
@@ -201,10 +201,10 @@ La TWA solo esconde la barra de URL si Chrome verifica que el dominio y la app s
    cuando lo ofrezca (recomendado; es lo que da el SHA-256 del paso c).
 
 6. **Cuestionario de privacidad y "Data safety" — DECLARA el micrófono con honestidad:**
-   RODEO usa el micrófono y **envía audio fuera del dispositivo**:
+   Hablarte usa el micrófono y **envía audio fuera del dispositivo**:
    - **Dictado / reconocimiento de voz** → audio procesado por **Google** (Web
      Speech API del navegador).
-   - **TTS / voz** → RODEO habla con **Deepgram** vía `/api/tts` (audio/texto sale a
+   - **TTS / voz** → Hablarte habla con **Deepgram** vía `/api/tts` (audio/texto sale a
      un tercero).
 
    En **App content → Data safety** debes declarar:

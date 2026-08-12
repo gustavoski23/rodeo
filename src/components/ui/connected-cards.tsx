@@ -5,7 +5,7 @@
    · sin "use client" (no es Next).
    · sin las clases dark:* del demo: estas tarjetas viven SIEMPRE sobre el
      panel blanco del overlay (scope sub-claro) — con el @custom-variant dark
-     de RODEO activo en tema oscuro, esas clases las pintarían gris oscuro
+     de Hablarte activo en tema oscuro, esas clases las pintarían gris oscuro
      encima del panel blanco.
    · export nombrado ConnectedCards en lugar del default "Cards". */
 

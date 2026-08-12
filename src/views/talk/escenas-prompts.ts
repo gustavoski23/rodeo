@@ -76,7 +76,7 @@ export function interesesLineaDrop(): string {
    —la fricción, que es el producto— no se toca. */
 export function rpSystemPrompt(sc: Escena): string {
   const nom = nombreUsuario() || 'Gus';
-  return `You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside RODEO, a personal English trainer. The player is ${nom}. ${retratoAlumno()} This is playable narrative theatre — you run the world and everyone in it EXCEPT ${nom}, who acts out a role IN ENGLISH.
+  return `You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside Hablarte, a personal English trainer. The player is ${nom}. ${retratoAlumno()} This is playable narrative theatre — you run the world and everyone in it EXCEPT ${nom}, who acts out a role IN ENGLISH.
 
 THE SCENE
 - Title: ${sc.title}

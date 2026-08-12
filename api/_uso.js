@@ -1,4 +1,4 @@
-// RODEO — registro de consumo (IA + voz) para el panel /uso.
+// Hablarte — registro de consumo (IA + voz) para el panel /uso.
 //
 // Escribe una fila por llamada de pago en la tabla public.uso_ia de Supabase,
 // vía PostgREST con la service_role key. Esa key vive SOLO aquí (env var en

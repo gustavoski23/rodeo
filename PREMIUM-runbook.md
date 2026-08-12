@@ -1,4 +1,4 @@
-# PREMIUM — runbook: cómo encender el cobro de RODEO
+# PREMIUM — runbook: cómo encender el cobro de Hablarte
 
 Plan: **Premium USD 6/mes**. Dos formas de pagar:
 - **Tarjeta** → Lemon Squeezy (Stripe no opera en Colombia).
@@ -54,7 +54,7 @@ cuenta arrancar uno nuevo. Todo esto se configura en un solo sitio, la constante
 
 ### 1a. Cuenta y tienda
 1. Entra a **https://lemonsqueezy.com** → **Sign up** (con tu Gmail).
-2. Te pide crear una **Store** (tienda): nombre `RODEO` (o el que quieras), país,
+2. Te pide crear una **Store** (tienda): nombre `Hablarte` (o el que quieras), país,
    moneda **USD**. Guarda.
 3. Lemon te pedirá datos para **payouts** (dónde te pagan a ti). Puedes llenarlo
    después; para probar en modo test no hace falta.
@@ -62,14 +62,14 @@ cuenta arrancar uno nuevo. Todo esto se configura en un solo sitio, la constante
 ### 1b. El producto de suscripción
 1. Menú lateral → **Products** → **+ New Product**.
 2. Rellena:
-   - **Name:** `RODEO Premium`
+   - **Name:** `Hablarte Premium`
    - **Pricing model:** **Subscription** → **Monthly** → **USD 6**.
    - Descripción corta, la que quieras.
 3. Baja hasta la sección **License keys** (dentro del producto, a veces en la
    pestaña/acordeón "License keys" o "Fulfillment"):
    - Activa **"Generate license keys for each purchase"** (o
      "Enable license keys"). **Esto es obligatorio** — es lo que le da al
-     comprador la clave que pega en RODEO.
+     comprador la clave que pega en Hablarte.
    - **Activation limit:** cuántos aparatos puede usar una misma clave. Pon **3**
      o **5** (así el mismo usuario entra en su cel y su PC). Si lo dejas en 1,
      solo un aparato.
@@ -89,7 +89,7 @@ cuenta arrancar uno nuevo. Todo esto se configura en un solo sitio, la constante
    como **"Tarjeta · pronto"** (desactivado). Apenas la pegas, se activa.
 
 ### 1d. (Opcional) Anti-clave-ajena — `LEMON_STORE_ID`
-Sin esto todo funciona; es un candado extra para que nadie active RODEO con una
+Sin esto todo funciona; es un candado extra para que nadie active Hablarte con una
 clave comprada en OTRO producto de Lemon.
 1. Consigue el **Store ID** (un número). El camino fácil: menú **Settings →
    Stores** → tu tienda; el ID sale en la info de la tienda o en la API. Si no lo
@@ -133,14 +133,14 @@ cobrar tarjeta:
 
 1. En Lemon → **Discounts** (o **Coupons**) → **+ New**:
    - Descuento **100% off**.
-   - Aplícalo al producto **RODEO Premium**.
+   - Aplícalo al producto **Hablarte Premium**.
    - **Max redemptions:** 1 (una persona) — o un número si harás varios.
    - Guarda. Te queda un **código** (ej. `USDC-GUS-01`).
 2. Cuando te llegue el USDC y el comprador te escriba, mándale:
    - el **link de checkout** (el mismo del Paso 1c), y
    - el **código de descuento**.
 3. Él completa el checkout en **$0** con el código → Lemon le manda una **clave
-   real** por correo → la pega en RODEO → Premium activo.
+   real** por correo → la pega en Hablarte → Premium activo.
 
 > **Nota honesta sobre suscripciones:** un checkout de $0 en un producto mensual
 > le da, en la práctica, acceso sin tarjeta recurrente. Para un puñado de
@@ -204,7 +204,7 @@ roleplays y 1 episodio del thriller al día. A la siguiente, paywall.
 ## Cómo funciona por dentro (referencia rápida)
 
 - **`js/premium.js`** — todo el frontend: el interruptor, los límites (`GATES`),
-  el paywall (con el design system de RODEO), guardar/leer el estado en
+  el paywall (con el design system de Hablarte), guardar/leer el estado en
   `localStorage` (`rodeo_premium`), contadores diarios (`rodeo_premium_uso`), y
   la revalidación.
 - **`api/premium.js`** — proxy serverless a la License API pública de Lemon.
@@ -226,7 +226,7 @@ roleplays y 1 episodio del thriller al día. A la siguiente, paywall.
   compra fue en modo test y la app está en live (o al revés).
 - **"Esa clave ya se usó en demasiados aparatos":** subió el *activation limit*
   del producto en Lemon, o desactiva la clave en un aparato viejo.
-- **"Esa clave no es de RODEO":** pusiste `LEMON_STORE_ID` en Vercel y la clave es
+- **"Esa clave no es de Hablarte":** pusiste `LEMON_STORE_ID` en Vercel y la clave es
   de otra tienda/store. Revisa el número, o quita esa variable si te estorba.
 - **El botón "Pagar con tarjeta" sale gris ("pronto"):** falta pegar
   `LEMON_CHECKOUT_URL` en `js/premium.js` (Paso 1c).

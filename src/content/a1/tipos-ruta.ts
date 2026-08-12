@@ -18,7 +18,7 @@ export type A1Tramo = {
   title_es: string;
   /** Una línea. Lo que vas a PODER hacer, no lo que vas a estudiar. */
   promesa_es: string;
-  /** Token de card existente. Nunca coral: en RODEO ese color significa error. */
+  /** Token de card existente. Nunca coral: en Hablarte ese color significa error. */
   cardTheme: string;
   icon: string;
   /** Ids de unidades, en orden de camino. */

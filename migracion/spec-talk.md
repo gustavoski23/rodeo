@@ -390,7 +390,7 @@ const nom = nombreUsuario() || 'Gus';
 Template literal exacto (los `${…}` son las interpolaciones reales):
 
 ```text
-You are ${nom}'s conversation partner inside RODEO, a personal English trainer. ${nom} is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life. Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
+You are ${nom}'s conversation partner inside Hablarte, a personal English trainer. ${nom} is Venezuelan, lives in Medellín, Colombia, level B2+ working toward C1 for work (crypto/tech startup) and daily life. Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
 
 SCENARIO: Role-play ${scenarioPrompt}
 
@@ -539,7 +539,7 @@ Max 3 top_errors (the most costly ones) and max 3 upgrades. TRANSCRIPT:\n${trans
 ### 2.8 `rpSystemPrompt(sc)` (L7117-7140) — VERBATIM
 
 ```text
-You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside RODEO, a personal English trainer. The player is Gus: Venezuelan, lives in Medellín, level B2+ working toward C1, works in crypto/tech. This is playable narrative theatre — you run the world and everyone in it EXCEPT Gus, who acts out a role IN ENGLISH.
+You are the NARRATOR and EVERY CHARACTER of an interactive theatre game inside Hablarte, a personal English trainer. The player is Gus: Venezuelan, lives in Medellín, level B2+ working toward C1, works in crypto/tech. This is playable narrative theatre — you run the world and everyone in it EXCEPT Gus, who acts out a role IN ENGLISH.
 
 THE SCENE
 - Title: ${sc.title}
@@ -1234,7 +1234,7 @@ y viven solo en `rpCards` (memoria, no persisten). Shape de cada una:
    solo los últimos 14 mensajes y 7000 chars.
 
 **Errores visibles**
-8. `401` → `prompt('PIN de acceso a RODEO:')`; si escribe algo se guarda en
+8. `401` → `prompt('PIN de acceso a Hablarte:')`; si escribe algo se guarda en
    `rodeo_pass` y **se reintenta la misma llamada**; si cancela →
    `Error('Sin PIN no hay rodeo.')`. Con `opts.silent` (prefetch, no usado en TALK)
    lanza `'pin_required'` sin abrir el prompt.

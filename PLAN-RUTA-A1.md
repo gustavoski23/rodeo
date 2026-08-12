@@ -1,4 +1,4 @@
-# PLAN — Integrar la RUTA A1 en RODEO
+# PLAN — Integrar la RUTA A1 en Hablarte
 
 Rama: `claude/rodeo-repo-info-nw2025` · Revisada el 8 de agosto de 2026.
 
@@ -135,7 +135,7 @@ Antes del F2, copiar a `src/content/a1/` los archivos que ya están hechos:
 ### PROMPT F0 — Cablear el nivel A1 a la ruta
 
 ```
-Estás en RODEO, rama claude/rodeo-repo-info-nw2025. Leé CLAUDE.md y
+Estás en Hablarte, rama claude/rodeo-repo-info-nw2025. Leé CLAUDE.md y
 DESIGN-BRIEF.md antes de tocar nada.
 
 PROBLEMA
@@ -197,7 +197,7 @@ Pegá las tres capturas antes de decir que está listo.
 ### PROMPT F1 — El mapa serpiente
 
 ```
-Estás en RODEO, rama claude/rodeo-repo-info-nw2025. Releé la regla #1 y la #4
+Estás en Hablarte, rama claude/rodeo-repo-info-nw2025. Releé la regla #1 y la #4
 de CLAUDE.md: esta fase es 100% visual y se usa desde el celular.
 
 PROBLEMA
@@ -237,7 +237,7 @@ principiante frente a 31 nodos no elige: se paraliza. Por eso el camino va al
 final y el CTA arriba.
 
 QUÉ NO HACER
-· Nada de coral en los nodos. En RODEO el coral significa error y una escena
+· Nada de coral en los nodos. En Hablarte el coral significa error y una escena
   no es un castigo. Usá los tokens --card-* vía tokenTema().
 · Nada de gradiente púrpura ni de tarjetas ícono+título+párrafo (regla #4).
 · No toques stores/a1.ts en esta fase. El mapa solo lee.
@@ -260,7 +260,7 @@ Con puppeteer-core a 390x844, isMobile y hasTouch:
 ### PROMPT F2 — Meter el Tramo 0
 
 ```
-Estás en RODEO, rama claude/rodeo-repo-info-nw2025.
+Estás en Hablarte, rama claude/rodeo-repo-info-nw2025.
 
 CONTEXTO
 En src/content/a1/ hay cinco archivos nuevos: tipos-ruta.ts, armar.ts,
@@ -355,7 +355,7 @@ VERIFICACIÓN
 ### PROMPT F3 — Tramo 3 (viajes) y el atajo
 
 ```
-Estás en RODEO, rama claude/rodeo-repo-info-nw2025. El Tramo 0 ya está adentro
+Estás en Hablarte, rama claude/rodeo-repo-info-nw2025. El Tramo 0 ya está adentro
 y verificado.
 
 CONTEXTO
@@ -404,7 +404,7 @@ VERIFICACIÓN
 ### PROMPT F4 — El coach
 
 ```
-Estás en RODEO, rama claude/rodeo-repo-info-nw2025. Leé COACH-diseño.md
+Estás en Hablarte, rama claude/rodeo-repo-info-nw2025. Leé COACH-diseño.md
 COMPLETO antes de escribir una línea. Este prompt no lo reemplaza.
 
 LA TESIS, porque de acá sale todo lo demás

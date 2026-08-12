@@ -1,7 +1,7 @@
-// RODEO — CRON: calentador de arranque en frío (pre-genera una edición genérica)
+// Hablarte — CRON: calentador de arranque en frío (pre-genera una edición genérica)
 //
 // HONESTIDAD sobre qué es y qué NO es esto:
-// El motor real de RODEO DROP es el frontend, que teje las SEMILLAS del DNA de
+// El motor real de Hablarte DROP es el frontend, que teje las SEMILLAS del DNA de
 // Gus (state.dna) — datos privados que viven en su localStorage y que el servidor
 // NUNCA ve. Por eso este cron SOLO puede pre-cocinar una edición GENÉRICA
 // ('sorpréndeme', SIN semillas). Es un extra para el primer arranque / caché

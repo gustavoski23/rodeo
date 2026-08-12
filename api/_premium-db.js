@@ -1,4 +1,4 @@
-// RODEO — Premium en servidor: verifica la sesión de Supabase y persiste la
+// Hablarte — Premium en servidor: verifica la sesión de Supabase y persiste la
 // suscripción cripto atada al usuario (tabla public.suscripciones_premium).
 //
 // POR QUÉ vive en el servidor y no en el navegador: dar Premium es dinero. Si

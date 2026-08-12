@@ -1,7 +1,7 @@
 /* liquid-morph-floating-menu — componente de 21st.dev pegado por Gus, VERBATIM.
    Adaptaciones declaradas (solo las imprescindibles para este repo):
    · sin "use client" (no es Next).
-   · Panel abierto re-tallado para las 5 entradas de RODEO (pedido de Gus,
+   · Panel abierto re-tallado para las 5 entradas de Hablarte (pedido de Gus,
      2026-08-04, captura 3: en móvil se veía cortado y mal repartido — el
      original está pensado para 3 ítems de 24px):
        - La palabra "Menu" de la barra de abajo DESAPARECE al abrir (ya la
@@ -12,10 +12,10 @@
        - El bloque de ítems baja un poco (padding superior al abrir), hasta la
          zona que marcó Gus con la línea verde.
    · El resto del fichero es el código tal cual llegó en el prompt. La posición
-     (el original es fixed bottom-center; RODEO lo quiere arriba a la
+     (el original es fixed bottom-center; Hablarte lo quiere arriba a la
      izquierda) NO se toca aquí: quien lo monta la ajusta vía las props
      `className`/`anclaje` que expone el propio componente… no existen en el
-     original, así que el ajuste de anclaje vive en el wrapper de RODEO
+     original, así que el ajuste de anclaje vive en el wrapper de Hablarte
      (components/rodeo/menu-flotante.tsx), no en este fichero. */
 
 import { useState, useCallback, useRef, useEffect } from "react";

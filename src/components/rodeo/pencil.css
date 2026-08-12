@@ -44,7 +44,7 @@
 }
 
 /* El trazo del CHAT en gris zinc, como el prompt (text-zinc-600 dark:zinc-200).
-   El tema oscuro es el default de RODEO (sin data-theme), así que va zinc-200 y
+   El tema oscuro es el default de Hablarte (sin data-theme), así que va zinc-200 y
    el claro baja a zinc-600. */
 .rd-loader--zinc {
   color: rgb(228 228 231); /* zinc-200 */
@@ -76,7 +76,7 @@
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  /* Oscuro (default de RODEO): zinc-400 base, blanco en el pico. */
+  /* Oscuro (default de Hablarte): zinc-400 base, blanco en el pico. */
   background-image: linear-gradient(
     90deg,
     rgb(161 161 170) 0%,

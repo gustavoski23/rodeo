@@ -1,4 +1,4 @@
-// RODEO — proxy serverless de texto-a-voz hacia Deepgram (Aura-2).
+// Hablarte — proxy serverless de texto-a-voz hacia Deepgram (Aura-2).
 // La API key vive SOLO aquí (env var DEEPGRAM_API_KEY), nunca en el frontend.
 // El navegador manda {text} y recibe el MP3 ya sintetizado.
 

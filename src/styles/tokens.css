@@ -11,13 +11,13 @@
   font-display: swap;
 }
 
-/* El tema de RODEO se conmuta con data-theme="light" en <html> (lo pone el
+/* El tema de Hablarte se conmuta con data-theme="light" en <html> (lo pone el
    anti-flash del head antes del primer paint). Esta variante deja funcionar
    el prefijo dark: de cualquier componente shadcn/Magic UI pegado tal cual. */
 @custom-variant dark (&:where(:root:not([data-theme='light']) *));
 
 /* ══════════════════════════════════════════════════════════════════════
-   RODEO — TOKENS v2 ("Dark Shell + Sticker Pop")
+   Hablarte — TOKENS v2 ("Dark Shell + Sticker Pop")
    Copiados VERBATIM de la app original (public/legacy.html). NO renombrar:
    --accent, --bg-*, --text-*, --card-* los consumen las islas legacy y todo
    el CSS portado. Valores oklch verificados WCAG: texto de card AA >= 4.5:1.
@@ -233,7 +233,7 @@
 
 /* ══════════════════════════════════════════════════════════════════════════
    PUENTE Tailwind v4 + shadcn — cualquier componente instalado con
-   `npx shadcn add` o el MCP de Magic UI sale YA con la piel de RODEO.
+   `npx shadcn add` o el MCP de Magic UI sale YA con la piel de Hablarte.
 
    OJO nomenclatura: en clases Tailwind, el durazno de marca es `primary`
    (bg-primary / text-primary-foreground). El `accent` de shadcn es su
@@ -244,6 +244,11 @@
   --font-sans: 'Alan Sans', 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Archivo', 'Familjen Grotesk', ui-sans-serif, sans-serif;
   --font-mono: 'Space Mono', ui-monospace, monospace;
+  /* La serif del wordmark HABLARTE: alto contraste y caja ancha, como la marca.
+     SOLO para el logotipo — el cuerpo de la app sigue en Alan Sans. Cae a Libre
+     Baskerville, que ya se autoaloja para el LIBRO, si Google Fonts no responde:
+     así el logo nunca se pinta en la serif del sistema. */
+  --font-wordmark: 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif;
 
   /* Contrato shadcn */
   --color-background: var(--bg-void);
@@ -258,7 +263,7 @@
   --color-secondary-foreground: var(--text-primary);
   /* --muted-override no existe en el tema global (el fallback manda, cero
      cambio); el scope claro de Suscripción (suscripcion.css) lo define para
-     separar muted (gris) de card (blanco) — en RODEO ambos son --bg-surface. */
+     separar muted (gris) de card (blanco) — en Hablarte ambos son --bg-surface. */
   --color-muted: var(--muted-override, var(--bg-surface));
   --color-muted-foreground: var(--text-muted);
   --color-accent: var(--bg-elevated);
@@ -274,7 +279,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 8px);
 
-  /* Vocabulario RODEO como utilidades (bg-card-coral, text-swap-new, …) */
+  /* Vocabulario Hablarte como utilidades (bg-card-coral, text-swap-new, …) */
   --color-brand: var(--accent);
   --color-brand-ink: var(--accent-ink);
   --color-surface: var(--bg-surface);

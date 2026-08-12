@@ -1,4 +1,4 @@
-// RODEO — proxy serverless hacia OpenCode Zen
+// Hablarte — proxy serverless hacia OpenCode Zen
 // La API key vive SOLO aquí (env var OPENCODE_API_KEY), nunca en el frontend.
 // Modelos configurables: MODEL_GO_CHAT y MODEL_GO_CREATIVE (con aliases legacy).
 

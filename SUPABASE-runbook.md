@@ -57,7 +57,7 @@ guarda:
 ```
 
 > Nota: el remitente default de Supabase solo envía correos a miembros del
-> proyecto (tú) y con límite bajo por hora — perfecto para RODEO personal.
+> proyecto (tú) y con límite bajo por hora — perfecto para Hablarte personal.
 > La sesión persiste meses por dispositivo: entras UNA vez por aparato.
 
 ---
@@ -74,7 +74,7 @@ guarda:
 
 ### 4a. Google Cloud Console
 1. https://console.cloud.google.com → crea proyecto (`rodeo`).
-2. **APIs & Services → OAuth consent screen**: External → app `RODEO`, tu
+2. **APIs & Services → OAuth consent screen**: External → app `Hablarte`, tu
    Gmail en support y developer email → Save. En Testing añádete como test user.
 3. **Credentials → + Create credentials → OAuth client ID**:
    - Type: **Web application**, nombre `rodeo-web`.

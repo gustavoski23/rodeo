@@ -1,4 +1,4 @@
-// RODEO — proxy serverless de voz-a-texto hacia Deepgram (Nova-3, multilingüe).
+// Hablarte — proxy serverless de voz-a-texto hacia Deepgram (Nova-3, multilingüe).
 // La API key vive SOLO aquí (env var DEEPGRAM_API_KEY, la misma que usa
 // api/tts.js para la voz del coach), nunca en el frontend. El navegador manda
 // el audio grabado (blob binario) y recibe el texto ya transcrito.

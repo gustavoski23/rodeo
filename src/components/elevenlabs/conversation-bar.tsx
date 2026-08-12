@@ -3,7 +3,7 @@
 
    Adaptación DECLARADA (el cerebro, no el cuerpo): el original se conecta al
    SDK de agentes de ElevenLabs (useConversationStatus/Controls/Input de
-   @elevenlabs/react). RODEO no usa ese SDK — la voz es Deepgram y el chat es
+   @elevenlabs/react). Hablarte no usa ese SDK — la voz es Deepgram y el chat es
    nuestro motor — así que esos tres hooks se reemplazan por PROPS con la misma
    semántica, y quien la monta (la sesión de charla) los cablea al dictado real:
 
@@ -15,10 +15,10 @@
    · startSession/endSession→ prop `onColgar` (el teléfono/X cierra la sesión)
    · sendUserMessage        → prop `onEnviar(texto)`
    · sendContextualUpdate   → eliminado (no existe en nuestro motor)
-   · "Customer Support"     → prop `etiqueta` (default "Coach RODEO"), y prop
+   · "Customer Support"     → prop `etiqueta` (default "Coach Hablarte"), y prop
                               NUEVA `onEtiqueta`: si llega, esa etiqueta del
                               waveform en reposo se pinta como <button> en vez
-                              de <span> para poder TOCARLA (en RODEO cambia la
+                              de <span> para poder TOCARLA (en Hablarte cambia la
                               voz del coach). Mismas clases exactas
                               (text-[10px] font-medium text-foreground/50): el
                               aspecto es idéntico, solo cambia el elemento.
@@ -88,7 +88,7 @@ export const ConversationBar = React.forwardRef<
       onMic,
       onEnviar,
       onColgar,
-      etiqueta = "Coach RODEO",
+      etiqueta = "Coach Hablarte",
       onEtiqueta,
       etiquetaLabel,
       alStreamListo,

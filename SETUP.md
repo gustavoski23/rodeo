@@ -1,4 +1,4 @@
-# SETUP — configurar RODEO en una máquina nueva
+# SETUP — configurar Hablarte en una máquina nueva
 
 Guía para dejar el escritorio (o cualquier PC) trabajando igual que la laptop.
 Se hace **una sola vez** por máquina.

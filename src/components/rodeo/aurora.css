@@ -900,7 +900,7 @@
    TEMA CLARO DEL HOME
    Bloque NUEVO y AISLADO: todo cuelga de :root[data-theme='light'], así que el
    Home OSCURO —el diseño aprobado por Gus— no cambia ni un píxel. Nada de
-   @media (prefers-color-scheme): el tema de RODEO es el atributo data-theme,
+   @media (prefers-color-scheme): el tema de Hablarte es el atributo data-theme,
    punto (lo pone aplicarTema en lib/theme.ts).
 
    Por qué existe: el AnimatedThemeToggler del Home hace su barrido circular
@@ -1247,7 +1247,7 @@
    GlassStyles/GlassButton (src/components/ui/sign-up.tsx — INTOCABLE) están
    escritos contra dos variables CRUDAS del contrato shadcn upstream:
    `--background` (la lámina de vidrio: relleno, brillo inferior, barrido) y
-   `--foreground` (la tinta: sombra, borde cónico, color del texto). En RODEO
+   `--foreground` (la tinta: sombra, borde cónico, color del texto). En Hablarte
    esas dos crudas NO existen: tokens.css solo publica el puente
    `--color-background`/`--color-foreground` dentro de @theme inline, que
    Tailwind consume para bg-background/text-foreground pero que el CSS del

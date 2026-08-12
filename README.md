@@ -1,6 +1,6 @@
-# RODEO 🤠 — Tu inglés 24/7
+# Hablarte — Tu inglés 24/7
 
-App personal para llevar mi inglés de **B2+ a C1** practicando conversación, historias jugables y slang, con corrección en tiempo real. Sin salón, sin horarios: el "rodeo" de inglés que no tengo viviendo en Medellín.
+App personal para llevar mi inglés de **B2+ a C1** practicando conversación, historias jugables y slang, con corrección en tiempo real. Sin salón, sin horarios: la práctica de inglés que no tengo viviendo en Medellín.
 
 **Producción:** https://rodeo-gustavoski23s-projects.vercel.app · PIN: `RODEO2026`
 

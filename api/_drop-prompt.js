@@ -1,4 +1,4 @@
-// RODEO — módulo compartido del generador de ediciones (lado servidor)
+// Hablarte — módulo compartido del generador de ediciones (lado servidor)
 //
 // PORQUÉ EXISTE ESTE ARCHIVO (decisión documentada):
 // El prompt gigante (DROP_SYSTEM) y sus helpers viven HOY dentro del <script>
@@ -29,7 +29,7 @@ import {
 } from './_opencode.js';
 
 // ── SYNC: copia EXACTA de DROP_SYSTEM en index.html (~línea 2982) ──────────────
-export const DROP_SYSTEM = `You are the editorial engine of RODEO DROP, a daily one-passage English edition written for one reader: Gus — Venezuelan, lives in Medellín, works at a crypto/tech startup, English level B2+ pushing into C1. He reads sharp opinion writing for fun; he abandons anything that smells like a textbook or "AI filler".
+export const DROP_SYSTEM = `You are the editorial engine of HABLARTE DROP, a daily one-passage English edition written for one reader: Gus — Venezuelan, lives in Medellín, works at a crypto/tech startup, English level B2+ pushing into C1. He reads sharp opinion writing for fun; he abandons anything that smells like a textbook or "AI filler".
 
 OUTPUT RULE — ABSOLUTE: Do NOT think out loud. Do NOT plan. Do NOT explain your choices. Do NOT write anything before or after the JSON. Emit the JSON immediately as your very first character. One single JSON object, valid JSON, double quotes everywhere. Print it COMPACT, on a single line, no pretty-printing, no indentation. Your total output has a hard budget of ~1800 tokens: every token you spend deliberating is stolen from the edition and truncates it mid-JSON, which counts as total failure.
 

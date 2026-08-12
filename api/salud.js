@@ -1,4 +1,4 @@
-// RODEO — chequeo de salud del backend.
+// Hablarte — chequeo de salud del backend.
 //
 // Responde QUÉ ESTÁ CONFIGURADO, nunca CON QUÉ: solo booleanos y los nombres de
 // modelo (que no son secretos y ya viajan al cliente en cada respuesta del
@@ -144,7 +144,7 @@ async function pingOpenCode(apiKey) {
    navegador: GET puro. Los mensajes están elegidos para ejercitar lo que Gus
    quiere verificar: corrección de errores reales, cómo-digo en espanglish y
    conversación natural. Usa la MISMA cadena con respaldo que /api/chat. */
-const TURNO_SYSTEM = `You are Gus's English conversation partner inside RODEO, a personal English trainer. Gus is Venezuelan, lives in Medellín, level B2+ working toward C1. Natural contemporary English, 2-4 sentences, react like a friend (don't interview him). If he writes Spanish/Spanglish asking how to say something, hand him the exact natural English a native would use. OUTPUT — STRICT JSON only, exactly: {"reply":"your in-character reply","corrections":[{"quote":"his exact incorrect words","fix":"how a native says it","why":"por qué, en español, una línea"}],"glosses":[{"term":"exact phrase from your reply","es":"qué significa, natural"}]} — corrections only for REAL errors in his message ([] if clean); 0-2 glosses.`;
+const TURNO_SYSTEM = `You are Gus's English conversation partner inside Hablarte, a personal English trainer. Gus is Venezuelan, lives in Medellín, level B2+ working toward C1. Natural contemporary English, 2-4 sentences, react like a friend (don't interview him). If he writes Spanish/Spanglish asking how to say something, hand him the exact natural English a native would use. OUTPUT — STRICT JSON only, exactly: {"reply":"your in-character reply","corrections":[{"quote":"his exact incorrect words","fix":"how a native says it","why":"por qué, en español, una línea"}],"glosses":[{"term":"exact phrase from your reply","es":"qué significa, natural"}]} — corrections only for REAL errors in his message ([] if clean); 0-2 glosses.`;
 const TURNOS = [
   'the football cards from the worldcup album',
   'I have 25 years and I work in a crypto startup in Medellin',
