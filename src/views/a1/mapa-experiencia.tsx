@@ -88,21 +88,24 @@ const ART_BY_UNIT: Record<string, string> = {
   't0-numeros': `${ASSET}/calculator-3dicons.png`,
   't0-ser-estar': `${ASSET}/text-3dicons.png`,
   't0-preguntas': `${ASSET}/mic-3dicons.png`,
-  'u1-llegar': `${ASSET}/goal-travel-lummi.png`,
-  'u2-supervivencia': `${ASSET}/goal-target-lummi.png`,
-  'u3-presentarte': `${ASSET}/goal-friends-lummi.png`,
-  'u4-smalltalk': `${ASSET}/coffee-route-lummi.webp`,
-  'u5-ayuda': `${ASSET}/style-conversation-lummi.png`,
-  'u6-reunion': `${ASSET}/goal-work-lummi.png`,
-  'u7-tareas': `${ASSET}/style-challenges-lummi.png`,
-  't3-aeropuerto': `${ASSET}/goal-travel-lummi.png`,
-  't3-migracion': `${ASSET}/goal-target-lummi.png`,
-  't3-avion': `${ASSET}/headphones-3dicons.png`,
-  't3-moverte': `${ASSET}/blue-glass-sphere-lummi.webp`,
-  't3-hotel': `${ASSET}/notebook-3dicons.png`,
-  't3-comer': `${ASSET}/coffee-route-lummi.webp`,
-  't3-comprar': `${ASSET}/calculator-3dicons.png`,
-  't3-se-dana': `${ASSET}/style-challenges-lummi.png`,
+  // The route uses one material/lighting family. These are all 3Dicons
+  // dynamic-color renders with transparent backgrounds; do not mix in
+  // editorial scenes or unrelated illustration packs here.
+  'u1-llegar': `${ASSET}/travel-3dicons.png`,
+  'u2-supervivencia': `${ASSET}/target-3dicons.png`,
+  'u3-presentarte': `${ASSET}/boy-3dicons.png`,
+  'u4-smalltalk': `${ASSET}/cup-3dicons.png`,
+  'u5-ayuda': `${ASSET}/sheild-3dicons.png`,
+  'u6-reunion': `${ASSET}/chat-text-3dicons.png`,
+  'u7-tareas': `${ASSET}/file-text-3dicons.png`,
+  't3-aeropuerto': `${ASSET}/map-pin-3dicons.png`,
+  't3-migracion': `${ASSET}/card-3dicons.png`,
+  't3-avion': `${ASSET}/rocket-3dicons.png`,
+  't3-moverte': `${ASSET}/location-3dicons.png`,
+  't3-hotel': `${ASSET}/key-3dicons.png`,
+  't3-comer': `${ASSET}/takeaway-cup-3dicons.png`,
+  't3-comprar': `${ASSET}/wallet-3dicons.png`,
+  't3-se-dana': `${ASSET}/tool-3dicons.png`,
 };
 
 const ART_FALLBACK = [
@@ -112,8 +115,8 @@ const ART_FALLBACK = [
   `${ASSET}/calculator-3dicons.png`,
   `${ASSET}/text-3dicons.png`,
   `${ASSET}/mic-3dicons.png`,
-  `${ASSET}/goal-travel-lummi.png`,
-  `${ASSET}/goal-work-lummi.png`,
+  `${ASSET}/travel-3dicons.png`,
+  `${ASSET}/file-text-3dicons.png`,
 ];
 
 function arteDe(unit: A1UnitRuta, index: number): string {
@@ -194,12 +197,6 @@ function Region({
             strokeDasharray={`${progreso} 100`}
           />
         </svg>
-
-        {region.family === 'glass' && (
-          <span className="a1j-blue-glass" aria-hidden="true">
-            <img src={`${ASSET}/blue-glass-sphere-lummi.webp`} alt="" />
-          </span>
-        )}
 
         {region.units.map((unit, unitIndex) => {
           const estado = estadoDe(unit, actualId);
