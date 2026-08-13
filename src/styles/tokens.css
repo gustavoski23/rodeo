@@ -244,10 +244,17 @@
   --font-sans: 'Alan Sans', 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Archivo', 'Familjen Grotesk', ui-sans-serif, sans-serif;
   --font-mono: 'Space Mono', ui-monospace, monospace;
-  /* La serif del wordmark HABLARTE: alto contraste y caja ancha, como la marca.
-     SOLO para el logotipo — el cuerpo de la app sigue en Alan Sans. Cae a Libre
-     Baskerville, que ya se autoaloja para el LIBRO, si Google Fonts no responde:
-     así el logo nunca se pinta en la serif del sistema. */
+  /* La serif del wordmark HABLARTE. HOY NADIE LA PINTA: el lockup salió del
+     gate (Gus lo rechazó) y header.tsx no se monta, así que el token queda
+     declarado y sin consumidores.
+
+     Cormorant Garamond va PRIMERO pero NO se descarga: se quitó del <link> de
+     Google Fonts de index.html porque rompía la coincidencia exacta con
+     CDN_WARM de sw.js y hacía fallar el caché de una hoja que bloquea el
+     render — medido en producción. Con eso, lo que aplica hoy es Libre
+     Baskerville, que ya se autoaloja y se precarga para el LIBRO: coste cero.
+     Si el logotipo vuelve, hay que reponer la familia en index.html Y en
+     sw.js a la vez, o se repite el fallo. */
   --font-wordmark: 'Cormorant Garamond', 'Libre Baskerville', Georgia, serif;
 
   /* Contrato shadcn */
