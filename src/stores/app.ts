@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { store } from '@/lib/storage';
 import { aplicarTema, hidratarTema, type Tema } from '@/lib/theme';
 import type { LibroId } from '@/content/libro';
+/* Type-only: onboarding.ts importa este módulo, así que un import normal sería
+   un ciclo. `import type` se borra al compilar y no lo crea. El tipo vive allá
+   porque el onboarding es quien lo estrena; acá solo se respeta. */
+import type { Nivel } from '@/stores/onboarding';
 
 /* Estado de shell. La persistencia NO usa el middleware `persist` de zustand
    (envolvería los valores en {state,version} y rompería las claves rodeo_*):
@@ -60,6 +64,15 @@ type AppState = {
       Es el único camino que usan el toggler del Home/Header y las tarjetas
       del personalizador, para que los tres no se desincronicen nunca. */
   cambiarTema: (t: Tema) => void;
+  /** Cambia el nivel DE VERDAD: persiste rodeo_nivel y actualiza el store.
+      Mismo contrato que cambiarTema — es el único camino, para que el
+      onboarding y el selector del Perfil no se desincronicen.
+
+      El `store.set` NO es opcional ni redundante con el `set`: los prompts del
+      coach leen `rodeo_nivel` DEL DISCO en cada turno (views/talk/prompts.ts,
+      nivelUsuario/retratoAlumno), no del estado de zustand. Sin persistir, la
+      UI mostraría el nivel nuevo y el coach seguiría hablándole al viejo. */
+  cambiarNivel: (n: Nivel) => void;
   setCost: (total: number) => void;
   /** ← AL ORIGEN (regla 5 del contrato). Lo levanta la carta del carrusel
       justo antes de navegar y lo consume el Home AL MONTAR: si está en alto,
@@ -91,6 +104,15 @@ export const useApp = create<AppState>((set) => ({
        personalizar». Antes salía un `Tema: …` de 1500ms para que el tercer
        toque del ciclo no pareciera un no-op; el nombre vive ahora únicamente
        en las tarjetas del personalizador. */
+  },
+  cambiarNivel: (nivel) => {
+    store.set('rodeo_nivel', nivel);
+    set({ nivel });
+    /* A propósito NO navega. El onboarding sí manda a la RUTA al elegir A1
+       (stores/onboarding.ts), porque ahí el usuario acaba de decir que no sabe
+       inglés y no tiene nada que hacer en el carrusel. Aquí está leyendo su
+       perfil: sacarlo de la pantalla de un salto sería secuestrarle el toque.
+       En el siguiente arranque en frío vistaInicial() toma esa decisión sola. */
   },
   setCost: (cost) => set({ cost }),
   carruselAlVolver: false,
