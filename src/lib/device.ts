@@ -10,6 +10,16 @@ const MEDIA_MODO_LIGERO = '(max-width: 767px), (pointer: coarse), (prefers-reduc
 export const MODO_LIGERO =
   typeof window !== 'undefined' && window.matchMedia(MEDIA_MODO_LIGERO).matches;
 
+/* ¿TELÉFONO de verdad? Ancho angosto Y puntero grueso a la vez — una ventana
+   angosta de PC (puntero fino) no gana la navbar inferior ni pierde la píldora
+   Menu. Estático al arranque, igual que MODO_LIGERO y a propósito: de esto
+   depende QUÉ navegación se monta (navbar abajo vs. Menu arriba), y reaccionar
+   en vivo a un resize significaría desmontar/remontar media UI con estado vivo
+   (menú abierto, panel de perfil, foco) a mitad de sesión. */
+export const ES_TELEFONO =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(max-width: 767px) and (pointer: coarse)').matches;
+
 /* ¿Hay red? Se pregunta EN VIVO, no una vez al arrancar como MODO_LIGERO: la
    señal de un celular se cae y vuelve varias veces en una sesión, y lo que
    depende de esto (el nodo del coach) tiene que enterarse sin recargar.

@@ -1,5 +1,6 @@
 import { AnimatedThemeToggler } from '@/components/magicui/animated-theme-toggler';
 import { MenuFlotante } from '@/components/rodeo/menu-flotante';
+import { ES_TELEFONO } from '@/lib/device';
 import { SIGUIENTE_TEMA, temaVisual } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -58,7 +59,16 @@ export function FilaSuperior({
 
   return (
     <div className={cn('flex shrink-0 items-center justify-between', className)} inert={inerte}>
-      <MenuFlotante onPersonalizar={onPersonalizar} oculto={menuOculto || inerte} />
+      {ES_TELEFONO ? (
+        /* En teléfonos la píldora Menu NO existe: la navegación vive en la
+           navbar inferior (NavMovil) y sus acciones (Perfil, Personalizar,
+           Suscripción, sesión) en el panel de Profile. El span conserva el
+           hueco de la izquierda para que el justify-between siga dejando el
+           toggler pegado a la derecha, que sí es de todas las pantallas. */
+        <span aria-hidden="true" />
+      ) : (
+        <MenuFlotante onPersonalizar={onPersonalizar} oculto={menuOculto || inerte} />
+      )}
       <AnimatedThemeToggler
         theme={temaVisual(tema)}
         duration={700}

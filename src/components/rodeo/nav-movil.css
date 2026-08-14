@@ -1,0 +1,166 @@
+/* NAVBAR INFERIOR DE TELÉFONOS — neumorphic glass OSCURO.
+
+   Referencia: subshegde/neumorphic_glass_navbar (Flutter) — barra negra
+   flotante redondeada; cada ítem es icono + label chico debajo; el ACTIVO
+   lleva un disco circular oscuro "levantado" (gradiente + sombra exterior +
+   brillo interior arriba) que viaja de un ítem a otro. Aquí el viaje lo anima
+   motion (layoutId en nav-movil.tsx); este CSS solo pinta.
+
+   La barra es OSCURA EN LOS TRES TEMAS a propósito — es pieza de identidad,
+   como el pomo TRY ME o la píldora Menu amarilla, no una superficie del tema —
+   así que sus colores van literales y no por tokens. */
+
+/* El alto lo comparten la barra y el panel de Profile (que se ancla ENCIMA de
+   ella siendo su hermano fixed, no su hijo — ver nota del panel). */
+.nav-movil,
+.nav-movil__panel {
+  --nav-movil-alto: 76px;
+}
+
+.nav-movil {
+  position: fixed;
+  /* Centrada SIN transform (left/right 0 + margin auto): un translateX(-50%)
+     en la raíz la volvería containing block de cualquier fixed interior y
+     ensuciaría las medidas del layoutId del disco. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  /* Sobre la vitrina del carrusel (.aurora-carrusel es fixed z-40): con la
+     vitrina abierta la barra sigue operativa — Explore es quien la abrió y
+     Home quien la cierra. */
+  z-index: 60;
+  width: min(calc(100% - 24px), 420px);
+  height: var(--nav-movil-alto);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 26px;
+  background: rgba(16, 17, 20, 0.9);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+/* Patrón `oculto` del MenuFlotante: con el personalizador o Suscripción
+   encima, la barra se desvanece, baja y suelta el puntero SIN desmontarse —
+   al cerrar el overlay vuelve tal cual estaba. */
+.nav-movil--oculto {
+  opacity: 0;
+  transform: translateY(14px);
+  pointer-events: none;
+}
+
+.nav-movil__item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 0 3px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: #9aa0a6;
+  font: inherit;
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-movil__item--activo {
+  color: #f2f3f5;
+}
+
+/* Icono y disco suben JUNTOS un pelín en el activo: es el "levantado"
+   neumórfico de la referencia. */
+.nav-movil__icono {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  transition: transform 0.25s ease;
+}
+
+.nav-movil__item--activo .nav-movil__icono {
+  transform: translateY(-3px);
+}
+
+.nav-movil__icono > svg {
+  position: relative;
+  z-index: 1;
+}
+
+/* El DISCO: gradiente oscuro iluminado desde arriba-izquierda, sombra que lo
+   despega del vidrio y brillo interior en el canto superior. */
+.nav-movil__disco {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: linear-gradient(145deg, #23252b, #0c0d10);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.nav-movil__label {
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* ── Panel de Profile: bottom sheet chico anclado encima de la barra ──────
+   Es HERMANO de la barra y no hijo: la barra lleva backdrop-filter, y un
+   backdrop-filter anidado en un descendiente no vuelve a muestrear el fondo
+   (el padre ya es backdrop root), así que el vidrio del panel saldría sin
+   desenfoque. De ahí también el cálculo del bottom con --nav-movil-alto. */
+
+.nav-movil__velo {
+  position: fixed;
+  inset: 0;
+  z-index: 59; /* justo debajo de la barra: los otros ítems siguen tocables */
+  background: rgba(4, 5, 8, 0.35);
+}
+
+.nav-movil__panel {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom) + 12px + var(--nav-movil-alto) + 10px);
+  /* Alineado con el borde derecho de la barra (que mide min(100% - 24px,
+     420px) centrada), con 4px de metida — queda encima del ítem Profile. */
+  right: max(16px, calc((100vw - 420px) / 2 + 4px));
+  z-index: 61;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(16, 17, 20, 0.94);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.nav-movil__opcion {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  color: #e8eaed;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-movil__opcion:active,
+.nav-movil__opcion:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+}

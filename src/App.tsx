@@ -3,8 +3,9 @@ import { MotionConfig } from 'motion/react';
 
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { FondoTema } from '@/components/rodeo/fondo-tema';
+import { NavMovil } from '@/components/rodeo/nav-movil';
 import { Toaster } from '@/components/rodeo/toaster';
-import { MODO_LIGERO } from '@/lib/device';
+import { ES_TELEFONO, MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
@@ -211,6 +212,18 @@ export default function App() {
               aurora y las demás secciones (SLANG, SUBE, DNA, OFICINA) se van
               agregando con diseños propios. El código sigue en el repo. */}
         </>
+      )}
+
+      {/* NAVBAR INFERIOR — solo TELÉFONOS (ES_TELEFONO, decidido al arranque).
+          NO se monta con sesión de charla viva ni en SLANG/LIBRO: son
+          exactamente las vistas donde el main de arriba recorta el pb de 84px
+          porque necesitan todo el alto. Con el personalizador o Suscripción
+          abiertos se OCULTA sin desmontar (patrón `oculto` del MenuFlotante). */}
+      {ES_TELEFONO && !enSesion && view !== 'slang' && view !== 'libro' && (
+        <NavMovil
+          onPersonalizar={() => setCustomizerOpen(true)}
+          oculto={customizerOpen || suscripcionAbierta}
+        />
       )}
 
       {customizerOpen && (

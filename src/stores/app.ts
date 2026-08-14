@@ -68,6 +68,13 @@ type AppState = {
       preferencia: recargar la app tiene que devolver el Home cerrado. */
   carruselAlVolver: boolean;
   setCarruselAlVolver: (v: boolean) => void;
+  /** Vitrina de features del Home (el abanico de cartas). Era un useState del
+      Home; vive aquí para que la navbar de teléfonos pueda abrirla desde
+      cualquier vista (Explore) y pintar su ítem activo. Sigue siendo estado DEL
+      HOME: `setView` la cierra al salir y la abre al volver si la marca
+      `carruselAlVolver` está en alto — ver el comentario de setView. */
+  carruselAbierto: boolean;
+  setCarruselAbierto: (v: boolean) => void;
 };
 
 export const useApp = create<AppState>((set) => ({
@@ -80,7 +87,19 @@ export const useApp = create<AppState>((set) => ({
   cost: store.get<number>('rodeo_cost', 0),
   libroActivo: 'tiempo',
   setLibroActivo: (libroActivo) => set({ libroActivo }),
-  setView: (view) => set({ view }),
+  /* setView es quien hace valer que la vitrina es DEL HOME, atómicamente:
+       · al salir del Home se CIERRA — es el equivalente exacto de cuando era un
+         useState local que moría con el desmontaje del Home;
+       · al entrar al Home se consume la marca ← AL ORIGEN (regla 5): si una
+         carta la dejó levantada, la vitrina ya está abierta EN EL PRIMER
+         render del Home — no hay efecto de montaje que consuma nada, así que
+         el doble montaje de StrictMode no tiene nada que repetir ni romper. */
+  setView: (view) =>
+    set((s) => ({
+      view,
+      carruselAbierto: view === 'home' ? s.carruselAbierto || s.carruselAlVolver : false,
+      carruselAlVolver: view === 'home' ? false : s.carruselAlVolver,
+    })),
   setTema: (tema) => set({ tema }),
   cambiarTema: (tema) => {
     aplicarTema(tema);
@@ -95,4 +114,6 @@ export const useApp = create<AppState>((set) => ({
   setCost: (cost) => set({ cost }),
   carruselAlVolver: false,
   setCarruselAlVolver: (carruselAlVolver) => set({ carruselAlVolver }),
+  carruselAbierto: false,
+  setCarruselAbierto: (carruselAbierto) => set({ carruselAbierto }),
 }));
