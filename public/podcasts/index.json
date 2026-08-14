@@ -1,0 +1,144 @@
+{
+  "episodios": [
+    {
+      "id": "ep-00",
+      "titulo_en": "The Man Who Sold the Eiffel Tower (Twice)",
+      "titulo_es": "El hombre que vendió la Torre Eiffel (dos veces)",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:14",
+      "imagen": "/podcasts/ep-00.jpg",
+      "audio": "/podcasts/ep-00.mp3",
+      "timing": "/podcasts/ep-00-timing.json",
+      "pack": "/podcasts/ep-00-pack.json"
+    },
+    {
+      "id": "ep-01",
+      "titulo_en": "The Craziest Marathon Ever Run",
+      "titulo_es": "El maratón más disparatado de la historia",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:40",
+      "imagen": "/podcasts/ep-01.jpg",
+      "audio": "/podcasts/ep-01.mp3",
+      "timing": "/podcasts/ep-01-timing.json",
+      "pack": "/podcasts/ep-01-pack.json"
+    },
+    {
+      "id": "ep-02",
+      "titulo_en": "The War Australia Lost... to Birds",
+      "titulo_es": "La guerra que Australia perdió... contra unos pájaros",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:12",
+      "imagen": "/podcasts/ep-02.jpg",
+      "audio": "/podcasts/ep-02.mp3",
+      "timing": "/podcasts/ep-02-timing.json",
+      "pack": "/podcasts/ep-02-pack.json"
+    },
+    {
+      "id": "ep-03",
+      "titulo_en": "The Fake Surgery That Worked",
+      "titulo_es": "La cirugía falsa que funcionó",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:47",
+      "imagen": "/podcasts/ep-03.jpg",
+      "audio": "/podcasts/ep-03.mp3",
+      "timing": "/podcasts/ep-03-timing.json",
+      "pack": "/podcasts/ep-03-pack.json"
+    },
+    {
+      "id": "ep-04",
+      "titulo_en": "Number 261: The Woman They Tried to Drag Off the Marathon",
+      "titulo_es": "Dorsal 261: la mujer que intentaron sacar a empujones del maratón",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:09",
+      "imagen": "/podcasts/ep-04.jpg",
+      "audio": "/podcasts/ep-04.mp3",
+      "timing": "/podcasts/ep-04-timing.json",
+      "pack": "/podcasts/ep-04-pack.json"
+    },
+    {
+      "id": "ep-05",
+      "titulo_en": "Revenge of the Night Owl",
+      "titulo_es": "La venganza del búho nocturno",
+      "hosts": {
+        "A": "Sunnie",
+        "B": "Declan"
+      },
+      "duracion": "6:12",
+      "imagen": "/podcasts/ep-05.jpg",
+      "audio": "/podcasts/ep-05.mp3",
+      "timing": "/podcasts/ep-05-timing.json",
+      "pack": "/podcasts/ep-05-pack.json"
+    },
+    {
+      "id": "ep-06",
+      "titulo_en": "The Medium Popcorn Is a Trap",
+      "titulo_es": "Las palomitas medianas son una trampa",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "4:52",
+      "imagen": "/podcasts/ep-06.jpg",
+      "audio": "/podcasts/ep-06.mp3",
+      "timing": "/podcasts/ep-06-timing.json",
+      "pack": "/podcasts/ep-06-pack.json"
+    },
+    {
+      "id": "ep-07",
+      "titulo_en": "The Doorway That Erases Your Mind",
+      "titulo_es": "La puerta que te borra la mente",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:01",
+      "imagen": "/podcasts/ep-07.jpg",
+      "audio": "/podcasts/ep-07.mp3",
+      "timing": "/podcasts/ep-07-timing.json",
+      "pack": "/podcasts/ep-07-pack.json"
+    },
+    {
+      "id": "ep-08",
+      "titulo_en": "The Airport That Beat Waiting by Making You Walk",
+      "titulo_es": "El aeropuerto que venció la espera haciéndote caminar",
+      "hosts": {
+        "A": "Sunnie",
+        "B": "Desmond"
+      },
+      "duracion": "5:56",
+      "imagen": "/podcasts/ep-08.jpg",
+      "audio": "/podcasts/ep-08.mp3",
+      "timing": "/podcasts/ep-08-timing.json",
+      "pack": "/podcasts/ep-08-pack.json"
+    },
+    {
+      "id": "ep-09",
+      "titulo_en": "Eddie the Eagle: The Worst Olympian Everyone Loved",
+      "titulo_es": "Eddie el Águila: el peor olímpico que todos amaron",
+      "hosts": {
+        "A": "Alice",
+        "B": "David"
+      },
+      "duracion": "5:26",
+      "imagen": "/podcasts/ep-09.jpg",
+      "audio": "/podcasts/ep-09.mp3",
+      "timing": "/podcasts/ep-09-timing.json",
+      "pack": "/podcasts/ep-09-pack.json"
+    }
+  ]
+}
