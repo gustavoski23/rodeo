@@ -1,0 +1,48 @@
+/* NAV MÓVIL — lo poco que Tailwind no expresa bien inline.
+
+   Las píldoras son GlassButton (sign-up.tsx, INTOCABLE) bajo `vidrio-tema`
+   (aurora.css): todo su material vive en GlassStyles. Aquí solo están (1) el
+   apartarse cuando una capa global tapa la pantalla y (2) el material del
+   mini-panel de Profile, que no es un botón y no puede reusar .glass-button. */
+
+.nav-movil {
+  transition: opacity 200ms ease;
+}
+/* Patrón `oculto` de MenuFlotante: con el personalizador o Suscripción
+   abiertos la navbar se desvanece y suelta el puntero SIN desmontarse — así el
+   indicador deslizante no pierde su layout al volver. pointer-events hereda,
+   de modo que también apaga píldoras y panel. */
+.nav-movil--oculta {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* El mini-panel de Profile: la MISMA receta de lámina que .glass-button
+   (relleno desde --background, tinta y sombras desde --foreground, blur) pero
+   como hoja rectangular y con el relleno más denso (60–85% en vez de 5–20%):
+   un menú tiene que leerse encima de cualquier contenido, no solo decorar. */
+.nav-movil__panel {
+  border-radius: 20px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  background: linear-gradient(
+    -75deg,
+    oklch(from var(--background) l c h / 62%),
+    oklch(from var(--background) l c h / 85%),
+    oklch(from var(--background) l c h / 62%)
+  );
+  border: 1px solid oklch(from var(--foreground) l c h / 18%);
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--foreground) l c h / 5%),
+    inset 0 -0.125em 0.125em oklch(from var(--background) l c h / 50%),
+    0 0.5em 1.5em oklch(from var(--foreground) l c h / 18%);
+}
+
+.nav-movil__item {
+  color: oklch(from var(--foreground) l c h / 90%);
+  -webkit-tap-highlight-color: transparent;
+}
+/* El feedback de toque es el MISMO gris del indicador de las píldoras. */
+.nav-movil__item:active {
+  background: oklch(from var(--foreground) l c h / 12%);
+}

@@ -3,8 +3,9 @@ import { MotionConfig } from 'motion/react';
 
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { FondoTema } from '@/components/rodeo/fondo-tema';
+import { NavMovil } from '@/components/rodeo/nav-movil';
 import { Toaster } from '@/components/rodeo/toaster';
-import { MODO_LIGERO } from '@/lib/device';
+import { ES_TELEFONO, MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import { useEnLeccion } from '@/stores/a1-leccion';
 import { useApp } from '@/stores/app';
@@ -239,10 +240,27 @@ export default function App() {
             </Suspense>
           </main>
 
-          {/* Tab bar oculta por ahora: la app arranca minimal desde el Home
-              aurora y las demás secciones (SLANG, SUBE, DNA, OFICINA) se van
-              agregando con diseños propios. El código sigue en el repo. */}
+          {/* La tab bar VIEJA sigue sin montarse (su código queda en el repo).
+              En teléfonos su lugar lo ocupa ahora la NavMovil de píldoras de
+              vidrio, montada más abajo a nivel del shell — fuera de este
+              fragmento porque también existe sobre el Home. El pb de 84px del
+              main es la franja que ella flota. */}
         </>
+      )}
+
+      {/* NAVBAR DE TELÉFONO — cuatro píldoras de vidrio (el glass del gate)
+          con el indicador gris que se desliza (nav-movil.tsx). Solo existe en
+          teléfonos (ES_TELEFONO, decidido al arranque como MODO_LIGERO). NO se
+          monta en las pantallas inmersivas donde el main ya recorta el pb de
+          84px —sesión viva, SLANG, LIBRO y la lección del A1—, que reclaman
+          ese borde inferior para sí. Con el personalizador o Suscripción
+          abiertos se APARTA sin desmontar (patrón `oculto` de MenuFlotante):
+          desmontarla haría saltar el indicador al volver, sin morph. */}
+      {ES_TELEFONO && !enSesion && view !== 'slang' && view !== 'libro' && !a1EnLeccion && (
+        <NavMovil
+          onPersonalizar={() => setCustomizerOpen(true)}
+          oculta={customizerOpen || suscripcionAbierta}
+        />
       )}
 
       {customizerOpen && (

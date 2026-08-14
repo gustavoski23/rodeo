@@ -10,6 +10,18 @@ const MEDIA_MODO_LIGERO = '(max-width: 767px), (pointer: coarse), (prefers-reduc
 export const MODO_LIGERO =
   typeof window !== 'undefined' && window.matchMedia(MEDIA_MODO_LIGERO).matches;
 
+const MEDIA_ES_TELEFONO = '(max-width: 767px) and (pointer: coarse)';
+
+/* ¿Esto es un TELÉFONO? Ancho de teléfono Y dedo, con AND — a propósito
+   distinto del OR de MODO_LIGERO: aquel baja calidad de render y también
+   atrapa laptops táctiles anchas o con prefers-reduced-motion, que NO deben
+   cambiar de layout. ES_TELEFONO decide LAYOUT (la navbar inferior de
+   píldoras, quitar la píldora Menu y el TRY ME), así que exige las dos
+   señales a la vez. Decidido al arranque igual que MODO_LIGERO: rotar el
+   aparato a mitad de sesión no debe montar/desmontar la navegación. */
+export const ES_TELEFONO =
+  typeof window !== 'undefined' && window.matchMedia(MEDIA_ES_TELEFONO).matches;
+
 /* ¿Hay red? Se pregunta EN VIVO, no una vez al arrancar como MODO_LIGERO: la
    señal de un celular se cae y vuelve varias veces en una sesión, y lo que
    depende de esto (el nodo del coach) tiene que enterarse sin recargar.

@@ -75,12 +75,18 @@ type AppState = {
   cambiarNivel: (n: Nivel) => void;
   setCost: (total: number) => void;
   /** ← AL ORIGEN (regla 5 del contrato). Lo levanta la carta del carrusel
-      justo antes de navegar y lo consume el Home AL MONTAR: si está en alto,
-      el Home aparece con la vitrina YA abierta, que es de donde salió el
-      usuario. No se persiste a propósito — es memoria de un viaje, no una
+      justo antes de navegar y lo consume setView('home') (ver abajo): si está
+      en alto, el Home aparece con la vitrina YA abierta, que es de donde salió
+      el usuario. No se persiste a propósito — es memoria de un viaje, no una
       preferencia: recargar la app tiene que devolver el Home cerrado. */
   carruselAlVolver: boolean;
   setCarruselAlVolver: (v: boolean) => void;
+  /** La VITRINA de features del Home (el abanico de cartas). Nació como
+      useState del propio Home; subió aquí para que la navbar de teléfono
+      (nav-movil) pueda abrirla desde cualquier vista y pintar «Explore»
+      activo. No se persiste — es UI de un viaje, no una preferencia. */
+  carruselAbierto: boolean;
+  setCarruselAbierto: (v: boolean) => void;
 };
 
 export const useApp = create<AppState>((set) => ({
@@ -93,7 +99,22 @@ export const useApp = create<AppState>((set) => ({
   cost: store.get<number>('rodeo_cost', 0),
   libroActivo: 'tiempo',
   setLibroActivo: (libroActivo) => set({ libroActivo }),
-  setView: (view) => set({ view }),
+  setView: (view) =>
+    set((s) =>
+      view === 'home'
+        ? /* ← AL ORIGEN (regla 5): al ENTRAR al Home la vitrina nace abierta
+             solo si `carruselAlVolver` estaba en alto, y la marca se consume
+             aquí mismo — vale por UN regreso. Este traspaso vivía en el
+             montaje del Home (useState perezoso + useEffect que la bajaba);
+             al subir `carruselAbierto` al store se hace DENTRO de setView,
+             que conserva la semántica exacta sin depender del ciclo de
+             montaje: es atómico (el primer frame del Home ya pinta la
+             vitrina correcta, sin flash de cerrado→abierto) y StrictMode
+             puede doble-montar lo que quiera — esto corre una vez por
+             NAVEGACIÓN, no por montaje. */
+          { view, carruselAbierto: s.carruselAlVolver, carruselAlVolver: false }
+        : { view },
+    ),
   setTema: (tema) => set({ tema }),
   cambiarTema: (tema) => {
     aplicarTema(tema);
@@ -117,4 +138,6 @@ export const useApp = create<AppState>((set) => ({
   setCost: (cost) => set({ cost }),
   carruselAlVolver: false,
   setCarruselAlVolver: (carruselAlVolver) => set({ carruselAlVolver }),
+  carruselAbierto: false,
+  setCarruselAbierto: (carruselAbierto) => set({ carruselAbierto }),
 }));
