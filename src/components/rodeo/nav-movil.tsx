@@ -8,9 +8,6 @@ import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useSuscripcion } from '@/stores/suscripcion';
 
-/* `vidrio-tema` vive en aurora.css; se importa aquí para no depender de que
-   otro componente la haya arrastrado antes. */
-import './aurora.css';
 import './nav-movil.css';
 
 /* NAV MÓVIL — la navbar inferior SOLO PARA TELÉFONOS (App la monta bajo
@@ -20,12 +17,14 @@ import './nav-movil.css';
    GlassButton del gate (sign-up.tsx — el vidrio EXACTO de "Get started") con
    su gap entre ellas, como los botones ES/ENG del gate. Sin contenedor opaco:
    las píldoras flotan sobre el fondo, que el vidrio ya trae blur y sombra
-   propios. `vidrio-tema` (aurora.css) declara las crudas
-   --background/--foreground que consume GlassStyles, mapeadas a tokens del
-   tema — así el vidrio contrasta en claro, oscuro Y gradiente (sobre el Home
-   aurora oscuro la lámina es oscura con borde luminoso y tinta casi blanca;
-   en claro es exactamente la relación del login). Es la MISMA receta que ya
-   usan TALK, LIBRO y el dock de SLANG.
+   propios. El look es el VIDRIO CLARO DEL GATE, FIJO en los tres temas
+   (pedido explícito): `.nav-movil` (nav-movil.css) declara las crudas
+   --background/--foreground que consume GlassStyles con los MISMOS valores
+   que `.gate-tema` — crema con tinta oscura también sobre el Home aurora
+   oscuro y el gradiente (a propósito NO la clase adaptativa `vidrio-tema`,
+   que aquí volvería la lámina oscura y mataría el efecto de la sombra gris
+   sobre vidrio clarito). Sobre fondos oscuros la lámina sube de opacidad
+   (62–88%) para leerse crema frosted, no transparente-oscura.
 
    El INDICADOR GRIS interior es el patrón de ui-lang-toggle: un motion.span
    absoluto con layoutId compartido (`nav-movil-activa`) que al cambiar de
@@ -169,7 +168,7 @@ export function NavMovil({
       aria-label="Navegación principal"
       aria-hidden={oculta || undefined}
       className={cn(
-        'nav-movil vidrio-tema fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-2',
+        'nav-movil fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-2',
         oculta && 'nav-movil--oculta',
       )}
     >

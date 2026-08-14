@@ -1,12 +1,39 @@
 /* NAV MÓVIL — lo poco que Tailwind no expresa bien inline.
 
-   Las píldoras son GlassButton (sign-up.tsx, INTOCABLE) bajo `vidrio-tema`
-   (aurora.css): todo su material vive en GlassStyles. Aquí solo están (1) el
-   apartarse cuando una capa global tapa la pantalla y (2) el material del
-   mini-panel de Profile, que no es un botón y no puede reusar .glass-button. */
+   Las píldoras son GlassButton (sign-up.tsx, INTOCABLE): su material vive en
+   GlassStyles. Aquí están (1) los tokens FIJOS del vidrio claro del gate,
+   (2) el refuerzo de la lámina sobre fondos oscuros, (3) el apartarse cuando
+   una capa global tapa la pantalla y (4) el material del mini-panel de
+   Profile, que no es un botón y no puede reusar .glass-button. */
 
 .nav-movil {
+  /* EL VIDRIO CLARO DEL GATE, FIJO EN LOS TRES TEMAS (pedido explícito de
+     Gus): las píldoras se ven SIEMPRE como los botones ES/ENG de "Get
+     started" — crema con tinta oscura — también sobre el Home aurora oscuro y
+     el gradiente. Por eso aquí NO va la clase adaptativa `vidrio-tema`
+     (aurora.css): se declaran las crudas que consume GlassStyles con los
+     MISMOS valores que `.gate-tema` (views/gate/index.tsx:270-271). La sombra
+     gris que se desliza necesita justamente este lienzo clarito debajo. */
+  --background: oklch(97% 0.014 85);
+  --foreground: oklch(25% 0.02 265);
   transition: opacity 200ms ease;
+}
+
+/* La lámina original del .glass-button (relleno --background al 5–20%) está
+   pensada para asentar sobre el papel claro del gate: sobre el Home oscuro se
+   veía transparente-oscura, apenas un tinte. Se sube el relleno a 62–88% para
+   que la píldora se lea CREMA (frosted claro) sobre cualquier fondo y la tinta
+   oscura contraste siempre. La especificidad .nav-movil .glass-button (0,2,0)
+   le gana al selector plano que inyecta GlassStyles, sin tocar sign-up.tsx.
+   El hover del verbatim no re-declara background, así que esta lámina
+   sobrevive a todos sus estados. */
+.nav-movil .glass-button {
+  background: linear-gradient(
+    -75deg,
+    oklch(from var(--background) l c h / 62%),
+    oklch(from var(--background) l c h / 88%),
+    oklch(from var(--background) l c h / 62%)
+  );
 }
 /* Patrón `oculto` de MenuFlotante: con el personalizador o Suscripción
    abiertos la navbar se desvanece y suelta el puntero SIN desmontarse — así el
@@ -17,10 +44,10 @@
   pointer-events: none;
 }
 
-/* El mini-panel de Profile: la MISMA receta de lámina que .glass-button
-   (relleno desde --background, tinta y sombras desde --foreground, blur) pero
-   como hoja rectangular y con el relleno más denso (60–85% en vez de 5–20%):
-   un menú tiene que leerse encima de cualquier contenido, no solo decorar. */
+/* El mini-panel de Profile: la MISMA receta de lámina que las píldoras
+   (relleno crema desde --background, tinta y sombras desde --foreground,
+   blur) pero como hoja rectangular — un menú tiene que leerse encima de
+   cualquier contenido, no solo decorar. */
 .nav-movil__panel {
   border-radius: 20px;
   backdrop-filter: blur(6px);
