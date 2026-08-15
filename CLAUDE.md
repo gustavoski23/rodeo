@@ -38,6 +38,11 @@ midió para elegirlo.
 
 ## Rama y despliegue
 
-Se trabaja sobre la punta de `claude/rodeo-repo-info-nw2025` y se empuja como
-fast-forward; Vercel despliega solo. Un `#/<vista>` en la URL abre directo en
-una sección (`stores/app.ts` lo lee al crear el store).
+**Producción despliega desde `main`** (verificado contra la API de Vercel el
+15-08-2026: el push a `claude/rodeo-repo-info-nw2025` produce un deploy
+*preview* con `target: null`; solo `main` alimenta rodeo-sigma.vercel.app).
+Este archivo decía otra cosa y costó un deploy fantasma. El flujo: trabajar
+sobre la punta compartida, empujar como fast-forward a `main` y Vercel
+despliega solo. Un `#/<vista>` en la URL abre directo en una sección
+(`stores/app.ts` lo lee al crear el store); `?demo=1` salta gate y onboarding
+por esa carga, `?clave=…` siembra el PIN de las llamadas de IA.
