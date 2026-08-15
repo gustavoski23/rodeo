@@ -13,15 +13,18 @@ import './aurora.css';
    son los suyos. Aquí vive únicamente el CONTENIDO: qué feature es cada carta
    y a dónde navega.
 
-   SIETE cartas, todas con imagen real (pedido de Gus para mandárselo a
+   OCHO cartas, todas con imagen real (pedido de Gus para mandárselo a
    amigos: «deja solo las que ya tienen imagen»). Fuera quedaron SUBE —que iba
    sobre una gradiente, no una foto— y los dos «Próximamente» transparentes.
+   La octava es PODCAST (2026-08-13).
 
    El abanico ARRANCA centrado en el índice 3 (centerIndex inicial = HALF), y de
    ahí se pagina con el dedo o con las flechas. Nota: el componente solo pagina
    con ≥ 7 cartas (adaptación 5 de card-fan-carousel: `>=`, para que 7 no se
-   queden en un abanico estático e intocable); justo son 7, así que vuelve el
-   deslizar, las dos flechas glass y los puntos.
+   queden en un abanico estático e intocable); con 8 la paginación es la del
+   componente original sin adaptación siquiera (8 > 7). El abanico solo enseña
+   7 a la vez, así que con 8 cartas UNA queda fuera al nacer — cuál, se decide
+   abajo, en el orden del arreglo.
 
    ORDEN DE LAS CARTAS (decisión, no descuido): la que nace al frente es la del
    índice 3, así que ahí va SLANG —la firma de la app—. El arreglo NO es el
@@ -176,12 +179,17 @@ export function CarruselFeatures() {
     ),
   };
 
-  // Siete cartas, todas con foto real, ordenadas para que SLANG quede al frente
-  // (índice 3, el centro del abanico fijo). A su izquierda inmediata, los TRES
-  // LIBROS (One Good Part, Verne, Alicia). A la derecha, CONVERSACIÓN → RUTA, y
-  // DNA cierra. Se quitó la carta STORY (pedido de Gus); la vista `story` sigue
-  // existiendo, solo sale de la vitrina. El total sigue en 7, así que el
-  // centrado del abanico (HALF=3) no cambia.
+  // Siete cartas aquí (la octava, RUTA, se suma abajo según el nivel),
+  // ordenadas para que SLANG quede al frente (índice 3, donde nace el centro
+  // del abanico paginado). A su izquierda inmediata, los TRES LIBROS (One Good
+  // Part, Verne, Alicia). A la derecha, CONVERSACIÓN → PODCAST, y DNA cierra el
+  // arreglo. Se quitó la carta STORY (pedido de Gus); la vista `story` sigue
+  // existiendo, solo sale de la vitrina.
+  // Con 8 cartas en total el abanico (aforo 7) deja UNA fuera al abrir: para un
+  // no-A1 es la RUTA —la última del arreglo—, que es la carta que menos le
+  // habla a quien no está en el curso; un swipe la trae. PODCAST entra ANTES de
+  // DNA a propósito: la feature nueva tiene que verse en el abanico de
+  // nacimiento, no esconderse detrás de un swipe.
   const resto: CardItem[] = [
     {
       // La carta usa la MISMA portada que la tapa del libro: lo que se ve en la
@@ -252,6 +260,18 @@ export function CarruselFeatures() {
           titulo="CONVERSACIÓN"
           subtitulo="Habla 24/7 con tu coach"
           linea="Practica hablando con la voz, como con un amigo."
+        />
+      ),
+    },
+    {
+      imgUrl: '/carrusel/podcast.jpg',
+      alt: 'PODCAST · Conversaciones reales a dos voces',
+      onClick: () => abrirFeature('podcast'),
+      contenido: (
+        <OverlayFeature
+          titulo="PODCAST"
+          subtitulo="Conversaciones reales a dos voces"
+          linea="Escucha, toca lo que no entiendas, pregunta."
         />
       ),
     },

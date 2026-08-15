@@ -29,6 +29,9 @@ const DnaView = lazy(() => import('@/views/dna'));
    arranque de quien nunca abre el libro. */
 const LibroView = lazy(() => import('@/views/libro'));
 const OficinaView = lazy(() => import('@/views/a1/oficina'));
+/* PODCAST: el menú de episodios. Lazy como el resto — su manifest y sus
+   audios viven en public/podcasts/ y solo se piden al entrar. */
+const PodcastView = lazy(() => import('@/views/podcast'));
 const PerfilView = lazy(() => import('@/views/perfil'));
 const OnboardingView = lazy(() => import('@/views/onboarding'));
 const AuroraCustomizer = lazy(() =>
@@ -229,6 +232,8 @@ export default function App() {
                 <DnaView />
               ) : view === 'a1' ? (
                 <OficinaView />
+              ) : view === 'podcast' ? (
+                <PodcastView />
               ) : view === 'perfil' ? (
                 <PerfilView />
               ) : view === 'libro' ? (

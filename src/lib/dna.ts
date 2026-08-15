@@ -118,6 +118,22 @@ export function recordUpgrade({
   persistir();
 }
 
+/* Quitar un slang guardado — el toggle «Guardada» del reproductor de podcast.
+   No existía en el viejo (la vista DNA borraba reescribiendo la lista entera
+   con store.set); aquí TIENE que pasar por el caché de módulo y por
+   persistir(): un store.set desde fuera dejaría este caché desincronizado
+   (saveDNA seguiría viendo el item borrado) y onDnaChange sin aviso. */
+export function removeDnaSlang(term: string): void {
+  const k = String(term || '')
+    .trim()
+    .toLowerCase();
+  const lista = cargar();
+  const filtrada = lista.filter((d) => !(d.type === 'slang' && (d.term || '').trim().toLowerCase() === k));
+  if (filtrada.length === lista.length) return; // no estaba: ni escribe ni avisa
+  dna = filtrada;
+  persistir();
+}
+
 /* ¿Ya está esta expresión guardada como slang? (para el botón del tooltip de
    glosa) — L3385. Compara con trim + lowercase. */
 export function dnaTieneSlang(term: string): boolean {

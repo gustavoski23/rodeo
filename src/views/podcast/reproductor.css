@@ -1,0 +1,1002 @@
+/* REPRODUCTOR de podcast — port del demo standalone (build-demo5.mjs) sobre
+   los tokens de la app. NADA de paleta propia: fondo/texto/bordes salen de
+   tokens.css y siguen a los tres temas solos. Lo ÚNICO local son los dos
+   colores de ROL (host A / host B), porque no existen en el sistema: se
+   definen aquí con variante por tema para que lean sobre cada fondo. */
+
+/* ── Colores de rol ───────────────────────────────────────────────────────
+   A azulado, B ámbar/coral (oscuro por defecto = el shell de la app);
+   en claro bajan de luminancia para leer sobre papel; en gradiente viran a
+   cian/magenta como hizo la demo (el ámbar moría sobre el violeta). Las
+   variantes -wash son el resaltado de la palabra elegida (.pick). */
+.rp,
+.rp-portal {
+  --rp-host-a: oklch(78% 0.11 250);
+  --rp-host-b: oklch(80% 0.13 62);
+  --rp-wash-a: oklch(34% 0.06 250);
+  --rp-wash-b: oklch(35% 0.07 60);
+}
+:root[data-theme='light'] .rp,
+:root[data-theme='light'] .rp-portal {
+  --rp-host-a: oklch(46% 0.115 252);
+  --rp-host-b: oklch(47% 0.135 52);
+  --rp-wash-a: oklch(90% 0.045 250);
+  --rp-wash-b: oklch(91% 0.055 62);
+}
+/* GRADIENTE = MODO LOGIN (pedido de Gus, 13-ago): en este tema el reproductor
+   no hereda la aurora púrpura — se viste entero como la pantalla del gate
+   donde escribes tu nombre, que es como se veía la demo que aprobó. Papel
+   cálido, vidrio claro, y los roles en el azul/ámbar del tema claro (el
+   cian/magenta que probamos aquí era ilegible sobre papel y se descartó).
+   Se redefinen los tokens DENTRO del scope: el resto de la vista no cambia. */
+:root[data-fondo='gradiente'] .rp,
+:root[data-fondo='gradiente'] .rp-portal {
+  --rp-host-a: oklch(46% 0.115 252);
+  --rp-host-b: oklch(47% 0.135 52);
+  --rp-wash-a: oklch(90% 0.045 250);
+  --rp-wash-b: oklch(91% 0.055 62);
+
+  --bg-void: oklch(97.5% 0.012 85);
+  --text-primary: oklch(25% 0.02 265);
+  --text-secondary: oklch(38% 0.02 265);
+  --text-muted: oklch(48% 0.015 265);
+  --borde-sutil: oklch(25% 0.02 265 / 0.14);
+  --borde-medio: oklch(25% 0.02 265 / 0.22);
+  --chip-bg: oklch(97% 0.014 85 / 0.55);
+  --chip-bg-fuerte: oklch(97% 0.014 85 / 0.85);
+  --glass-bg: oklch(99% 0.008 85 / 0.72);
+  --glass-border: oklch(25% 0.02 265 / 0.1);
+  --superficie-t: oklch(25% 0.02 265 / 0.05);
+  color: var(--text-primary);
+}
+:root[data-fondo='gradiente'] .rp {
+  position: relative;
+  isolation: isolate;
+  background: var(--bg-void);
+  border-radius: 24px;
+  padding-left: 14px;
+  padding-right: 14px;
+  overflow: clip;
+}
+/* Las manchas borrosas del login viven detrás del contenido. Sus colores
+   (--color-primary, --color-chart-*, etc.) solo existen en .ob-tema/.gate-tema,
+   así que se re-declaran aquí para el SVG del componente reutilizado. */
+.rp-fondo-login {
+  display: none;
+}
+:root[data-fondo='gradiente'] .rp-fondo-login {
+  --color-primary: oklch(78% 0.115 250);
+  --color-secondary: oklch(80% 0.155 72);
+  --color-accent: oklch(80% 0.105 246);
+  --color-destructive: oklch(74% 0.175 30);
+  --color-chart-1: oklch(82% 0.15 80);
+  --color-chart-2: oklch(80% 0.15 58);
+  --color-chart-3: oklch(82% 0.095 244);
+  --color-chart-4: oklch(78% 0.165 58);
+  --color-chart-5: oklch(81% 0.14 42);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.rp {
+  /* La superficie de LECTURA va en la sans de la app, no en serif del
+     sistema: Gus la comparo en vivo y Alan Sans lee mejor a este cuerpo
+     (13-ago). El nombre de la variable dejo de ser --rp-serif por honestidad. */
+  --rp-lectura: var(--font-sans);
+  /* El contenido respira por encima de la barra fija: su altura real llega
+     por --barh (ResizeObserver), no por un número inventado. */
+  padding-bottom: calc(var(--barh, 120px) + 16px);
+}
+
+/* ── Cabecera del episodio ──────────────────────────────────────────────── */
+.rp-head {
+  margin-bottom: 6px;
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+}
+/* Cabecera en la sans de la app: la serif en el titular + el mono en caps
+   espaciadas leían «plantilla de IA» (feedback de Gus, 13-ago). */
+.rp-tit {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+.rp-sub {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.rp-aviso {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--danger);
+  border-radius: 12px;
+  color: var(--danger);
+  font-size: 0.8rem;
+}
+.rp-cargando {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+/* ── Transcripción ────────────────────────────────────────────────────────
+   La jerarquía se hace con COLOR, no con opacity: opacity arrastra el
+   subárbol entero y hundía nombre, foco y contraste por debajo del mínimo
+   legible (medido en el demo: 2,6:1 y hasta 1,46:1 en las ya dichas). */
+.rp-turn {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--borde-sutil);
+}
+.rp-turn:first-of-type {
+  border-top: none;
+}
+.rp-turn .rp-line {
+  color: var(--text-muted);
+  transition: color 0.38s ease;
+}
+.rp-turn.near .rp-line {
+  color: var(--text-secondary);
+}
+.rp-turn.live .rp-line {
+  color: var(--text-primary);
+}
+.rp-who {
+  display: flex;
+  align-items: baseline;
+  padding: 5px 0 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.005em;
+  text-align: left;
+  cursor: pointer;
+}
+.rp-turn[data-rol='a'] .rp-who {
+  color: var(--rp-host-a);
+}
+.rp-turn[data-rol='b'] .rp-who {
+  color: var(--rp-host-b);
+}
+.rp-who:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.rp-line {
+  margin: 0;
+  font-family: var(--rp-lectura);
+  font-size: 1.08rem;
+  font-weight: 460;
+  letter-spacing: -0.005em;
+  line-height: 1.66;
+}
+/* Cada palabra es un <button> real: sin esto no hay forma de tocarlas con
+   teclado. appearance:none + display:INLINE — con inline-block se rompen las
+   métricas del párrafo (interletrado y saltos de línea). */
+.rp-w {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.13s ease, color 0.13s ease;
+}
+.rp-w:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rp-w.past {
+  color: var(--text-muted);
+}
+.rp-turn.live .rp-w.past {
+  color: var(--text-secondary);
+}
+.rp-w.now {
+  margin: 0 -3px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  color: var(--bg-void);
+}
+.rp-turn[data-rol='a'] .rp-w.now {
+  background: var(--rp-host-a);
+}
+.rp-turn[data-rol='b'] .rp-w.now {
+  background: var(--rp-host-b);
+}
+.rp-w.pick {
+  background: var(--rp-wash-a);
+  box-shadow: 0 0 0 3px var(--rp-wash-a);
+}
+.rp-turn[data-rol='b'] .rp-w.pick {
+  background: var(--rp-wash-b);
+  box-shadow: 0 0 0 3px var(--rp-wash-b);
+}
+@media (hover: hover) {
+  .rp-w:hover:not(.now) {
+    background: var(--superficie-t);
+  }
+}
+.rp-nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.rp-nota::before {
+  content: '';
+  width: 15px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.rp-es {
+  margin: 10px 0 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--borde-medio);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.rp-tools {
+  display: none;
+  margin-top: 11px;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+/* Las acciones del turno solo aparecen donde el usuario está: repetidas en
+   todos los turnos convertían la lectura en un formulario. */
+.rp-turn.live .rp-tools,
+.rp-turn:focus-within .rp-tools {
+  display: flex;
+}
+@media (hover: hover) {
+  .rp-turn:hover .rp-tools {
+    display: flex;
+  }
+}
+.rp-tbtn {
+  padding: 0.38rem 0.75rem;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 550;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.rp-tbtn:hover,
+.rp-tbtn:focus-visible {
+  border-color: var(--borde-medio);
+  background: var(--chip-bg-fuerte);
+  color: var(--text-primary);
+}
+.rp-tbtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .rp-turn {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .rp-who {
+    padding-top: 0;
+  }
+  .rp-line {
+    font-size: 1.12rem;
+  }
+}
+
+/* ── Barra de transporte (portal, fija abajo) ───────────────────────────── */
+.rp-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  padding: 0 14px calc(12px + env(safe-area-inset-bottom));
+}
+.rp-bar-in {
+  display: flex;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 10px 14px 12px;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: var(--sticker-shadow);
+}
+
+/* Línea de tiempo: la onda REAL del audio, cada barra teñida del color de
+   quien habla en ese instante. Dice tres cosas a la vez: por dónde vas, de
+   quién es cada tramo y dónde caen los silencios. 40px de onda pero más zona
+   táctil vía ::before: por debajo de 44 el dedo falla. */
+.rp-scrub {
+  position: relative;
+  display: block;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.rp-scrub::before {
+  content: '';
+  position: absolute;
+  inset: -7px 0;
+}
+.rp-scrub:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.rp-onda {
+  display: block;
+  width: 100%;
+  height: 40px;
+  overflow: visible;
+}
+.rp-onda rect {
+  transition: opacity 0.1s linear;
+}
+.rp-cabeza {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--glass-bg);
+  transform: translateX(-1px);
+  pointer-events: none;
+}
+.rp-burbuja {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  z-index: 2;
+  display: flex;
+  max-width: min(260px, 72vw);
+  padding: 5px 10px;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 12px;
+  background: var(--text-primary);
+  color: var(--bg-void);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
+  transition: opacity 0.14s ease;
+}
+.rp-scrub:hover .rp-burbuja,
+.rp-scrub.arrastrando .rp-burbuja {
+  opacity: 1;
+}
+.rp-burbuja__t {
+  font-size: 0.68rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rp-burbuja__w {
+  overflow: hidden;
+  font-family: var(--rp-lectura);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* El transporte va en el VIDRIO del login (pedido de Gus: «como en el
+   preview»), no en el durazno plano. Es la receta de .glass-button del gate
+   (sign-up.tsx) autocontenida en un solo elemento: la base translúcida con
+   barrido diagonal, las cinco capas de sombra interna, y el borde «helado»
+   cónico en el ::after con máscara excluyente. Se deriva de dos variables
+   locales que siguen al tema — en gradiente el scope del modo login las
+   vuelve exactamente las del gate. */
+.rp {
+  --rp-glass-fg: var(--text-primary);
+  --rp-glass-base: oklch(96% 0.004 265);
+}
+:root[data-theme='light'] .rp,
+:root[data-fondo='gradiente'] .rp,
+:root[data-theme='light'] .rp-portal,
+:root[data-fondo='gradiente'] .rp-portal {
+  --rp-glass-base: oklch(97% 0.014 85);
+}
+.rp-portal {
+  --rp-glass-fg: var(--text-primary);
+  --rp-glass-base: oklch(96% 0.004 265);
+}
+.rp-gb {
+  position: relative;
+  isolation: isolate;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--rp-glass-fg);
+  background: linear-gradient(
+    -75deg,
+    oklch(from var(--rp-glass-base) l c h / 5%),
+    oklch(from var(--rp-glass-base) l c h / 20%),
+    oklch(from var(--rp-glass-base) l c h / 5%)
+  );
+  backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  -webkit-backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--rp-glass-fg) l c h / 5%),
+    inset 0 -0.125em 0.125em oklch(from var(--rp-glass-base) l c h / 50%),
+    0 0.25em 0.125em -0.125em oklch(from var(--rp-glass-fg) l c h / 20%),
+    0 0 0.1em 0.25em inset oklch(from var(--rp-glass-base) l c h / 20%);
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.rp-gb::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * clamp(1px, 0.0625em, 4px) / 2);
+  z-index: 1;
+  padding: clamp(1px, 0.0625em, 4px);
+  border-radius: 999px;
+  background:
+    conic-gradient(
+      from -75deg at 50% 50%,
+      oklch(from var(--rp-glass-fg) l c h / 50%) 0%,
+      transparent 5% 40%,
+      oklch(from var(--rp-glass-fg) l c h / 50%) 50%,
+      transparent 60% 95%,
+      oklch(from var(--rp-glass-fg) l c h / 50%) 100%
+    ),
+    linear-gradient(180deg, oklch(from var(--rp-glass-base) l c h / 50%), oklch(from var(--rp-glass-base) l c h / 50%));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  box-shadow: inset 0 0 0 calc(clamp(1px, 0.0625em, 4px) / 2) oklch(from var(--rp-glass-base) l c h / 50%);
+  pointer-events: none;
+}
+.rp-gb:hover {
+  transform: scale(0.975);
+}
+.rp-gb:active {
+  transform: scale(0.94);
+}
+
+.rp-play {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  place-items: center;
+}
+.rp-play:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.rp-play svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+.rp-time {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+.rp-spacer {
+  min-width: 4px;
+  flex: 1;
+}
+/* Un solo botón de velocidad que cicla 1x → 1,25x → 0,75x → 1x. */
+.rp-rate {
+  min-width: 58px;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+/* Velocidad alterada: el vidrio sigue siendo vidrio; lo que cambia es la
+   tinta al durazno, no la base — pintar el botón entero de acento rompía la
+   familia glass del transporte. */
+.rp-rate.alterada {
+  color: var(--accent);
+}
+.rp-rate:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Tarjeta de palabra (portal) ─────────────────────────────────────────── */
+.rp-card {
+  position: fixed;
+  bottom: calc(var(--barh, 120px) + 12px);
+  left: 50%;
+  z-index: 60;
+  width: min(344px, calc(100vw - 26px));
+  padding: 18px;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 22px;
+  background: var(--bg-elevated);
+  box-shadow: var(--sticker-shadow-lift);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  visibility: hidden;
+}
+.rp-card.on {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+.rp-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.rp-card__w {
+  margin: 0;
+  font-family: var(--rp-lectura);
+  font-size: 1.55rem;
+  font-weight: 400;
+  letter-spacing: -0.028em;
+  line-height: 1.1;
+}
+.rp-card__es {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+.rp-card__ctx {
+  margin: 13px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--borde-sutil);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.rp-card__act {
+  display: flex;
+  margin-top: 15px;
+  gap: 9px;
+}
+.rp-card__act .rp-btn {
+  flex: 1;
+  min-width: 0;
+}
+.rp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 14px;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.rp-btn:hover {
+  background: var(--chip-bg-fuerte);
+}
+.rp-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+/* «Guardar» lleno = tinta; «Guardada» = acento (durazno — NUNCA verde, es el
+   color vetado de la app). */
+.rp-btn--tinta {
+  border-color: transparent;
+  background: var(--text-primary);
+  color: var(--bg-void);
+}
+.rp-btn--tinta:hover {
+  background: var(--text-primary);
+  opacity: 0.92;
+}
+.rp-btn--ok {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.rp-btn--ok:hover {
+  background: var(--accent);
+}
+.rp-x {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.rp-x:hover {
+  background: var(--chip-bg-fuerte);
+  color: var(--text-primary);
+}
+.rp-x:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rp-oir {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 550;
+  cursor: pointer;
+}
+.rp-oir:hover {
+  background: var(--chip-bg-fuerte);
+  color: var(--text-primary);
+}
+.rp-oir:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rp-oir svg {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+}
+
+/* ── Coach (hoja inferior, portal) ───────────────────────────────────────── */
+.rp-coach {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.rp-coach__bg {
+  position: absolute;
+  inset: 0;
+  background: oklch(15% 0.02 265 / 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+.rp-coach__sheet {
+  position: relative;
+  display: flex;
+  width: min(560px, 100%);
+  max-height: 88vh;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--borde-sutil);
+  border-bottom: none;
+  border-radius: 26px 26px 0 0;
+  background: var(--bg-elevated);
+  box-shadow: var(--sticker-shadow-lift);
+  animation: rp-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes rp-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rp-coach__head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 11px;
+  padding: 15px 16px 12px;
+  border-bottom: 1px solid var(--borde-sutil);
+}
+.rp-avatar {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  background: linear-gradient(150deg, var(--aurora-1), var(--aurora-2));
+  color: oklch(99% 0.005 85);
+  font-family: var(--rp-lectura);
+  font-size: 1.05rem;
+}
+.rp-coach__name {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+.rp-coach__sub {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+.rp-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding: 14px 16px 6px;
+  -webkit-overflow-scrolling: touch;
+}
+.rp-msg {
+  max-width: 88%;
+  font-size: 0.88rem;
+  line-height: 1.58;
+}
+.rp-msg--c {
+  align-self: flex-start;
+  padding: 12px 14px;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 18px 18px 18px 6px;
+  background: var(--superficie-t);
+}
+.rp-msg--u {
+  align-self: flex-end;
+  padding: 10px 14px;
+  border-radius: 18px 18px 6px 18px;
+  background: var(--text-primary);
+  color: var(--bg-void);
+  font-weight: 500;
+}
+.rp-msg p {
+  margin: 0 0 9px;
+}
+.rp-msg p:last-child {
+  margin: 0;
+}
+.rp-msg strong {
+  font-weight: 650;
+}
+.rp-msg em {
+  font-family: var(--rp-lectura);
+  font-size: 1.05em;
+  font-style: italic;
+}
+.rp-msg blockquote {
+  margin: 9px 0;
+  padding: 9px 13px;
+  border-left: 2.5px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--accent-dim);
+  font-family: var(--rp-lectura);
+}
+.rp-msg ul {
+  margin: 8px 0;
+  padding-left: 18px;
+}
+.rp-msg li {
+  margin: 5px 0;
+}
+.rp-typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px;
+}
+.rp-typing i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  animation: rp-bob 1.1s infinite;
+}
+.rp-typing i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.rp-typing i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes rp-bob {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+.rp-sug {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 4px 16px 0;
+}
+.rp-compose {
+  flex: none;
+  padding: 12px 14px calc(14px + var(--kb, 0px) + env(safe-area-inset-bottom));
+}
+.rp-gi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 16px;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  background: var(--chip-bg);
+}
+.rp-gi:focus-within {
+  border-color: var(--borde-medio);
+}
+.rp-gi input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.68rem 0;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+}
+.rp-gi input::placeholder {
+  color: var(--text-muted);
+}
+.rp-ico {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.rp-ico:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.rp-ico svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.rp-send {
+  border-color: transparent;
+  background: var(--text-primary);
+  color: var(--bg-void);
+}
+.rp-mic.rec {
+  border-color: transparent;
+  background: var(--danger);
+  color: oklch(98% 0.01 27);
+  animation: rp-pulse 1.2s infinite;
+}
+@keyframes rp-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--danger-dim);
+  }
+  50% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+.rp-reclabel {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  padding: 0 6px 10px;
+  color: var(--danger);
+  font-size: 0.76rem;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.rp-reclabel.on {
+  display: flex;
+}
+.rp-reclabel .rp-bars {
+  display: flex;
+  align-items: center;
+  gap: 2.5px;
+  height: 17px;
+}
+.rp-reclabel .rp-bars i {
+  width: 2.5px;
+  border-radius: 999px;
+  background: var(--danger);
+  animation: rp-eq 0.8s infinite ease-in-out;
+}
+@keyframes rp-eq {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 16px;
+  }
+}
+.rp-reclabel .suelta {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* Solo lectores de pantalla (estado «escribiendo»). */
+.rp-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* prefers-reduced-motion: el reproductor no anima nada que decida si el
+   contenido se ve, pero igual se apaga todo lo decorativo. */
+@media (prefers-reduced-motion: reduce) {
+  .rp *,
+  .rp-portal * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
