@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
 import { BeamCustomizer } from '@/components/rodeo/beam-customizer';
+import { VocesCatalogo } from '@/components/rodeo/voces-catalogo';
 import { ETIQUETA_TEMA, type Tema } from '@/lib/theme';
 import { useApp } from '@/stores/app';
 import {
@@ -17,6 +18,22 @@ import {
    montar un BubbleBackground de 42px para previsualizar el gradiente sería
    un segundo árbol animado corriendo dentro de una hoja modal. */
 const TEMAS: Tema[] = ['claro', 'oscuro', 'gradiente'];
+
+/* Navegación en dos niveles (pedido de Gus, 14-ago): el panel abría con TODO
+   desplegado y se veía «regado». Ahora el nivel raíz muestra un pill grande
+   por sección —la misma píldora aurora de «Conversación libre», reutilizada
+   tal cual— y tocar uno enseña SOLO esa sección, con un «Volver» arriba a la
+   izquierda (donde vivía el eyebrow) que regresa a la raíz sin cerrar el modal.
+   El estado es local: al cerrar, App desmonta el componente y se vuelve a la
+   raíz solo. */
+type SeccionId = 'tema' | 'aurora' | 'beam' | 'voces';
+
+const SECCIONES: { id: SeccionId; label: string }[] = [
+  { id: 'tema', label: 'El lienzo de la app' },
+  { id: 'aurora', label: 'Mapa de aurora' },
+  { id: 'beam', label: 'Border beam' },
+  { id: 'voces', label: 'Voces' },
+];
 
 /* Personalizar aurora — port 1:1 de openAuroraCustomizer
    (codex/home-aurora-production-review, index.html:2703-2799). Preview real
@@ -95,6 +112,13 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
   // persiste rodeo_tema y avisa. Nada de rutas paralelas.
   const cambiarTema = useApp((s) => s.cambiarTema);
 
+  // null = nivel raíz (los pills). App desmonta el modal al cerrarlo, pero por
+  // si algún día queda montado con open=false, reabrir SIEMPRE arranca en raíz.
+  const [seccion, setSeccion] = useState<SeccionId | null>(null);
+  useEffect(() => {
+    if (open) setSeccion(null);
+  }, [open]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -118,13 +142,25 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-            className="fixed inset-0 z-50 m-auto h-fit max-h-[min(90vh,820px)] w-[min(560px,calc(100vw-40px))] overflow-y-auto rounded-[28px] border p-5"
-            style={{ background: 'var(--bg-elevated)', borderColor: 'var(--glass-border)' }}
+            className="aurora-customizer__hoja fixed inset-0 z-50 m-auto flex h-fit max-h-[min(90vh,820px)] w-[min(560px,calc(100vw-40px))] flex-col rounded-[28px] p-5"
           >
             <div className="aurora-customizer">
               <div className="aurora-customizer__header">
                 <div>
-                  <p className="aurora-customizer__eyebrow">Tu botón de práctica</p>
+                  {/* En una sección, el eyebrow cede su sitio (esquina superior
+                      izquierda, encima del título) al VOLVER — regresa a la
+                      raíz, no cierra el modal; la X sigue en su esquina. */}
+                  {seccion === null ? (
+                    <p className="aurora-customizer__eyebrow">Tu botón de práctica</p>
+                  ) : (
+                    <button
+                      className="aurora-customizer__volver"
+                      type="button"
+                      onClick={() => setSeccion(null)}
+                    >
+                      ← Volver
+                    </button>
+                  )}
                   <h2 id="aurora-customizer-title">Personalizar aurora</h2>
                 </div>
                 <button className="aurora-customizer__close" type="button" aria-label="Cerrar personalización" onClick={onClose}>
@@ -132,8 +168,21 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
                 </button>
               </div>
 
-              {/* TEMA va PRIMERO: es lo que decide el lienzo sobre el que se
-                  ve todo lo demás (incluida la preview del aurora de abajo). */}
+              {/* NIVEL RAÍZ: un pill por sección. Es literalmente el mismo
+                  AuroraPillButton de «Conversación libre» (misma clase, mismo
+                  degradado, rótulo bold a la izquierda), aquí como navegación. */}
+              {seccion === null && (
+                <div className="aurora-customizer__secciones">
+                  {SECCIONES.map((s) => (
+                    <AuroraPillButton key={s.id} onLaunch={() => setSeccion(s.id)}>
+                      {s.label}
+                    </AuroraPillButton>
+                  ))}
+                </div>
+              )}
+
+              {/* TEMA: el lienzo sobre el que se ve todo lo demás. */}
+              {seccion === 'tema' && (
               <section className="aurora-customizer__map" aria-labelledby="aurora-tema-title">
                 <div className="aurora-customizer__map-heading">
                   <div>
@@ -158,7 +207,11 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
                   ))}
                 </div>
               </section>
+              )}
 
+              {/* MAPA DE AURORA: preview en vivo + paletas + HEX + movimiento. */}
+              {seccion === 'aurora' && (
+              <>
               <div className="aurora-customizer__preview">
                 <AuroraPillButton demo>Conversación libre</AuroraPillButton>
               </div>
@@ -239,12 +292,20 @@ export function AuroraCustomizer({ open, onClose }: { open: boolean; onClose: ()
                   </label>
                 </div>
               </section>
+              </>
+              )}
 
-              {/* Playground del border beam del dock de SLANG — convive con el
-                  aurora: se ve al hacer scroll y ajusta el borde real. */}
-              <BeamCustomizer />
+              {/* Playground del border beam del dock de SLANG. */}
+              {seccion === 'beam' && <BeamCustomizer />}
 
-              <p className="aurora-customizer__note">Se guarda hasta que cierres esta pestaña.</p>
+              {/* Catálogo de voces AI de los podcasts, con muestras lazy. */}
+              {seccion === 'voces' && <VocesCatalogo />}
+
+              {/* La nota de persistencia solo aplica a lo que vive en
+                  sessionStorage: el aurora y el beam. */}
+              {(seccion === 'aurora' || seccion === 'beam') && (
+                <p className="aurora-customizer__note">Se guarda hasta que cierres esta pestaña.</p>
+              )}
             </div>
           </motion.div>
         </>

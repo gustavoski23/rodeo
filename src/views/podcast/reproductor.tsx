@@ -1022,29 +1022,35 @@ export function Reproductor({ episodio, onVolver }: { episodio: Episodio; onVolv
                 </div>
               </div>
               <div className="rp-ctl">
-                <button
-                  type="button"
-                  className="rp-gb rp-play"
-                  ref={playBtnRef}
-                  onClick={onPlayClick}
-                  aria-label={sonando ? 'Pausar' : 'Reproducir'}
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d={sonando ? 'M6 5h4v14H6zM14 5h4v14h-4z' : 'M8 5v14l11-7z'} />
-                  </svg>
-                </button>
+                <span className="rp-gbw">
+                  <button
+                    type="button"
+                    className="rp-gb rp-play"
+                    ref={playBtnRef}
+                    onClick={onPlayClick}
+                    aria-label={sonando ? 'Pausar' : 'Reproducir'}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d={sonando ? 'M6 5h4v14H6zM14 5h4v14h-4z' : 'M8 5v14l11-7z'} />
+                    </svg>
+                  </button>
+                  <span className="rp-gbsh" aria-hidden="true" />
+                </span>
                 <span className="rp-time" ref={timeRef}>
                   0:00 / 0:00
                 </span>
                 <span className="rp-spacer" />
-                <button
-                  type="button"
-                  className={'rp-gb rp-rate' + (VEL[iv] !== 1 ? ' alterada' : '')}
-                  onClick={onRate}
-                  aria-label={`Velocidad de reproducción, ahora ${rateEtq}. Toca para cambiar.`}
-                >
-                  {rateEtq}
-                </button>
+                <span className="rp-gbw">
+                  <button
+                    type="button"
+                    className={'rp-gb rp-rate' + (VEL[iv] !== 1 ? ' alterada' : '')}
+                    onClick={onRate}
+                    aria-label={`Velocidad de reproducción, ahora ${rateEtq}. Toca para cambiar.`}
+                  >
+                    {rateEtq}
+                  </button>
+                  <span className="rp-gbsh" aria-hidden="true" />
+                </span>
               </div>
             </div>
           </div>

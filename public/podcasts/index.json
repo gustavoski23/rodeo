@@ -5,10 +5,10 @@
       "titulo_en": "The Man Who Sold the Eiffel Tower (Twice)",
       "titulo_es": "El hombre que vendió la Torre Eiffel (dos veces)",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Zendaya",
+        "B": "Ethan"
       },
-      "duracion": "5:14",
+      "duracion": "5:06",
       "imagen": "/podcasts/ep-00.jpg",
       "audio": "/podcasts/ep-00.mp3",
       "timing": "/podcasts/ep-00-timing.json",
@@ -19,10 +19,10 @@
       "titulo_en": "The Craziest Marathon Ever Run",
       "titulo_es": "El maratón más disparatado de la historia",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Sarah",
+        "B": "Ethan"
       },
-      "duracion": "5:40",
+      "duracion": "5:31",
       "imagen": "/podcasts/ep-01.jpg",
       "audio": "/podcasts/ep-01.mp3",
       "timing": "/podcasts/ep-01-timing.json",
@@ -33,10 +33,10 @@
       "titulo_en": "The War Australia Lost... to Birds",
       "titulo_es": "La guerra que Australia perdió... contra unos pájaros",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Paula",
+        "B": "Ethan"
       },
-      "duracion": "5:12",
+      "duracion": "5:44",
       "imagen": "/podcasts/ep-02.jpg",
       "audio": "/podcasts/ep-02.mp3",
       "timing": "/podcasts/ep-02-timing.json",
@@ -47,10 +47,10 @@
       "titulo_en": "The Fake Surgery That Worked",
       "titulo_es": "La cirugía falsa que funcionó",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Sarah",
+        "B": "Ethan"
       },
-      "duracion": "5:47",
+      "duracion": "5:27",
       "imagen": "/podcasts/ep-03.jpg",
       "audio": "/podcasts/ep-03.mp3",
       "timing": "/podcasts/ep-03-timing.json",
@@ -61,10 +61,10 @@
       "titulo_en": "Number 261: The Woman They Tried to Drag Off the Marathon",
       "titulo_es": "Dorsal 261: la mujer que intentaron sacar a empujones del maratón",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Zendaya",
+        "B": "Ethan"
       },
-      "duracion": "5:09",
+      "duracion": "5:01",
       "imagen": "/podcasts/ep-04.jpg",
       "audio": "/podcasts/ep-04.mp3",
       "timing": "/podcasts/ep-04-timing.json",
@@ -89,10 +89,10 @@
       "titulo_en": "The Medium Popcorn Is a Trap",
       "titulo_es": "Las palomitas medianas son una trampa",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Sarah",
+        "B": "Ethan"
       },
-      "duracion": "4:52",
+      "duracion": "4:56",
       "imagen": "/podcasts/ep-06.jpg",
       "audio": "/podcasts/ep-06.mp3",
       "timing": "/podcasts/ep-06-timing.json",
@@ -103,10 +103,10 @@
       "titulo_en": "The Doorway That Erases Your Mind",
       "titulo_es": "La puerta que te borra la mente",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Paula",
+        "B": "Ethan"
       },
-      "duracion": "5:01",
+      "duracion": "5:07",
       "imagen": "/podcasts/ep-07.jpg",
       "audio": "/podcasts/ep-07.mp3",
       "timing": "/podcasts/ep-07-timing.json",
@@ -131,10 +131,10 @@
       "titulo_en": "Eddie the Eagle: The Worst Olympian Everyone Loved",
       "titulo_es": "Eddie el Águila: el peor olímpico que todos amaron",
       "hosts": {
-        "A": "Alice",
-        "B": "David"
+        "A": "Zendaya",
+        "B": "Ethan"
       },
-      "duracion": "5:26",
+      "duracion": "5:06",
       "imagen": "/podcasts/ep-09.jpg",
       "audio": "/podcasts/ep-09.mp3",
       "timing": "/podcasts/ep-09-timing.json",

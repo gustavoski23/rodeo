@@ -339,6 +339,105 @@
 @keyframes aurora-option-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } }
 
 /* ── Personalizador ─────────────────────────────────────────────────────── */
+
+/* La HOJA del modal es vidrio, no una tarjeta opaca: misma receta que los
+   botones glass que viven dentro (degradado diagonal + borde cónico helado +
+   barrido especular), para que el panel y sus pills se lean como el mismo
+   material. Dos diferencias obligadas por la escala:
+   1) lleva un TINTE de respaldo — a 5-20% de alfa el texto sobre el velo
+      negro sería ilegible, así que el vidrio se monta sobre --bg-elevated
+      translúcido;
+   2) el desenfoque es de panel (28px), no de botón (2px): en una superficie
+      grande el blur pequeño lee «plástico translúcido», no «vidrio». */
+.aurora-customizer__hoja {
+  --ac-glass-fg: var(--text-primary);
+  --ac-glass-base: oklch(96% 0.004 265);
+  --ac-glass-tinte: oklch(from var(--bg-elevated) l c h / 64%);
+
+  /* OJO: nada de `position: relative` aquí. La hoja va con `fixed` de Tailwind
+     (misma especificidad que esta clase), así que declararlo lo pisaba y el
+     panel caía al flujo, fuera de la pantalla. `fixed` ya sirve de ancestro
+     posicionado para el borde y el especular. */
+  isolation: isolate;
+  border: none;
+  background:
+    linear-gradient(
+      -75deg,
+      oklch(from var(--ac-glass-base) l c h / 6%),
+      oklch(from var(--ac-glass-base) l c h / 22%),
+      oklch(from var(--ac-glass-base) l c h / 6%)
+    ),
+    var(--ac-glass-tinte);
+  backdrop-filter: blur(28px) saturate(165%);
+  -webkit-backdrop-filter: blur(28px) saturate(165%);
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--ac-glass-fg) l c h / 5%),
+    inset 0 -0.125em 0.125em oklch(from var(--ac-glass-base) l c h / 22%),
+    0 1.5em 2.5em -0.75em oklch(from var(--ac-glass-fg) l c h / 22%);
+}
+/* Solo en CLARO. Ojo con copiar esto del reproductor: allí `gradiente` traía
+   tokens claros, pero a nivel de app `gradiente` es el tema OSCURO con fondo
+   animado (lib/theme.ts) y nunca pone data-theme='light'. Meterlo aquí pintaba
+   el vidrio crema sobre una paleta oscura. */
+:root[data-theme='light'] .aurora-customizer__hoja {
+  --ac-glass-base: oklch(97% 0.014 85);
+  --ac-glass-tinte: oklch(from var(--bg-elevated) l c h / 82%);
+}
+/* Borde helado: el mismo cónico de los botones, al radio de la hoja. Va por
+   encima del contenido, pero enmascarado a 1px solo pinta el filo. */
+.aurora-customizer__hoja::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1px;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from -75deg at 50% 50%,
+      oklch(from var(--ac-glass-fg) l c h / 42%) 0%,
+      transparent 5% 40%,
+      oklch(from var(--ac-glass-fg) l c h / 42%) 50%,
+      transparent 60% 95%,
+      oklch(from var(--ac-glass-fg) l c h / 42%) 100%
+    ),
+    linear-gradient(180deg, oklch(from var(--ac-glass-base) l c h / 40%), oklch(from var(--ac-glass-base) l c h / 40%));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+/* Barrido especular. z-index NEGATIVO a propósito: en un botón la banda puede
+   pasar por encima del rótulo, pero sobre un panel lleno de texto el blend
+   «screen» lo lavaría. Así queda entre el fondo y el contenido. */
+.aurora-customizer__hoja::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    -45deg,
+    transparent 0%,
+    oklch(from var(--ac-glass-base) l c h / 24%) 38% 52%,
+    transparent 62%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+/* Sin backdrop-filter (Firefox con la bandera apagada) el vidrio se vería
+   como un velo lechoso sobre texto ilegible: se cae a superficie opaca. */
+@supports not (backdrop-filter: blur(1px)) {
+  .aurora-customizer__hoja { background: var(--bg-elevated); }
+}
+
+/* La hoja ya no scrollea (si lo hiciera, el borde cónico y el especular se
+   irían con el contenido): scrollea el contenido dentro de ella. */
+.aurora-customizer {
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .aurora-customizer { color: oklch(94% 0.006 265); }
 .aurora-customizer__header,
 .aurora-customizer__map-heading {
@@ -1273,4 +1372,216 @@
 .vidrio-tema {
   --background: var(--bg-elevated);
   --foreground: var(--text-primary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PERSONALIZADOR · navegación en dos niveles + sección VOCES
+   Bloque NUEVO al final (nada de arriba se toca). El nivel raíz reutiliza
+   .aurora-pill tal cual (el pill de «Conversación libre»): aquí solo vive el
+   contenedor, el botón Volver y la piel de la sección de voces.
+   ══════════════════════════════════════════════════════════════════════════ */
+.aurora-customizer__secciones {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Volver ocupa el hueco del eyebrow: misma esquina, misma voz tipográfica
+   (Space Mono en versalitas) para que se lea como parte del encabezado y no
+   como un botón más del contenido. */
+.aurora-customizer__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 5px;
+  padding: 4px 8px 4px 0;
+  border: 0;
+  background: none;
+  color: oklch(67% 0.012 265);
+  font-family: 'Space Mono', monospace;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .18s ease;
+}
+.aurora-customizer__volver:hover,
+.aurora-customizer__volver:focus-visible {
+  color: oklch(92% 0.006 265);
+}
+.aurora-customizer__volver:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+:root[data-theme='light'] .aurora-customizer__volver { color: oklch(44% 0.014 265); }
+:root[data-theme='light'] .aurora-customizer__volver:hover,
+:root[data-theme='light'] .aurora-customizer__volver:focus-visible { color: oklch(20% 0.012 265); }
+
+/* Variante de una sola columna para el slider de volumen de VOCES: misma piel
+   que Intensidad/Velocidad, sin la línea divisoria (aquí va arriba). */
+.aurora-customizer__motion--una {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* ── VOCES ──────────────────────────────────────────────────────────────────
+   La tarjeta de cada voz lleva la MISMA receta glass del transporte del
+   reproductor de podcast (.rp-gb en views/podcast/reproductor.css), copiada
+   con variables locales --vz-* para no acoplar esta hoja a la del reproductor
+   (que no se toca), y con el radio rectangular fino que pidió Gus (15px, no
+   pill 999px). Mismos dos ajustes por tema que allí: base cálida en claro y
+   gradiente. */
+.voces-catalogo {
+  --vz-glass-fg: var(--text-primary);
+  --vz-glass-base: oklch(96% 0.004 265);
+}
+:root[data-theme='light'] .voces-catalogo,
+:root[data-fondo='gradiente'] .voces-catalogo {
+  --vz-glass-base: oklch(97% 0.014 85);
+}
+.voces-lista {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+.voces-estado {
+  margin: 16px 2px 4px;
+  color: oklch(62% 0.01 265);
+  font-size: .72rem;
+}
+:root[data-theme='light'] .voces-estado { color: oklch(40% 0.014 265); }
+
+.voz-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px 8px 8px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--vz-glass-fg);
+  background: linear-gradient(
+    -75deg,
+    oklch(from var(--vz-glass-base) l c h / 5%),
+    oklch(from var(--vz-glass-base) l c h / 20%),
+    oklch(from var(--vz-glass-base) l c h / 5%)
+  );
+  backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  -webkit-backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--vz-glass-fg) l c h / 5%),
+    inset 0 -0.125em 0.125em oklch(from var(--vz-glass-base) l c h / 50%),
+    0 0.25em 0.125em -0.125em oklch(from var(--vz-glass-fg) l c h / 20%),
+    0 0 0.1em 0.25em inset oklch(from var(--vz-glass-base) l c h / 20%);
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+/* El borde «helado» cónico de la receta, con el radio rectangular. */
+.voz-card::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * clamp(1px, 0.0625em, 4px) / 2);
+  z-index: 1;
+  padding: clamp(1px, 0.0625em, 4px);
+  border-radius: 15px;
+  background:
+    conic-gradient(
+      from -75deg at 50% 50%,
+      oklch(from var(--vz-glass-fg) l c h / 50%) 0%,
+      transparent 5% 40%,
+      oklch(from var(--vz-glass-fg) l c h / 50%) 50%,
+      transparent 60% 95%,
+      oklch(from var(--vz-glass-fg) l c h / 50%) 100%
+    ),
+    linear-gradient(180deg, oklch(from var(--vz-glass-base) l c h / 50%), oklch(from var(--vz-glass-base) l c h / 50%));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  box-shadow: inset 0 0 0 calc(clamp(1px, 0.0625em, 4px) / 2) oklch(from var(--vz-glass-base) l c h / 50%);
+  pointer-events: none;
+}
+.voz-card:hover { transform: scale(0.985); }
+.voz-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Estado «hablando»: el borde helado se aviva un punto — sutil, es el segundo
+   indicio (el primero es el puntito que late). */
+.voz-card[data-hablando] {
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--vz-glass-fg) l c h / 9%),
+    inset 0 -0.125em 0.125em oklch(from var(--vz-glass-base) l c h / 60%),
+    0 0.25em 0.125em -0.125em oklch(from var(--vz-glass-fg) l c h / 26%),
+    0 0 0.1em 0.25em inset oklch(from var(--vz-glass-base) l c h / 28%);
+}
+
+.voz-card__icono {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+}
+/* Play/pausa apilados: el cruce es un fundido con leve escala, no un swap. */
+.voz-card__icono svg {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.voz-card__pausa { opacity: 0; transform: scale(0.7); }
+.voz-card[data-hablando] .voz-card__play { opacity: 0; transform: scale(0.7); }
+.voz-card[data-hablando] .voz-card__pausa { opacity: 1; transform: scale(1); }
+
+.voz-card__texto {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.voz-card__nombre {
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: .92rem;
+  font-variation-settings: 'wght' 700;
+  letter-spacing: -.012em;
+  line-height: 1.1;
+}
+/* Dato secundario, discreto: proveedor · género · acento. */
+.voz-card__meta {
+  color: oklch(from var(--vz-glass-fg) l c h / 55%);
+  font-size: .64rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.voz-card__punto {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.voz-card[data-hablando] .voz-card__punto {
+  opacity: 0.85;
+  animation: voz-pulso 1.15s ease-in-out infinite;
+}
+@keyframes voz-pulso {
+  50% { transform: scale(1.55); opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voz-card[data-hablando] .voz-card__punto { animation: none; }
+  .voz-card__icono svg { transition: none; }
+  .voz-card { transition: none; }
 }

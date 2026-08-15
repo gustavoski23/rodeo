@@ -495,8 +495,73 @@
 .rp-gb:hover {
   transform: scale(0.975);
 }
-.rp-gb:active {
-  transform: scale(0.94);
+/* Barrido especular: la banda de luz que cruza el vidrio en diagonal y se
+   desplaza al pulsar. Sin ella el botón lee «pastilla translúcida», no
+   «vidrio» — es la pieza que Gus echó en falta contra la demo. */
+.rp-gb::before {
+  content: '';
+  position: absolute;
+  inset: calc(clamp(1px, 0.0625em, 4px) / 2);
+  z-index: 3;
+  border-radius: 999px;
+  overflow: clip;
+  background: linear-gradient(
+    -45deg,
+    transparent 0%,
+    oklch(from var(--rp-glass-base) l c h / 50%) 40% 50%,
+    transparent 55%
+  );
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  transition: background-position 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.rp-gb:hover::before {
+  background-position: 25% 50%;
+}
+.rp-gb:active::before {
+  background-position: 50% 15%;
+}
+
+/* Envoltorio con la sombra proyectada del vidrio (la .glass-button-shadow del
+   gate): difusa, desplazada hacia abajo-derecha, y que se APRIETA al pulsar.
+   El botón además bascula en 3D como en el login. */
+.rp-gbw {
+  position: relative;
+  display: inline-grid;
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.rp-gbw:has(.rp-gb:active) {
+  transform: rotateX(25deg);
+}
+.rp-gbw > .rp-gb {
+  grid-area: 1 / 1;
+  z-index: 2;
+}
+.rp-gbsh {
+  grid-area: 1 / 1;
+  position: relative;
+  top: 0.22em;
+  left: 0.12em;
+  z-index: 0;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    oklch(from var(--rp-glass-fg) l c h / 20%),
+    oklch(from var(--rp-glass-fg) l c h / 10%)
+  );
+  filter: blur(clamp(2px, 0.125em, 12px));
+  pointer-events: none;
+  transition: filter 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.4s ease;
+}
+.rp-gbw:has(.rp-gb:hover) .rp-gbsh {
+  filter: blur(clamp(2px, 0.0625em, 6px));
+}
+.rp-gbw:has(.rp-gb:active) .rp-gbsh {
+  top: 0.1em;
+  opacity: 0.75;
 }
 
 .rp-play {
