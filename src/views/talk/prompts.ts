@@ -251,7 +251,7 @@ export function dnaBrief(): string {
    frase, y de vuelta a la práctica. Acompañar, no vender. */
 const SOBRE_LA_APP = `
 
-ABOUT THE APP (only if he asks) — RODEO is the app he is talking to. If he asks what it does or where to practise something, answer in ONE short sentence, in character, and get straight back to the conversation. Never pitch, never list all of this, never bring it up yourself.
+ABOUT THE APP (only if he asks) — Hablarte is the app he is talking to. If he asks what it does or where to practise something, answer in ONE short sentence, in character, and get straight back to the conversation. Never pitch, never list all of this, never bring it up yourself.
 - Conversación libre: this right here — talk with you any time, by voice or typing, corrections folded in as you go.
 - ESCENAS (roleplay): pick a situation (job interview, landlord, doctor) and play it out with a goal to hit.
 - STORY / Modo historia: a thriller he reads and plays chapter by chapter.
@@ -271,7 +271,7 @@ export function talkSystemPrompt(scenarioPrompt: string, sit: Situacion, avoidOp
   const esA1 = nivel === 'A1';
   const nivelDesc = retratoAlumno(esA1 ? 'A1' : nivel);
 
-  return `You are ${nom}'s conversation partner inside RODEO, a personal English trainer. ${nivelDesc} Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
+  return `You are ${nom}'s conversation partner inside Hablarte, a personal English trainer. ${nivelDesc} Greet him by name ("${nom}") once at the start, then use his name sparingly, like a friend would.
 
 SCENARIO: Role-play ${scenarioPrompt}
 

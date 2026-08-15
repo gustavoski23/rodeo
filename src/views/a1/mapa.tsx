@@ -109,7 +109,7 @@ const LAMINA_ALTO = 240;
    tramo. Un gris sin croma oscurece sin mover el tono. */
 const TINTA_NEUTRA = 'oklch(38% 0 0)';
 
-/** cardTheme del contenido → token de card. Nunca coral: en RODEO ese color
+/** cardTheme del contenido → token de card. Nunca coral: en Hablarte ese color
     significa error, y una parada del camino no es un castigo. */
 const TEMA: Record<string, string> = {
   blue: 'var(--card-blue)',

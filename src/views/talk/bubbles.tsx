@@ -24,7 +24,7 @@ import type { Maquina } from './typewriter';
 
    TOKENS de la píldora oscura. La imagen 2 es un mockup en claro: allí "oscuro"
    es --card-ink (la tinta de las cards, oscura en los dos temas) sobre papel.
-   En el tema oscuro de RODEO esa tinta (L21) quedaría MÁS CLARA que la Card del
+   En el tema oscuro de Hablarte esa tinta (L21) quedaría MÁS CLARA que la Card del
    chat (--bg-surface, L17) y la píldora se leería como un gris levantado, no
    como una píldora negra: por eso en oscuro baja a --bg-void (L9), el negro del
    shell. Se resuelve con la variante `dark:` (definida en tokens.css como

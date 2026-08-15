@@ -28,7 +28,7 @@ import { SlangCardView } from './slang-card';
 
 const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* Mascota halftone de RODEO (decorativa) — mismo SVG del viejo, ahora a tamaño
+/* Mascota halftone de Hablarte (decorativa) — mismo SVG del viejo, ahora a tamaño
    de icono dentro del estado vacío. */
 function Mascota() {
   return (

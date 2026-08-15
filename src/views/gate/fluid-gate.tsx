@@ -90,7 +90,7 @@ function FondoOrbita() {
   );
 }
 
-/* El wordmark "RODEO." ya NO vive en la escena 3D: lo dibujaba drei <Text>
+/* El wordmark (entonces "RODEO.") ya NO vive en la escena 3D: lo dibujaba drei <Text>
    (troika), que instancia un módulo WebAssembly para el texto — y el sandbox
    del artifact prohíbe WASM (CSP sin unsafe-eval), así que ahí el logo
    desaparecía. Ahora es texto DOM en el gate (Alan Sans, la misma fuente),

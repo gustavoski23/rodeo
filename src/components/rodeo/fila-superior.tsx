@@ -4,7 +4,7 @@ import { SIGUIENTE_TEMA, temaVisual } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 
-/* FILA SUPERIOR — la única cabecera de RODEO.
+/* FILA SUPERIOR — la única cabecera de Hablarte.
 
    Regla 3 del contrato visual: no hay header de marca en NINGUNA pantalla
    (fuera wordmark, mascota, "tu inglés 24/7" y la divisoria). En su sitio va
@@ -19,7 +19,7 @@ import { useApp } from '@/stores/app';
        recoloque).
      · AnimatedThemeToggler (Magic UI, verbatim) en modo CONTROLADO: es binario
        —solo sabe decir light/dark— así que se le ignora lo que reporta y el
-       siguiente tema lo decide RODEO (SIGUIENTE_TEMA: día → noche →
+       siguiente tema lo decide Hablarte (SIGUIENTE_TEMA: día → noche →
        gradiente → día). Se le pasa el tema VISUAL para que el icono no mienta
        (gradiente se dibuja como noche, porque sus tokens son los oscuros).
      · REGLA OBLIGATORIA (pedido de Gus): el botón de tema tiene que VERSE en

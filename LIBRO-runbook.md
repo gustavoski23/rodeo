@@ -1,4 +1,4 @@
-# LIBRO — runbook: cómo se hace un libro interactivo en RODEO
+# LIBRO — runbook: cómo se hace un libro interactivo en Hablarte
 
 Este documento es la receta para construir OTRO libro como *Alice in Wonderland*
 (`src/views/libro`, `src/content/libro/alicia.ts`, `public/libro/`). Está escrito
@@ -329,7 +329,7 @@ capítulo, y el capítulo entero por LEER.
    sin forzar.
 2. **Sherlock Holmes** (los relatos ya en dominio público). Es el más
    DIALOGADO, y el diálogo es donde viven los phrasal verbs naturales — que es
-   exactamente lo que enseña RODEO. Cada relato es autoconclusivo, así que los
+   exactamente lo que enseña Hablarte. Cada relato es autoconclusivo, así que los
    10 capítulos pueden ser 10 casos.
 3. **Treasure Island** (Stevenson). Empuje narrativo puro: engancha y hace
    querer pasar la página. Inglés náutico e idiomático, muy visual.

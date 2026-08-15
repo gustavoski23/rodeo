@@ -181,7 +181,9 @@ test('el plan reducido sí se envía al receptor en una vista previa', async () 
     const result = await call({ action: 'intent', chain: 'solana', plan: 'rodeo-test' });
     assert.equal(result.status, 200);
     assert.equal(result.json.ok, true);
-    assert.deepEqual(upstreamBody, { plan: 'rodeo-test', chain: 'solana', label: 'RODEO Premium' });
+    // El `plan` sigue siendo 'rodeo-test': es el id del catálogo del receptor y
+    // NO se renombra con la marca. El `label` sí, porque es lo que lee el usuario.
+    assert.deepEqual(upstreamBody, { plan: 'rodeo-test', chain: 'solana', label: 'Hablarte Premium' });
   } finally {
     globalThis.fetch = previousFetch;
     if (previousVercelEnv === undefined) delete process.env.VERCEL_ENV;

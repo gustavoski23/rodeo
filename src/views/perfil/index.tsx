@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useLadder } from '@/stores/ladder';
+import type { Nivel } from '@/stores/onboarding';
 
 /* PERFIL v1 (pedido de Gus, 2026-08-04, captura 5): fuera el "Pronto." — la
    pantalla enseña la CUENTA (el correo con el que iniciaste sesión y el nombre
@@ -116,6 +117,118 @@ export default function PerfilView() {
   );
 }
 
+/* ── NIVEL: los tres del onboarding, cambiables sin repetirlo ─────────────
+   Hasta ahora el nivel se elegía UNA vez en el onboarding y no había forma de
+   moverlo: quien puso "Avanzado" por optimismo se quedaba con un coach que le
+   hablaba en C1 para siempre, y quien terminó la RUTA A1 no tenía cómo salir
+   de ella. Esto lo arregla desde el Perfil, que es donde el nivel ya se
+   mostraba (arriba, bajo el nombre) sin poder tocarse.
+
+   LOS IDS NO SON NUEVOS: son los mismos de `type Nivel` (stores/onboarding.ts)
+   y se reusan tal cual. Inventar otro vocabulario aquí —un 'C1' suelto, o 'a1'
+   en minúscula— habría roto en silencio dos sitios que comparan contra el
+   literal 'A1': retratoAlumno() en views/talk/prompts.ts, que decide si el
+   coach le habla a un principiante, y vistaInicial() en stores/app.ts, que
+   decide si la app abre en la RUTA. Un valor nuevo se lee como "no es A1": el
+   cambio se vería aplicado en la pantalla y NO en la conversación, que es el
+   peor fallo posible acá.
+
+   Las etiquetas visibles sí son las de Gus (Básico / Intermedio / Avanzado);
+   el id de debajo es el del MCER que ya usa la app. */
+const NIVELES: { id: Nivel; etiqueta: string; titulo: string; detalle: string }[] = [
+  { id: 'A1', etiqueta: 'A1', titulo: 'Básico', detalle: 'Empiezo de cero' },
+  { id: 'B1', etiqueta: 'B1', titulo: 'Intermedio', detalle: 'Ya me defiendo' },
+  { id: 'B2-C1', etiqueta: 'B2–C1', titulo: 'Avanzado', detalle: 'Quiero pulir' },
+];
+
+function SelectorNivel() {
+  const nivel = useApp((s) => s.nivel);
+  const cambiarNivel = useApp((s) => s.cambiarNivel);
+
+  /* Un grupo de radio de verdad, no tres botones sueltos: es UNA elección.
+     Mismo tabindex móvil + flechas que la pestañita de arriba — solo el
+     seleccionado entra en el orden de Tab. */
+  function porTeclado(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const idx = Math.max(0, NIVELES.findIndex((n) => n.id === nivel));
+    const destino = NIVELES[(idx + (e.key === 'ArrowRight' ? 1 : NIVELES.length - 1)) % NIVELES.length]!;
+    cambiarNivel(destino.id);
+    document.getElementById(`rd-nivel-${destino.id}`)?.focus();
+  }
+
+  return (
+    <div
+      className="flex flex-col gap-2 rounded-2xl border px-4 py-3"
+      style={{ background: 'var(--chip-bg)', borderColor: 'var(--borde-sutil)' }}
+    >
+      <span className="font-mono text-[0.56rem] font-bold tracking-[0.14em] uppercase" style={{ color: 'var(--text-muted)' }}>
+        Tu nivel
+      </span>
+      <p className="text-[0.78rem] leading-[1.45]" style={{ color: 'var(--text-secondary)' }}>
+        Cambia cómo te habla el coach. Puedes moverlo cuando quieras.
+      </p>
+
+      <div
+        role="radiogroup"
+        aria-label="Nivel de inglés"
+        onKeyDown={porTeclado}
+        className="mt-0.5 flex flex-col gap-1.5"
+      >
+        {NIVELES.map(({ id, etiqueta, titulo, detalle }) => {
+          const activo = nivel === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              id={`rd-nivel-${id}`}
+              aria-checked={activo}
+              tabIndex={activo ? 0 : -1}
+              onClick={() => cambiarNivel(id)}
+              className="flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 text-left"
+              style={
+                activo
+                  ? { background: 'var(--accent-dim)', borderColor: 'var(--accent)' }
+                  : { background: 'var(--bg-surface)', borderColor: 'var(--borde-sutil)' }
+              }
+            >
+              <span
+                aria-hidden="true"
+                className="font-mono text-[0.6rem] font-bold tracking-[0.1em]"
+                style={{
+                  color: activo ? 'var(--accent)' : 'var(--text-muted)',
+                  minWidth: '2.9rem',
+                }}
+              >
+                {etiqueta}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.88rem] font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {titulo}
+                </span>
+                <span className="block text-[0.74rem]" style={{ color: 'var(--text-muted)' }}>
+                  {detalle}
+                </span>
+              </span>
+              {/* El punto de "este es" — sin texto, para no repetir el estado
+                  que ya dan el borde de acento y aria-checked. */}
+              <span
+                aria-hidden="true"
+                className="size-2.5 shrink-0 rounded-full border"
+                style={{
+                  background: activo ? 'var(--accent)' : 'transparent',
+                  borderColor: activo ? 'var(--accent)' : 'var(--borde-medio)',
+                }}
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── CUENTA: con qué correo entraste y cómo te llamas ────────────────────── */
 
 function PanelCuenta() {
@@ -153,6 +266,8 @@ function PanelCuenta() {
           )}
         </div>
       </div>
+
+      <SelectorNivel />
 
       <div
         className="flex flex-col gap-1 rounded-2xl border px-4 py-3"

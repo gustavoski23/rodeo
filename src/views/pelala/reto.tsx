@@ -2,7 +2,7 @@
    cuando ya te lo sabes y entra el siguiente. Debajo, la "tarjeta de significado"
    (revelable con el ojo + guardable) y el mini-chat para usarlo.
 
-   REDISEÑO al contrato visual de RODEO (encargo de Gus, integración en SLANG):
+   REDISEÑO al contrato visual de Hablarte (encargo de Gus, integración en SLANG):
    · Sin header propio: la fila Menu + toggler la pone el shell (App/FilaSuperior).
      Aquí va la barra de sección: ← circular (borde --borde-sutil sobre --bg-surface)
      + un rótulo mono NEUTRO (--text-muted). Sin contador, sin barra de progreso y

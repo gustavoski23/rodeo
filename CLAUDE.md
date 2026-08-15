@@ -1,4 +1,4 @@
-# RODEO — cómo trabajar en este repo
+# Hablarte — cómo trabajar en este repo
 
 App de inglés de Gus (venezolano en Medellín, B2+ hacia C1). React 19 + Vite +
 Tailwind v4 + Zustand. Se usa **desde el celular**, así que el móvil no es un

@@ -1,4 +1,4 @@
-# RODEO — Brief de rediseño
+# Hablarte — Brief de rediseño
 
 > ## ⚠️ QUÉ SIGUE VIGENTE Y QUÉ ES HISTORIA
 >
@@ -120,7 +120,7 @@ Estos tokens ya viven en `<style>` al inicio del HTML y otros módulos los usan.
 La app tiene **5 vistas** navegables desde la tab bar. Solo una activa a la vez. Header y tab bar son globales.
 
 ### 3.0 Header global (siempre visible arriba)
-- **Logo "RODEO."** en Bebas 2.6rem, punto verde acento.
+- **Logo "RODEO."** en Bebas 2.6rem, punto verde acento. *(Histórico: así se veía cuando se escribió este brief. Hoy la marca es Hablarte y, por la regla 3 del contrato visual, no hay logo en ninguna pantalla.)*
 - Subtítulo pequeño `TU INGLÉS 24/7` a la derecha del logo.
 - **Ticker de costo acumulado** a la derecha, top: `$0.0000` con label `GASTADO` debajo. Es el costo real de API en dólares. Sube en tiempo real cuando el usuario usa algo que llama al modelo. Persiste en localStorage entre sesiones. Es más un juguete de transparencia que un feature crítico — sirve para que Gus vea que el uso "cuesta centavos".
 - Línea luminosa horizontal debajo del header.

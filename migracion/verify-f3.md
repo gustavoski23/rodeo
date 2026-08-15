@@ -183,7 +183,7 @@ en el peldaño **siguiente**.
 
 Medido (arnés 4), lote de 3 clavando los tres:
 
-| momento | RODEO 2.0 | legado |
+| momento | Hablarte 2.0 | legado |
 |---|---|---|
 | peldaño 2, antes de clavar | `Peldaño 2 / 3` | `Peldaño 2 / 3` |
 | peldaño 2, **después** de clavar | `Peldaño 2 / 3 · combo x2` | `Peldaño 2 / 3` |

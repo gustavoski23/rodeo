@@ -1,7 +1,7 @@
 {
   "name": "rodeo",
   "version": "2.0.0",
-  "description": "RODEO — tu inglés 24/7",
+  "description": "Hablarte — tu inglés 24/7",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b --noCheck && vite build",

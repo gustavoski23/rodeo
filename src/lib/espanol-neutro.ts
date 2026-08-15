@@ -1,4 +1,4 @@
-/* La regla de REGISTRO del español que hablan los coaches de RODEO.
+/* La regla de REGISTRO del español que hablan los coaches de Hablarte.
 
    Por qué existe este archivo y no una línea suelta en cada prompt: la app
    nació con la voz de Gus —paisa, voseo, "parce"— porque Gus vive en Medellín

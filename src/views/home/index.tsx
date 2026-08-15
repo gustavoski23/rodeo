@@ -12,7 +12,7 @@ import { useApp } from '@/stores/app';
 const CarruselFeatures = lazy(() => import('@/components/rodeo/carrusel-features'));
 
 /* El TryMeButton trae sus propios tres temas (dark/light/alternate). Se mapea al
-   tema de RODEO: papel → light; oscuro y gradiente → dark (el botón es un pomo
+   tema de Hablarte: papel → light; oscuro y gradiente → dark (el botón es un pomo
    oscuro que asienta sobre ambos fondos). El único acento que le queda es el aro
    de foco, en var(--accent), así que ya va con la marca sin ramas aquí. */
 function temaTryMe(tema: Tema): TryMeTheme {
@@ -157,7 +157,7 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
               propósito: con la vitrina abierta la regla `:not(.aurora-more)`
               (aurora.css) lo oculta —queda tapado por la capa del carrusel— y se
               cierra con el ← / Escape (regla 2). El tema del pomo sigue al de
-              RODEO y el anillo va en Alan Sans, la letra del Home. */}
+              Hablarte y el anillo va en Alan Sans, la letra del Home. */}
           <TryMeButton
             ref={moreRef}
             theme={temaTryMe(tema)}

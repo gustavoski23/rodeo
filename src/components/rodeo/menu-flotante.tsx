@@ -24,7 +24,7 @@ function LanzadorMenu({ onClick }: { onClick: () => void }) {
   );
 }
 
-/* MENÚ ☰ de RODEO — el liquid-morph FloatingMenu (verbatim, components/ui)
+/* MENÚ ☰ de Hablarte — el liquid-morph FloatingMenu (verbatim, components/ui)
    re-anclado ARRIBA A LA IZQUIERDA.
 
    ─── Cómo se re-ancla SIN tocar el fichero verbatim ──────────────────────

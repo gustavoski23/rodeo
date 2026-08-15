@@ -4,7 +4,7 @@
    1. Sin `"use client"` (no es Next) y `// @ts-nocheck` (mismo trato que el
       resto de componentes de librería bajo verbatimModuleSyntax).
    2. `CardItem` gana `onClick?` y `contenido?` — el original solo navegaba con
-      <a href>; en RODEO las cards navegan por setView (SPA) y llevan un
+      <a href>; en Hablarte las cards navegan por setView (SPA) y llevan un
       overlay de feature (título + explicación) encima de la imagen.
    3. Swipe táctil: touchstart/touchend en el contenedor → cycle() con umbral
       de 40px. El original solo tenía flechas y hover, y Gus pidió "deslizando
@@ -31,15 +31,15 @@ export interface CardItem {
   imgUrl: string;
   alt?: string;
   linkUrl?: string;
-  /** Adaptación RODEO: navegación SPA (setView) en vez de href. */
+  /** Adaptación Hablarte: navegación SPA (setView) en vez de href. */
   onClick?: () => void;
-  /** Adaptación RODEO: overlay de feature (título/explicación) sobre la foto. */
+  /** Adaptación Hablarte: overlay de feature (título/explicación) sobre la foto. */
   contenido?: React.ReactNode;
 }
 
 interface SocialCardsProps {
   cards: CardItem[];
-  /** Adaptación RODEO (6): índice de la carta que nace centrada. Se lee UNA vez
+  /** Adaptación Hablarte (6): índice de la carta que nace centrada. Se lee UNA vez
       (es el valor inicial del useState); después manda la paginación. */
   centroInicial?: number;
 }
@@ -108,14 +108,14 @@ export default function SocialCards({ cards, centroInicial }: SocialCardsProps) 
   const prevVisible = useRef<Set<number>>(new Set());
 
   const totalCards = cards.length;
-  /* Adaptación RODEO (5): `>` → `>=`. El original solo paginaba con MÁS cartas
+  /* Adaptación Hablarte (5): `>` → `>=`. El original solo paginaba con MÁS cartas
      que el aforo del abanico (8+); con EXACTAMENTE 7 (las features con foto de
-     RODEO) el abanico quedaba ESTÁTICO: sin flechas, sin puntos, sin swipe, y
+     Hablarte) el abanico quedaba ESTÁTICO: sin flechas, sin puntos, sin swipe, y
      las cartas de los flancos —tapadas por la central— eran intocables (solo se
      abría la del centro). Con `>=`, 7 cartas ya rotan: vuelve el deslizar y las
      dos flechas glass de abajo, y cualquier carta se trae al frente para tocar. */
   const needsPagination = totalCards >= MAX_VISIBLE;
-  /* Adaptación RODEO (6). Sin `centroInicial` la expresión es la del original,
+  /* Adaptación Hablarte (6). Sin `centroInicial` la expresión es la del original,
      carácter por carácter. Con ella se acota al rango de cartas: un índice
      inventado dejaría getVisibleMap mapeando slots a cartas que no existen y el
      abanico saldría con huecos. */
@@ -146,7 +146,7 @@ export default function SocialCards({ cards, centroInicial }: SocialCardsProps) 
     );
   }, [totalCards, needsPagination]);
 
-  /* Adaptación RODEO (swipe): deslizar el dedo sobre el abanico pagina igual
+  /* Adaptación Hablarte (swipe): deslizar el dedo sobre el abanico pagina igual
      que las flechas. Umbral de 40px y dominancia horizontal para no pelearse
      con el scroll vertical de la página.
 
@@ -396,7 +396,7 @@ export default function SocialCards({ cards, centroInicial }: SocialCardsProps) 
                 ) : (
                   <img src={card.imgUrl} loading="lazy" decoding="async" alt={card.alt || `Card ${index}`} className="absolute inset-0 z-10 size-full object-cover" />
                 )}
-                {/* Adaptación RODEO: overlay de feature encima de la foto. */}
+                {/* Adaptación Hablarte: overlay de feature encima de la foto. */}
                 {card.contenido && <div className="absolute inset-0 z-20">{card.contenido}</div>}
               </div>
             );

@@ -2,7 +2,7 @@
    cuenta" que va arriba del pago en cripto.
 
    Por qué existe: el receptor de cobros no sabe QUIÉN paga (es sin cuentas).
-   Para que el Premium quede atado a un correo, RODEO tiene que saber quién es
+   Para que el Premium quede atado a un correo, Hablarte tiene que saber quién es
    el que paga — y eso es esta sesión. Si el usuario ya entró, se lo decimos y
    el pago se ata solo; si no, ofrecemos Google y enlace mágico SIN obligar:
    sin sesión el pago igual funciona, solo que no queda atado a la cuenta. */

@@ -1,4 +1,4 @@
-// RODEO — POST /api/premium : activa/valida licencias de Premium
+// Hablarte — POST /api/premium : activa/valida licencias de Premium
 //
 // QUÉ ES: un proxy fino a la License API PÚBLICA de Lemon Squeezy. El frontend
 // (js/premium.js) manda la clave que Gus recibió al pagar y aquí la
@@ -13,7 +13,7 @@
 // PÚBLICA — NO necesita API key ni ninguna env var para funcionar. Así que este
 // endpoint funciona apenas Gus cree su producto en Lemon Squeezy, sin tocar
 // Vercel. La única env OPCIONAL es LEMON_STORE_ID (anti-clave-ajena). Sin ella
-// igual sirve; solo que no verifica que la clave sea de la tienda de RODEO.
+// igual sirve; solo que no verifica que la clave sea de la tienda de Hablarte.
 //
 // Node ESM, SIN dependencias npm.
 
@@ -101,10 +101,10 @@ export default async function handler(req, res) {
 
   // ── Anti-clave-ajena (opcional) ────────────────────────────────────────────
   // Si LEMON_STORE_ID está en Vercel, la clave DEBE ser de esa tienda. Evita
-  // que alguien active RODEO con una clave comprada en OTRO producto de Lemon.
+  // que alguien active Hablarte con una clave comprada en OTRO producto de Lemon.
   const storeId = process.env.LEMON_STORE_ID;
   if (storeId && data.meta && String(data.meta.store_id) !== String(storeId)) {
-    return json(res, 200, { ok: false, error: 'Esa clave no es de RODEO.' });
+    return json(res, 200, { ok: false, error: 'Esa clave no es de Hablarte.' });
   }
 
   // Una clave que Lemon aceptó pero cuyo estado ya no es 'active' (vencida,

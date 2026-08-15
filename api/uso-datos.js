@@ -1,4 +1,4 @@
-// RODEO — datos del panel de consumo (/uso.html).
+// Hablarte — datos del panel de consumo (/uso.html).
 //
 // Lee public.uso_ia con la service_role key y devuelve el JSON ya agregado. La
 // consulta va SIEMPRE por aquí y nunca desde el navegador: así ni la key ni el

@@ -44,12 +44,12 @@ const Orb = lazy(() => import('@/components/elevenlabs/orb').then((m) => ({ defa
    a) EL ESPEJO data-theme → clase `dark`. BLOQUEANTE de la auditoría r1. El Orb
       es verbatim y decide su polaridad (el uniform uInverted, orb.tsx:149 y
       :237) leyendo `document.documentElement.classList.contains('dark')`, con
-      su propio observer sobre ['class']. RODEO tematiza con `data-theme`
+      su propio observer sobre ['class']. Hablarte tematiza con `data-theme`
       (lib/theme.ts:15-17) y NUNCA pone esa clase, así que el Orb se creía en
       tema claro SIEMPRE: en oscuro —el tema por defecto— salía con la polaridad
       al revés, un disco de fondo BLANCO sobre la Card negra en lugar de una
       esfera integrada. Se arregla sin tocar el componente: reflejamos el
-      atributo en la clase. No mueve ni un token, porque en RODEO la variante
+      atributo en la clase. No mueve ni un token, porque en Hablarte la variante
       `dark:` es `&:where(:root:not([data-theme='light']) *)` (tokens.css:17),
       va por atributo y no por clase; y los dos AnimatedThemeToggler viven en
       modo controlado, así que su observer de ['class'] sale por la puerta de

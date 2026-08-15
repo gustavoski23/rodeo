@@ -10,14 +10,18 @@
      los colores lavados/verdosos que vimos venían de ahí, no de los tokens. -->
 <meta name="color-scheme" content="dark light">
 <meta name="darkreader-lock">
-<title>RODEO — tu inglés 24/7</title>
+<title>Hablarte — tu inglés 24/7</title>
 <!-- PWA: app instalable + offline. El service worker se registra en el cutover
      (F7); mientras tanto las previews van sin SW para no cachear a medias. -->
 <link rel="manifest" href="/manifest.webmanifest">
+<!-- Sin esto el navegador pide /favicon.ico, que no existe: 404 en cada carga y
+     la pestaña sin marca. Estaba así desde antes del rebranding; se arregla
+     ahora porque la pestaña es justamente donde vive el logo en escritorio. -->
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="RODEO">
+<meta name="apple-mobile-web-app-title" content="Hablarte">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Libre Baskerville, la letra del LIBRO. Se precarga desde el HTML y no
@@ -35,6 +39,13 @@
 <link rel="preload" href="/fonts/LibreBaskerville-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/LibreBaskerville-Bold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/LibreBaskerville-Italic.woff2" as="font" type="font/woff2" crossorigin>
+<!-- ⚠ ESTA URL TIENE QUE SER IDÉNTICA A LA DE CDN_WARM EN public/sw.js.
+     El service worker la precachea por cadena exacta; si aquí se le añade o
+     quita una familia, deja de coincidir y esta hoja —que BLOQUEA EL RENDER—
+     pasa a fallar el caché en CADA carga. Pasó: se añadió Cormorant Garamond
+     para el wordmark HABLARTE y se midió el fallo en producción. La familia se
+     retiró porque, sin el lockup en el gate, nada la pinta. Si algún día vuelve
+     el logotipo, hay que añadirla AQUÍ Y EN sw.js a la vez. -->
 <link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 /* Nivel, leído ANTES del primer paint: el principiante (A1) no tiene tab bar,

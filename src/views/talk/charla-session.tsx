@@ -117,7 +117,8 @@ export function CharlaSession({ motor }: { motor: Motor }) {
   const vozEstado = useVozEstado();
   const hablando = vozEstado === 'hablando';
   /* La etiqueta del waveform dice QUIÉN te habla y se toca para cambiar de voz
-     (pedido de Gus): "Coach RODEO" era decoración, "Coach Helena" es un mando.
+     (pedido de Gus): la etiqueta genérica de marca era decoración, "Coach
+     Helena" es un mando.
      El re-render lo trae useVoz (useSyncExternalStore sobre el singleton de
      speech.ts) — no hace falta estado local, y así cualquier otro sitio que
      cambie la voz repinta esta etiqueta sola. El toast lo da toggleVoz. */

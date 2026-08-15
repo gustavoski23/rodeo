@@ -85,7 +85,7 @@ rodilla de la curva medida para este material.
 | Fundido | alfa vertical: opaco hasta el 62 %, nada desde el 96 % | **horneado en el WebP** | Sin él la lámina termina en un corte recto y parece una imagen rota. Va en el alfa y no en `mask-image` porque una máscara obliga a una capa de composición por región y son ocho en el mismo scroller. Cuesta +13,7 kB en total (+6,3 %) y quita ocho capas. |
 | Penumbra | `brightness(.42) contrast(1.22) sepia(.18)` | CSS, **solo en oscuro** | Un papel blanco en tema oscuro es un foco. El filtro lo baja a papel viejo; el dibujo sobrevive porque la tinta ya era lo más oscuro que había. |
 
-El tema de RODEO es el atributo `data-theme` en `<html>` y **oscuro es la
+El tema de Hablarte es el atributo `data-theme` en `<html>` y **oscuro es la
 AUSENCIA del atributo**, no `[data-theme='dark']` (tokens.css). El selector es
 `:root:not([data-theme='light'])`.
 
@@ -260,7 +260,7 @@ en oscuro es la noche comiéndose la región, en claro es una neblina blanca. Es
 el mismo `--bg-void` y el mismo único archivo.
 
 **Paleta por región** — atada al `cardTheme` que cada tramo ya declara en
-`tramos.ts`. **Nada de coral en ninguna:** en RODEO el coral significa error, y
+`tramos.ts`. **Nada de coral en ninguna:** en Hablarte el coral significa error, y
 una región del mundo no es un castigo.
 
 | Tramo | `cardTheme` | Token |
@@ -317,7 +317,7 @@ Prohibido, y es una lista de cosas concretas que se pueden buscar en el `.blend`
 - **Gradientes púrpura y cielos violeta-naranja.** Explícito en el DESIGN-BRIEF.
 - **Low-poly de paleta arcoíris.** El color no vive en el render.
 - **Figuras humanas con cara.** Las siluetas son bultos. El único que tiene cara
-  en RODEO es Alfred.
+  en Hablarte es Alfred.
 - **Iconos flotando en el aire** (el set de «3D icons» de Figma).
 - **Simetría perfecta.** La ciudad va alineada al eje y **los objetos sueltos
   van girados** ±8–25°: es lo que les saca un costado y lo que impide que la

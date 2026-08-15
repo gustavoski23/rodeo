@@ -1,4 +1,4 @@
-// RODEO — /api/cripto : cobro de la suscripción en cripto (USDC).
+// Hablarte — /api/cripto : cobro de la suscripción en cripto (USDC).
 //
 // QUÉ ES: un proxy fino al receptor de cobros de Pangea Wallet
 // (gustavoski23/pangea-wallet, ADR-0009). Dos acciones:
@@ -9,7 +9,7 @@
 //
 // POR QUÉ un proxy y no llamar a Pangea desde el navegador:
 //   1. Los endpoints de Pangea están pensados SERVIDOR A SERVIDOR: no traen
-//      cabeceras CORS, así que un fetch desde el navegador de RODEO no podría
+//      cabeceras CORS, así que un fetch desde el navegador de Hablarte no podría
 //      leer la respuesta.
 //   2. La URL del receptor queda como variable de entorno del servidor, no
 //      incrustada en el bundle público.
@@ -88,7 +88,10 @@ export default async function handler(req, res) {
     return proxy(res, `${base}/api/payments/intent`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'application/json' },
-      body: JSON.stringify({ plan, chain, label: 'RODEO Premium' }),
+      // `label` es lo que LEE el usuario en el cobro; `plan` es el id del
+      // catálogo del receptor (rodeo-monthly/yearly) y NO se renombra con la
+      // marca: cambiarlo rompe los cobros vivos y las licencias ya emitidas.
+      body: JSON.stringify({ plan, chain, label: 'Hablarte Premium' }),
     });
   }
 
@@ -232,7 +235,7 @@ async function fetchReceptor(url, init) {
   return { data };
 }
 
-// ── Traduce el código del receptor a español humano de RODEO ─────────────────
+// ── Traduce el código del receptor a español humano de Hablarte ─────────────────
 function mapError(code, fallback) {
   switch (code) {
     case 'NOT_CONFIGURED':

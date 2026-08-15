@@ -59,12 +59,12 @@ execSync('npm run build', { cwd: ROOT, stdio: 'inherit', env: { ...process.env, 
 
 // ── 2. Leer index + JS + CSS ─────────────────────────────────────────────────
 let html = readFileSync(join(DIST, 'index.html'), 'utf8');
-// El artifact conserva su identidad "RODEO · demo de migración" (el <title> del
+// El artifact conserva su identidad "Hablarte · demo de migración" (el <title> del
 // build de producción es otro). El tag gana sobre el parámetro `title` del tool.
 // DEMO_TITLE lo cambia cuando el demo es de otra cosa (p.ej. el libro): el
 // <title> es lo que nombra al artifact y a su pestaña, así que dos demos
 // distintos no pueden llamarse igual.
-const TITULO = process.env.DEMO_TITLE || 'RODEO · demo de migración';
+const TITULO = process.env.DEMO_TITLE || 'Hablarte · demo de migración';
 html = html.replace(/<title>[^<]*<\/title>/, `<title>${TITULO}</title>`);
 const jsPath = html.match(/src="(\/assets\/[^"]+\.js)"/)[1];
 const cssPath = html.match(/href="(\/assets\/[^"]+\.css)"/)[1];
@@ -117,7 +117,7 @@ if (linkMatch) {
 // ── 5. Bootstrap: gate bypass + shim de red ──────────────────────────────────
 const bootstrap = `
 <script>
-/* DEMO RODEO — bootstrap. Corre ANTES del módulo de la app (script clásico en
+/* DEMO Hablarte — bootstrap. Corre ANTES del módulo de la app (script clásico en
    <head>, ejecución síncrona durante el parse) para sembrar localStorage y
    shimmear la red antes de que los stores se hidraten. */
 (function () {
@@ -229,7 +229,7 @@ html = html.replace(/<head>/, () => '<head>' + bootstrap);
 const safeJs = js.replace(/<\/script/gi, '<\\/script');
 /* Override SIN @layer al FINAL del CSS: el visor de artifacts envuelve la
    página y mete su propio `body{font:14px -apple-system…}` sin capa. La fuente
-   de RODEO vive en @layer base y CUALQUIER regla sin capa le gana — por eso el
+   de Hablarte vive en @layer base y CUALQUIER regla sin capa le gana — por eso el
    artifact caía a la fuente del sistema aunque Alan Sans estuviera cargada
    (documentado: Gus lo vio dos veces). Sin capa + al final = gana siempre. */
 const fontOverride =
@@ -253,7 +253,7 @@ const scriptBlock = `<script type="module">${safeJs}</script>`;
    vacío y lo apaga. Es deliberadamente callado —el fondo de la app y una línea
    mono— porque la espera con contenido de verdad es la del libro, que tiene su
    propio lápiz dentro de la app. */
-const telon = `<div id="demo-telon" aria-hidden="true"><span>RODEO</span></div>
+const telon = `<div id="demo-telon" aria-hidden="true"><span>HABLARTE</span></div>
 <style>
 #demo-telon{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:#0a0a0e}
 #demo-telon span{font-family:'Space Mono',ui-monospace,monospace;font-size:.7rem;letter-spacing:.5em;

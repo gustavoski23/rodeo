@@ -2,8 +2,8 @@
 
    Las capturas que aprobó Gus (diálogo "Confirm and pay", Order Summary,
    ticket) son BLANCAS, con botones primarios NEGROS — el look neutro de
-   shadcn/origin-ui. RODEO vive en shell oscuro, así que los paneles del flujo
-   se envuelven en `.sub-claro`: re-declara los tokens BASE de RODEO (los que
+   shadcn/origin-ui. Hablarte vive en shell oscuro, así que los paneles del flujo
+   se envuelven en `.sub-claro`: re-declara los tokens BASE de Hablarte (los que
    el puente @theme inline de tokens.css inyecta en bg-background, bg-card,
    text-muted-foreground, border-input, bg-primary…) con valores neutros
    claros. Solo aplica DENTRO del scope — el resto de la app ni se entera, y

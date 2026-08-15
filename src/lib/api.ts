@@ -66,7 +66,7 @@ export async function callAPI(
     // Modo silencioso (prefetch en background): NUNCA abrir el prompt del PIN —
     // sería un modal bloqueante que el usuario no pidió.
     if (opts.silent) throw new Error('pin_required');
-    const pin = prompt('PIN de acceso a RODEO:');
+    const pin = prompt('PIN de acceso a Hablarte:');
     if (pin) {
       store.set('rodeo_pass', pin);
       return callAPI(mode, messages, maxTokens, opts);
@@ -108,7 +108,7 @@ export async function callStream(
   });
 
   if (res.status === 401) {
-    const pin = prompt('PIN de acceso a RODEO:');
+    const pin = prompt('PIN de acceso a Hablarte:');
     if (pin) {
       store.set('rodeo_pass', pin);
       return callStream(mode, messages, maxTokens, onDelta);

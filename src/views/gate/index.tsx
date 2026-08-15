@@ -33,7 +33,7 @@ import { toast } from '@/stores/toast';
    El problema de tokens que hay que resolver: el CSS del vidrio usa
    `var(--background)` y `var(--foreground)` CRUDOS, y la GradientBackground usa
    `var(--color-chart-1..5)` + `var(--color-primary/-secondary/-accent/
-   -destructive)`. En RODEO esos nombres no existen tal cual (usamos
+   -destructive)`. En Hablarte esos nombres no existen tal cual (usamos
    --bg-void/--text-primary con un puente --color-*, y en tema oscuro). Solución:
    un tema CLARO y cálido SCOPEADO al contenedor del gate (.gate-tema) que
    define esas variables reales — sin tocar el tema global de la app. Ahí también
@@ -127,6 +127,11 @@ export function GateView() {
       {/* Columna centrada, ~media pantalla, ancho contenido. */}
       <div className="relative z-10 flex w-full max-w-[340px] flex-col items-center gap-6 px-6">
         <BlurFade delay={PASO_ENTRADA * 1} className="w-full">
+          {/* SIN lockup de marca: se probó poner HABLARTE encima del título y
+              Gus lo rechazó. La puerta se queda con la invitación sola. La marca
+              vive en la pestaña del navegador, el icono instalado y el nombre de
+              la app — dentro de la interfaz no se muestra en ningún sitio
+              (regla 3 del contrato visual). */}
           {/* whitespace-nowrap: el título vive en UNA línea (como en el
               componente original), aunque la columna esté acotada a 340px —
               desborda centrado, que es el look de la captura. */}

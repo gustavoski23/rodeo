@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════════════
-   RODEO — Service Worker  (PWA + modo offline)
+   Hablarte — Service Worker  (PWA + modo offline)
    ----------------------------------------------------------------------
    POR QUÉ este SW es "conservador y a prueba de SW-hell":
 
@@ -20,10 +20,24 @@
 // Sube este número en cada release donde quieras invalidar cache viejo.
 // ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
 // a esos archivos NO llega a los usuarios hasta subir esta versión.
-const VERSION = 'rodeo-v5';
+// ⚠ ESTA COPIA NO SE DESPLIEGA. El service worker que ship-ea es public/sw.js
+// —lo que sirve Vite y lo que entra en dist/— y va MUY por delante: cuando este
+// archivo estaba en v5, aquél iba por v10. Este de la raíz es un duplicado
+// rezagado. Si vas a tocar el SW, tocá public/sw.js.
+//
+// v6 = rebranding a HABLARTE, aplicado aquí solo para que las dos copias no
+// cuenten historias distintas. El bump que de verdad cuenta es el de
+// public/sw.js (v11).
+const VERSION = 'rodeo-v6';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
+//
+// El prefijo SIGUE siendo 'rodeo-' a propósito, y no es un olvido del
+// rebranding: activate borra las caches que empiezan por PREFIX y no por
+// VERSION. Si esto pasara a 'hablarte-', las caches 'rodeo-v5-*' que ya viven
+// en el teléfono de cada usuario dejarían de coincidir con el filtro y NADIE
+// las borraría nunca. Es un namespace interno, invisible para el usuario.
 const PREFIX = 'rodeo-';
 const SHELL_CACHE  = `${VERSION}-shell`;   // app shell (index.html)
 const STATIC_CACHE = `${VERSION}-static`;  // iconos, manifest same-origin
@@ -53,7 +67,7 @@ const CDN_WARM = [
 // Assets same-origin adicionales para que el EPISODIO ILUSTRADO funcione
 // offline (js del engine + las 6 escenas de "La princesa y el azafrán"). Se
 // precachean en install best-effort: si un archivo no existe o el hosting
-// responde 404, el install sigue. Las fuentes del player son las de RODEO
+// responde 404, el install sigue. Las fuentes del player son las de Hablarte
 // (Archivo/Familjen/Space Mono, ya en CDN_WARM) — Inter salió del retheme.
 const APP_WARM = [
   '/js/story-episodes.js',
@@ -249,7 +263,7 @@ async function networkFirstShell(req) {
     if (cached) return cached;
     // Último recurso: respuesta offline mínima (no debería pasar si install ok).
     return new Response(
-      '<!doctype html><meta charset="utf-8"><title>RODEO offline</title>' +
+      '<!doctype html><meta charset="utf-8"><title>Hablarte offline</title>' +
       '<body style="background:#0a0a0e;color:#fff;font-family:sans-serif;padding:2rem">' +
       'Sin conexión y sin copia local. Vuelve a abrir con internet una vez.</body>',
       { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
@@ -328,7 +342,7 @@ self.addEventListener('message', (event) => {
 
    Coste asumido: en el instante del cambio de versión, una pestaña ya cargada
    podría pedir un sub-recurso y recibirlo del SW nuevo (posible "skew" de
-   versión a media sesión). En RODEO el riesgo es mínimo porque TODA la lógica
+   versión a media sesión). En Hablarte el riesgo es mínimo porque TODA la lógica
    de la app vive inline dentro de index.html (no hay chunks JS versionados que
    se pidan por separado), y el shell es network-first. Un simple reload deja
    todo coherente.

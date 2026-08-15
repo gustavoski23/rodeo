@@ -1,6 +1,6 @@
 # CRIPTO — cómo encender el cobro de suscripciones en USDC
 
-RODEO ya sabe cobrar en cripto. El dinero llega a **tu wallet** (Pangea
+Hablarte ya sabe cobrar en cripto. El dinero llega a **tu wallet** (Pangea
 Wallet), no a un procesador ajeno, y la suscripción se activa sola cuando la
 red confirma el pago.
 
@@ -13,7 +13,7 @@ red confirma el pago.
 ## Cómo funciona (para que no sea una caja negra)
 
 ```
-  RODEO (navegador)          RODEO (servidor)         Pangea Wallet
+  Hablarte (navegador)          Hablarte (servidor)         Pangea Wallet
   ─────────────────          ────────────────         ─────────────
   eliges Crypto      ──────► /api/cripto      ──────► /api/payments/intent
                                                        ↓ crea una referencia
@@ -79,9 +79,9 @@ Solana y testnet de Stellar; para Stellar de prueba hace falta además
 `PANGEA_STELLAR_TESTNET_USDC_ISSUER` (no existe un USDC de prueba canónico y
 está prohibido inventar uno).
 
-## Paso 2 — Apuntar RODEO al receptor
+## Paso 2 — Apuntar Hablarte al receptor
 
-**Normalmente no hay que hacer nada**: RODEO ya apunta por defecto a
+**Normalmente no hay que hacer nada**: Hablarte ya apunta por defecto a
 `https://pangea-wallet.vercel.app`. Solo si quieres probar contra otro
 despliegue (una vista previa, por ejemplo), pon en **Vercel → proyecto rodeo →
 Environment Variables**:
@@ -94,10 +94,10 @@ Environment Variables**:
 
 Hay un plan de prueba (`rodeo-test`, **0,10 USDC**) que recorre exactamente el
 mismo camino que un cobro de verdad. Se activa añadiendo `?pagoprueba=1` a la
-URL de RODEO:
+URL de Hablarte:
 
 ```
-https://TU-RODEO.vercel.app/?pagoprueba=1
+https://TU-APP.vercel.app/?pagoprueba=1
 ```
 
 1. Abre esa URL **en el computador** (para poder escanear el QR con el celular).
@@ -111,7 +111,7 @@ https://TU-RODEO.vercel.app/?pagoprueba=1
    mándalo desde un exchange u otra wallet.
 6. En unos segundos la pantalla pasa **sola** al ticket.
 
-Desde el **celular** hay un camino más corto: abre ahí la URL de RODEO y toca
+Desde el **celular** hay un camino más corto: abre ahí la URL de Hablarte y toca
 "Abrir en una wallet compatible". Ese enlace sí lleva red, monto y
 referencia/memo dentro, así que la wallet lo rellena todo sola — el QR existe
 para el caso "pantalla grande + celular aparte".
@@ -166,12 +166,12 @@ menos.
 
 Por defecto el Premium comprado vive **solo en el navegador** (localStorage). Si
 además quieres que quede **atado al correo del usuario** —que compre en el
-teléfono y lo tenga en la compu, o que reinstale y siga siendo Premium— RODEO ya
+teléfono y lo tenga en la compu, o que reinstale y siga siendo Premium— Hablarte ya
 trae la plomería. Es **aditivo**: sin nada de esto configurado, el cobro
 funciona exactamente igual, solo que no se ata a ninguna cuenta.
 
 **Cómo funciona.** El receptor (Pangea) es sin cuentas a propósito: sabe que
-*alguien* pagó, no *quién*. Así que la identidad la pone RODEO. Cuando hay
+*alguien* pagó, no *quién*. Así que la identidad la pone Hablarte. Cuando hay
 sesión, el navegador manda su token de Supabase a `/api/cripto`; el servidor lo
 verifica y, en cuanto la cadena confirma el pago, escribe la fila en
 `public.suscripciones_premium` atada al `user_id`, deduplicando por `tx_id` (un
@@ -221,7 +221,7 @@ Para cambiarlos se cambia ese archivo y se despliega.
 - **Acredita cada pago UNA sola vez.** El receptor no tiene base de datos: si
   preguntas dos veces por el mismo cobro, responde "pagado" las dos veces. La
   clave para no regalar dos suscripciones es `payment.txId` — guárdala y
-  recházala si ya la procesaste. (Hoy RODEO solo activa Premium en el
+  recházala si ya la procesaste. (Hoy Hablarte solo activa Premium en el
   navegador del comprador, así que no hay doble cobro posible; en cuanto
   actives Premium desde el servidor, implementa esa deduplicación.)
 - **El monto que se pide NO es redondo, y es a propósito.** A cada cobro se le
@@ -247,5 +247,5 @@ Para cambiarlos se cambia ese archivo y se despliega.
 
 ## Apagarlo
 
-Borra `PANGEA_PAYMENTS_URL` en RODEO y redeploy. La pestaña vuelve al modo
+Borra `PANGEA_PAYMENTS_URL` en Hablarte y redeploy. La pestaña vuelve al modo
 demostración al instante; nada más se rompe.
