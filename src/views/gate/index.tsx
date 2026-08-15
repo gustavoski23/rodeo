@@ -106,6 +106,10 @@ export function GateView() {
 
   // Apple y X: aún no cableados. Avisan que llegan pronto, sin romper nada.
   const proximamente = () => toast('Pronto lo activamos');
+  /* Los botones de Apple y X quedan DESMONTADOS hasta que sus providers
+     existan en Supabase (constante, no estado: no hay nada que consultar).
+     El día que se cableen, esto pasa a un chequeo como providersDisponibles. */
+  const PROVIDERS_PRONTO = false;
 
   return (
     /* .gate-tema: tema claro cálido scopeado. `fixed inset-0 z-50` encima de la
@@ -145,8 +149,12 @@ export function GateView() {
         </BlurFade>
 
         {/* Fila de botones sociales vidrio: iguales (size icon), uno al lado del
-            otro, centrados. Google conserva sus colores de marca; Apple y X van
-            en color foreground (currentColor). SIN GitHub. */}
+            otro, centrados. Google conserva sus colores de marca. Apple y X
+            SOLO se montan cuando estén cableados de verdad (hoy: nunca) — un
+            botón cuyo único destino es un toast de "pronto" le cobra la
+            primera ilusión al primer clic de cualquier visitante, y el QA de
+            revisores lo marcó como decepción del minuto uno. El código de los
+            íconos queda importado para el día que el provider exista. */}
         <BlurFade delay={PASO_ENTRADA * 3}>
           <div className="flex items-center justify-center gap-4">
             <GlassButton
@@ -158,24 +166,28 @@ export function GateView() {
             >
               <GoogleIcon />
             </GlassButton>
-            <GlassButton
-              type="button"
-              size="icon"
-              onClick={proximamente}
-              aria-label="Continuar con Apple"
-              contentClassName="gate-icono"
-            >
-              <AppleIcon />
-            </GlassButton>
-            <GlassButton
-              type="button"
-              size="icon"
-              onClick={proximamente}
-              aria-label="Continuar con X"
-              contentClassName="gate-icono"
-            >
-              <XIcon />
-            </GlassButton>
+            {PROVIDERS_PRONTO && (
+              <>
+                <GlassButton
+                  type="button"
+                  size="icon"
+                  onClick={proximamente}
+                  aria-label="Continuar con Apple"
+                  contentClassName="gate-icono"
+                >
+                  <AppleIcon />
+                </GlassButton>
+                <GlassButton
+                  type="button"
+                  size="icon"
+                  onClick={proximamente}
+                  aria-label="Continuar con X"
+                  contentClassName="gate-icono"
+                >
+                  <XIcon />
+                </GlassButton>
+              </>
+            )}
           </div>
         </BlurFade>
 

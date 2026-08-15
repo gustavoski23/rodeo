@@ -1,95 +1,74 @@
-# Hablarte — Tu inglés 24/7
+# Hablarte — tu inglés 24/7
 
-App personal para llevar mi inglés de **B2+ a C1** practicando conversación, historias jugables y slang, con corrección en tiempo real. Sin salón, sin horarios: la práctica de inglés que no tengo viviendo en Medellín.
+App de inglés para hispanohablantes de Latinoamérica, de A1 a C1, hecha para
+usarse **desde el celular**. Nació como la app personal de un venezolano en
+Medellín que necesitaba práctica de conversación real; hoy está abierta y
+tiene también una cara institucional: profesores que enseñan por la app y
+cobran con rieles de USDC ([Pangea Wallet](https://pangea-wallet.vercel.app)).
 
-**Producción:** https://rodeo-gustavoski23s-projects.vercel.app · PIN: `RODEO2026`
+**Producción:** https://rodeo-sigma.vercel.app
+
+**Demo directo a una sección** (salta la puerta de login y el onboarding por
+esa carga): `https://rodeo-sigma.vercel.app/?demo=1#/podcast` — funciona con
+cualquier vista: `#/a1`, `#/libro`, `#/profes`, `#/talk`.
 
 ---
 
-## Qué hace (5 módulos)
+## Qué hace
 
-| Módulo | Qué es |
-|--------|--------|
-| **TALK** | Roleplay hablado/escrito en 9 escenarios (bar, entrevista, etc.) con corrección + voz (Web Speech) + debrief. |
-| **ROLEPLAY** | Teatro narrativo jugable: escenas con rol, meta y obstáculo real + episodio ilustrado inmersivo. |
-| **STORY** | Thriller jugable por beats: decides con tu inglés, medidores LEVERAGE/HEAT, 3 sagas (leak / ghost / pitch). |
-| **SLANG** | Drop de 5 tarjetas estilo Instagram + traducción paisa → gringo. |
-| **SUBE** | Juego B2→C1: subís tu inglés "cook → simmer", flip cards con swap, combo y racha. |
-| **DNA** | Todos tus errores, slang y upgrades guardados en localStorage + quiz. |
-
-Todo alimenta un solo **DNA** compartido — y el DNA **se reinyecta** en TALK:
-tus palabras débiles (no dominadas) vuelven a la conversación hasta que las clavas.
-
-**Cuenta & sync (opcional):** login con Google (Supabase) desde el perfil —
-tu DNA y progreso se sincronizan entre el cel y el PC. Setup en
-[SUPABASE-runbook.md](SUPABASE-runbook.md). Sin cuenta, todo sigue 100% local.
+| Sección | Qué es |
+|---------|--------|
+| **RUTA (A1)** | Curso desde cero: mapa por tramos, sesiones con voz (grabas y comparas), repaso SRS de 5 cajas, coach Alfred. Quien dice "A1 Básico" en el onboarding aterriza directo aquí. |
+| **CONVERSACIÓN** | Charla libre y escenas de roleplay con corrección en tarjetas, voz en las dos direcciones (dictado + TTS) y debrief al cerrar. |
+| **LIBROS (3)** | Libros interactivos con curl 3D real de página, sonido, y phrasal verbs glosados que se tocan. En móvil, modo una-página con gestos. |
+| **PODCAST** | Episodios a dos voces con reproductor karaoke sincronizado palabra a palabra: tocas lo que no entiendes y te lo explica sin pausar. |
+| **SLANG (Pélala)** | Stickers que se pelan para revelar la expresión, su contexto y cómo NO usarla. |
+| **DNA** | Todo lo que fallas o guardas vuelve como repaso hasta que lo dominas. Con cuenta (Google/Supabase) se sincroniza entre aparatos. |
+| **PROFES** | La cara institucional: profesores ponen su tarifa y cobran en USDC (~1% de riel vs 18–33% de comisión de los marketplaces). Qué existe hoy y qué está en camino, rotulado sin humo: `#/profes`. |
 
 ---
 
 ## Stack
 
-- **Frontend:** un solo `index.html` — HTML vanilla + Tailwind (CDN) + GSAP (CDN). Sin build, sin framework.
-- **Backend:** `api/chat.js` — función serverless (Vercel) que hace de proxy a **OpenCode Zen** (modelos Kimi). La API key vive solo en el servidor, nunca en el frontend.
-- **Dev local:** `dev-server.mjs` — sirve `index.html` y monta `/api/chat` en el puerto **4870**.
+- **Frontend:** React 19 + Vite + Tailwind v4 + Zustand. Tokens y temas en
+  `src/styles/tokens.css` (oscuro / claro / gradiente). Fuentes self-hosted:
+  Alan Sans (cuerpo), Archivo (display), Space Mono (labels).
+- **Backend:** funciones serverless en Vercel (`api/`) que hacen proxy a los
+  modelos — las keys viven solo en el servidor.
+- **Pagos (suscripción en cripto):** `api/cripto` habla con el receptor de
+  cobros de [pangea-wallet](https://pangea-wallet.vercel.app) (intención
+  firmada → pago USDC por Solana/Stellar → verificación on-chain). Operación
+  en [CRIPTO-runbook.md](CRIPTO-runbook.md).
+- **Cuenta y sync:** Supabase (Google OAuth + enlace mágico), RLS owner-only.
+  La app entera funciona sin cuenta; el login solo añade sync.
 
----
+## Cómo trabajar en este repo
 
-## Correr en local (ej. en el desktop tras clonar)
-
-> 👉 **¿Configurando una máquina nueva?** Sigue **[SETUP.md](SETUP.md)** — tiene el
-> paso a paso completo (GitHub + Vercel + cómo bajar la API key sin copiarla a mano).
+La guía de verdad es **[CLAUDE.md](CLAUDE.md)** (reglas de trabajo, QA visual
+obligatorio, registro del español) y los runbooks por sistema:
+[LIBRO](LIBRO-runbook.md) · [SUPABASE](SUPABASE-runbook.md) ·
+[PREMIUM](PREMIUM-runbook.md) · [CRIPTO](CRIPTO-runbook.md) ·
+[TWA](TWA-runbook.md).
 
 ```bash
-# 1. Clonar
-git clone https://github.com/gustavoski23/rodeo.git
-cd rodeo
-
-# 2. Crear tu .env.local con la API key (NO se sube a git)
-cp .env.example .env.local
-#   → abre .env.local y pega tu OPENCODE_API_KEY real
-
-# 3. Levantar el server local
-node dev-server.mjs
-#   → abre http://localhost:4870  (NUNCA abras index.html con doble clic:
-#     /api/chat es una ruta relativa y necesita el server corriendo)
+npm install
+npm run dev        # Vite en :5173 — la app
+npm run api        # dev-server.mjs en :4870 — el proxy de /api en local
+npm run typecheck  # tsc -b
+node --test tests/*.test.mjs
 ```
 
-> La `OPENCODE_API_KEY` real **no está en este repo** (por seguridad). Está en el `.env.local` de la máquina original y en las env vars de Vercel. Cópiala a mano al configurar una máquina nueva.
-
----
-
-## Variables de entorno
-
-Ver `.env.example`. Resumen:
-
-| Variable | ¿Obligatoria? | Default |
-|----------|---------------|---------|
-| `OPENCODE_API_KEY` | **Sí** | — (sin ella `/api/chat` falla) |
-| `MODEL_CHAT` | No | `kimi-k2.6` |
-| `MODEL_CREATIVE` | No | `kimi-k2.7-code` |
-| `APP_PASS` | No | — (si se define, el frontend debe mandarla) |
-
----
+Un `#/<vista>` en la URL abre directo esa sección (se lee una vez al cargar;
+no es un router). `?demo=1` salta la puerta y el onboarding por esa carga —
+es el modo con el que se comparten enlaces de demostración.
 
 ## Desplegar
 
-```bash
-npx vercel deploy --prod --yes
-```
+Se trabaja sobre la punta de `claude/rodeo-repo-info-nw2025` y se empuja como
+fast-forward; Vercel despliega solo. Manual: `npx vercel deploy --prod --yes`.
 
-Las env vars se configuran en el dashboard de Vercel (o `vercel env add`), no en el código.
+## Variables de entorno
 
----
-
-## Trabajar con Claude Code desde varias máquinas
-
-Este repo es el punto de sincronización. Flujo:
-
-```bash
-git pull        # antes de empezar a trabajar (traer lo último)
-# ...editar con Claude Code...
-git add -A && git commit -m "lo que cambié"
-git push        # al terminar (subir para la otra máquina)
-```
-
-Así puedo seguir editando el código desde cualquier computadora donde tengas Claude Code.
+Ver `.env.example`. Las obligatorias: `OPENCODE_API_KEY` (modelos). Opcionales:
+`APP_PASS` (candado de las llamadas de IA; el enlace de demo lo resuelve con
+`?clave=…`), `PANGEA_PAYMENTS_URL` y las de Supabase/premium según runbook.
