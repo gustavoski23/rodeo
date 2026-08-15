@@ -11,9 +11,9 @@ import type { Nivel } from '@/stores/onboarding';
    (envolvería los valores en {state,version} y rompería las claves rodeo_*):
    cada campo persistente lee/escribe su clave con el mismo formato de siempre. */
 
-export type View = 'home' | 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1' | 'perfil' | 'libro' | 'podcast';
+export type View = 'home' | 'talk' | 'story' | 'slang' | 'ladder' | 'dna' | 'a1' | 'perfil' | 'libro' | 'podcast' | 'profes';
 
-const VISTAS: readonly View[] = ['home', 'talk', 'story', 'slang', 'ladder', 'dna', 'a1', 'perfil', 'libro', 'podcast'];
+const VISTAS: readonly View[] = ['home', 'talk', 'story', 'slang', 'ladder', 'dna', 'a1', 'perfil', 'libro', 'podcast', 'profes'];
 
 /* Vista de arranque. Normalmente el Home —es la puerta de la app— pero un
    `#/libro` en la URL abre directo ahí.

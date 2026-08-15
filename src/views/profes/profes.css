@@ -1,0 +1,72 @@
+/* PROFES — la cara institucional de Hablarte.
+
+   Las entradas van con CSS keyframes y animation-fill-mode: both, NUNCA con
+   GSAP/motion: la regla de la casa — un reveal que decide si el contenido se
+   ve no puede depender de un ticker que el headless no corre. El stagger se
+   escalona con animation-delay fijo por sección: son seis bloques, no una
+   lista arbitraria. */
+
+@keyframes profes-sube {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.profes-bloque {
+  animation: profes-sube 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.profes-bloque:nth-child(2) { animation-delay: 0.06s; }
+.profes-bloque:nth-child(3) { animation-delay: 0.12s; }
+.profes-bloque:nth-child(4) { animation-delay: 0.18s; }
+.profes-bloque:nth-child(5) { animation-delay: 0.24s; }
+.profes-bloque:nth-child(6) { animation-delay: 0.3s; }
+.profes-bloque:nth-child(7) { animation-delay: 0.36s; }
+.profes-bloque:nth-child(8) { animation-delay: 0.42s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .profes-bloque {
+    animation: none;
+  }
+}
+
+/* Tarjeta-sticker: el mismo lenguaje de las cards de contenido de la app
+   (fondo pastel pleno, tinta oscura, esquinas 24px, rotación leve). La
+   rotación va en una custom property para variar por tarjeta sin clases. */
+.profes-sticker {
+  border-radius: 24px;
+  padding: 20px 22px;
+  color: var(--card-ink);
+  box-shadow: 0 16px 34px oklch(0% 0 0 / 0.22);
+  transform: rotate(var(--giro, 0deg));
+}
+
+/* La comparación de comisiones: dos montos gigantes cara a cara. La línea
+   de en medio es un "vs" mono chiquito, no un divisor — el drama lo ponen
+   los números. */
+.profes-monto {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-size: clamp(2.3rem, 10vw, 3.2rem);
+}
+
+/* Paso del flujo de cobro: número mono en durazno + texto. Lista editorial,
+   no grid de íconos — la regla dura del brief (nada de tres tarjetas
+   ícono/título/párrafo). */
+.profes-paso {
+  display: grid;
+  grid-template-columns: 2.1rem 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.profes-paso + .profes-paso {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde-sutil);
+}

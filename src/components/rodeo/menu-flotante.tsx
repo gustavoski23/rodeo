@@ -121,6 +121,12 @@ export function MenuFlotante({
        tilde a propósito: el roll de letras del FloatingMenu recorta a 1em cada
        carácter y la Ó pierde el acento (y asoma el de la copia de abajo). */
     { label: 'Suscripcion', onClick: () => { cerrarMenu(); abrirSuscripcion(); } },
+    /* PROFES — la cara institucional (2026-08-15): profesores e instituciones
+       que cobran con los rieles de Pangea. Entra al menú porque no tiene carta
+       en la vitrina (las cartas piden imagen horneada y hoy no la hay) y un
+       deep-link solo no descubre nadie. Una palabra, sin tilde: las reglas
+       tipográficas del FloatingMenu de arriba. */
+    { label: 'Profes', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('profes'); } },
     /* CUENTA — la misma ranura sirve para las dos direcciones:
        · con sesión  → "Cerrar sesion": logout() cierra en Supabase, resetea el
          "skip" en memoria y marca gateNecesario, así que la puerta vuelve sola.

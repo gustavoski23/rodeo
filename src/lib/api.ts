@@ -22,6 +22,18 @@ function addCost(delta: number) {
   costSubs.forEach((fn) => fn(total));
 }
 
+/* La clave puede venir en la URL (?clave=…): es el camino del ENLACE DE DEMO
+   que se le manda a un revisor o a un amigo — sin esto, su primera llamada de
+   IA topa un prompt() nativo pidiendo un PIN que no tiene. Se lee UNA vez al
+   cargar el módulo (la misma filosofía de vistaInicial() con el hash: sin
+   listener, sin reescribir la URL) y se persiste en rodeo_pass, exactamente
+   la clave que el prompt del 401 escribiría a mano. Si la clave viene mal, el
+   flujo del 401 sigue intacto y el prompt aparece como siempre. */
+if (typeof location !== 'undefined') {
+  const clave = new URLSearchParams(location.search).get('clave');
+  if (clave) store.set('rodeo_pass', clave);
+}
+
 function headersBase(): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   const pass = store.get<string | null>('rodeo_pass', null);

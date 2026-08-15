@@ -34,6 +34,10 @@ const OficinaView = lazy(() => import('@/views/a1/oficina'));
    audios viven en public/podcasts/ y solo se piden al entrar. */
 const PodcastView = lazy(() => import('@/views/podcast'));
 const PerfilView = lazy(() => import('@/views/perfil'));
+/* PROFES: la cara institucional — profesores que enseñan y cobran por la app
+   con los rieles de Pangea. Lazy como el resto: es una vista de lectura que
+   la mayoría de estudiantes nunca abre. */
+const ProfesView = lazy(() => import('@/views/profes'));
 const OnboardingView = lazy(() => import('@/views/onboarding'));
 const AuroraCustomizer = lazy(() =>
   import('@/components/rodeo/aurora-customizer').then((m) => ({ default: m.AuroraCustomizer })),
@@ -237,6 +241,8 @@ export default function App() {
                 <PodcastView />
               ) : view === 'perfil' ? (
                 <PerfilView />
+              ) : view === 'profes' ? (
+                <ProfesView />
               ) : view === 'libro' ? (
                 <LibroView />
               ) : (
