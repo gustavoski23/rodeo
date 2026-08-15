@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { esNivelA1 } from '@/lib/nivel';
 import { store } from '@/lib/storage';
 import { useApp } from '@/stores/app';
 
@@ -81,7 +82,12 @@ export const useOnboarding = create<OnboardingState>((set) => ({
        Meterlo en el switch de vistas sería colar una decisión de producto
        adentro de un router, y el próximo que agregue un nivel tendría que
        acordarse de tocar App.tsx en vez de este archivo. */
-    if (datos.nivel === 'A1') useApp.setState({ view: 'a1' });
+    /* esNivelA1 y no `=== 'A1'`: hoy `datos.nivel` viene tipado del selector y
+       no puede ser otra cosa, pero esta línea es la que decide si un
+       principiante ve su ruta o el carrusel — y la versión con `===` ya falló
+       una vez en el arranque (index.html comparaba contra 'a1' minúscula).
+       Preguntar siempre por el mismo lado cuesta lo mismo. */
+    if (esNivelA1(datos.nivel)) useApp.setState({ view: 'a1' });
 
     set({ necesario: false });
   },

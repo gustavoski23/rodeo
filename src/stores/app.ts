@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { store } from '@/lib/storage';
+import { esNivelA1, normalizarNivel } from '@/lib/nivel';
 import { aplicarTema, hidratarTema, type Tema } from '@/lib/theme';
 import type { LibroId } from '@/content/libro';
 /* Type-only: onboarding.ts importa este módulo, así que un import normal sería
@@ -53,9 +54,31 @@ function vistaInicial(): View {
 
      Se lee con `store.get` y NO con localStorage.getItem a pelo: la
      persistencia de este repo pasa por JSON.stringify, así que en disco
-     rodeo_nivel vale "A1" CON comillas y un getItem crudo nunca empataría. */
-  return store.get<string | null>('rodeo_nivel', null) === 'A1' ? 'a1' : 'home';
+     rodeo_nivel vale "A1" CON comillas y un getItem crudo nunca empataría.
+     Y se pregunta con esNivelA1 y no con === 'A1', que es lo que dejaba fuera
+     a quien tuviera 'a1' o 'A1 Básico' guardado de una versión vieja. */
+  return esNivelA1(store.get<string | null>('rodeo_nivel', null)) ? 'a1' : 'home';
 }
+
+/* MIGRACIÓN de `rodeo_nivel` a su forma canónica. Corre UNA vez, al cargar
+   este módulo, antes de que nadie lea el valor.
+
+   No inventa ni borra datos de nadie: si lo guardado ya significa A1 en
+   cualquiera de sus formas viejas, lo reescribe como 'A1' y punto. Un nivel
+   que no sea A1 se queda exactamente como está, y un disco vacío sigue vacío
+   —nada de suponerle un nivel a quien no lo eligió—. Tampoco toca
+   rodeo_a1_onboarded: haber usado la app no es haber visto la ruta.
+
+   Sirve para el resto de la app, que lee `rodeo_nivel` del disco por su
+   cuenta: los prompts del coach (views/talk/prompts.ts) y el script de
+   arranque de index.html. */
+function migrarNivel(): void {
+  const guardado = store.get<string | null>('rodeo_nivel', null);
+  if (guardado === null) return;
+  const canonico = normalizarNivel(guardado);
+  if (canonico !== null && canonico !== guardado) store.set('rodeo_nivel', canonico);
+}
+if (typeof localStorage !== 'undefined') migrarNivel();
 
 type AppState = {
   view: View;

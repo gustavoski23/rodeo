@@ -51,10 +51,22 @@
 /* Nivel, leído ANTES del primer paint: el principiante (A1) no tiene tab bar,
    y sin esto la vería aparecer y desaparecer en cada carga. Va en <html>
    porque <body> todavía no existe. Si algo falla, sin clase = avanzado = el
-   comportamiento de siempre. */
+   comportamiento de siempre.
+
+   ESTO COMPARABA CONTRA 'a1' EN MINÚSCULA y el valor que la app persiste es
+   'A1' — o sea que la clase no se aplicó NUNCA desde que se escribió. Es el
+   mismo error que en el resto de la app mandaba al mapa legacy, y por eso la
+   pregunta vive ahora en un solo sitio (src/lib/nivel.ts). Acá no se puede
+   importar —es un script inline sin módulos, a propósito, porque corre antes
+   del bundle— así que se repite la REGLA, no la comparación suelta: hay un
+   test que ata las dos copias (tests/nivel-a1.test.mjs). */
 try {
-  if (JSON.parse(localStorage.getItem('rodeo_nivel') || 'null') === 'a1') {
-    document.documentElement.classList.add('nivel-a1');
+  var nivelGuardado = JSON.parse(localStorage.getItem('rodeo_nivel') || 'null');
+  if (typeof nivelGuardado === 'string') {
+    var n = nivelGuardado.trim().toUpperCase();
+    if (n === 'A1' || n.indexOf('A1 ') === 0) {
+      document.documentElement.classList.add('nivel-a1');
+    }
   }
   // Tema: sin elección guardada el default es GRADIENTE (pedido de Gus). Como
   // gradiente = shell oscuro + fondo animado que monta React tras hidratar,
