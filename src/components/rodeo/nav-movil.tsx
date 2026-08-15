@@ -168,7 +168,7 @@ export function NavMovil({
       aria-label="Navegación principal"
       aria-hidden={oculta || undefined}
       className={cn(
-        'nav-movil fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-2',
+        'nav-movil fixed bottom-[calc(12px+env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-2 max-[359px]:gap-1.5',
         oculta && 'nav-movil--oculta',
       )}
     >
@@ -213,10 +213,12 @@ export function NavMovil({
               onClick={onClick}
               aria-current={activo ? 'page' : undefined}
               aria-expanded={id === 'profile' ? panelAbierto : undefined}
-              /* Icono ARRIBA y label DEBAJO: a 390px cuatro píldoras de
-                 icono+texto horizontales no caben sin partirse; apiladas, las
-                 cuatro (4×70px + 3×8px de gap = 304px) entran hasta en 320px. */
-              contentClassName="flex h-[52px] w-[70px] flex-col items-center justify-center gap-1 p-0"
+              /* Icono y label EN FILA a 34px de alto (pedido de Gus, 2ª ronda:
+                 «horizontales como ES/ENG y un poquitito más bajitas» — ES/ENG
+                 mide ~37px). Con px-13 las cuatro suman ~340px y caben desde
+                 375px de viewport; por debajo de 360px el padding y el gap del
+                 nav se encogen un pelo en vez de partir la fila. */
+              contentClassName="flex h-[34px] flex-row items-center justify-center gap-1.5 px-[13px] py-0 max-[359px]:px-[9px]"
             >
               {/* La "sombra gris" que SE DESLIZA: mismo patrón (layoutId +
                   spring 500/40 + tinta al 12%) que ui-lang-toggle. */}
@@ -224,13 +226,13 @@ export function NavMovil({
                 <motion.span
                   layoutId="nav-movil-activa"
                   aria-hidden="true"
-                  className="absolute inset-x-[6px] inset-y-[5px] rounded-full"
+                  className="absolute inset-x-[6px] inset-y-[4px] rounded-full"
                   style={{ background: 'oklch(from var(--foreground) l c h / 12%)' }}
                   transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 />
               )}
               <Icono
-                size={19}
+                size={16}
                 strokeWidth={activo ? 2.1 : 1.7}
                 aria-hidden="true"
                 className={cn('relative z-10', activo ? 'opacity-100' : 'opacity-75')}
