@@ -11,6 +11,11 @@ import type { Tema } from '@/lib/theme';
 import { programarPrecargaConversacion, programarPrecargaHome } from '@/lib/preload';
 import { useApp } from '@/stores/app';
 const CarruselFeatures = lazy(() => import('@/components/rodeo/carrusel-features'));
+/* La vitrina tiene DOS pieles (pedido de Gus, 2026-08-15): en PC sigue el
+   abanico de cartas; en teléfonos entra el BENTO — las ocho features de un
+   vistazo, sin swipe. Lazy cada una: quien abre en un aparato nunca paga el
+   bundle de la otra. */
+const BentoFeatures = lazy(() => import('@/components/rodeo/bento-features'));
 
 /* El TryMeButton trae sus propios tres temas (dark/light/alternate). Se mapea al
    tema de Hablarte: papel → light; oscuro y gradiente → dark (el botón es un pomo
@@ -239,7 +244,7 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
                 </div>
               }
             >
-              <CarruselFeatures />
+              {ES_TELEFONO ? <BentoFeatures /> : <CarruselFeatures />}
             </Suspense>
           </motion.div>
         )}

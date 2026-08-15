@@ -95,12 +95,15 @@ function OverlayFeature({
    a un setter que nunca cambia. */
 /** Entrar a un libro concreto: fija cuál abre la vista LIBRO y navega. La
     precarga (todo el libro antes de abrir) la dispara la vista al entrar. */
-function abrirLibro(id: LibroId) {
+/* Exportados: el BENTO de teléfonos (bento-features.tsx) navega con estas
+   MISMAS puertas — la marca de carruselAlVolver es una sola para las dos
+   vitrinas, así el ← de cualquier vista reabre la que corresponda. */
+export function abrirLibro(id: LibroId) {
   useApp.getState().setLibroActivo(id);
   abrirFeature('libro');
 }
 
-function abrirFeature(view: View) {
+export function abrirFeature(view: View) {
   const { setCarruselAlVolver, setView } = useApp.getState();
   setCarruselAlVolver(true);
   setView(view);
