@@ -36,15 +36,21 @@ type OnboardingState = {
   completar: (datos: DatosOnboarding) => void;
 };
 
-/* Un enlace directo a PROFES es material de referencia — se comparte con
-   profesores, instituciones y revisores para que LEAN una página, no para que
-   estrenen la app. Pedirle el nombre y el nivel a esa visita es fricción sin
-   retorno, así que el deep-link exime el onboarding por ESTA carga y nada
-   más: CLAVE_HECHO no se toca, y quien después vuelva en frío sin el hash
-   pasa por las pantallas como siempre. Se lee AQUÍ (creación del store) por
-   la misma razón que vistaInicial() lee el hash en stores/app.ts: una vez,
-   sin listener, sin escribir la URL de vuelta. */
-const hashExime = typeof location !== 'undefined' && /^#\/?profes\b/i.test(location.hash);
+/* Dos visitas NO deben pasar por el "¿quién eres?":
+   · Un enlace directo a PROFES — material de referencia que se comparte con
+     profesores, instituciones y revisores para que LEAN una página, no para
+     que estrenen la app.
+   · El MODO DEMO (?demo=1) — el enlace de demo completo: junto con el skip
+     del gate (stores/auth.ts) hace que un deep link compartido aterrice
+     directo en la vista pedida.
+   Las dos eximen por ESTA carga y nada más: CLAVE_HECHO no se toca, y quien
+   después vuelva en frío sin el parámetro pasa por las pantallas como
+   siempre. Se lee AQUÍ (creación del store) por la misma razón que
+   vistaInicial() lee el hash en stores/app.ts: una vez, sin listener, sin
+   escribir la URL de vuelta. */
+const hashExime =
+  typeof location !== 'undefined' &&
+  (/^#\/?profes\b/i.test(location.hash) || new URLSearchParams(location.search).get('demo') === '1');
 
 export const useOnboarding = create<OnboardingState>((set) => ({
   necesario: !hashExime && !store.get<string | null>(CLAVE_HECHO, null),

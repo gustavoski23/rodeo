@@ -21,7 +21,15 @@ import { SB_ANON_KEY, SB_URL, supabase } from '@/lib/supabase';
 // "Skip" en memoria: vive lo que dure esta carga del módulo y se reinicia en
 // cada arranque en frío. Así la puerta reaparece siempre que no haya sesión,
 // sin un muro persistido que la esconda entre aperturas.
-let saltadoEnSesion = false;
+//
+// MODO DEMO (?demo=1): el enlace que se comparte con un revisor o un amigo
+// arranca con el skip YA dado — la puerta no se pinta en ESA carga y el deep
+// link (#/profes, #/podcast…) aterriza directo donde apunta. Es el mismo skip
+// de siempre, solo que dado por la URL en vez del botón: en memoria, sin
+// persistir, y la regla de Gus ("la puerta primero, siempre") sigue intacta
+// para todo el que abra la app sin ese parámetro.
+let saltadoEnSesion =
+  typeof location !== 'undefined' && new URLSearchParams(location.search).get('demo') === '1';
 
 /** ¿Ya saltó el gate en ESTA carga de la app? (A propósito NO se persiste.) */
 function saltado(): boolean {
