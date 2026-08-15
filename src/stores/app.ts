@@ -34,18 +34,27 @@ function vistaInicial(): View {
 
   /* Quien dijo "A1 Básico" en el onboarding no arranca en el Home aurora: un
      carrusel de siete features y una píldora de charla libre no son una puerta
-     para alguien que todavía no sabe decir "hello". Arranca en la RUTA.
+     para alguien que todavía no sabe decir "hello". Arranca en la RUTA, y
+     SIEMPRE — no solo la primera vez (decisión de Gus, 2026-08-15).
 
-     Pero solo HASTA QUE la conozca: en cuanto rodeo_a1_onboarded está en alto,
-     manda el Home de siempre. A esa altura ya sabe volver sola a la ruta, y
-     seguir forzándola sería secuestrarle la app.
+     Antes esto miraba también `rodeo_a1_onboarded` y devolvía el Home en
+     cuanto el usuario conocía la ruta, con el argumento de que a esa altura ya
+     sabía volver sola. Medido: no. Al terminar el onboarding de Alfred la
+     bandera se levanta, y desde el arranque siguiente el mapa desaparecía
+     detrás de la vitrina — la ÚNICA puerta que queda es la card RUTA del bento
+     (ancha y arriba del todo para un A1, eso sí). Ninguna barra lo lleva ahí:
+     la navbar de teléfono va Home · Explore · Talk · Profile, TabBar y
+     MenuSheet siguen sin montarse, y el menú flotante soltó su atajo. Para un
+     A1 el mapa no es una sección de la app: es la app. Si algún día deja de
+     serlo será porque cambió de nivel, y eso ya lo dice `rodeo_nivel`.
+
+     Sigue siendo el hash quien manda por encima de esto (arriba): un #/home
+     sirve para salir, igual que el menú.
 
      Se lee con `store.get` y NO con localStorage.getItem a pelo: la
      persistencia de este repo pasa por JSON.stringify, así que en disco
      rodeo_nivel vale "A1" CON comillas y un getItem crudo nunca empataría. */
-  const esA1 = store.get<string | null>('rodeo_nivel', null) === 'A1';
-  const yaVioLaRuta = store.get<boolean>('rodeo_a1_onboarded', false);
-  return esA1 && !yaVioLaRuta ? 'a1' : 'home';
+  return store.get<string | null>('rodeo_nivel', null) === 'A1' ? 'a1' : 'home';
 }
 
 type AppState = {
