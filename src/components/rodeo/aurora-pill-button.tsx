@@ -1,0 +1,85 @@
+import { useEffect, useRef, useState } from 'react';
+
+import { cn } from '@/lib/utils';
+import './aurora.css';
+
+/* AuroraPillButton — estructura y tiempos 1:1 de la referencia aprobada
+   (codex/home-aurora-production-review, index.html:1980-1989 y 3946-3986).
+   No hay un segundo AuroraPillButton en la app.
+
+   Activación (temporización LOCAL, no finge red):
+   - press: is-pressing durante 120 ms como respuesta táctil;
+   - onLaunch(viaTeclado) se ejecuta sin espera. Enter/Espacio activan vía keydown; el clic por
+     teclado (detail===0) también cuenta como teclado para llevar el foco a
+     "Volver a los escenarios".
+
+   demo=true (preview del personalizador): disabled, sin press ni launch, pero
+   las masas siguen animando para ver la paleta en vivo. */
+
+/** Tactile feedback only; it never delays the requested action. */
+export const AURORA_HOME_FEEDBACK_MS = 120;
+
+export function AuroraPillButton({
+  children,
+  onLaunch,
+  className,
+  demo = false,
+}: {
+  children: React.ReactNode;
+  onLaunch?: (viaTeclado: boolean) => void | Promise<void>;
+  className?: string;
+  demo?: boolean;
+}) {
+  const [pressing, setPressing] = useState(false);
+  const pendingRef = useRef(false);
+  const vivoRef = useRef(true);
+  const feedbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    vivoRef.current = true;
+    return () => {
+      vivoRef.current = false;
+      if (feedbackRef.current) clearTimeout(feedbackRef.current);
+    };
+  }, []);
+
+  async function activar(viaTeclado: boolean) {
+    if (demo || pendingRef.current) return;
+    pendingRef.current = true;
+    setPressing(true);
+    feedbackRef.current = setTimeout(() => {
+      feedbackRef.current = null;
+      if (vivoRef.current) setPressing(false);
+    }, AURORA_HOME_FEEDBACK_MS);
+    try {
+      await onLaunch?.(viaTeclado);
+    } finally {
+      pendingRef.current = false;
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      aria-label={typeof children === 'string' ? children : undefined}
+      aria-busy={pressing || undefined}
+      disabled={demo || pressing || undefined}
+      onClick={(e) => void activar(e.detail === 0)}
+      onKeyDown={(e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        void activar(true);
+      }}
+      className={cn('aurora-pill', pressing && 'is-pressing', className)}
+    >
+      <span className="aurora-pill__field" aria-hidden="true">
+        <span className="aurora-pill__inner">
+          <span className="aurora-pill__mass aurora-pill__mass--one" />
+          <span className="aurora-pill__mass aurora-pill__mass--two" />
+          <span className="aurora-pill__mass aurora-pill__mass--three" />
+        </span>
+      </span>
+      <span className="aurora-pill__label">{children}</span>
+    </button>
+  );
+}

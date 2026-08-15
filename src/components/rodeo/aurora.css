@@ -1,0 +1,1587 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   AURORA — copiado 1:1 de la referencia aprobada por Gus
+   (codex/home-aurora-production-review, index.html). NO reinterpretar: colores,
+   tiempos, gradientes y curvas son los del original. Lo único que cambia es
+   que aquí React monta el layout, así que las reglas `body.rd-aurora-home`
+   (que ocultaban el DOM viejo) no hacen falta.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Lienzo del Home — regla 4: «QUIERO QUE EL FONDO SE VEA COMO EL DEL HOME,
+   TODOS LOS FONDOS DEBEN VERSE ASI». Para que eso sea literalmente cierto el
+   Home no puede tener lienzo propio: usa el MISMO token que el body, que la
+   capa del carrusel (.aurora-carrusel, línea ~550) y que toda vista de
+   feature. Hasta la ronda 5 aquí había un `#14161a` hardcodeado — el último
+   hex de lienzo sin token — y en OSCURO medía rgb(20,22,26) contra los
+   rgb(2,2,4) de las otras once pantallas: al abrir el abanico desde el Home el
+   fondo se oscurecía de golpe. Con var(--bg-void) los dos lienzos coinciden a
+   píxel en los tres temas (en claro el token ya era el papel, así que el
+   override `:root[data-theme='light'] .aurora-shell` sobraba y se fue; en
+   gradiente home/index.tsx sigue poniendo `transparent` inline para dejar ver
+   las burbujas del <FondoTema/>). Al no ser un color fijo, el barrido del
+   AnimatedThemeToggler sigue teniendo algo que barrer. */
+.aurora-shell {
+  background: var(--bg-void);
+}
+
+.aurora-home {
+  width: 100%;
+  max-width: 760px;
+  min-height: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(38px, 8vh, 72px);
+  padding: 18px 0 clamp(28px, 7vh, 64px);
+  text-align: center;
+}
+.aurora-home__copy {
+  display: grid;
+  justify-items: center;
+  gap: 13px;
+}
+.aurora-home__greeting {
+  margin: 0;
+  color: oklch(69% 0.008 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: clamp(1.02rem, 2vw, 1.18rem);
+  font-variation-settings: 'wght' 620;
+}
+.aurora-home__question {
+  max-width: 720px;
+  margin: 0;
+  color: oklch(96% 0.004 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: clamp(2.55rem, 6.5vw, 5.15rem);
+  font-variation-settings: 'wght' 760;
+  line-height: 0.94;
+  letter-spacing: -0.047em;
+  text-wrap: balance;
+}
+.aurora-home__actions {
+  width: min(100%, 480px);
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
+.aurora-pill {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 16px 24px;
+  border: 1px solid oklch(94% 0.008 265 / 0.065);
+  border-radius: 999px;
+  background: linear-gradient(168deg, oklch(18.5% 0.014 265), oklch(14.5% 0.012 265));
+  color: oklch(97% 0.003 265);
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 oklch(96% 0.006 265 / 0.08),
+    inset 0 -1px 0 oklch(6% 0.014 265 / 0.34),
+    0 7px 18px oklch(6% 0.014 265 / 0.28),
+    0 2px 5px oklch(6% 0.014 265 / 0.22);
+  transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+}
+.aurora-pill::after {
+  position: absolute;
+  z-index: 20;
+  inset: 1px;
+  border: 1px solid oklch(94% 0.008 265 / 0.05);
+  border-radius: inherit;
+  pointer-events: none;
+  content: '';
+}
+.aurora-pill:hover:not(:disabled) {
+  border-color: oklch(94% 0.008 265 / 0.12);
+  box-shadow:
+    inset 0 1px 0 oklch(96% 0.006 265 / 0.1),
+    inset 0 -1px 0 oklch(6% 0.014 265 / 0.32),
+    0 9px 20px oklch(6% 0.014 265 / 0.3);
+}
+.aurora-pill:active:not(:disabled) { transform: scale(0.99); }
+.aurora-pill:disabled { cursor: default; opacity: 1; }
+.aurora-pill.is-pressing {
+  transform: translate3d(0, 4px, 0) scale3d(.986, .97, 1);
+  border-color: oklch(94% 0.008 265 / 0.045);
+  box-shadow:
+    inset 0 4px 12px oklch(5% 0.014 265 / .48),
+    inset 0 -1px 0 oklch(94% 0.006 265 / .035),
+    0 2px 5px oklch(5% 0.014 265 / .2);
+  transition-duration: .16s;
+}
+.aurora-pill.is-pressing .aurora-pill__field {
+  transform: translate3d(0, 1px, 0);
+  filter: brightness(.91);
+}
+.aurora-pill.is-pressing .aurora-pill__label { transform: translate3d(0, 1px, 0); }
+.aurora-pill__field,
+.aurora-pill__label { transition: filter .18s ease, transform .18s cubic-bezier(.22, 1, .36, 1); }
+.aurora-pill__label {
+  position: relative;
+  z-index: 10;
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: 1.12rem;
+  font-variation-settings: 'wght' 720;
+  line-height: 1;
+  letter-spacing: -0.014em;
+}
+.aurora-pill__field {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.aurora-pill__field::before {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    oklch(17.5% 0.013 265) 0%,
+    oklch(17.5% 0.013 265 / 0.98) 27%,
+    oklch(17.5% 0.013 265 / 0.91) 43%,
+    oklch(17.5% 0.013 265 / 0.68) 58%,
+    oklch(17.5% 0.013 265 / 0.25) 75%,
+    transparent 91%
+  );
+  content: '';
+}
+.aurora-pill__inner {
+  position: absolute;
+  inset: 0;
+  contain: paint;
+  opacity: clamp(0.55, var(--aurora-strength), 1);
+  filter: saturate(var(--aurora-strength)) brightness(var(--aurora-brightness));
+}
+.aurora-pill__inner::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    96deg,
+    transparent 12%,
+    color-mix(in oklch, var(--aurora-1) 10%, transparent) 42%,
+    color-mix(in oklch, var(--aurora-2) 26%, transparent) 70%,
+    color-mix(in oklch, var(--aurora-3) 48%, transparent) 100%
+  );
+  opacity: 0.72;
+  content: '';
+}
+.aurora-pill__mass {
+  position: absolute;
+  display: block;
+  will-change: transform, border-radius;
+}
+.aurora-pill__mass--one {
+  top: -30%;
+  right: -4%;
+  width: 68%;
+  height: 116%;
+  background: radial-gradient(
+    118% 76% at 74% 44%,
+    color-mix(in oklch, var(--aurora-2) 78%, var(--aurora-3)) 0 20%,
+    var(--aurora-2) 43%,
+    color-mix(in oklch, var(--aurora-1) 68%, transparent) 66%,
+    transparent 84%
+  );
+  filter: blur(5px) saturate(1.03);
+  opacity: .86;
+  animation: aurora-mass-one var(--aurora-duration-one) ease-in-out -4.1s infinite;
+}
+.aurora-pill__mass--two {
+  right: -1%;
+  bottom: -36%;
+  width: 76%;
+  height: 94%;
+  background: radial-gradient(
+    124% 90% at 78% 42%,
+    var(--aurora-1) 0 22%,
+    color-mix(in oklch, var(--aurora-1) 70%, var(--aurora-2)) 46%,
+    color-mix(in oklch, var(--aurora-1) 58%, transparent) 67%,
+    transparent 86%
+  );
+  filter: blur(6px) saturate(.98);
+  opacity: .78;
+  animation: aurora-mass-two var(--aurora-duration-two) ease-in-out -8.6s infinite;
+}
+.aurora-pill__mass--three {
+  top: -9%;
+  right: -7%;
+  width: 40%;
+  height: 118%;
+  background: radial-gradient(
+    94% 76% at 70% 50%,
+    var(--aurora-3) 0 22%,
+    color-mix(in oklch, var(--aurora-3) 62%, var(--aurora-2)) 46%,
+    color-mix(in oklch, var(--aurora-3) 48%, transparent) 64%,
+    transparent 82%
+  );
+  filter: blur(3.5px) saturate(.94);
+  opacity: .9;
+  animation: aurora-mass-three var(--aurora-duration-three) ease-in-out -2.7s infinite;
+}
+@keyframes aurora-mass-one {
+  0%, 100% { transform: translate3d(-4%, 4%, 0) scale3d(.94, 1.03, 1) skewX(-3deg); border-radius: 48% 52% 58% 42% / 46% 41% 59% 54%; }
+  50% { transform: translate3d(-11%, -5%, 0) scale3d(1.05, .94, 1) skewX(2deg); border-radius: 58% 42% 46% 54% / 57% 52% 48% 43%; }
+}
+@keyframes aurora-mass-two {
+  0%, 100% { transform: translate3d(-6%, -2%, 0) scale3d(1.03, .96, 1) skewY(2deg); border-radius: 44% 56% 51% 49% / 56% 47% 53% 44%; }
+  50% { transform: translate3d(-14%, -10%, 0) scale3d(.92, 1.08, 1) skewY(-3deg); border-radius: 54% 46% 42% 58% / 45% 58% 42% 55%; }
+}
+@keyframes aurora-mass-three {
+  0%, 100% { transform: translate3d(4%, -4%, 0) scale3d(.95, 1.04, 1); border-radius: 54% 46% 42% 58% / 46% 56% 44% 54%; }
+  50% { transform: translate3d(-6%, 5%, 0) scale3d(1.06, .94, 1); border-radius: 43% 57% 59% 41% / 57% 43% 55% 45%; }
+}
+
+/* Estado local de apertura: comunica una transición breve, no trabajo de red. */
+.assistant-thinking {
+  position: relative;
+  isolation: isolate;
+  width: fit-content;
+  min-width: 132px;
+  overflow: hidden;
+  padding: 1px;
+  border: 1px solid oklch(94% 0.008 265 / .1);
+  border-radius: 999px;
+  background: oklch(15% 0.012 265);
+  box-shadow:
+    0 8px 22px oklch(5% 0.014 265 / .24),
+    inset 0 1px 0 oklch(94% 0.006 265 / .045);
+}
+.assistant-thinking::before {
+  position: absolute;
+  z-index: 0;
+  inset: -105% -42%;
+  background: conic-gradient(
+    from 0turn,
+    transparent 0 64%,
+    color-mix(in oklch, var(--aurora-1) 64%, transparent) 73%,
+    color-mix(in oklch, var(--aurora-2) 88%, var(--aurora-3)) 80%,
+    var(--aurora-3) 84%,
+    transparent 92% 100%
+  );
+  opacity: .9;
+  content: '';
+  animation: assistant-thinking-orbit 1.55s linear infinite;
+  will-change: transform;
+}
+.assistant-thinking__surface {
+  position: relative;
+  z-index: 1;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  border-radius: inherit;
+  background: linear-gradient(160deg, oklch(18% 0.014 265), oklch(13.5% 0.011 265));
+  color: oklch(91% 0.006 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: .92rem;
+  font-variation-settings: 'wght' 650;
+  letter-spacing: -.008em;
+  box-shadow: inset 0 0 0 1px oklch(94% 0.008 265 / .075);
+}
+@keyframes assistant-thinking-orbit { to { transform: rotate(1turn); } }
+
+.aurora-more {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid oklch(94% 0.008 265 / 0.09);
+  border-radius: 50%;
+  background: oklch(18% 0.012 265 / 0.38);
+  color: oklch(70% 0.008 265);
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background .2s ease, transform .25s ease;
+}
+.aurora-more:hover,
+.aurora-more:focus-visible {
+  color: oklch(94% 0.004 265);
+  border-color: oklch(94% 0.008 265 / 0.18);
+  background: oklch(20% 0.012 265 / 0.66);
+}
+.aurora-more[aria-expanded='true'] { transform: rotate(180deg); }
+.aurora-more svg { width: 18px; height: 18px; }
+.aurora-story-option {
+  width: min(100%, 310px);
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 18px;
+  border: 1px solid oklch(94% 0.008 265 / 0.11);
+  border-radius: 17px;
+  background: oklch(18% 0.013 265 / 0.88);
+  color: oklch(91% 0.006 265);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: .96rem;
+  font-variation-settings: 'wght' 650;
+  cursor: pointer;
+  box-shadow: 0 8px 24px oklch(5% 0.014 265 / .24);
+  animation: aurora-option-in .26s cubic-bezier(.22, 1, .36, 1) both;
+}
+.aurora-story-option[hidden] { display: none; }
+.aurora-story-option:hover,
+.aurora-story-option:focus-visible { border-color: oklch(94% 0.008 265 / .22); }
+.aurora-story-option svg { width: 18px; height: 18px; color: oklch(76% 0.08 55); }
+@keyframes aurora-option-in { from { opacity: 0; transform: translateY(-8px) scale(.98); } }
+
+/* ── Personalizador ─────────────────────────────────────────────────────── */
+
+/* La HOJA del modal es vidrio, no una tarjeta opaca: misma receta que los
+   botones glass que viven dentro (degradado diagonal + borde cónico helado +
+   barrido especular), para que el panel y sus pills se lean como el mismo
+   material. Dos diferencias obligadas por la escala:
+   1) lleva un TINTE de respaldo — a 5-20% de alfa el texto sobre el velo
+      negro sería ilegible, así que el vidrio se monta sobre --bg-elevated
+      translúcido;
+   2) el desenfoque es de panel (28px), no de botón (2px): en una superficie
+      grande el blur pequeño lee «plástico translúcido», no «vidrio». */
+.aurora-customizer__hoja {
+  --ac-glass-fg: var(--text-primary);
+  --ac-glass-base: oklch(96% 0.004 265);
+  --ac-glass-tinte: oklch(from var(--bg-elevated) l c h / 64%);
+
+  /* OJO: nada de `position: relative` aquí. La hoja va con `fixed` de Tailwind
+     (misma especificidad que esta clase), así que declararlo lo pisaba y el
+     panel caía al flujo, fuera de la pantalla. `fixed` ya sirve de ancestro
+     posicionado para el borde y el especular. */
+  isolation: isolate;
+  border: none;
+  background:
+    linear-gradient(
+      -75deg,
+      oklch(from var(--ac-glass-base) l c h / 6%),
+      oklch(from var(--ac-glass-base) l c h / 22%),
+      oklch(from var(--ac-glass-base) l c h / 6%)
+    ),
+    var(--ac-glass-tinte);
+  backdrop-filter: blur(28px) saturate(165%);
+  -webkit-backdrop-filter: blur(28px) saturate(165%);
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--ac-glass-fg) l c h / 5%),
+    inset 0 -0.125em 0.125em oklch(from var(--ac-glass-base) l c h / 22%),
+    0 1.5em 2.5em -0.75em oklch(from var(--ac-glass-fg) l c h / 22%);
+}
+/* Solo en CLARO. Ojo con copiar esto del reproductor: allí `gradiente` traía
+   tokens claros, pero a nivel de app `gradiente` es el tema OSCURO con fondo
+   animado (lib/theme.ts) y nunca pone data-theme='light'. Meterlo aquí pintaba
+   el vidrio crema sobre una paleta oscura. */
+:root[data-theme='light'] .aurora-customizer__hoja {
+  --ac-glass-base: oklch(97% 0.014 85);
+  --ac-glass-tinte: oklch(from var(--bg-elevated) l c h / 82%);
+}
+/* Borde helado: el mismo cónico de los botones, al radio de la hoja. Va por
+   encima del contenido, pero enmascarado a 1px solo pinta el filo. */
+.aurora-customizer__hoja::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 1px;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      from -75deg at 50% 50%,
+      oklch(from var(--ac-glass-fg) l c h / 42%) 0%,
+      transparent 5% 40%,
+      oklch(from var(--ac-glass-fg) l c h / 42%) 50%,
+      transparent 60% 95%,
+      oklch(from var(--ac-glass-fg) l c h / 42%) 100%
+    ),
+    linear-gradient(180deg, oklch(from var(--ac-glass-base) l c h / 40%), oklch(from var(--ac-glass-base) l c h / 40%));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+}
+/* Barrido especular. z-index NEGATIVO a propósito: en un botón la banda puede
+   pasar por encima del rótulo, pero sobre un panel lleno de texto el blend
+   «screen» lo lavaría. Así queda entre el fondo y el contenido. */
+.aurora-customizer__hoja::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    -45deg,
+    transparent 0%,
+    oklch(from var(--ac-glass-base) l c h / 24%) 38% 52%,
+    transparent 62%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+/* Sin backdrop-filter (Firefox con la bandera apagada) el vidrio se vería
+   como un velo lechoso sobre texto ilegible: se cae a superficie opaca. */
+@supports not (backdrop-filter: blur(1px)) {
+  .aurora-customizer__hoja { background: var(--bg-elevated); }
+}
+
+/* La hoja ya no scrollea (si lo hiciera, el borde cónico y el especular se
+   irían con el contenido): scrollea el contenido dentro de ella. */
+.aurora-customizer {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.aurora-customizer { color: oklch(94% 0.006 265); }
+.aurora-customizer__header,
+.aurora-customizer__map-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.aurora-customizer__eyebrow {
+  margin: 0 0 5px;
+  color: oklch(67% 0.012 265);
+  font-family: 'Space Mono', monospace;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.aurora-customizer h2,
+.aurora-customizer h3 {
+  margin: 0;
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-variation-settings: 'wght' 720;
+  line-height: 1;
+  letter-spacing: -.018em;
+}
+.aurora-customizer h2 { font-size: 1.35rem; }
+.aurora-customizer h3 { font-size: 1.08rem; }
+.aurora-customizer__close,
+.aurora-customizer__reset,
+.aurora-customizer__swap {
+  min-height: 44px;
+  border: 1px solid oklch(92% 0.008 265 / .1);
+  border-radius: 13px;
+  color: oklch(83% 0.008 265);
+  background: oklch(96% 0.004 265 / .045);
+  cursor: pointer;
+}
+.aurora-customizer__close {
+  width: 44px;
+  flex: 0 0 44px;
+  font-size: 1.4rem;
+}
+.aurora-customizer__reset { min-width: 102px; padding: 0 13px; font-size: .7rem; font-weight: 650; }
+.aurora-customizer__reset:disabled { cursor: default; opacity: .36; }
+.aurora-customizer__preview {
+  margin: 18px 0 14px;
+  padding: 18px;
+  border: 1px solid oklch(92% 0.008 265 / .07);
+  border-radius: 22px;
+  background: radial-gradient(circle at 55% 50%, oklch(25% 0.018 265 / .5), transparent 66%), oklch(11% 0.01 265 / .72);
+}
+.aurora-customizer__map {
+  padding: 16px;
+  border: 1px solid oklch(92% 0.008 265 / .075);
+  border-radius: 22px;
+  background: oklch(12.5% 0.011 265 / .6);
+}
+.aurora-customizer__presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 15px;
+}
+.aurora-preset {
+  min-width: 0;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px 7px 7px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: oklch(69% 0.01 265);
+  background: oklch(96% 0.004 265 / .035);
+  font-size: .66rem;
+  font-weight: 620;
+  cursor: pointer;
+}
+.aurora-preset[aria-pressed='true'] {
+  color: oklch(95% 0.006 265);
+  border-color: oklch(92% 0.008 265 / .18);
+  background: oklch(96% 0.004 265 / .07);
+}
+.aurora-preset__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-preset__map {
+  width: 34px;
+  height: 20px;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 34px;
+}
+.aurora-preset__map i {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  top: 0;
+  border: 1px solid oklch(12% 0.01 265 / .38);
+  border-radius: 50%;
+}
+.aurora-preset__map i:nth-child(1) { left: 0; }
+.aurora-preset__map i:nth-child(2) { left: 7px; }
+.aurora-preset__map i:nth-child(3) { left: 14px; }
+.aurora-customizer__colors {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 16px;
+}
+.aurora-color-field { min-width: 0; display: grid; gap: 6px; }
+.aurora-color-field__label { color: oklch(66% 0.01 265); font-size: .61rem; font-weight: 650; }
+.aurora-color-field__shell {
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border: 1px solid oklch(92% 0.008 265 / .09);
+  border-radius: 12px;
+  background: oklch(8.5% 0.009 265 / .62);
+}
+.aurora-color-field__shell:focus-within { border-color: oklch(84% 0.08 74 / .52); }
+.aurora-color-field__shell[data-invalid='true'] { border-color: oklch(68% 0.14 28 / .66); }
+.aurora-color-field__swatch {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  border: 1px solid oklch(98% 0.004 265 / .12);
+  border-radius: 8px;
+}
+.aurora-color-field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: oklch(83% 0.008 265);
+  background: transparent;
+  font-family: 'Space Mono', monospace;
+  font-size: .61rem;
+  text-transform: uppercase;
+}
+.aurora-color-field__error { min-height: .7rem; color: oklch(76% 0.13 28); font-size: .55rem; }
+.aurora-customizer__swap {
+  width: 100%;
+  margin-top: 2px;
+  font-size: .72rem;
+  font-weight: 650;
+}
+.aurora-customizer__motion {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid oklch(92% 0.008 265 / .07);
+}
+.aurora-customizer__motion label { min-width: 0; display: grid; gap: 9px; color: oklch(68% 0.01 265); font-size: .65rem; font-weight: 650; }
+.aurora-customizer__motion label > span { display: flex; justify-content: space-between; gap: 8px; }
+.aurora-customizer__motion output { color: oklch(84% 0.008 265); font-family: 'Space Mono', monospace; font-size: .57rem; }
+.aurora-customizer__motion input[type='range'] { width: 100%; height: 20px; margin: 0; accent-color: #d99c66; cursor: pointer; }
+.aurora-customizer__note { margin: 12px 2px 0; color: oklch(59% 0.009 265); font-size: .66rem; text-align: center; }
+
+/* ── Personalizador del border beam (bajo el mapa de aurora) ──────────────── */
+.beam-preview { display: grid; place-items: center; padding: 20px 6px 8px; }
+.beam-preview__card {
+  width: min(330px, 100%);
+  height: 62px;
+  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--borde-sutil);
+  box-shadow: var(--sticker-shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+.beam-preview__dot {
+  width: 26px; height: 26px; flex-shrink: 0; border-radius: 999px;
+  background: var(--bg-elevated); border: 1px solid var(--borde-sutil);
+}
+.beam-preview__line { height: 10px; flex: 1; border-radius: 999px; background: var(--borde-medio); }
+
+.beam-group-label {
+  margin: 14px 0 7px;
+  font-family: var(--font-mono);
+  font-size: .6rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.beam-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.beam-chip {
+  font-family: var(--font-sans);
+  font-size: .78rem; font-weight: 600;
+  padding: 6px 12px; border-radius: 10px; cursor: pointer;
+  color: var(--text-secondary);
+  background: var(--chip-bg);
+  border: 1px solid var(--borde-sutil);
+  transition: color .15s, background .15s, border-color .15s;
+}
+.beam-chip:hover { color: var(--text-primary); }
+.beam-chip[aria-pressed='true'] {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-color: var(--borde-medio);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-story-option { animation: none; }
+  .aurora-more { transition: none; }
+  .aurora-pill.is-pressing { transform: none; transition: none; }
+  .aurora-pill.is-pressing .aurora-pill__field,
+  .aurora-pill.is-pressing .aurora-pill__label { transform: none; transition: none; }
+  .aurora-pill__mass { animation: none !important; will-change: auto; }
+  .assistant-thinking::before {
+    animation: none;
+    inset: 0;
+    background: linear-gradient(90deg, var(--aurora-1), var(--aurora-2), var(--aurora-3));
+  }
+}
+
+@media (max-width: 600px) {
+  .aurora-home { justify-content: center; gap: clamp(34px, 7vh, 54px); padding-top: 8px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   carrusel de features
+   Bloque NUEVO (nada de arriba se toca). Vive aquí porque es piel del Home:
+   la capa que abre el chevron ⌄ y el overlay de las cartas del abanico.
+   Todo lo que reposiciona el Home cuelga de .aurora-home--con-carrusel, así
+   que el Home CERRADO no cambia ni un píxel.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Capa del carrusel: se come la pantalla para que el abanico quede como la
+   captura —cartas flotando sobre el lienzo, sin el saludo ni la píldora
+   compitiendo—, pero ese lienzo es EL DEL TEMA (regla 4), no un negro fijo.
+   Hasta la ronda 3 aquí había un `background: #14161a` hardcodeado: opaco al
+   100% en los TRES temas, así que en CLARO la app entera saltaba de papel a
+   negro al abrir la vitrina y en GRADIENTE la capa tapaba por completo las
+   burbujas (elementFromPoint sobre ellas devolvía .aurora-carrusel).
+   Ahora: var(--bg-void) —el mismo token de lienzo que usan el shell y el
+   body— en claro/oscuro, y TRANSPARENTE en gradiente, donde el lienzo lo pone
+   el <FondoTema/> global (mismo criterio que .aurora-shell, que ya se declara
+   transparente inline en gradiente desde views/home/index.tsx).
+   overflow:hidden porque el abanico se sale por los flancos a propósito y no
+   queremos scroll horizontal. */
+.aurora-carrusel {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  /* Hueco reservado abajo para el chevron de cerrar, que va fijo al pie. */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  background: var(--bg-void);
+  /* Tinta de los MANDOS del abanico (flechas, puntos, aros de foco) y del ←
+     de la capa. Sobre lienzo oscuro son blancos translúcidos —los de
+     siempre—; sobre el papel claro se invierten a negro o desaparecerían.
+     Se publica como canal RGB para poder modular la alfa en cada uso. */
+  --cf-mando: 255 255 255;
+}
+:root[data-theme='light'] .aurora-carrusel {
+  --cf-mando: 0 0 0;
+}
+/* En gradiente el lienzo son las burbujas: la capa se quita de en medio para
+   dejarlas pasar (la del velo de .aurora-fondo-gradiente ya asegura contraste). */
+:root[data-fondo='gradiente'] .aurora-carrusel {
+  background: transparent;
+}
+
+/* Lienzo: solo existe para llevar `data-centro` (qué carta manda ahora) y
+   para que el <section> del componente ocupe todo el ancho de la capa. */
+.aurora-carrusel__lienzo { width: 100%; }
+
+/* Con el carrusel abierto el chevron es el mando de cerrar: se va al pie,
+   centrado y por encima de la capa (ya gira 180° por su [aria-expanded]).
+   La píldora aurora y cualquier otro hijo de las acciones se ocultan: están
+   debajo de la capa opaca y solo estorbarían al foco. */
+.aurora-home--con-carrusel .aurora-home__actions {
+  position: fixed;
+  z-index: 50;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 50%;
+  width: auto;
+  transform: translateX(-50%);
+}
+.aurora-home--con-carrusel .aurora-home__actions > :not(.aurora-more) { display: none; }
+/* El saludo y la pregunta también se apagan con la vitrina abierta. Antes los
+   escondía el fondo opaco de la capa; en gradiente, que ahora es transparente
+   para dejar ver las burbujas, el «¿Qué quieres practicar hoy?» se leía POR
+   DETRÁS de las cartas (medido a 1280×800). Opacidad y no display: el bloque
+   sigue ocupando su sitio y vuelve con un fundido, sin saltos al cerrar. */
+.aurora-home--con-carrusel .aurora-home__copy {
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+
+/* Mandos del abanico (flechas ‹ › y puntos) ───────────────────────────────
+   ARREGLO DE CONTRASTE, no capricho. card-fan-carousel.tsx pinta sus mandos
+   con pares de utilidades Tailwind `x dark:x` (bg-black/5 dark:bg-white/5,
+   text-black/40 dark:text-white/55, punto activo bg-black/70 dark:bg-white/80).
+   El `dark:` del repo es `:root:not([data-theme='light'])` (tokens.css:17), o
+   sea que en OSCURO y GRADIENTE gana la rama blanca y en CLARO la negra. El
+   problema estaba en que esta capa era negra (#14161a) en los TRES temas: en
+   claro salía glifo negro al 40% y punto activo negro al 70% sobre negro — los
+   mandos DESAPARECÍAN y el indicador de "estás aquí" era el píxel más oscuro
+   de la fila. Ahora que la capa lleva el lienzo del tema (arriba), la tinta se
+   decide con --cf-mando y sigue el fondo en vez de pelearse con él.
+   Se corrige aquí y no en el .tsx (que no se toca): estos selectores son
+   0-2-1 / 0-2-2 y ganan a las utilidades (0-1-0) sin necesidad de !important.
+   El chevron es un <svg stroke="currentColor">, así que basta con `color`. */
+.aurora-carrusel button[aria-label='Previous'],
+.aurora-carrusel button[aria-label='Next'] {
+  border-color: rgb(var(--cf-mando) / 0.16);
+  background: rgb(var(--cf-mando) / 0.06);
+  color: rgb(var(--cf-mando) / 0.62);
+}
+.aurora-carrusel button[aria-label='Previous']:hover,
+.aurora-carrusel button[aria-label='Next']:hover {
+  border-color: rgb(var(--cf-mando) / 0.32);
+  background: rgb(var(--cf-mando) / 0.1);
+  color: rgb(var(--cf-mando) / 0.92);
+}
+.aurora-carrusel button[aria-label='Previous']:focus-visible,
+.aurora-carrusel button[aria-label='Next']:focus-visible {
+  outline: 2px solid rgb(var(--cf-mando) / 0.6);
+  outline-offset: 3px;
+}
+/* Puntos: inactivos apenas insinuados, el activo BLANCO (es el que marca
+   dónde estás). El activo se reconoce por la utilidad scale-[1.3]. */
+.aurora-carrusel section > div:last-child > div > span { background: rgb(var(--cf-mando) / 0.18); }
+.aurora-carrusel section > div:last-child > div > span[class*='scale-'] { background: rgb(var(--cf-mando) / 0.85); }
+
+/* Foco de teclado en una carta: la trae AL FRENTE además de dibujarle el aro.
+   Sin esto, tabular hasta una carta lateral enfocaba algo que está debajo de
+   la central (en móvil el solape se come casi toda la vecina) y no se veía
+   dónde estaba el foco. El z-index lo escribe GSAP inline, así que aquí sí
+   hace falta !important. */
+.aurora-carrusel .fan-card:focus-visible {
+  z-index: 30 !important;
+  outline: 2px solid rgb(var(--cf-mando) / 0.85);
+  outline-offset: 3px;
+}
+
+/* Overlay de las cartas ───────────────────────────────────────────────────
+   Va encima de la foto: velo oscuro desde abajo para que el texto blanco se
+   lea sobre cualquier gradiente, y el texto apoyado en la base de la carta.
+
+   JERARQUÍA (arreglo de la ronda 2): en un abanico las cartas se TAPAN entre
+   sí — la vecina de la derecha pierde su franja izquierda debajo de la
+   central, y en móvil pierde casi toda la carta. Con el texto completo en
+   todas, la de STORY se leía "TORY / do historia / hriller por capítulos…":
+   palabras partidas, que parecen un fallo y no un diseño.
+   Por eso el bloque RICO (título display + subtítulo + la línea en español) y
+   la eyebrow que lo acompaña SOLO aparecen en la carta CENTRADA, que es la
+   única que nunca está tapada. La eyebrow suelta de los placeholders es otra
+   historia y se resuelve más abajo (ronda 4): cabe entera en los flancos si se
+   pone ARRIBA, así que ahí sí se enciende siempre en escritorio.
+   (Ronda 3: en la ronda 2 esta regla se aplicó solo al bloque rico y la
+   eyebrow se seguía pintando en las seis cartas de los flancos, donde el
+   solape la troceaba en «PRÓXIMAN», «ÓXIMAMENTE», «IMAMENTE»… el mismo fallo
+   un escalón tipográfico más abajo. Ahora eyebrow y texto rico comparten el
+   MISMO interruptor `--cf-texto`, así que no puede volver a desincronizarse.)
+   Qué carta está centrada lo dice `data-centro` en el lienzo (lo publica
+   carrusel-features leyendo los puntos de paginación del propio componente).
+   Si ese dato faltara, el estado por defecto es el discreto: nunca texto roto. */
+.cf-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: var(--cf-align, center);
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 18px 16px 20px;
+  /* El velo por defecto (carta NO centrada) es flojo A PROPÓSITO (ronda 4).
+     Estaba en 0.72, heredado de cuando todas las cartas llevaban texto: un
+     scrim de lectura debajo de un texto que ya no existe. Con siete cartas en
+     abanico, siete scrims inferiores dibujaban una "V" oscura bajo el conjunto.
+     Lo que queda —0.3— ya no es scrim sino asiento: apoya la carta sobre el
+     negro del Home y evita que el gradiente de la imagen llegue crudo al borde
+     inferior. El scrim de verdad (1) lo enciende solo la carta centrada, que es
+     la única con texto que leer. */
+  background: linear-gradient(
+    to top,
+    oklch(8% 0.012 265 / calc(0.86 * var(--cf-velo, 0.3))) 0%,
+    oklch(8% 0.012 265 / calc(0.62 * var(--cf-velo, 0.3))) 26%,
+    oklch(8% 0.012 265 / calc(0.12 * var(--cf-velo, 0.3))) 56%,
+    transparent 78%
+  );
+  color: oklch(98% 0 0);
+  text-align: left;
+  text-shadow: 0 1px 12px oklch(6% 0.012 265 / 0.55);
+  pointer-events: none;
+}
+/* UN SOLO interruptor para todo el texto del overlay: la eyebrow va en el
+   mismo `display: var(--cf-texto)` que el bloque rico. Si mañana se añade otra
+   línea al overlay, tiene que colgar de aquí también. */
+.cf-overlay__eyebrow,
+.cf-overlay__texto {
+  display: var(--cf-texto, none);
+}
+
+/* La carta centrada: overlay completo, alineado a la izquierda y con el velo
+   a plena potencia. Una fila por posición porque el selector tiene que casar
+   el índice de `data-centro` con el hijo n del abanico (las cartas están en
+   orden en el DOM); CSS no sabe hacer esa cuenta de otra forma. */
+.aurora-carrusel__lienzo[data-centro='0'] .fan-layout > :nth-child(1) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='1'] .fan-layout > :nth-child(2) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='2'] .fan-layout > :nth-child(3) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='3'] .fan-layout > :nth-child(4) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='4'] .fan-layout > :nth-child(5) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='5'] .fan-layout > :nth-child(6) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='6'] .fan-layout > :nth-child(7) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='7'] .fan-layout > :nth-child(8) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='8'] .fan-layout > :nth-child(9) .cf-overlay,
+.aurora-carrusel__lienzo[data-centro='9'] .fan-layout > :nth-child(10) .cf-overlay {
+  --cf-texto: block;
+  --cf-align: flex-start;
+  --cf-velo: 1;
+  /* Centrada manda el bloque grande: el rótulo micro de arriba sobra. */
+  --cf-tag: none;
+}
+
+/* Rótulo micro del borde SUPERIOR (solo cartas de feature). Es el nombre de la
+   feature —SLANG, STORY—, no una invención: sin él, la única carta muda del
+   abanico sería justo la que SÍ navega, rodeada de "Próximamente". Va arriba
+   por la misma razón geométrica que el del placeholder (cada carta solo la tapa
+   su vecina interior, y la rotación aleja el borde de arriba), y se apaga en la
+   carta centrada, donde ya hay un título de 2.5rem diciendo lo mismo.
+   Trae su propio velo superior: así el degradado solo existe donde hay texto. */
+.cf-overlay__tag {
+  position: absolute;
+  inset: 0 0 auto;
+  display: var(--cf-tag, none);
+  margin: 0;
+  padding: 15px 12px 26px;
+  background: linear-gradient(
+    to bottom,
+    oklch(8% 0.012 265 / 0.52) 0%,
+    oklch(8% 0.012 265 / 0.2) 32%,
+    transparent 100%
+  );
+  color: oklch(95% 0.004 265 / 0.62);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.cf-overlay__eyebrow {
+  margin: 0 0 2px;
+  color: oklch(92% 0.004 265 / 0.72);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.cf-overlay__titulo {
+  margin: 0;
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: 1.72rem;
+  font-variation-settings: 'wght' 780;
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.034em;
+}
+.cf-overlay__sub {
+  margin: 0;
+  color: oklch(97% 0.003 265 / 0.9);
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: 0.78rem;
+  font-variation-settings: 'wght' 640;
+  letter-spacing: -0.008em;
+}
+.cf-overlay__linea {
+  margin: 4px 0 0;
+  max-width: 21ch;
+  color: oklch(95% 0.003 265 / 0.7);
+  font-size: 0.7rem;
+  line-height: 1.42;
+}
+/* Placeholder: solo la eyebrow, muy discreta y ARRIBA de la carta — la carta se
+   sostiene por su gradiente, no por texto inventado.
+
+   Por qué arriba y no abajo (ronda 4). El encargo pide que las cartas 3ª-10ª
+   lleven su "Próximamente"; la ronda 3 acabó escondiéndolo en todas menos en la
+   centrada para no repetir el texto troceado de la ronda 2. La salida no era
+   elegir entre las dos cosas, era MOVER el texto: en el abanico cada carta solo
+   la tapa su vecina INTERIOR (las de fuera van con z-index menor), y como las
+   cartas están rotadas hacia fuera, su borde SUPERIOR se aleja del centro
+   mientras el inferior se acerca. Medido a 1280×800 sobre la vecina derecha
+   (rot 7°, escala .935): el centro de la eyebrow cae en x≈198 puesta arriba y
+   en x≈154 puesta abajo, contra un borde de la carta central en x=123 — arriba
+   la palabra entra ENTERA (35px de margen), abajo se comía la "P".
+   Y de paso el velo deja de ser un scrim inferior sin texto debajo. */
+.cf-overlay--pronto {
+  align-items: center;
+  justify-content: flex-start;
+  padding: 15px 12px 18px;
+  background: linear-gradient(
+    to bottom,
+    oklch(8% 0.012 265 / 0.52) 0%,
+    oklch(8% 0.012 265 / 0.2) 32%,
+    transparent 60%
+  );
+}
+.cf-overlay--pronto .cf-overlay__eyebrow {
+  margin: 0;
+  color: oklch(95% 0.004 265 / 0.62);
+  letter-spacing: 0.2em;
+}
+
+/* Y con el sitio despejado, el "Próximamente" se enciende en TODOS los flancos
+   —lo que pedía el encargo— pero solo de 1024px en adelante. Debajo de ese
+   ancho el propio componente encoge el despliegue del abanico (el multiplicador
+   horizontal cae de 1.0 a .75/.5/.38/.28) y las cartas dejan de solaparse "un
+   cuarto" para taparse casi enteras: a 390px de ancho la vecina pierde el 81%
+   de su superficie y ni el borde de arriba se salva. Ahí sigue mandando la
+   regla de la ronda 3 —habla solo la carta centrada— porque media palabra
+   asomando por detrás de otra carta parece un fallo, no un diseño. */
+@media (min-width: 1024px) {
+  .cf-overlay--pronto .cf-overlay__eyebrow { display: block; }
+  .cf-overlay__tag { display: var(--cf-tag, block); }
+
+  /* …y se apartan mientras levantas una carta. Al hacer hover el componente no
+     solo sube la carta: EMPUJA a las vecinas hacia fuera (hasta 7.5rem ≈ 120px
+     si levantas la central), y ese desplazamiento sí monta unas cartas sobre
+     otras lo bastante como para partir un rótulo por la mitad ("PRÓXIMAME…").
+     En vez de aguantar el texto roto durante la interacción, los rótulos de las
+     cartas que NO tienes bajo el cursor se apagan en 0.22s: la carta que tocas
+     se queda con la palabra, el resto se convierte en color. El :has() acota el
+     apagado al momento en que el puntero está de verdad sobre una carta. */
+  .cf-overlay--pronto .cf-overlay__eyebrow,
+  .cf-overlay__tag {
+    transition: opacity 0.22s ease;
+  }
+  .fan-layout:has(.fan-card:hover) .fan-card:not(:hover) .cf-overlay--pronto .cf-overlay__eyebrow,
+  .fan-layout:has(.fan-card:hover) .fan-card:not(:hover) .cf-overlay__tag {
+    opacity: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  .cf-overlay { gap: 6px; padding: 24px 22px 26px; }
+  .cf-overlay__titulo { font-size: 2.5rem; }
+  .cf-overlay__sub { font-size: 0.95rem; }
+  .cf-overlay__linea { font-size: 0.82rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CLARO DEL HOME
+   Bloque NUEVO y AISLADO: todo cuelga de :root[data-theme='light'], así que el
+   Home OSCURO —el diseño aprobado por Gus— no cambia ni un píxel. Nada de
+   @media (prefers-color-scheme): el tema de RODEO es el atributo data-theme,
+   punto (lo pone aplicarTema en lib/theme.ts).
+
+   Por qué existe: el AnimatedThemeToggler del Home hace su barrido circular
+   sobre ::view-transition-new(root). Con el Home clavado en negro y con el copy
+   en blanco, ese círculo recortaba un lienzo IDÉNTICO al de debajo — Gus tocaba
+   el botón y "solo cambiaba el color del menú". El toggler no tenía nada roto:
+   le faltaba contraste que revelar. Ahora en claro el Home es papel con tinta
+   oscura y el barrido se ve.
+
+   Lo que NO sigue al tema, a propósito:
+   · La píldora aurora: su gradiente oscuro ES el soporte de la aurora (las
+     masas de color están calculadas sobre ese negro). Sobre papel funciona
+     como un objeto oscuro apoyado en la hoja, que es el efecto buscado.
+   · La capa del carrusel: las cartas viven sobre negro por diseño. Se queda
+     negra en los dos temas — y por eso el chevron, que cuando esa capa está
+     abierta va fijo ENCIMA de ella, recupera aquí abajo su piel oscura.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* (Aquí vivía `:root[data-theme='light'] .aurora-shell { background:
+   var(--bg-void) }`. Sobra desde que la regla base de .aurora-shell —arriba
+   del todo— ya declara var(--bg-void): el token cambia solo con el tema, así
+   que repetirlo en claro no aportaba nada.) */
+
+:root[data-theme='light'] .aurora-home__greeting {
+  color: var(--text-secondary);
+}
+:root[data-theme='light'] .aurora-home__question {
+  color: var(--text-primary);
+}
+
+/* Chevron ⌄ del Home (cerrado): en claro el aro y el glifo blancos al 9-70%
+   eran invisibles sobre papel. Pasa a los tokens de borde/tinta de la app. */
+:root[data-theme='light'] .aurora-more {
+  border-color: var(--borde-medio);
+  background: var(--chip-bg);
+  color: var(--text-secondary);
+}
+:root[data-theme='light'] .aurora-more:hover,
+:root[data-theme='light'] .aurora-more:focus-visible {
+  border-color: var(--borde-medio);
+  background: var(--chip-bg-fuerte);
+  color: var(--text-primary);
+}
+
+/* (Ronda 4) Aquí vivía la excepción contraria: con el carrusel abierto se le
+   devolvían al chevron los valores OSCUROS, porque la capa del carrusel se
+   pintaba negra (#14161a) también en tema claro. Ese negro se fue —la capa
+   lleva ahora var(--bg-void), el lienzo del tema—, así que forzar la piel
+   oscura dejaba un disco gris con el glifo casi invisible sobre el papel
+   (medido en claro, 390 y 1280). Sin excepción: en claro el chevron usa su
+   piel clara, esté la vitrina abierta o cerrada.
+   En gradiente no hace falta nada: el tema no lleva data-theme='light', así
+   que manda la piel oscura de arriba y el disco se apoya en el velo. */
+
+/* ══════════════════════════════════════════════════════════════════════
+   MENÚ FLOTANTE (liquid-morph) RE-ANCLADO ARRIBA-IZQUIERDA
+   El componente de components/ui es VERBATIM y no expone posición: su raíz
+   trae `fixed bottom-10 left-1/2` + transform inline x:-50%. Estas dos reglas
+   son todo el ajuste, y solo tocan ESA raíz (hijo directo). Ver el comentario
+   largo en components/rodeo/menu-flotante.tsx.
+   ══════════════════════════════════════════════════════════════════════ */
+.menu-flotante {
+  /* Reserva en flujo la caja de la píldora CERRADA (medidas del propio
+     componente): así ocupa el hueco que dejó el MenuToggle y el resto de la
+     fila no se recoloca. Abierto, el panel desborda esta caja por encima del
+     contenido — nadie le pone overflow:hidden en el camino. */
+  position: relative;
+  z-index: 60;
+  width: 150px;
+  height: 48px;
+  flex-shrink: 0;
+  transition: opacity 0.18s ease;
+}
+.menu-flotante__launcher {
+  width: 150px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border: 1px solid #242424;
+  border-radius: 999px;
+  /* Mismo oscuro que pinta el círculo del FloatingMenu al abrir (pedido de
+     Gus, 2026-08-07): antes esta píldora —el placeholder que se ve mientras
+     el FloatingMenu real carga en diferido— era amarilla. */
+  background: #242424;
+  color: #f7f1ed;
+  cursor: pointer;
+  font-family: 'Aeonik TRIAL', 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+.menu-flotante__hamburger {
+  position: relative;
+  width: 24px;
+  height: 24px;
+}
+.menu-flotante__hamburger i {
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #f7f1ed;
+}
+.menu-flotante__hamburger i:first-child { transform: translateY(-4px); }
+.menu-flotante__hamburger i:last-child { transform: translateY(2px); }
+/* Con una capa a pantalla completa encima —la hoja del personalizador
+   (`fixed inset-0 z-50`) o la vitrina del carrusel (`.aurora-carrusel`, z-40)—
+   el menú se APARTA: se desvanece con el mismo tiempo que el velo, baja por
+   debajo de esa capa y deja de recibir puntero. El z-index cae a 0 (no a 40)
+   para quedar por debajo de AMBAS sin depender del orden del DOM para
+   desempatar con el carrusel. El `visibility:hidden` (retrasado hasta el final
+   del fundido, e inmediato al volver) es el cinturón: garantiza que no haya
+   hit-test aunque un contexto de apilado intermedio le diera la vuelta al
+   z-index. La caja en flujo de 150×48 se queda, así que la fila del Header no
+   se recoloca al abrir ni al cerrar. */
+.menu-flotante--oculto {
+  z-index: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    visibility 0s linear 0.18s;
+}
+.menu-flotante > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: auto;
+  bottom: auto;
+  /* Inevitable: motion escribe el x:-50% como transform inline y solo el
+     !important lo gana. Coste: la entrada pierde su y:20→0 (queda el fundido).
+     El morph NO se ve afectado — sus transforms viven en hijos más profundos. */
+  transform: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TEMA GRADIENTE — capa de fondo del Home
+   ══════════════════════════════════════════════════════════════════════ */
+/* SOLO con el tema gradiente el shell crea contexto de apilado, para que la
+   capa de burbujas (z-index:-1) quede por ENCIMA de su propio background
+   #14161a y por DEBAJO de todo el contenido en flujo, sin tener que tocar el
+   z-index de una sola pieza del Home. Va scopeado a [data-fondo='gradiente']
+   a propósito: en claro/oscuro el apilado del Home queda EXACTAMENTE como
+   estaba (el chevron fijo z-50 sobre la capa del carrusel z-40 incluidos). */
+:root[data-fondo='gradiente'] .aurora-shell {
+  position: relative;
+  z-index: 0;
+}
+.aurora-fondo-gradiente {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+.aurora-fondo-gradiente--estatico {
+  background:
+    radial-gradient(circle at 18% 22%, rgb(221 74 255 / 0.62), transparent 42%),
+    radial-gradient(circle at 82% 28%, rgb(0 220 255 / 0.5), transparent 44%),
+    radial-gradient(circle at 55% 82%, rgb(200 50 90 / 0.56), transparent 48%),
+    linear-gradient(145deg, #241044, #071d3c 56%, #260c2c);
+}
+/* Velo medido: las burbujas goo llegan a rosas y limas muy claros y el
+   "¿Qué quieres practicar hoy?" blanco perdía contraste sobre ellas. Un
+   oscurecido plano del 38% con un refuerzo radial en el centro (donde vive el
+   copy) deja el texto por encima de 7:1 sin apagar el color del fondo. */
+.aurora-fondo-gradiente__velo {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 55% at 50% 48%, oklch(8% 0.01 265 / 0.42), transparent 70%),
+    oklch(8% 0.01 265 / 0.38);
+  pointer-events: none;
+}
+
+@media (max-width: 767px), (pointer: coarse) {
+  .aurora-pill__mass,
+  .assistant-thinking::before {
+    animation: none !important;
+    will-change: auto;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PERSONALIZADOR · sección TEMA
+   ══════════════════════════════════════════════════════════════════════ */
+.aurora-customizer__temas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.aurora-tema-card {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  padding: 10px 6px 9px;
+  border: 1px solid oklch(94% 0.008 265 / 0.12);
+  border-radius: 16px;
+  background: oklch(100% 0 0 / 0.03);
+  color: oklch(72% 0.01 265);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.aurora-tema-card:hover {
+  border-color: oklch(94% 0.008 265 / 0.26);
+  color: oklch(92% 0.006 265);
+}
+.aurora-tema-card[aria-pressed='true'] {
+  border-color: #d99c66;
+  background: oklch(72% 0.12 55 / 0.14);
+  color: oklch(96% 0.006 265);
+}
+.aurora-tema-card__preview {
+  width: 100%;
+  height: 42px;
+  border-radius: 11px;
+  border: 1px solid oklch(94% 0.008 265 / 0.14);
+  overflow: hidden;
+}
+/* Miniaturas ESTÁTICAS a puro CSS: montar un BubbleBackground de 42px de alto
+   por una previsualización sería un segundo árbol de motion + filtro goo
+   corriendo dentro de una hoja modal. */
+.aurora-tema-card__preview[data-tema='claro'] {
+  background: linear-gradient(160deg, #fdfcf9, #efece3);
+}
+.aurora-tema-card__preview[data-tema='oscuro'] {
+  background: linear-gradient(160deg, #1b1e24, #0a0a0e);
+}
+.aurora-tema-card__preview[data-tema='gradiente'] {
+  background:
+    radial-gradient(circle at 72% 28%, rgba(221, 74, 255, 0.75), transparent 55%),
+    radial-gradient(circle at 26% 72%, rgba(0, 220, 255, 0.6), transparent 55%),
+    linear-gradient(135deg, #4c1d95, #1e3a8a);
+}
+.aurora-tema-card__check {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.56rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+.aurora-tema-card[aria-pressed='true'] .aurora-tema-card__check {
+  opacity: 1;
+  color: #e8b183;
+}
+
+/* ── El personalizador en tema CLARO ──────────────────────────────────────
+   HALLAZGO (no lo trae esta ronda, es previo): `.aurora-customizer` fija
+   `color: oklch(94% …)` sin condición, y la hoja se pinta sobre
+   var(--bg-elevated) — que en claro es oklch(94.5%). O sea texto casi blanco
+   sobre papel casi blanco: el título "Personalizar aurora", los nombres de las
+   paletas y las etiquetas de los sliders son ILEGIBLES en día. Se veía ya
+   antes de añadir la sección TEMA; se arregla aquí porque la sección nueva
+   heredaba el mismo problema y no tiene sentido dejar media hoja legible.
+   Solo se tocan COLORES DE TEXTO, y solo bajo [data-theme='light']: en oscuro
+   y en gradiente la hoja queda byte a byte como estaba. */
+:root[data-theme='light'] .aurora-customizer {
+  color: oklch(22% 0.012 265);
+}
+:root[data-theme='light'] .aurora-customizer h2,
+:root[data-theme='light'] .aurora-customizer h3 {
+  color: oklch(18% 0.012 265);
+}
+:root[data-theme='light'] .aurora-customizer__eyebrow,
+:root[data-theme='light'] .aurora-customizer__note,
+:root[data-theme='light'] .aurora-customizer__motion label {
+  color: oklch(44% 0.014 265);
+}
+:root[data-theme='light'] .aurora-customizer__motion output {
+  color: oklch(30% 0.012 265);
+}
+:root[data-theme='light'] .aurora-preset__name {
+  color: oklch(30% 0.012 265);
+}
+
+/* Las tarjetas de TEMA sobre papel: mismo dibujo, tinta oscura. */
+:root[data-theme='light'] .aurora-tema-card {
+  border-color: oklch(22% 0.012 265 / 0.16);
+  background: oklch(22% 0.012 265 / 0.03);
+  color: oklch(40% 0.014 265);
+}
+:root[data-theme='light'] .aurora-tema-card:hover {
+  border-color: oklch(22% 0.012 265 / 0.34);
+  color: oklch(20% 0.012 265);
+}
+:root[data-theme='light'] .aurora-tema-card[aria-pressed='true'] {
+  border-color: oklch(52% 0.13 55);
+  background: oklch(72% 0.12 55 / 0.18);
+  color: oklch(18% 0.012 265);
+}
+:root[data-theme='light'] .aurora-tema-card[aria-pressed='true'] .aurora-tema-card__check {
+  color: oklch(45% 0.13 55);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CARRUSEL · VARIANTE AURORA DEL OVERLAY DE FEATURE
+   Añadido AL FINAL y sin tocar una sola clase de arriba, así que las cuatro
+   cartas con ilustración de Gus (SLANG, STORY, CONVERSACIÓN, OFICINA) quedan
+   pixel-iguales.
+
+   Las dos cartas nuevas —SUBE (07.jpg) y TU DNA (08.jpg)— no tienen ilustración
+   propia: van sobre una gradiente aurora, que es mucho más CLARA y saturada que
+   las fotos. Con el velo estándar, "Peldaños con juez…" en blanco al 70% sobre
+   un naranja/lima al 80% de luminancia se lee a duras penas. Aquí el velo se
+   refuerza solo en esas dos: el mismo degradado, un punto más opaco y subiendo
+   un poco más alto, más una sombra de texto algo más marcada. No se toca el
+   tamaño ni la posición de nada, para que las seis cartas sigan siendo la misma
+   composición.
+
+   El velo NO se lleva al 100%: la gracia de estas dos cartas es el color, y
+   taparlo entero las convertiría en rectángulos negros indistinguibles. */
+.cf-overlay--aurora {
+  background: linear-gradient(
+    to top,
+    oklch(8% 0.012 265 / calc(0.94 * var(--cf-velo, 0.3))) 0%,
+    oklch(8% 0.012 265 / calc(0.78 * var(--cf-velo, 0.3))) 34%,
+    oklch(8% 0.012 265 / calc(0.3 * var(--cf-velo, 0.3))) 64%,
+    transparent 86%
+  );
+  text-shadow: 0 1px 14px oklch(6% 0.012 265 / 0.75);
+}
+/* El rótulo micro del borde superior (cartas NO centradas) también cae sobre
+   la gradiente clara: mismo refuerzo, mismo criterio. */
+.cf-overlay--aurora .cf-overlay__tag {
+  background: linear-gradient(
+    to bottom,
+    oklch(8% 0.012 265 / 0.68) 0%,
+    oklch(8% 0.012 265 / 0.3) 32%,
+    transparent 100%
+  );
+  color: oklch(97% 0.004 265 / 0.78);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   .vidrio-tema — el vidrio del login, FUERA del gate.
+   ──────────────────────────────────────────────────────────────────────────
+   GlassStyles/GlassButton (src/components/ui/sign-up.tsx — INTOCABLE) están
+   escritos contra dos variables CRUDAS del contrato shadcn upstream:
+   `--background` (la lámina de vidrio: relleno, brillo inferior, barrido) y
+   `--foreground` (la tinta: sombra, borde cónico, color del texto). En RODEO
+   esas dos crudas NO existen: tokens.css solo publica el puente
+   `--color-background`/`--color-foreground` dentro de @theme inline, que
+   Tailwind consume para bg-background/text-foreground pero que el CSS del
+   vidrio nunca ve. El gate las declara a mano en `.gate-tema`; en el resto de
+   la app hay que declararlas igual — y aquí SÍ deben seguir al tema.
+
+   Se mapean a tokens que tokens.css ya redefine por tema, así que la clase se
+   auto-adapta sin ramas: en oscuro y en gradiente (ausencia de data-theme)
+   --bg-elevated es el gris 21% y --text-primary el casi-blanco → lámina
+   oscura + borde luminoso; en claro (data-theme='light') --bg-elevated es el
+   papel 94.5% y --text-primary la tinta 22% → exactamente la relación del
+   login. El texto del botón sale de var(--foreground) al 90%, de modo que
+   hereda el contraste correcto en los tres temas sin tocar sign-up.tsx.
+
+   Alcance: son variables locales al subárbol. Ningún componente shadcn de la
+   app consume `--background`/`--foreground` crudas (Card/Button leen
+   --color-card/--color-background del puente, que salen de --bg-surface y
+   --bg-void), así que redeclararlas aquí no puede filtrar a nada más.
+
+   Uso: envolver el contenedor del bloque glass, con <GlassStyles/> montado
+   una vez en la app:  <div className="vidrio-tema"> … <GlassButton/> … </div>
+   ══════════════════════════════════════════════════════════════════════════ */
+.vidrio-tema {
+  --background: var(--bg-elevated);
+  --foreground: var(--text-primary);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PERSONALIZADOR · navegación en dos niveles + sección VOCES
+   Bloque NUEVO al final (nada de arriba se toca). El nivel raíz reutiliza
+   .aurora-pill tal cual (el pill de «Conversación libre»): aquí solo vive el
+   contenedor, el botón Volver y la piel de la sección de voces.
+   ══════════════════════════════════════════════════════════════════════════ */
+.aurora-customizer__secciones {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Volver ocupa el hueco del eyebrow: misma esquina, misma voz tipográfica
+   (Space Mono en versalitas) para que se lea como parte del encabezado y no
+   como un botón más del contenido. */
+.aurora-customizer__volver {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 5px;
+  padding: 4px 8px 4px 0;
+  border: 0;
+  background: none;
+  color: oklch(67% 0.012 265);
+  font-family: 'Space Mono', monospace;
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .18s ease;
+}
+.aurora-customizer__volver:hover,
+.aurora-customizer__volver:focus-visible {
+  color: oklch(92% 0.006 265);
+}
+.aurora-customizer__volver:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+:root[data-theme='light'] .aurora-customizer__volver { color: oklch(44% 0.014 265); }
+:root[data-theme='light'] .aurora-customizer__volver:hover,
+:root[data-theme='light'] .aurora-customizer__volver:focus-visible { color: oklch(20% 0.012 265); }
+
+/* Variante de una sola columna para el slider de volumen de VOCES: misma piel
+   que Intensidad/Velocidad, sin la línea divisoria (aquí va arriba). */
+.aurora-customizer__motion--una {
+  grid-template-columns: 1fr;
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* ── VOCES ──────────────────────────────────────────────────────────────────
+   La tarjeta de cada voz lleva la MISMA receta glass del transporte del
+   reproductor de podcast (.rp-gb en views/podcast/reproductor.css), copiada
+   con variables locales --vz-* para no acoplar esta hoja a la del reproductor
+   (que no se toca), y con el radio rectangular fino que pidió Gus (15px, no
+   pill 999px). Mismos dos ajustes por tema que allí: base cálida en claro y
+   gradiente. */
+.voces-catalogo {
+  --vz-glass-fg: var(--text-primary);
+  --vz-glass-base: oklch(96% 0.004 265);
+}
+:root[data-theme='light'] .voces-catalogo,
+:root[data-fondo='gradiente'] .voces-catalogo {
+  --vz-glass-base: oklch(97% 0.014 85);
+}
+.voces-lista {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+.voces-estado {
+  margin: 16px 2px 4px;
+  color: oklch(62% 0.01 265);
+  font-size: .72rem;
+}
+:root[data-theme='light'] .voces-estado { color: oklch(40% 0.014 265); }
+
+.voz-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 14px 8px 8px;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--vz-glass-fg);
+  background: linear-gradient(
+    -75deg,
+    oklch(from var(--vz-glass-base) l c h / 5%),
+    oklch(from var(--vz-glass-base) l c h / 20%),
+    oklch(from var(--vz-glass-base) l c h / 5%)
+  );
+  backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  -webkit-backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--vz-glass-fg) l c h / 5%),
+    inset 0 -0.125em 0.125em oklch(from var(--vz-glass-base) l c h / 50%),
+    0 0.25em 0.125em -0.125em oklch(from var(--vz-glass-fg) l c h / 20%),
+    0 0 0.1em 0.25em inset oklch(from var(--vz-glass-base) l c h / 20%);
+  transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+/* El borde «helado» cónico de la receta, con el radio rectangular. */
+.voz-card::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * clamp(1px, 0.0625em, 4px) / 2);
+  z-index: 1;
+  padding: clamp(1px, 0.0625em, 4px);
+  border-radius: 15px;
+  background:
+    conic-gradient(
+      from -75deg at 50% 50%,
+      oklch(from var(--vz-glass-fg) l c h / 50%) 0%,
+      transparent 5% 40%,
+      oklch(from var(--vz-glass-fg) l c h / 50%) 50%,
+      transparent 60% 95%,
+      oklch(from var(--vz-glass-fg) l c h / 50%) 100%
+    ),
+    linear-gradient(180deg, oklch(from var(--vz-glass-base) l c h / 50%), oklch(from var(--vz-glass-base) l c h / 50%));
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  box-shadow: inset 0 0 0 calc(clamp(1px, 0.0625em, 4px) / 2) oklch(from var(--vz-glass-base) l c h / 50%);
+  pointer-events: none;
+}
+.voz-card:hover { transform: scale(0.985); }
+.voz-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+/* Estado «hablando»: el borde helado se aviva un punto — sutil, es el segundo
+   indicio (el primero es el puntito que late). */
+.voz-card[data-hablando] {
+  box-shadow:
+    inset 0 0.125em 0.125em oklch(from var(--vz-glass-fg) l c h / 9%),
+    inset 0 -0.125em 0.125em oklch(from var(--vz-glass-base) l c h / 60%),
+    0 0.25em 0.125em -0.125em oklch(from var(--vz-glass-fg) l c h / 26%),
+    0 0 0.1em 0.25em inset oklch(from var(--vz-glass-base) l c h / 28%);
+}
+
+.voz-card__icono {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+}
+/* Play/pausa apilados: el cruce es un fundido con leve escala, no un swap. */
+.voz-card__icono svg {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.voz-card__pausa { opacity: 0; transform: scale(0.7); }
+.voz-card[data-hablando] .voz-card__play { opacity: 0; transform: scale(0.7); }
+.voz-card[data-hablando] .voz-card__pausa { opacity: 1; transform: scale(1); }
+
+.voz-card__texto {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.voz-card__nombre {
+  font-family: 'Alan Sans', 'Archivo', sans-serif;
+  font-size: .92rem;
+  font-variation-settings: 'wght' 700;
+  letter-spacing: -.012em;
+  line-height: 1.1;
+}
+/* Dato secundario, discreto: proveedor · género · acento. */
+.voz-card__meta {
+  color: oklch(from var(--vz-glass-fg) l c h / 55%);
+  font-size: .64rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.voz-card__punto {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.voz-card[data-hablando] .voz-card__punto {
+  opacity: 0.85;
+  animation: voz-pulso 1.15s ease-in-out infinite;
+}
+@keyframes voz-pulso {
+  50% { transform: scale(1.55); opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voz-card[data-hablando] .voz-card__punto { animation: none; }
+  .voz-card__icono svg { transition: none; }
+  .voz-card { transition: none; }
+}

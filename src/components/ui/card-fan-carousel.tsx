@@ -1,0 +1,436 @@
+// @ts-nocheck
+/* card-fan-carousel.tsx — carrusel de cartas en abanico (GSAP), pegado por Gus.
+   VERBATIM salvo adaptaciones DECLARADAS:
+   1. Sin `"use client"` (no es Next) y `// @ts-nocheck` (mismo trato que el
+      resto de componentes de librería bajo verbatimModuleSyntax).
+   2. `CardItem` gana `onClick?` y `contenido?` — el original solo navegaba con
+      <a href>; en RODEO las cards navegan por setView (SPA) y llevan un
+      overlay de feature (título + explicación) encima de la imagen.
+   3. Swipe táctil: touchstart/touchend en el contenedor → cycle() con umbral
+      de 40px. El original solo tenía flechas y hover, y Gus pidió "deslizando
+      el dedo".
+   4. El CSS de .fan-layout/.fan-card no venía en el prompt (vive en el sitio
+      original): las medidas están derivadas de la tabla de alturas del propio
+      código (getHeightMultiplier) en card-fan-carousel.css.
+   5. Umbral de paginación `>` → `>=` (ver la nota en needsPagination): con
+      EXACTAMENTE MAX_VISIBLE cartas el original dejaba el abanico estático
+      —sin flechas, puntos ni swipe, y las cartas de los flancos intocables—;
+      con `>=` esas 7 ya rotan. Es el único cambio de comportamiento; la
+      geometría del abanico, el GSAP y el hover siguen intactos.
+   6. Prop `centroInicial?` — CON QUÉ CARTA NACE el abanico. Opcional y sin
+      default propio: omitirla deja EXACTAMENTE el cálculo de siempre, así que
+      quien no la pasa no se entera de que existe. El componente sigue siendo
+      genérico: recibe un índice, no sabe qué carta es ni por qué. */
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import gsap from "gsap";
+
+import "./card-fan-carousel.css";
+
+export interface CardItem {
+  imgUrl: string;
+  alt?: string;
+  linkUrl?: string;
+  /** Adaptación RODEO: navegación SPA (setView) en vez de href. */
+  onClick?: () => void;
+  /** Adaptación RODEO: overlay de feature (título/explicación) sobre la foto. */
+  contenido?: React.ReactNode;
+}
+
+interface SocialCardsProps {
+  cards: CardItem[];
+  /** Adaptación RODEO (6): índice de la carta que nace centrada. Se lee UNA vez
+      (es el valor inicial del useState); después manda la paginación. */
+  centroInicial?: number;
+}
+
+const MAX_VISIBLE = 7;
+const HALF = 3;
+
+const FAN_POSITIONS = [
+  { rot: -21, scale: 0.7756, x: -30, y: 7.3, zIndex: 1 },
+  { rot: -14, scale: 0.8498, x: -22, y: 4.0, zIndex: 2 },
+  { rot: -7,  scale: 0.9346, x: -11, y: 1.3, zIndex: 3 },
+  { rot: 0,   scale: 1.0,    x: 0,   y: 0.0, zIndex: 10 },
+  { rot: 7,   scale: 0.9346, x: 11,  y: 1.3, zIndex: 3 },
+  { rot: 14,  scale: 0.8498, x: 22,  y: 4.0, zIndex: 2 },
+  { rot: 21,  scale: 0.7756, x: 30,  y: 7.3, zIndex: 1 },
+];
+
+function getResponsiveMultiplier(width: number) {
+  if (width < 480) return 0.28;
+  if (width < 640) return 0.38;
+  if (width < 768) return 0.5;
+  if (width < 1024) return 0.75;
+  return 1.0;
+}
+
+/**
+ * Returns a multiplier (0..1] that scales y-offsets and entry animation
+ * distances when the viewport is too short for the ideal layout height.
+ */
+function getHeightMultiplier(width: number) {
+  // Ideal layout heights (in px at 16px root) matching the CSS breakpoints
+  let idealPx: number;
+  if (width < 480) idealPx = 22 * 16;       // 352px
+  else if (width < 640) idealPx = 26 * 16;  // 416px
+  else if (width < 768) idealPx = 28 * 16;  // 448px
+  else if (width < 1024) idealPx = 34 * 16; // 544px
+  else idealPx = 38 * 16;                    // 608px
+
+  const available = window.innerHeight * 0.7; // 70vh budget
+  if (available >= idealPx) return 1;
+  return available / idealPx;
+}
+
+function getSlotConfig(totalCards: number, slot: number) {
+  if (totalCards >= MAX_VISIBLE) return FAN_POSITIONS[slot];
+  const center = totalCards >> 1;
+  const distance = totalCards > 1 ? (slot - center) / center : 0;
+  const absDistance = Math.abs(distance);
+  return {
+    rot: distance * 21,
+    scale: 1.0 - 0.2244 * absDistance * absDistance,
+    x: distance * 30,
+    y: absDistance * absDistance * 7.3,
+    zIndex: 10 - Math.abs(slot - center),
+  };
+}
+
+const ARROW_CLASSES =
+  "relative flex items-center justify-center rounded-full border-[1.5px] border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 backdrop-blur-[16px] text-black/40 dark:text-white/55 cursor-pointer shrink-0 z-30 outline-none shadow-[0_4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] hover:border-black/25 dark:hover:border-white/25 hover:text-black/70 dark:hover:text-white/80 active:opacity-70 transition-colors duration-300 before:content-[''] before:absolute before:inset-[3px] before:rounded-full before:border before:border-black/[0.04] dark:before:border-white/[0.04] before:pointer-events-none";
+
+export default function SocialCards({ cards, centroInicial }: SocialCardsProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isAnimating = useRef(false);
+  const hasEntered = useRef(false);
+  const directionRef = useRef<"left" | "right" | null>(null);
+  const prevVisible = useRef<Set<number>>(new Set());
+
+  const totalCards = cards.length;
+  /* Adaptación RODEO (5): `>` → `>=`. El original solo paginaba con MÁS cartas
+     que el aforo del abanico (8+); con EXACTAMENTE 7 (las features con foto de
+     RODEO) el abanico quedaba ESTÁTICO: sin flechas, sin puntos, sin swipe, y
+     las cartas de los flancos —tapadas por la central— eran intocables (solo se
+     abría la del centro). Con `>=`, 7 cartas ya rotan: vuelve el deslizar y las
+     dos flechas glass de abajo, y cualquier carta se trae al frente para tocar. */
+  const needsPagination = totalCards >= MAX_VISIBLE;
+  /* Adaptación RODEO (6). Sin `centroInicial` la expresión es la del original,
+     carácter por carácter. Con ella se acota al rango de cartas: un índice
+     inventado dejaría getVisibleMap mapeando slots a cartas que no existen y el
+     abanico saldría con huecos. */
+  const [centerIndex, setCenterIndex] = useState(
+    typeof centroInicial === "number"
+      ? Math.min(Math.max(centroInicial | 0, 0), Math.max(totalCards - 1, 0))
+      : needsPagination ? HALF : totalCards >> 1,
+  );
+
+  const getVisibleMap = useCallback((center: number) => {
+    const map = new Map<number, number>();
+    if (!needsPagination) {
+      cards.forEach((_, i) => map.set(i, i));
+      return map;
+    }
+    for (let slot = 0; slot < MAX_VISIBLE; slot++) {
+      map.set(((center + slot - HALF) % totalCards + totalCards) % totalCards, slot);
+    }
+    return map;
+  }, [totalCards, needsPagination, cards]);
+
+  const cycle = useCallback((direction: "left" | "right") => {
+    if (isAnimating.current || !needsPagination) return;
+    isAnimating.current = true;
+    directionRef.current = direction;
+    setCenterIndex(prev =>
+      direction === "right" ? (prev + 1) % totalCards : (prev - 1 + totalCards) % totalCards
+    );
+  }, [totalCards, needsPagination]);
+
+  /* Adaptación RODEO (swipe): deslizar el dedo sobre el abanico pagina igual
+     que las flechas. Umbral de 40px y dominancia horizontal para no pelearse
+     con el scroll vertical de la página.
+
+     El touchmove NO es decoración y NO puede ser passive. Antes solo había
+     touchstart/touchend, los dos passive: el gesto se leía al soltar, pero
+     mientras el dedo se movía el navegador seguía siendo el dueño. En iOS eso
+     se ve como un tirón vertical de toda la capa —el "saltico como de recargar
+     la página" que reportó el amigo desde Chile deslizando de lado—, porque
+     Safari rebota contra la holgura escondida del contenedor (medido: 42px en
+     #root con el carrusel abierto). Al declarar el eje en el primer tramo del
+     arrastre y hacer preventDefault cuando resulta horizontal, el gesto es
+     nuestro y no queda vertical que rebotar. El que empieza vertical se deja
+     pasar entero: esa es la vía de scroll de la página y no se toca. */
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !needsPagination) return;
+    let x0 = 0;
+    let y0 = 0;
+    /* null = todavía no sabemos hacia dónde va el dedo. Se decide UNA vez por
+       gesto y no se revisa: cambiar de eje a mitad de arrastre es justo lo que
+       produce el tirón que estamos quitando. */
+    let eje: "x" | "y" | null = null;
+    // 8px: pasada la zona muerta del temblor del dedo, antes de los 40px que
+    // deciden si hay paginación — hay que reclamar el gesto ANTES de que el
+    // navegador empiece a desplazar, no después.
+    const ZONA_MUERTA = 8;
+
+    const onStart = (e: TouchEvent) => {
+      x0 = e.touches[0].clientX;
+      y0 = e.touches[0].clientY;
+      eje = null;
+    };
+    const onMove = (e: TouchEvent) => {
+      const dx = e.touches[0].clientX - x0;
+      const dy = e.touches[0].clientY - y0;
+      if (eje === null) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < ZONA_MUERTA) return;
+        eje = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (eje === "x" && e.cancelable) e.preventDefault();
+    };
+    const onEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - x0;
+      const dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+        // Deslizar a la izquierda trae la carta siguiente (gesto natural).
+        cycle(dx < 0 ? "right" : "left");
+      }
+      eje = null;
+    };
+    container.addEventListener("touchstart", onStart, { passive: true });
+    container.addEventListener("touchmove", onMove, { passive: false });
+    container.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      container.removeEventListener("touchstart", onStart);
+      container.removeEventListener("touchmove", onMove);
+      container.removeEventListener("touchend", onEnd);
+    };
+  }, [cycle, needsPagination]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !totalCards) return;
+
+    const cardElements = Array.from(container.querySelectorAll<HTMLElement>(".fan-card"));
+    if (!cardElements.length) return;
+
+    const visibleMap = getVisibleMap(centerIndex);
+    const previouslyVisible = prevVisible.current;
+    const direction = directionRef.current;
+    const isFirstMount = !hasEntered.current;
+    const multiplier = getResponsiveMultiplier(window.innerWidth);
+    const hMult = getHeightMultiplier(window.innerWidth);
+    const slotCount = needsPagination ? MAX_VISIBLE : totalCards;
+    const config = (slot: number) => getSlotConfig(slotCount, slot);
+
+    if (isFirstMount) isAnimating.current = true;
+
+    let completedCount = 0;
+    const visibleCount = visibleMap.size;
+    const onCardDone = () => {
+      if (++completedCount >= visibleCount) {
+        isAnimating.current = false;
+        if (isFirstMount) hasEntered.current = true;
+      }
+    };
+
+    cardElements.forEach((card, cardIndex) => {
+      const slot = visibleMap.get(cardIndex);
+      const wasVisible = previouslyVisible.has(cardIndex);
+
+      if (slot !== undefined) {
+        const { x, y, rot, scale, zIndex } = config(slot);
+        const target = {
+          x: `${x * multiplier}rem`,
+          y: `${y * hMult}rem`,
+          rotation: rot,
+          scale,
+          opacity: 1,
+          zIndex,
+        };
+
+        if (isFirstMount) {
+          gsap.set(card, { x: 0, y: `${12 * hMult}rem`, rotation: 0, scale: 0.5, opacity: 0 });
+          gsap.to(card, { ...target, duration: 1.2, ease: "elastic.out(1.05,.78)", delay: 0.2 + slot * 0.06, onComplete: onCardDone });
+        } else if (!wasVisible) {
+          const enterX = direction === "right" ? 40 : -40;
+          gsap.set(card, { x: `${enterX}rem`, y: `${y * hMult}rem`, rotation: direction === "right" ? 30 : -30, scale: 0.5, opacity: 0 });
+          gsap.to(card, { ...target, duration: 0.6, ease: "power2.out", onComplete: onCardDone });
+        } else {
+          gsap.to(card, { ...target, duration: 0.5, ease: "power2.out", onComplete: onCardDone });
+        }
+      } else if (wasVisible) {
+        const exitX = direction === "right" ? -40 : 40;
+        gsap.to(card, { x: `${exitX}rem`, opacity: 0, scale: 0.5, rotation: direction === "right" ? -30 : 30, duration: 0.4, ease: "power2.in", zIndex: 0 });
+      } else if (isFirstMount) {
+        gsap.set(card, { opacity: 0, scale: 0.3, x: 0, y: 0, zIndex: 0 });
+      }
+    });
+
+    prevVisible.current = new Set(visibleMap.keys());
+
+    // Hover interactions
+    const visibleEntries: { el: HTMLElement; slot: number }[] = [];
+    cardElements.forEach((el, i) => {
+      const slot = visibleMap.get(i);
+      if (slot !== undefined) visibleEntries.push({ el, slot });
+    });
+    visibleEntries.sort((a, b) => a.slot - b.slot);
+
+    let activeSlot: number | null = null;
+    let leaveTimer: NodeJS.Timeout | null = null;
+    const centerSlot = visibleEntries.length >> 1;
+
+    const updateHoverLayout = (hoveredSlot: number | null) => {
+      const mult = getResponsiveMultiplier(window.innerWidth);
+      const hM = getHeightMultiplier(window.innerWidth);
+
+      visibleEntries.forEach(({ el, slot }) => {
+        const base = config(slot);
+        let targetX = base.x * mult;
+        let targetY = base.y * hM;
+        let targetRot = base.rot;
+        let targetScale = base.scale;
+        let delay = 0;
+
+        if (hoveredSlot !== null) {
+          const distance = Math.abs(slot - hoveredSlot);
+          delay = distance * 0.02;
+
+          if (slot === hoveredSlot) {
+            targetY -= 2.5 * hM;
+            targetScale *= 1.08;
+          } else {
+            const normalized = centerSlot > 0 ? (slot - centerSlot) / centerSlot : 0;
+            const pushStrength = 8 * (1 - Math.abs(normalized)) * (1 + 0.2 * Math.max(0, 3 - distance));
+
+            if (slot < hoveredSlot) {
+              targetX -= pushStrength * mult;
+              targetRot -= 3 / (distance + 1);
+            } else {
+              targetX += pushStrength * mult;
+              targetRot += 3 / (distance + 1);
+            }
+
+            if (slot === visibleEntries.length - 1 && hoveredSlot < centerSlot) targetY -= 1 * hM;
+            if (slot === 0 && hoveredSlot > centerSlot) targetY -= 1 * hM;
+          }
+        } else {
+          delay = Math.abs(slot - centerSlot) * 0.02;
+        }
+
+        gsap.to(el, {
+          x: `${targetX}rem`, y: `${targetY}rem`, rotation: targetRot, scale: targetScale,
+          duration: 0.5, delay, ease: "elastic.out(1,.75)", overwrite: "auto",
+        });
+        gsap.set(el, { zIndex: base.zIndex });
+      });
+    };
+
+    const enterHandlers = visibleEntries.map(({ el, slot }) => {
+      const handler = () => {
+        if (isAnimating.current) return;
+        if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
+        if (activeSlot !== slot) { activeSlot = slot; updateHoverLayout(slot); }
+      };
+      el.addEventListener("mouseenter", handler);
+      return { el, handler };
+    });
+
+    const onMouseLeave = () => {
+      if (isAnimating.current) return;
+      if (leaveTimer) clearTimeout(leaveTimer);
+      leaveTimer = setTimeout(() => { activeSlot = null; updateHoverLayout(null); }, 50);
+    };
+    container.addEventListener("mouseleave", onMouseLeave);
+
+    const onResize = () => { if (!isAnimating.current) updateHoverLayout(activeSlot); };
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      enterHandlers.forEach(({ el, handler }) => el.removeEventListener("mouseenter", handler));
+      container.removeEventListener("mouseleave", onMouseLeave);
+      window.removeEventListener("resize", onResize);
+      if (leaveTimer) clearTimeout(leaveTimer);
+    };
+  }, [centerIndex, totalCards, getVisibleMap, needsPagination]);
+
+  if (!totalCards) return null;
+
+  const chevron = (direction: "left" | "right") => (
+    <svg className="relative z-[2] w-4 h-4 md:w-5 md:h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points={direction === "left" ? "15 18 9 12 15 6" : "9 18 15 12 9 6"} />
+    </svg>
+  );
+
+  return (
+    <section className="flex flex-col items-center w-full py-4 lg:py-8 px-4 md:px-8 relative z-20">
+      <div className="flex items-center justify-center w-full max-w-[90rem]">
+        <div ref={containerRef} className="fan-layout flex relative justify-center items-center w-full max-w-[80rem]">
+          {cards.map((card, index) => {
+            const optimizable = card.imgUrl.startsWith('/carrusel/') && card.imgUrl.endsWith('.jpg');
+            const base = optimizable ? card.imgUrl.slice(0, -4) : '';
+            const image = (
+              <div className="relative w-full h-full overflow-hidden">
+                {optimizable ? (
+                  <picture className="absolute inset-0 z-10 block size-full">
+                    <source
+                      type="image/avif"
+                      srcSet={`${base}-400.avif 400w, ${base}.avif 800w`}
+                      sizes="(max-width: 479px) 128px, (max-width: 767px) 208px, 260px"
+                    />
+                    <source
+                      type="image/webp"
+                      srcSet={`${base}-400.webp 400w, ${base}.webp 800w`}
+                      sizes="(max-width: 479px) 128px, (max-width: 767px) 208px, 260px"
+                    />
+                    <img
+                      src={card.imgUrl}
+                      loading={index === centerIndex ? "eager" : "lazy"}
+                      fetchPriority={index === centerIndex ? "high" : "low"}
+                      decoding="async"
+                      alt={card.alt || `Card ${index}`}
+                      className="size-full object-cover"
+                    />
+                  </picture>
+                ) : (
+                  <img src={card.imgUrl} loading="lazy" decoding="async" alt={card.alt || `Card ${index}`} className="absolute inset-0 z-10 size-full object-cover" />
+                )}
+                {/* Adaptación RODEO: overlay de feature encima de la foto. */}
+                {card.contenido && <div className="absolute inset-0 z-20">{card.contenido}</div>}
+              </div>
+            );
+            if (card.onClick) {
+              return (
+                <button key={index} type="button" onClick={card.onClick} className="fan-card block cursor-pointer border-0 bg-transparent p-0 text-left">
+                  {image}
+                </button>
+              );
+            }
+            return card.linkUrl ? (
+              <a key={index} href={card.linkUrl} target={card.linkUrl.startsWith("http") ? "_blank" : "_self"} rel="noopener noreferrer" className="fan-card block cursor-pointer">{image}</a>
+            ) : (
+              <div key={index} className="fan-card">{image}</div>
+            );
+          })}
+        </div>
+      </div>
+
+      {needsPagination && (
+        <div className="flex items-center justify-center gap-4 mt-4 md:mt-6 z-30">
+          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("left")} aria-label="Previous">
+            {chevron("left")}
+          </button>
+          <div className="flex items-center gap-2">
+            {cards.map((_, i) => (
+              <span key={i} className={`w-2 h-2 rounded-full transition-all duration-300 ${i === centerIndex ? "bg-black/70 dark:bg-white/80 scale-[1.3]" : "bg-black/15 dark:bg-white/15"}`} />
+            ))}
+          </div>
+          <button className={`${ARROW_CLASSES} w-10 h-10 md:w-12 md:h-12`} onClick={() => cycle("right")} aria-label="Next">
+            {chevron("right")}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}

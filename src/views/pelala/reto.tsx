@@ -1,0 +1,328 @@
+/* Pélala — la experiencia de SLANG: un sticker que muestra un término; lo pelas
+   cuando ya te lo sabes y entra el siguiente. Debajo, la "tarjeta de significado"
+   (revelable con el ojo + guardable) y el mini-chat para usarlo.
+
+   REDISEÑO al contrato visual de RODEO (encargo de Gus, integración en SLANG):
+   · Sin header propio: la fila Menu + toggler la pone el shell (App/FilaSuperior).
+     Aquí va la barra de sección: ← circular (borde --borde-sutil sobre --bg-surface)
+     + un rótulo mono NEUTRO (--text-muted). Sin contador, sin barra de progreso y
+     SIN lima — REGLA 7 del contrato (el verde es "el de producción / AI-slop").
+   · CERO colores crudos (neutral-x, dark:) — todo por tokens del tema (claro/oscuro/gradiente).
+   · El ← vuelve AL ORIGEN: como toda vista hace setView('home'); el Home reabre el
+     carrusel porque la carta dejó levantado `carruselAlVolver` (regla 5).
+
+   Segunda pasada tras auditoría adversarial de pulido/temas:
+   · El "pozo" del significado usa --bg-deep (no --bg-void): --bg-void sobre --bg-surface
+     casi no se distingue en claro y lee como agujero negro en oscuro. --bg-deep + borde
+     da un hundido consistente en los 3 temas.
+   · El significado oculto se cubre con un overlay de FROST real (backdrop-blur uniforme),
+     no con blur sobre el propio texto (que sangraba con bordes sucios).
+   · El término se resalta NEUTRO (negrita + --text-primary), no en --accent: el sticker
+     ya lo pinta AZUL, y usar la lima a pocos cm ponía la misma palabra en dos colores.
+   · Sticker más compacto + caption anclada + barra de progreso: menos aire muerto y una
+     columna cohesionada en vez de dos islas. */
+
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { motion } from 'motion/react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
+
+import { CornerHint } from '@/components/pelala/corner-hint';
+import { DockPractica } from '@/components/pelala/dock-practica';
+import { PeelSticker, slangTextSource, type PeelStickerHandle } from '@/components/pelala/peel-sticker';
+import { UsarSlang } from '@/components/pelala/usar-slang';
+import { STICKER_SVG } from '@/content/pelala/stickers';
+import { cn } from '@/lib/utils';
+import { useApp } from '@/stores/app';
+import { usePelala } from '@/stores/pelala';
+
+import { ICONO_TERMINO, ICONO_FALLBACK } from './term-iconos';
+
+/* Sticker del término: si hay una ilustración en el pack (STICKER_SVG), esa
+   manda; si no, el sticker cae al texto de siempre (paridad con los términos
+   sin ilustrar todavía — el pack se va llenando de a poco). */
+function sourceDe(term: { id: string; term: string }) {
+  const svg = STICKER_SVG[term.id];
+  return svg ? ({ type: 'svg', svg } as const) : slangTextSource(term.term, '¿cómo se dice?');
+}
+
+const COLUMNA = 'mx-auto w-full max-w-[640px]';
+const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+
+/* Resalta el término dentro de su frase de ejemplo. NEUTRO a propósito (negrita +
+   --text-primary, no --accent): el sticker ya pinta el término en AZUL y la lima
+   a pocos cm pondría la MISMA palabra en dos colores distintos (confunde). Un solo
+   tratamiento = "esta es la expresión que estás aprendiendo". */
+function resaltarTermino(context: string, target: string): ReactNode {
+  const i = context.toLowerCase().indexOf(target.toLowerCase());
+  if (i === -1) return context;
+  return (
+    <>
+      {context.slice(0, i)}
+      <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{context.slice(i, i + target.length)}</span>
+      {context.slice(i + target.length)}
+    </>
+  );
+}
+
+const ETIQUETA_KIND: Record<'phrasal' | 'slang', string> = {
+  phrasal: 'phrasal verb',
+  slang: 'slang',
+};
+
+/* Pista de que HAY MÁS ABAJO (mismo patrón que App/useDesborde). El scroller
+   oculta su barra (SIN_BARRA), así que en una ventana de PC corta el input de
+   "úsalo tú" queda bajo el pliegue sin ninguna señal. Devuelve true solo
+   mientras quede recorrido por debajo: el velo aparece al desbordar y se apaga
+   al llegar al fondo. Se recalcula al cambiar de término, al revelar y al
+   redimensionar (ResizeObserver sobre el scroller y sus hijos). */
+function useDesborde() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hayMas, setHayMas] = useState(false);
+
+  const medir = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setHayMas(el.scrollHeight - el.clientHeight - el.scrollTop > 4);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    window.addEventListener('resize', medir);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', medir);
+    };
+  }, [medir]);
+
+  return { ref, hayMas, medir };
+}
+
+export function Pelala() {
+  const orden = usePelala((s) => s.orden);
+  const retoIndex = usePelala((s) => s.retoIndex);
+  const retoSiguiente = usePelala((s) => s.retoSiguiente);
+  const guardados = usePelala((s) => s.guardados);
+  const toggleGuardar = usePelala((s) => s.toggleGuardar);
+  const peelHintVisto = usePelala((s) => s.peelHintVisto);
+  const marcarPeelHintVisto = usePelala((s) => s.marcarPeelHintVisto);
+
+  const [revelado, setRevelado] = useState(false);
+  const stickerRef = useRef<PeelStickerHandle>(null);
+  const scroller = useDesborde();
+
+  /* ← AL ORIGEN: como toda vista, vuelve al Home, que reabre el carrusel. */
+  const volver = useCallback(() => useApp.getState().setView('home'), []);
+
+  /* Al empezar a pelar: barrido holográfico (el mismo de la entrada). */
+  const onPeelStart = useCallback(() => {
+    stickerRef.current?.sweep();
+    marcarPeelHintVisto(); // al pelar por primera vez, la pista ya no vuelve
+  }, [marcarPeelHintVisto]);
+
+  /* Primera vez: tras la entrada, el sticker se auto-pela en bucle desde la
+     esquina hasta que el usuario pela por primera vez (luego no vuelve). */
+  useEffect(() => {
+    if (peelHintVisto) return;
+    const t = window.setTimeout(() => stickerRef.current?.peelPreview(), 1100);
+    return () => {
+      window.clearTimeout(t);
+      stickerRef.current?.stopPeelPreview();
+    };
+  }, [peelHintVisto]);
+
+  /* Al despegar del todo: entra el siguiente término (significado reseteado). */
+  const onDetach = useCallback(() => {
+    setRevelado(false);
+    retoSiguiente();
+  }, [retoSiguiente]);
+
+  // Mazo siempre poblado (el store arranca con DECK); guarda defensivo por si acaso.
+  const term = orden[retoIndex % orden.length];
+  if (!term) return null;
+  const guardado = guardados.includes(term.id);
+  const Icono = ICONO_TERMINO[term.id] ?? ICONO_FALLBACK;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ── Barra de sección: SOLO el ← + un rótulo quieto y NEUTRO. Fuera el
+          contador y la barra de progreso, y el rótulo deja de ir en la lima
+          (--accent): Gus los marcó como "verde AI slop" de la versión básica de
+          producción. La fila Menu + toggler de tema la pone el shell arriba. ── */}
+      <div className={cn(COLUMNA, 'flex shrink-0 items-center gap-2 pb-3')}>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.94 }}
+          onClick={volver}
+          aria-label="Volver al inicio"
+          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
+        >
+          <ArrowLeft size={17} strokeWidth={2} />
+        </motion.button>
+        <span
+          className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold tracking-[0.14em] uppercase"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Slang · pélala y aprende
+        </span>
+      </div>
+
+      {/* ── Scroller: sticker flotante + significado + mini-chat ──────────────
+          Envuelto en un contenedor `relative` (la COLUMNA) para colgar el velo
+          de "sigue abajo": en una ventana de PC corta el chat cae bajo el
+          pliegue y, sin barra visible, no había ninguna señal. ── */}
+      <div className={cn(COLUMNA, 'relative flex min-h-0 flex-1 flex-col')}>
+        <div
+          ref={scroller.ref}
+          onScroll={scroller.medir}
+          className={cn('flex min-h-0 flex-1 flex-col overflow-y-auto', SIN_BARRA)}
+        >
+        {/* El sticker (hero), flotando sobre el fondo del tema. ALTURA FLUIDA
+            (clamp por vh, no aspect fijo): en pantallas cortas cede altura para
+            que el significado y el chat entren completos en el viewport, en vez
+            de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
+            para cerrar el aire de abajo sin encoger el gráfico. */}
+        <div className="relative -mb-6 h-[clamp(165px,31vh,330px)] w-full shrink-0 select-none">
+          <PeelSticker
+            ref={stickerRef}
+            key="reto"
+            source={sourceDe(term)}
+            sourceKey={term.id}
+            onPeelStart={onPeelStart}
+            onDetach={onDetach}
+            className="h-full w-full"
+          />
+          {!peelHintVisto && <CornerHint />}
+        </div>
+
+        {/* ── DOCK ÚNICO: significado + práctica en UNA sola superficie glass.
+            Antes eran dos cajas idénticas apiladas (en oscuro "cajita dentro de
+            cajita", el fallo de la captura). Ahora un solo material continuo con
+            divisor interior y el border beam (paquete, config en el store). ── */}
+        <DockPractica>
+        {/* Zona SIGNIFICADO (revelable + guardable) — ya sin caja propia: es
+            contenido con padding dentro del dock, no una isla con su borde. */}
+        <div className="p-4">
+          {/* Caption anclada arriba, alineada a la izquierda como el cuerpo. */}
+          <p className="mb-3 text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
+            Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente
+          </p>
+
+          {/* Cabecera: ICONO DE LÍNEA (no emoji) en badge + término dominante +
+              chip de tipo · guardar. */}
+          <div className="flex items-center gap-2.5">
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center rounded-xl"
+              style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
+            >
+              <Icono size={19} strokeWidth={2} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[1.15rem] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                {term.term}
+              </p>
+              <span
+                className="mt-1 inline-block rounded-full px-2 py-0.5 text-[0.55rem] font-bold tracking-[0.12em] uppercase"
+                style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
+              >
+                {ETIQUETA_KIND[term.kind]}
+              </span>
+            </div>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.86 }}
+              onClick={() => toggleGuardar(term.id)}
+              aria-label={guardado ? 'Quitar de guardados' : 'Guardar término'}
+              aria-pressed={guardado}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full border transition-colors"
+              style={{
+                /* Guardado sin lima (REGLA 7): el estado ON se lee en la tinta
+                   encendida (--text-primary) + borde más fuerte y el icono relleno
+                   (BookmarkCheck), no en verde. */
+                borderColor: guardado ? 'var(--borde-medio)' : 'var(--borde-sutil)',
+                background: 'var(--bg-elevated)',
+                color: guardado ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}
+            >
+              {guardado ? <BookmarkCheck size={19} /> : <Bookmark size={19} />}
+            </motion.button>
+          </div>
+
+          {/* Pozo del significado: --bg-deep + borde (hundido consistente en los 3
+              temas). OCULTO = skeleton bars + pastilla (insinúa que hay texto sin
+              filtrarlo borroso por los cantos, que leía como glitch). REVELADO =
+              definición + ejemplo con el término resaltado. */}
+          <div
+            className="relative mt-3 overflow-hidden rounded-2xl"
+            style={{ background: 'var(--bg-deep)', border: '1px solid var(--borde-sutil)' }}
+          >
+            {revelado ? (
+              <div className="relative px-4 py-3.5">
+                <p className="pr-8 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                  {term.gloss_es}
+                </p>
+                <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                  “{resaltarTermino(term.context_en, term.target)}”
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setRevelado(false)}
+                  aria-label="Ocultar el significado"
+                  className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full transition-colors"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
+                >
+                  <EyeOff size={15} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRevelado(true)}
+                aria-label="Revelar el significado"
+                className="relative flex w-full items-center justify-center px-4 py-5"
+              >
+                {/* Skeleton: insinúa que hay texto oculto, limpio y contenido. */}
+                <div aria-hidden="true" className="absolute inset-0 flex flex-col justify-center gap-2 px-4">
+                  <span className="h-3.5 w-3/5 rounded-full" style={{ background: 'var(--borde-medio)' }} />
+                  <span className="h-2.5 w-5/6 rounded-full" style={{ background: 'var(--borde-sutil)' }} />
+                </div>
+                <span
+                  className="relative inline-flex items-center gap-2 rounded-full px-4 py-2 text-[0.8rem] font-semibold shadow-lg"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-medio)', color: 'var(--text-primary)' }}
+                >
+                  <Eye size={16} /> toca para ver el significado
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Zona PRÁCTICA "úsalo tú": mismo material, separada por un hairline
+            interior (border-top), NO por otra caja. ── */}
+        <UsarSlang term={term} />
+        </DockPractica>
+
+        <div className="h-2 shrink-0" />
+        </div>
+
+        {/* Velo de "sigue abajo": desvanece el último renglón contra el borde
+            para que se lea como contenido cortado, no terminado. Solo mientras
+            quede recorrido. */}
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-12"
+          style={{ background: 'linear-gradient(to top, var(--bg-void), transparent)' }}
+          initial={false}
+          animate={{ opacity: scroller.hayMas ? 1 : 0 }}
+          transition={{ duration: 0.18 }}
+        />
+      </div>
+    </div>
+  );
+}

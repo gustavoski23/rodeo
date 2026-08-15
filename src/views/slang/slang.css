@@ -1,0 +1,91 @@
+/* Tarjeta sticker de SLANG — port del CSS de .slang-card
+   (public/legacy.html:756-796). Vive aquí y no en tokens.css porque tokens.css
+   es zona compartida en esta entrega; los VALORES son los mismos y salen todos
+   de tokens (--card-ink, --sticker-shadow, --card-borde).
+
+   El prefijo rd-slang- evita colisionar con el .slang-card del legacy si algún
+   día conviven en la misma página.
+
+   DECISIÓN MAESTRA heredada del viejo: light-text y dark-text pintan el MISMO
+   ink oscuro. El JS aún emite la clase para cards que hoy son pastel claro; el
+   blanco sería invisible. No "arreglar". */
+
+.rd-slang-card {
+  border-radius: 26px;
+  padding: 28px 24px 24px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--sticker-shadow);
+  /* borde interior de 1px = recorte de pegatina */
+  border: 1px solid var(--card-borde);
+  color: var(--card-ink);
+}
+
+.rd-slang-card.dark-text,
+.rd-slang-card.light-text {
+  color: var(--card-ink);
+}
+
+.rd-slang-card .term {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.4rem, 10vw, 3.4rem);
+  line-height: 0.94;
+  letter-spacing: -0.03em;
+  color: var(--card-ink);
+}
+
+.rd-slang-card .label-mini {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  /* sin opacity: sólido, pasa AA */
+  color: var(--card-ink-soft);
+}
+
+.rd-slang-card .ex {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--card-ink);
+}
+
+.rd-slang-card .ex-es {
+  font-style: italic;
+  font-size: 0.87rem;
+  color: var(--card-ink-soft);
+}
+
+.rd-slang-card .wrong {
+  font-size: 0.83rem;
+  color: var(--card-ink-soft);
+  border-top: 1px dashed oklch(24% 0.03 265 / 0.3);
+  padding-top: 10px;
+  margin-top: 12px;
+}
+
+/* Bloque de un equivalente en la tarjeta JERGA (L4890-4897). */
+.rd-slang-card .eq {
+  border-top: 1px dashed currentColor;
+  padding-top: 10px;
+}
+
+/* Área táctil de 44 px de los iconos de la tarjeta (guardar / oír). */
+.rd-slang-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: currentColor;
+  opacity: 0.8;
+  padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+.rd-slang-icon.on {
+  opacity: 1;
+}

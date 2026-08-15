@@ -1,0 +1,111 @@
+/* ARCHIVO NUEVO DEL FORK — no existe en @gfazioli/mantine-book.
+
+   La caché de texturas del curl, y el único punto por el que la app puede
+   invalidarla.
+
+   POR QUÉ HACE FALTA. Cada cara del libro se pinta en el curl 3D como una
+   TEXTURA: un screenshot del DOM que snapdom rasteriza a PNG. Medido en este
+   repo (PERF-libro.md), en el banco de pruebas cada cara cuesta 478-875 ms a 1×
+   y 1,5-7,5 s a 4×, y la librería rehace CUATRO por volteo. A ritmo de lectura
+   real eso deja la rasterización solapando el gesto siguiente y el curl no
+   llega a dibujarse ni una vez: el volteo entero se ve como el pliegue plano
+   del DOM. Guardar las caras ya rasterizadas es lo que corta ese trabajo.
+
+   POR QUÉ ESTÁ ACOTADA. Son PNG de 688×964 (≈700 kB cada uno) más su bitmap
+   decodificado. Sin tope, hojear los 10 capítulos acumularía las 22 hojas y en
+   un teléfono de 3 GB eso tumba la pestaña. TOPE = 6 HOJAS, y una hoja son sus
+   dos caras: en el móvil eso es 6 caras de contenido más sus dorsos en blanco
+   (que son papel liso y no pesan), y en escritorio 12 caras de contenido, donde
+   además hay memoria de sobra. Seis da para las dos vecinas que la librería
+   mantiene calientes y para ir y volver dentro de un capítulo sin rasterizar.
+
+   SOBRE `gl.deleteTexture()`. No aplica, y conviene dejarlo escrito para que
+   nadie lo busque: el pool de la librería (Curl/webgl/pool.mjs) tiene UN solo
+   renderer con DOS texturas de GPU que se reescriben con `texImage2D` en cada
+   volteo. No hay una textura de GPU por cara que liberar. Lo que ocupa memoria
+   de verdad es la <img> con su bitmap decodificado, y de eso se encarga el
+   TOPE: soltar la referencia deja que el recolector se lleve el bitmap.
+
+   CUÁNTO CUESTA, medido de verdad (tests/perf/memoria.mjs: recorrer los 10
+   capítulos ida y vuelta, forzar `HeapProfiler.collectGarbage` y recién ahí
+   leer, tres pasadas de cada variante):
+
+     sin fork   15, 15, 15 MB
+     con fork   16, 16, 16 MB
+
+   Un mega más. Guardar caras CUESTA memoria, como es de esperar; lo que hace el
+   tope es que ese coste no crezca con el libro. Se apunta porque la primera vez
+   se midió mal —`performance.memory` a secas, sin forzar el GC— y salió que la
+   caché AHORRABA memoria, con lecturas de entre 17 y 54 MB que en realidad solo
+   decían cuándo había pasado el recolector. */
+
+const TOPE = 6;
+
+/** Map en orden de inserción = LRU pobre pero exacta: la primera clave es la
+    menos usada recientemente porque cada acierto la reinserta al final. */
+const caras = new Map();
+
+/* Generación: la parte de la clave que la librería NO puede saber. El tamaño de
+   página está en `captureKey` (width×height), pero la ESCALA del lector (A−/A+)
+   y el cambio de libro reordenan el texto sin cambiar ni un píxel de la caja, y
+   con la textura vieja la cara curvada mostraría el layout anterior. La vista
+   llama a `invalidarCaras()` y todo lo guardado deja de valer. */
+let generacion = 0;
+
+export const generacionActual = () => generacion;
+
+/** Tira TODAS las caras guardadas. La llama la vista al cambiar escala o libro. */
+export function invalidarCaras() {
+  generacion++;
+  for (const clave of [...caras.keys()]) soltar(clave);
+}
+
+function soltar(clave) {
+  const entrada = caras.get(clave);
+  caras.delete(clave);
+  if (!entrada) return;
+  for (const img of [entrada.a, entrada.b]) {
+    // snapdom devuelve la <img> con una blob: URL. Sin revocarla el blob queda
+    // vivo aunque nadie apunte a la imagen: soltar la referencia de JS no basta.
+    if (img?.src?.startsWith('blob:')) URL.revokeObjectURL(img.src);
+  }
+}
+
+export function leerCara(clave) {
+  const entrada = caras.get(clave);
+  if (!entrada) return null;
+  caras.delete(clave); // reinsertar = marcarla como la más reciente
+  caras.set(clave, entrada);
+  return entrada;
+}
+
+export function guardarCara(clave, entrada) {
+  if (caras.has(clave)) caras.delete(clave);
+  caras.set(clave, entrada);
+  while (caras.size > TOPE) soltar(caras.keys().next().value);
+}
+
+/** Para la prueba de regresión: cuántas caras hay guardadas ahora mismo. */
+export const carasGuardadas = () => caras.size;
+
+/* ¿Hay alguna hoja girando AHORA MISMO?
+
+   Lo lleva un contador y no una bandera porque durante un cambio de página
+   pueden solaparse dos hojas un instante (la que aterriza y la que arranca).
+
+   Existe para una cosa concreta: que ninguna hoja se ponga a rasterizar
+   mientras otra está en mitad del volteo. Antes eso se intentaba mirando si el
+   hilo principal estaba «quieto» (dos frames seguidos por debajo de 24 ms), y
+   esa señal mide otra cosa: en una máquina rápida los frames del volteo YA son
+   de 16 ms, así que daba por asentada una animación que seguía corriendo y
+   metía la rasterización dentro. `active` es el dato de verdad. */
+let volteando = 0;
+export function marcarVolteo(encendido) {
+  volteando = Math.max(0, volteando + (encendido ? 1 : -1));
+}
+export const hayVolteo = () => volteando > 0;
+
+if (typeof window !== 'undefined') {
+  // Ventana de inspección para el arnés de tests/perf (y para depurar a mano).
+  window.__curlCache = { carasGuardadas, invalidarCaras, generacionActual, hayVolteo };
+}

@@ -18,7 +18,9 @@
    ══════════════════════════════════════════════════════════════════════ */
 
 // Sube este número en cada release donde quieras invalidar cache viejo.
-const VERSION = 'rodeo-v2';
+// ⚠ En especial: los js/*.js same-origin son CACHE-FIRST — cualquier edición
+// a esos archivos NO llega a los usuarios hasta subir esta versión.
+const VERSION = 'rodeo-v5';
 
 // Nombres de cache derivados de VERSION → activate borra cualquier cosa que no
 // empiece por el prefijo de esta versión.
@@ -44,7 +46,25 @@ const SHELL_URLS = ['/', '/index.html'];
 const CDN_WARM = [
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   'https://fonts.googleapis.com/css2?family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Archivo:wght@600;700;800;900&family=Space+Mono:wght@400;700&display=swap',
+];
+
+// Assets same-origin adicionales para que el EPISODIO ILUSTRADO funcione
+// offline (js del engine + las 6 escenas de "La princesa y el azafrán"). Se
+// precachean en install best-effort: si un archivo no existe o el hosting
+// responde 404, el install sigue. Las fuentes del player son las de RODEO
+// (Archivo/Familjen/Space Mono, ya en CDN_WARM) — Inter salió del retheme.
+const APP_WARM = [
+  '/js/story-episodes.js',
+  '/js/story-mode.js',
+  '/js/supabase-sync.js',
+  '/episodios/princess/1.jpg',
+  '/episodios/princess/2.jpg',
+  '/episodios/princess/3.jpg',
+  '/episodios/princess/4.jpg',
+  '/episodios/princess/5.jpg',
+  '/episodios/princess/6.jpg',
 ];
 
 // CDNs que la app necesita para VERSE bien offline (estilos y fuentes).
@@ -60,6 +80,7 @@ const CDN_HOSTS = new Set([
   'fonts.googleapis.com',
   'fonts.gstatic.com',
   'cdnjs.cloudflare.com',
+  'cdn.jsdelivr.net',           // supabase-js (cuenta + sync)
 ]);
 
 // Clave de cache para el último drop leído (lectura offline opcional, ver
@@ -80,6 +101,7 @@ self.addEventListener('install', (event) => {
     const cache = await caches.open(SHELL_CACHE);
     await cache.addAll(SHELL_URLS);   // crítico: si falla, install falla (recuperable)
     await warmCDN();                   // best-effort: nunca lanza, ver abajo
+    await warmApp();                   // best-effort: episodio ilustrado offline
     await self.skipWaiting();
   })());
 });
@@ -135,13 +157,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4) Estáticos same-origin (iconos, manifest, etc.) → cache-first.
+  // 4) js/*.js same-origin → NETWORK-FIRST. Son los únicos estáticos que
+  //    cambian de contenido bajo la misma URL entre releases; con cache-first
+  //    una edición quedaba congelada hasta subir VERSION (footgun real: pasó
+  //    con el episodio ilustrado). Online = siempre fresco, igual que el
+  //    shell; offline = paracaídas del cache (precalentado en warmApp).
+  if (url.origin === self.location.origin && url.pathname.startsWith('/js/')) {
+    event.respondWith(networkFirstCDN(req, STATIC_CACHE));
+    return;
+  }
+
+  // 5) Demás estáticos same-origin (iconos, manifest, imágenes, fuentes) →
+  //    cache-first: no cambian bajo la misma URL.
   if (url.origin === self.location.origin) {
     event.respondWith(cacheFirst(req, STATIC_CACHE));
     return;
   }
 
-  // 5) Cualquier otro cross-origin no listado → red directa (sin tocar cache).
+  // 6) Cualquier otro cross-origin no listado (Supabase incluido) → red
+  //    directa (sin tocar cache). Auth/REST jamás deben cachearse.
   // (no respondWith)
 });
 
@@ -158,6 +192,21 @@ async function warmCDN() {
       if (res) await cache.put(u, res);   // opaque (status 0) o ok: guardar
     }));
   } catch (_e) { /* best-effort: nunca rompe el install */ }
+}
+
+// Assets same-origin (episodio ilustrado). Cache-first en runtime ya los
+// atrapa la primera vez que se ven, pero eso obliga a Gus a abrir el
+// episodio con red. Precalentar en install = jugable offline desde el vuelo.
+async function warmApp() {
+  try {
+    const cache = await caches.open(STATIC_CACHE);
+    await Promise.allSettled(APP_WARM.map(async (u) => {
+      try {
+        const res = await fetch(u);
+        if (res && res.ok) await cache.put(u, res);
+      } catch (_e) { /* recurso ausente o red caída: seguimos */ }
+    }));
+  } catch (_e) { /* best-effort */ }
 }
 
 /* ── Estrategias ─────────────────────────────────────────────────────── */

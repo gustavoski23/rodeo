@@ -1,0 +1,386 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Alan Sans — la fuente redondeada del Home aurora, tal cual la referencia
+   aprobada (self-hosted, no Google Fonts). Variable 100-900. */
+@font-face {
+  font-family: 'Alan Sans';
+  src: url('/fonts/AlanSans-VariableFont_wght.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* El tema de RODEO se conmuta con data-theme="light" en <html> (lo pone el
+   anti-flash del head antes del primer paint). Esta variante deja funcionar
+   el prefijo dark: de cualquier componente shadcn/Magic UI pegado tal cual. */
+@custom-variant dark (&:where(:root:not([data-theme='light']) *));
+
+/* ══════════════════════════════════════════════════════════════════════
+   RODEO — TOKENS v2 ("Dark Shell + Sticker Pop")
+   Copiados VERBATIM de la app original (public/legacy.html). NO renombrar:
+   --accent, --bg-*, --text-*, --card-* los consumen las islas legacy y todo
+   el CSS portado. Valores oklch verificados WCAG: texto de card AA >= 4.5:1.
+     · Alan Sans (100-900, variable) → BODY + UI en TODA la app (pedido de Gus:
+       la redondeada del Home aurora ahora es la fuente de cuerpo de todo)
+     · Archivo (600-900)        → DISPLAY grotesca pesada ancha (titulares puntuales)
+     · Familjen Grotesk (400-700, italic) → respaldo de cuerpo si Alan no carga
+     · Space Mono (400/700)     → labels, eyebrows, contadores (acento mono)
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  /* El navegador debe saber qué tema está activo: sin esto, el Auto Dark de
+     Chrome (o Dark Reader) cree que la página no tiene tema y repinta los
+     colores por su cuenta — el "no se ve nada" del modo claro. */
+  color-scheme: dark;
+
+  /* ── Shell oscuro (frío, temperatura 265) ── */
+  --bg-void:        oklch(9% 0.008 265);
+  --bg-deep:        oklch(13% 0.012 265);
+  --bg-surface:     oklch(17% 0.015 265);
+  --bg-elevated:    oklch(21% 0.018 265);
+
+  --text-primary:   oklch(96% 0.004 265);
+  --text-secondary: oklch(68% 0.010 265);
+  --text-muted:     oklch(62% 0.010 265);   /* L62 → ~4.6:1 sobre shell: pasa AA en labels pequeños */
+
+  /* ── Acento: DURAZNO AURORA. Color de éxito/C1/CTA. ──
+     Antes era LIMA CHARTREUSE (hue 128). Gus marcó el verde como "el de
+     producción / AI-slop" y pidió sacarlo de TODA la app (REGLA 7). El acento se
+     mueve al durazno del aurora del Home (~#D99C66, hue 66) — cálido, premium y
+     que hace juego con el fondo. Todo lo que consume var(--accent)/bg-primary/
+     --success/--texto-bien/--swap-new sigue este token, así que el recolor es de
+     un solo sitio. */
+  --accent:         oklch(82% 0.125 68);              /* durazno cálido — sobre shell = alto contraste */
+  --accent-dim:     oklch(82% 0.125 68 / 0.14);       /* fondos tenues de acento */
+  --accent-ink:     oklch(30% 0.05 68);               /* texto OSCURO sobre botón durazno (>7:1) */
+
+  /* ── Glass (tab bar, sheets) ── */
+  --glass-bg:       oklch(15% 0.015 265 / 0.62);
+  --glass-border:   oklch(96% 0.004 265 / 0.09);
+
+  /* ── TARJETAS-STICKER pastel saturadas: PASTEL CLARO con TEXTO OSCURO ── */
+  --card-blue:      oklch(76% 0.12 248);   /* cielo    · dark-text */
+  --card-lavender:  oklch(80% 0.10 290);   /* lavanda  · dark-text */
+  --card-green:     oklch(86% 0.13 158);   /* menta    · dark-text */
+  --card-yellow:    oklch(90% 0.15 95);    /* amarillo · dark-text */
+  --card-coral:     oklch(78% 0.13 28);    /* coral/durazno · dark-text */
+  --card-peach:     oklch(86% 0.10 55);    /* durazno  · dark-text */
+  --card-paper:     oklch(95% 0.012 85);   /* papel    · dark-text */
+
+  /* Tinta de texto para TODAS las cards (fondos pastel claros) */
+  --card-ink:        oklch(24% 0.03 265);   /* texto primario sobre card  (>=7.7:1) */
+  --card-ink-soft:   oklch(32% 0.03 265);   /* texto secundario/nota sobre card (>=4.5:1) */
+
+  /* ── PIGMENTO VERDEMAR — el único color NUEVO del sistema de iconos ──
+     Los iconos de escena se dibujan a tinta y aguada (components/rodeo/tinta/),
+     y esa aguada se pinta con dos pigmentos que se sortean por icono: uno
+     cálido y uno frío. El cálido ya existía —es la familia del durazno de
+     --accent—; el frío no existía en ninguna parte y sin él la aguada es
+     monocroma y se nota a los tres iconos.
+
+     DE DÓNDE SALE EL 202, medido y no elegido de oído:
+       · Es el HUECO de la paleta. Los dos tokens fríos que hay son
+         --card-blue (hue 248, cielo) y --card-green (hue 158, menta). 202 está
+         a 46 de uno y a 44 del otro, o sea casi exactamente en el punto medio:
+         es el tono más lejos posible de los dos, y por eso una mancha verdemar
+         nunca se lee como "se corrió el color de otro tramo".
+       · Y no compite con las láminas del mundo. Histograma de hue OKLCH
+         ponderado por croma sobre los 8 WebP horneados (427.888 píxeles
+         muestreados, 84.766 con croma > 0.02): la franja fría pica en 173 y
+         entre 190 y 260 hay CERO peso. O sea que el mundo no tiene nada en 202
+         — la aguada le suma un tono, no le repite el suyo.
+         OJO, esto corrige lo que decía el careo: el verde de las láminas NO es
+         verdemar, es verde-agua (165-175), que es territorio de --card-green.
+         Un pigmento ahí habría chocado con el color del tramo t0.
+
+     Los dos valores de L y C salen del barrido de alfas del careo (mirando
+     capturas, no calculándolos): sobre el shell casi-negro la aguada tiene que
+     ser PÁLIDA y desaturada o el `screen` la compone a barro; sobre papel puede
+     ser el pigmento de verdad y multiplicar. */
+  --pigmento-verdemar:       oklch(84% 0.035 202);  /* sobre el shell oscuro */
+  /* El mismo pigmento para cuando el SUELO es claro aunque el tema sea oscuro
+     (los discos pastel del mapa). Es un valor y no una copia: .suelo-claro y el
+     tema claro lo consumen por var(), así que hay una sola verdad. */
+  --pigmento-verdemar-papel: oklch(72% 0.055 202);
+
+  /* SWAP (LEVEL UP) — tintas hue-locked oscuras que leen sobre CUALQUIER card.
+     --swap-new pasó de lima a durazno entintado: es OSCURO (L40), así que contra
+     las cards pastel claras contrasta por LUMINANCIA, no por tono — legible
+     aunque el durazno sea de familia cálida como algunas cards. */
+  --swap-new:        oklch(40% 0.12 66);    /* durazno entintado (el upgrade C1) — contrasta por L en toda card */
+  --swap-old:        oklch(38% 0.20 27);    /* rojo entintado (el B2 tachado)  — >=4.5:1 en toda card */
+
+  /* ── Semántica viva (sobre SHELL oscuro, no sobre cards) ── */
+  --success:        oklch(82% 0.125 68);   /* = accent durazno */
+  --danger:         oklch(66% 0.20 27);    /* coral vivo: error, HEAT, "básico" */
+  --danger-dim:     oklch(66% 0.20 27 / 0.16);
+  --warn:           oklch(84% 0.16 92);    /* amarillo: aviso, glosa, empate */
+
+  /* Sombra difusa de sticker + versión levantada */
+  --sticker-shadow: 0 14px 34px oklch(0% 0 0 / 0.34), 0 3px 8px oklch(0% 0 0 / 0.22);
+  --sticker-shadow-lift: 0 22px 50px oklch(0% 0 0 / 0.42), 0 4px 10px oklch(0% 0 0 / 0.28);
+
+  /* Glow de HEAT (STORY) — vira el ambient a coral cuando HEAT>55 */
+  --heat-glow-color: oklch(66% 0.20 27 / 0.16);
+
+  /* Píldoras de audio de la barra de sesión (volumen · play · repetir) */
+  --pill-bg:        oklch(100% 0 0 / 0.04);
+  --pill-bg-hover:  oklch(100% 0 0 / 0.07);
+  --pill-border:    oklch(100% 0 0 / 0.09);
+
+  /* Borde de las tarjetas-sticker: invisible sobre shell oscuro */
+  --card-borde:     transparent;
+
+  /* ── Tokens que el tema claro invierte ── */
+  --chip-bg:        oklch(16% 0.015 265 / 0.4);    /* pills inactivas (chip, mode-tab…) */
+  --chip-bg-fuerte: oklch(16% 0.015 265 / 0.55);
+  --borde-sutil:    oklch(96% 0.004 265 / 0.12);   /* separadores y bordes de pill */
+  --borde-medio:    oklch(96% 0.004 265 / 0.22);
+  --superficie-t:   oklch(96% 0.004 265 / 0.07);   /* fondos translúcidos (burbujas) */
+  --texto-mal:      oklch(80% 0.16 27);            /* la cita incorrecta (tachada) */
+  --texto-bien:     oklch(82% 0.125 68);           /* el fix de la corrección: durazno sobre coral apagado */
+  --texto-obst:     oklch(80% 0.13 40);            /* el obstáculo del roleplay */
+  --texto-es:       oklch(80% 0.14 55);            /* chip ES del micrófono */
+
+  /* Radio base para los componentes shadcn (deriva sm/md/lg/xl abajo) */
+  --radius: 1rem;
+
+  /* Aurora del Home — valores por defecto de la referencia aprobada
+     (index.html:43-50). El store los sobrescribe en :root al arrancar y al
+     personalizar; estos son el punto de partida antes de que monte React. */
+  --aurora-1: #B85D8A;
+  --aurora-2: #D99C66;
+  --aurora-3: #EBE0C5;
+  --aurora-strength: 1;
+  --aurora-brightness: 1;
+  --aurora-duration-one: 12.8s;
+  --aurora-duration-two: 14s;
+  --aurora-duration-three: 10.6s;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA CLARO — el mismo sistema, dado vuelta. La lima BAJA a L50 para servir
+   como texto sobre papel (~4.6:1) y como relleno con tinta clara encima.
+   Las cards pastel no se invierten: solo se apagan un punto y ganan borde.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  /* Rampa de fondos: papel cálido, no blanco clínico */
+  --bg-void:        oklch(98.5% 0.003 95);
+  --bg-deep:        oklch(96.5% 0.005 95);
+  --bg-surface:     oklch(100% 0 0);
+  --bg-elevated:    oklch(94.5% 0.007 95);
+
+  --text-primary:   oklch(22% 0.012 265);
+  --text-secondary: oklch(44% 0.014 265);
+  --text-muted:     oklch(52% 0.014 265);   /* L52 sobre papel → ~4.7:1: pasa AA */
+
+  /* Durazno profundo: legible como texto Y como relleno sobre papel */
+  --accent:         oklch(54% 0.13 60);
+  --accent-dim:     oklch(54% 0.13 60 / 0.13);
+  --accent-ink:     oklch(99% 0.012 68);    /* tinta CLARA sobre el durazno profundo */
+
+  --glass-bg:       oklch(100% 0 0 / 0.78);
+  --glass-border:   oklch(22% 0.012 265 / 0.10);
+
+  --card-blue:      oklch(84% 0.09 248);
+  --card-lavender:  oklch(87% 0.075 290);
+  --card-green:     oklch(90% 0.095 158);
+  --card-yellow:    oklch(93% 0.12 95);
+  --card-coral:     oklch(85% 0.10 28);
+  --card-peach:     oklch(90% 0.075 55);
+  --card-paper:     oklch(97% 0.010 85);
+  --card-borde:     oklch(22% 0.012 265 / 0.12);
+
+  --card-ink:       oklch(21% 0.03 265);
+  --card-ink-soft:  oklch(35% 0.03 265);
+
+  /* Sobre papel la aguada puede llevar el pigmento pleno y multiplicar (ver el
+     bloque de arriba). Es el MISMO valor que usa .suelo-claro. */
+  --pigmento-verdemar: var(--pigmento-verdemar-papel);
+
+  --swap-new:       oklch(44% 0.13 60);
+  --swap-old:       oklch(42% 0.20 27);
+
+  --success:        oklch(54% 0.13 60);
+  --danger:         oklch(52% 0.20 27);
+  --danger-dim:     oklch(52% 0.20 27 / 0.12);
+  --warn:           oklch(47% 0.13 72);     /* el amarillo brillante no lee sobre papel */
+
+  /* Sombras: sobre claro las negras al 34% son manchas. Suaves y frías. */
+  --sticker-shadow:      0 10px 26px oklch(22% 0.012 265 / 0.10), 0 2px 6px oklch(22% 0.012 265 / 0.07);
+  --sticker-shadow-lift: 0 18px 40px oklch(22% 0.012 265 / 0.14), 0 3px 8px oklch(22% 0.012 265 / 0.09);
+
+  --heat-glow-color: oklch(52% 0.20 27 / 0.10);
+
+  --pill-bg:        oklch(22% 0.012 265 / 0.04);
+  --pill-bg-hover:  oklch(22% 0.012 265 / 0.08);
+  --pill-border:    oklch(22% 0.012 265 / 0.12);
+
+  --chip-bg:        oklch(22% 0.012 265 / 0.045);
+  --chip-bg-fuerte: oklch(22% 0.012 265 / 0.08);
+  --borde-sutil:    oklch(22% 0.012 265 / 0.13);
+  --borde-medio:    oklch(22% 0.012 265 / 0.24);
+  --superficie-t:   oklch(22% 0.012 265 / 0.05);
+  --texto-mal:      oklch(48% 0.19 27);
+  /* Igual que con la lima: baja respecto a --accent (L54) para dar AA en negrita
+     ~13,6 px sobre el coral compuesto de --danger-dim. A L48 el durazno da ~5,5:1. */
+  --texto-bien:     oklch(48% 0.13 60);
+  --texto-obst:     oklch(46% 0.15 40);
+  --texto-es:       oklch(46% 0.14 55);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PUENTE Tailwind v4 + shadcn — cualquier componente instalado con
+   `npx shadcn add` o el MCP de Magic UI sale YA con la piel de RODEO.
+
+   OJO nomenclatura: en clases Tailwind, el durazno de marca es `primary`
+   (bg-primary / text-primary-foreground). El `accent` de shadcn es su
+   superficie sutil de hover (dropdowns, menús) → va a bg-elevated. La
+   variable CSS var(--accent) sigue siendo el acento de marca (hoy durazno).
+   ══════════════════════════════════════════════════════════════════════════ */
+@theme inline {
+  --font-sans: 'Alan Sans', 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Archivo', 'Familjen Grotesk', ui-sans-serif, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+
+  /* Contrato shadcn */
+  --color-background: var(--bg-void);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-surface);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-elevated);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--bg-elevated);
+  --color-secondary-foreground: var(--text-primary);
+  /* --muted-override no existe en el tema global (el fallback manda, cero
+     cambio); el scope claro de Suscripción (suscripcion.css) lo define para
+     separar muted (gris) de card (blanco) — en RODEO ambos son --bg-surface. */
+  --color-muted: var(--muted-override, var(--bg-surface));
+  --color-muted-foreground: var(--text-muted);
+  --color-accent: var(--bg-elevated);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: oklch(98% 0.01 27);
+  --color-border: var(--glass-border);
+  --color-input: var(--borde-medio);
+  --color-ring: var(--accent);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+
+  /* Vocabulario RODEO como utilidades (bg-card-coral, text-swap-new, …) */
+  --color-brand: var(--accent);
+  --color-brand-ink: var(--accent-ink);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-deep: var(--bg-deep);
+  --color-card-blue: var(--card-blue);
+  --color-card-lavender: var(--card-lavender);
+  --color-card-green: var(--card-green);
+  --color-card-yellow: var(--card-yellow);
+  --color-card-coral: var(--card-coral);
+  --color-card-peach: var(--card-peach);
+  --color-card-paper: var(--card-paper);
+  --color-card-ink: var(--card-ink);
+  --color-card-ink-soft: var(--card-ink-soft);
+  --color-swap-new: var(--swap-new);
+  --color-swap-old: var(--swap-old);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+
+  --shadow-sticker: var(--sticker-shadow);
+  --shadow-sticker-lift: var(--sticker-shadow-lift);
+
+  /* rainbow-button (Magic UI) — entrada theme del registry, verbatim */
+  --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
+}
+
+/* rainbow-button (Magic UI) — cssVars del registry, verbatim (mismos valores
+   en claro y oscuro; los 5 colores del arcoíris no siguen al tema) */
+:root,
+:root[data-theme='light'] {
+  --color-1: oklch(66.2% 0.225 25.9);
+  --color-2: oklch(60.4% 0.26 302);
+  --color-3: oklch(69.6% 0.165 251);
+  --color-4: oklch(80.2% 0.134 225);
+  --color-5: oklch(90.7% 0.231 133);
+}
+
+/* rainbow-button (Magic UI) — css del registry, verbatim */
+@keyframes rainbow {
+  0% {
+    background-position: 0%;
+  }
+  100% {
+    background-position: 200%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--accent) 50%, transparent);
+  }
+  html {
+    height: 100%;
+    /* REGRESIÓN DEL PORT, no una precaución: la app legacy lo declaraba
+       (public/legacy.html:292) y al portar a React se perdió. Sin esto el valor
+       es `auto`, y entonces WebKit (iPhone) y Chrome con el tamaño de letra del
+       sistema cambiado (Android) aplican su AUTOAJUSTE de texto: inflan la letra
+       de un bloque según el ancho del bloque contra el del viewport, y la
+       RECALCULAN en cada relayout. Se ve como que "cambia el tipo de letra sola"
+       — el caso que reportó el amigo de Chile al pasar página, y que también
+       salió en el Android de Gus. Medido en el video: la escala guardada seguía
+       en 115% en los cinco cuadros del salto (el A−/A+ nunca se tocó) y el texto
+       reflowó igual, así que el cambio no venía de la app.
+       El bloque de texto del libro es justo el que lo dispara: vive en una caja
+       estrecha de ancho fijo (--pw) cuyo ancho pintado se mueve durante el
+       volteo. Con 100% el navegador respeta el font-size que pide el CSS. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    min-height: 100%;
+    min-height: 100dvh;
+    background: var(--bg-void);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+  /* ALTO FIJO, no min-height: el chat de TALK necesita un contenedor acotado
+     para que su scroll interno sea el que se mueve (con min-height crece la
+     página entera y el dock de voz se va debajo del pliegue). Es el
+     `<div style="height:100dvh">` que envolvía la app original. */
+  #root {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* `overflow: hidden` NO deja el elemento quieto: sigue siendo desplazable
+       por código y por el rebote del navegador. Medido con el carrusel abierto
+       a 390×560: #root tenía scrollHeight 602 contra clientHeight 560 — 42px de
+       holgura escondida con scrollTop 0. Esos 42px son la superficie contra la
+       que iOS hace el rebote elástico cuando un gesto del abanico se le escapa
+       en vertical, y es el "saltico como de recargar" del iPhone. El de `body`
+       no cubre este cajón: hay que declararlo aquí. */
+    overscroll-behavior: none;
+  }
+}
+
+/* El barrido circular del cambio de tema (AnimatedThemeToggler) anima
+   ::view-transition-new(root) con un clip-path circular; sin esto el
+   crossfade por defecto de la View Transitions API pelea con el círculo. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}

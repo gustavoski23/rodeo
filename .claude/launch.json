@@ -6,6 +6,16 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["dev-server.mjs"],
       "port": 4870
+    },
+    {
+      "name": "pelala-demo",
+      "url": "http://localhost:5173"
+    },
+    {
+      "name": "vite",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
     }
   ]
 }

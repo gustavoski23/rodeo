@@ -1,0 +1,49 @@
+/* Suscripción — scope CLARO para el flujo de pago.
+
+   Las capturas que aprobó Gus (diálogo "Confirm and pay", Order Summary,
+   ticket) son BLANCAS, con botones primarios NEGROS — el look neutro de
+   shadcn/origin-ui. RODEO vive en shell oscuro, así que los paneles del flujo
+   se envuelven en `.sub-claro`: re-declara los tokens BASE de RODEO (los que
+   el puente @theme inline de tokens.css inyecta en bg-background, bg-card,
+   text-muted-foreground, border-input, bg-primary…) con valores neutros
+   claros. Solo aplica DENTRO del scope — el resto de la app ni se entera, y
+   funciona igual con la app en tema claro, oscuro o gradiente.
+
+   El diálogo de pago lleva la clase en su DialogContent (Radix lo monta en un
+   portal fuera de este árbol); los demás paneles la heredan del contenedor
+   del overlay. */
+.sub-claro {
+  color-scheme: light;
+
+  /* El color se HEREDA como valor computado: sin esto, todo elemento sin clase
+     de color (el título del diálogo, el $220.00 del footer, "+ Add coupon")
+     arrastra el texto claro del body oscuro y se lava sobre el panel blanco. */
+  color: var(--text-primary);
+
+  /* background / card: blanco pleno, como las capturas */
+  --bg-void: oklch(100% 0 0);
+  --bg-surface: oklch(100% 0 0);
+  /* secondary (botón Redeem) y el accent-hover de shadcn: gris suave */
+  --bg-elevated: oklch(96.7% 0.001 286);
+  --bg-deep: oklch(98.5% 0 0);
+
+  --text-primary: oklch(14.1% 0.005 286);
+  --text-secondary: oklch(37% 0.012 286);
+  --text-muted: oklch(55.2% 0.016 286);
+
+  /* primary NEGRO (Subscribe / Place Order / badge Popular) + ring oscuro */
+  --accent: oklch(21% 0.006 286);
+  --accent-dim: oklch(21% 0.006 286 / 0.1);
+  --accent-ink: oklch(98.5% 0 0);
+
+  /* borde general fino y borde de inputs un punto más marcado */
+  --glass-border: oklch(92% 0.004 286);
+  --borde-sutil: oklch(92% 0.004 286);
+  --borde-medio: oklch(87.1% 0.006 286);
+
+  /* bg-muted (fila de la tarjeta en el ticket): gris, no blanco — ver la
+     nota de --muted-override en tokens.css */
+  --muted-override: oklch(96.7% 0.001 286);
+
+  --danger: oklch(57.7% 0.245 27.3);
+}

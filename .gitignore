@@ -15,3 +15,26 @@ node_modules/
 Thumbs.db
 .vercel
 .env*
+
+# Worktrees temporales de agentes (Claude Code) — jamás versionar
+.claude/worktrees/
+
+# Imágenes sueltas de pruebas en la raíz (se colaron una vez, no vuelven)
+/*.jpeg
+/*.jpg
+
+# Build (Vite)
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Scratchpad de sesión (tooling temporal: generador del demo, capturas, etc.)
+scratchpad/
+output/
+test-results/
+.codex-vite-preview*.log
+
+# Medición del libro (tests/perf): el build instrumentado y sus salidas se
+# regeneran corriendo los scripts; las capturas pesan megas y no son fuente.
+dist-perf/
+tests/perf/resultados/

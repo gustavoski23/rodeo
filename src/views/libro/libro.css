@@ -1,0 +1,803 @@
+/* Libre Baskerville, SERVIDA DESDE public/fonts.
+
+   No va por Google Fonts (que era lo de antes) por dos razones. Una: el
+   empaquetador del demo (scripts/hacer-demo.mjs) inlinea los assets LOCALES a
+   data: URI, y el CSP del artifact bloquea cualquier host externo — con el
+   @import a Google la fuente se caía sin avisar y el libro salía en Georgia.
+   Dos: es una request de terceros menos y sin FOUT.
+
+   Los tres pesos son archivos DISTINTOS (Fontsource). Ojo con esto: Google
+   Fonts hoy sirve el MISMO woff2 para 400 y 700, así que declarar el 700
+   apuntando al regular daba títulos que no se veían en negrita.
+
+   `font-display: block` y NO `swap`. En un libro el intercambio de fuente no
+   es un detalle cosmético: `swap` pinta el cuento en Georgia y lo REEMPLAZA por
+   Baskerville a media lectura, y como la capitular va a 2.6em (más abajo) el
+   salto reflowea el párrafo entero delante de los ojos — eso es lo que Gus vio
+   («la letra cambia sola»). `block` deja el texto invisible mientras la fuente
+   viaja (unos 100 ms, y con el <link rel=preload> de index.html arranca con el
+   HTML, no con la vista) y después lo pinta UNA vez, ya bien.
+   Ese hueco no se llega a ver, además, porque la vista no abre el libro hasta
+   que `document.fonts` confirma las tres caras (índice de la vista, useFuentes).
+   Aquí no vale `optional`: descartaría la fuente en la primera carga con red
+   lenta y el libro entero saldría en Georgia hasta recargar. */
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/LibreBaskerville-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('/fonts/LibreBaskerville-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Libre Baskerville';
+  font-style: italic;
+  font-weight: 400;
+  font-display: block;
+  src: url('/fonts/LibreBaskerville-Italic.woff2') format('woff2');
+}
+
+/* LIBRO — Alice in Wonderland.
+
+   La tipografía de las páginas se mide en `em` sobre --pw (el ancho de página
+   en px que calcula la vista) multiplicado por --escala (el A−/A+ del lector).
+   Así el libro es UN objeto que escala entero: a 175px en un móvil y a 340px
+   en el PC se ve el mismo diseño, no uno roto y otro suelto. Si algo lleva px
+   fijos es porque NO debe escalar. */
+
+.libro-cara {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-size: calc(var(--pw, 300px) * 0.042 * var(--escala, 1));
+}
+
+/* ── Caras ilustradas (portada, aperturas de capítulo, cierre) ──────────── */
+
+.libro-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  /* Zoom mínimo (pedido de Gus). El generador dejó un filo casi-blanco de
+     ~4-5px de "papel" ALREDEDOR del marco dorado —medido en el borde de arriba:
+     las filas de brillo caían 236 232 212 192 165… hasta el oro oscuro (~63)—,
+     y contra el marco se leía como una línea blanca. Un scale corta ese papel
+     por las cuatro caras (el overflow:hidden del padre lo recorta) sin comerse
+     el marco: 2.5% es lo justo que borra el filo y deja el cuadro intacto. */
+  transform: scale(1.025);
+}
+
+/* Velo inferior: apoya el rótulo sobre la ilustración y —de paso— tapa la
+   franja de abajo, donde el generador a veces deja un renglón ilegible. */
+.libro-velo {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 26%;
+  pointer-events: none;
+  background: linear-gradient(to top, oklch(12% 0.02 60 / 0.92), transparent);
+}
+
+.libro-rotulo {
+  position: absolute;
+  inset: auto 0 1.1em 0;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  color: oklch(88% 0.07 85);
+  text-shadow: 0 0.06em 0.25em oklch(10% 0.02 60 / 0.9);
+}
+
+.libro-rotulo b {
+  display: block;
+  font-size: 1.05em;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 0 0.8em;
+}
+
+.libro-rotulo span {
+  display: block;
+  margin-top: 0.3em;
+  font-size: 0.6em;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+/* ── Caras de texto (pergamino) ─────────────────────────────────────────── */
+
+.libro-pergamino {
+  display: flex;
+  flex-direction: column;
+  padding: 1.35em 1.3em 1.15em;
+  color: oklch(26% 0.035 65);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  background:
+    radial-gradient(ellipse at 18% 12%, oklch(84% 0.05 78 / 0.55), transparent 45%),
+    radial-gradient(ellipse at 85% 78%, oklch(82% 0.06 62 / 0.5), transparent 40%),
+    radial-gradient(ellipse at 50% 50%, oklch(94% 0.028 88), oklch(88% 0.042 74));
+}
+
+.libro-pergamino::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 3em 0.9em oklch(62% 0.06 62 / 0.28);
+}
+
+.libro-pergamino::after {
+  content: '';
+  position: absolute;
+  inset: 0.55em;
+  pointer-events: none;
+  border: 1px solid oklch(66% 0.09 78 / 0.5);
+}
+
+/* Cabecera de capítulo: solo en la PRIMERA cara de texto del capítulo. Las
+   otras cuatro entran directo al cuento, como en un libro de verdad — repetir
+   el título en cada página gastaría el mejor espacio de la plana. */
+.libro-cap {
+  position: relative;
+  flex-shrink: 0;
+  text-align: center;
+  margin-bottom: 0.75em;
+}
+
+.libro-cap i {
+  display: block;
+  font-style: normal;
+  font-size: 0.56em;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: oklch(52% 0.09 62);
+}
+
+.libro-cap b {
+  display: block;
+  margin-top: 0.28em;
+  font-size: 1em;
+  font-weight: 700;
+  line-height: 1.2;
+  color: oklch(28% 0.06 55);
+}
+
+.libro-cap em {
+  display: block;
+  margin-top: 0.2em;
+  font-size: 0.58em;
+  color: oklch(48% 0.05 62);
+}
+
+.libro-cap u {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-top: 0.5em;
+  text-decoration: none;
+  font-size: 0.6em;
+  color: oklch(60% 0.09 72);
+}
+
+.libro-cap u::before,
+.libro-cap u::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(66% 0.09 78 / 0.65), transparent);
+}
+
+/* El cuerpo del cuento.
+
+   overflow-y AUTO y no hidden: con la letra agrandada (el A+ llega a 175%) el
+   cuento deja de caber en la hoja, y esconderle el final al lector es el peor
+   fallo posible en un libro — se leía "Rabbits don't talk, Alice thought. She"
+   y ahí se acababa el mundo. Ahora la página se desplaza por dentro.
+   Para que ese desplazamiento no pelee con el gesto de pasar página, el <Book>
+   va con `mobileScrollSupport`: en táctil el libro espera a ver si el gesto
+   tira en horizontal antes de reclamar el arrastre, así el dedo vertical
+   scrollea y el horizontal voltea.
+   overscroll-behavior contiene el rebote: al llegar al final del texto no
+   arrastra la página entera detrás. */
+.libro-cuerpo {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* pan-y es OBLIGATORIO, no cosmético. Al ser un contenedor scrollable con
+     touch-action: auto, el navegador se quedaba con CUALQUIER gesto que
+     empezara aquí —también los horizontales— para hacer scroll, y al hacerlo
+     disparaba `pointercancel`: el arrastre del libro moría al primer
+     pointermove y la página de texto no se podía pasar con el dedo (medido con
+     input táctil real por CDP: pointerdown 1, pointermove 1, pointercancel 1).
+     Declarando pan-y, lo vertical sigue siendo del navegador —el texto se
+     desplaza igual— y lo horizontal queda para el libro. */
+  touch-action: pan-y;
+  scrollbar-width: none;
+  font-size: 0.72em;
+  line-height: 1.58;
+  text-align: left;
+  hyphens: manual;
+}
+
+.libro-cuerpo::-webkit-scrollbar {
+  display: none;
+}
+
+/* «Sigue abajo». El degradado se pega al borde inferior del área de texto y
+   solo existe mientras quede algo por leer (data-mas lo pone la vista al medir).
+   Sin esto, una frase cortada a media línea se lee como un fallo; con esto se
+   lee como una página que sigue. Va en un pseudo-elemento sticky y no en un
+   ::after absoluto porque el contenedor scrollea: absoluto se iría con el
+   texto hacia arriba. */
+.libro-cuerpo[data-mas]::after {
+  content: '';
+  display: block;
+  position: sticky;
+  bottom: -1px;
+  height: 2.2em;
+  margin-top: -2.2em;
+  pointer-events: none;
+  background: linear-gradient(to top, oklch(90% 0.038 80) 12%, oklch(90% 0.038 80 / 0) 100%);
+}
+
+/* SANGRÍA DE LIBRO (pedido de Gus: «respetando la sangría»). Los párrafos NO
+   se separan con aire: se marcan con sangría de primera línea, que es como se
+   compone un libro impreso. El primero va sin sangría —lleva la capitular— y
+   del segundo en adelante entran 1.15em. Así la mancha de texto queda maciza y
+   pareja, sin los escalones blancos que deja el margen entre párrafos. */
+.libro-cuerpo p {
+  margin: 0;
+  text-indent: 1.15em;
+}
+
+.libro-cuerpo p:first-child {
+  text-indent: 0;
+}
+
+/* El diálogo respira: una línea que abre con comillas arranca párrafo nuevo y
+   ahí sí conviene un pelín de aire, si no la conversación se lee como un
+   bloque. */
+.libro-cuerpo p.dialogo {
+  margin-top: 0.3em;
+}
+
+/* La capitular. Va sobre un <span> REAL que pinta la vista (CAPITULAR en
+   index.tsx) y no sobre `::first-letter`, porque el snapshot que rasteriza la
+   cara del curl clona nodos y estilos calculados: un pseudo-elemento de primera
+   letra no existe para él, y la cara girando salía sin capitular y con el
+   párrafo recompuesto. Los valores son los mismos de antes — esto cambia QUIÉN
+   los recibe, no cómo se ve. */
+.libro-capitular {
+  float: left;
+  font-size: 2.6em;
+  line-height: 0.82;
+  padding: 0.06em 0.1em 0 0;
+  color: oklch(45% 0.13 42);
+}
+
+/* Las glosas heredan el punteado ámbar de la app, que sobre papel claro se
+   pierde: aquí se retiñen a tinta sepia. */
+.libro-cuerpo [data-gloss] {
+  border-bottom-color: oklch(55% 0.13 52) !important;
+  color: oklch(34% 0.1 45);
+  cursor: pointer;
+}
+
+/* La ilustración de la MITAD del capítulo, embebida en la página de texto. */
+.libro-medio {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0.7em;
+  border: 1px solid oklch(62% 0.08 70 / 0.6);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+.libro-medio img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── Pie: la línea ES y el folio ────────────────────────────────────────── */
+
+.libro-es {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin-top: 0.6em;
+  padding-top: 0.45em;
+  border-top: 1px solid oklch(66% 0.09 78 / 0.45);
+  font-size: 0.56em;
+  line-height: 1.45;
+  color: oklch(46% 0.05 62);
+}
+
+.libro-es i {
+  flex-shrink: 0;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: oklch(56% 0.09 62);
+}
+
+.libro-es span {
+  flex: 1;
+  font-style: italic;
+}
+
+.libro-es b {
+  flex-shrink: 0;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: oklch(56% 0.06 62);
+}
+
+/* ── Los phrasal verbs, solo en la primera cara de texto del capítulo ───── */
+
+.libro-pie {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0.5em;
+  padding-top: 0.45em;
+  border-top: 1px solid oklch(66% 0.09 78 / 0.45);
+}
+
+.libro-pie-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  margin-bottom: 0.35em;
+}
+
+.libro-pie i {
+  font-style: normal;
+  font-size: 0.5em;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: oklch(52% 0.09 62);
+}
+
+.libro-leer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 0.28em 0.68em;
+  border-radius: 999px;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-size: 0.52em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(32% 0.09 48);
+  background: oklch(72% 0.07 72 / 0.55);
+  border: 1px solid oklch(62% 0.08 70 / 0.65);
+}
+
+.libro-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.26em;
+}
+
+.libro-chips span {
+  font-size: 0.48em;
+  line-height: 1.5;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: oklch(34% 0.08 48);
+  background: oklch(72% 0.07 72 / 0.42);
+  border: 1px solid oklch(62% 0.08 70 / 0.5);
+}
+
+/* La flechita que señala LEER hasta que se usa una vez (pedido de Gus). Es un
+   descubrimiento, no un adorno: sin ella nadie sabe que la página tiene un
+   lector detrás. Por eso se va PARA SIEMPRE al primer clic.
+   Va EN LA MISMA FILA que el botón, empujada contra él: flotando encima se
+   sentaba sobre la línea ES y tapaba el resumen en español. */
+.libro-flecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  margin-left: auto;
+  margin-right: 0.35em;
+  flex-shrink: 0;
+  pointer-events: none;
+  font-size: 0.48em;
+  font-style: italic;
+  white-space: nowrap;
+  color: oklch(45% 0.14 45);
+  animation: libro-señala 1.5s ease-in-out infinite;
+}
+
+.libro-flecha svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+/* Apunta AL BOTÓN, que está a su derecha: el vaivén es horizontal. */
+@keyframes libro-señala {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.3em);
+  }
+}
+
+/* ── Mini-tutorial "toca LEER para el capítulo completo" ─────────────────────
+   La abrebocas es SOLO el prólogo, pero por inercia la gente sigue hojeando con
+   las flechas. Este coach-mark de una vez lo enseña. Todo en el mundo del libro
+   —pergamino, oro viejo, serif—, nunca en el tema oscuro de la app. Con
+   prefers-reduced-motion queda el aro fijo, sin latido ni ondas (pero visible:
+   la señal nunca desaparece). */
+
+/* El botón mientras el tutorial vive: un aro de oro que respira + dos ondas que
+   salen de él, la señal universal de "tócame". Las ondas son ::before/::after,
+   así que no meten un solo nodo extra. */
+.libro-leer--tuto {
+  position: relative;
+  animation: libro-leer-latido 2s ease-in-out infinite;
+}
+.libro-leer--tuto::before,
+.libro-leer--tuto::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1.5px solid oklch(58% 0.12 68 / 0.7);
+  pointer-events: none;
+  animation: libro-leer-onda 2s ease-out infinite;
+}
+.libro-leer--tuto::after {
+  animation-delay: 1s;
+}
+@keyframes libro-leer-latido {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(72% 0.13 76 / 0);
+  }
+  50% {
+    box-shadow: 0 0 12px 2px oklch(74% 0.14 78 / 0.6);
+  }
+}
+@keyframes libro-leer-onda {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.75);
+  }
+}
+
+/* El papelito que explica, ENCIMA del botón, con un pico que lo señala. Papel
+   viejo + hairline de oro + serif: una nota dejada en el libro, no un tooltip. */
+.libro-tuto {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.35em);
+  z-index: 5;
+  max-width: 14em;
+  padding: 0.55em 0.7em;
+  border-radius: 0.6em;
+  text-align: left;
+  color: oklch(32% 0.05 55);
+  background: linear-gradient(oklch(94% 0.028 88), oklch(89% 0.045 78));
+  border: 1px solid oklch(66% 0.09 78 / 0.7);
+  box-shadow: 0 8px 20px oklch(28% 0.06 60 / 0.32);
+  animation: libro-tuto-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.libro-tuto-ceja {
+  display: block;
+  font-size: 0.42em;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: oklch(54% 0.13 55);
+  margin-bottom: 0.2em;
+}
+.libro-tuto-msg {
+  display: block;
+  font-size: 0.5em;
+  line-height: 1.4;
+  font-style: italic;
+}
+.libro-tuto-msg b {
+  font-style: normal;
+  font-weight: 700;
+  color: oklch(40% 0.14 46);
+}
+/* El pico apunta al botón (abajo a la derecha del papelito). */
+.libro-tuto::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 1.7em;
+  width: 0;
+  height: 0;
+  border: 0.42em solid transparent;
+  border-top-color: oklch(90% 0.042 80);
+}
+@keyframes libro-tuto-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5em) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-leer--tuto {
+    animation: none;
+    box-shadow: 0 0 10px 2px oklch(74% 0.14 78 / 0.5);
+  }
+  .libro-leer--tuto::before,
+  .libro-leer--tuto::after {
+    animation: none;
+    opacity: 0;
+  }
+  .libro-tuto {
+    animation: none;
+  }
+}
+
+/* ── Cierre ─────────────────────────────────────────────────────────────── */
+
+.libro-fin {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 1.4em 1.6em;
+  text-align: center;
+  pointer-events: none;
+  font-family: 'Libre Baskerville', Georgia, serif;
+  background: linear-gradient(to top, oklch(12% 0.02 60 / 0.94) 22%, oklch(12% 0.02 60 / 0.25) 48%, transparent 68%);
+}
+
+.libro-fin b {
+  font-size: 1.5em;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: oklch(90% 0.08 85);
+  text-shadow: 0 0.06em 0.3em oklch(10% 0.02 60);
+}
+
+.libro-fin span {
+  margin-top: 0.5em;
+  font-size: 0.58em;
+  line-height: 1.5;
+  color: oklch(82% 0.05 80 / 0.85);
+}
+
+/* ── El marco de página única (móvil) ───────────────────────────────────── */
+
+/* En el móvil una plana de dos páginas deja cada hoja en ~170px: preciosa para
+   mirar, imposible de leer. Así que el marco recorta a UNA página y el riel
+   corre para enseñar la mitad donde está la cara actual (las caras pares son
+   frentes y descansan a la derecha; las impares son dorsos ya volteados y
+   quedan a la izquierda). El libro por dentro sigue siendo el mismo objeto de
+   dos planas — esto solo decide qué mitad se mira, así que el volteo, el
+   arrastre y el curl 3D siguen intactos. */
+.libro-marco {
+  overflow: hidden;
+}
+
+/* El anillo azul de foco del navegador aparecía pegado al borde del libro al
+   arrastrarlo con el mouse (captura de Gus). Se apaga SOLO para el foco de
+   puntero: el de teclado (:focus-visible) se queda, que para eso está. */
+.libro-marco :focus:not(:focus-visible) {
+  outline: none;
+}
+
+.libro-riel {
+  transition: transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* «Tocá para abrir»: la invitación SOBRE la tapa. Vidrio oscuro para no pelear
+   con la lámina, tipografía del libro, y el chevron con un empujoncito que
+   dice "por aquí". Vive solo mientras se está en la portada. */
+.libro-abrir {
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  cursor: pointer;
+  padding: 0.55em 0.95em 0.55em 1.15em;
+  border-radius: 999px;
+  border: 1px solid oklch(78% 0.08 82 / 0.5);
+  background: oklch(18% 0.02 60 / 0.66);
+  backdrop-filter: blur(6px);
+  color: oklch(90% 0.07 85);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  box-shadow: 0 6px 22px oklch(0% 0 0 / 0.4);
+}
+
+.libro-abrir svg {
+  width: 1.1em;
+  height: 1.1em;
+  animation: libro-empuja 1.5s ease-in-out infinite;
+}
+
+@keyframes libro-empuja {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.3em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-abrir svg {
+    animation: none;
+  }
+}
+
+/* «Desliza como una revista» (pedido de Gus para estrenar con amigos): el
+   modelo mental del gesto. Va ARRIBA de la tapa —la acción inmediata, «tocá
+   para abrir», vive abajo—, en el mismo vidrio oscuro que la píldora para que
+   se lean como un par y no como dos parches sueltos. Las dos flechas se abren
+   un pelín hacia afuera para decir «esto se hojea de lado». Solo en la portada
+   del libro (cara 0): en las aperturas de capítulo estorbaría. */
+.libro-revista {
+  position: absolute;
+  left: 50%;
+  top: 6%;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32em;
+  pointer-events: none;
+  padding: 0.4em 0.85em;
+  border-radius: 999px;
+  border: 1px solid oklch(78% 0.08 82 / 0.45);
+  background: oklch(18% 0.02 60 / 0.6);
+  backdrop-filter: blur(6px);
+  color: oklch(90% 0.07 85);
+  font-family: 'Libre Baskerville', Georgia, serif;
+  font-style: italic;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  box-shadow: 0 6px 22px oklch(0% 0 0 / 0.35);
+}
+
+.libro-revista svg {
+  width: 0.95em;
+  height: 0.95em;
+  opacity: 0.85;
+}
+
+.libro-revista svg:first-child {
+  animation: libro-desliza-izq 1.6s ease-in-out infinite;
+}
+
+.libro-revista svg:last-child {
+  animation: libro-desliza-der 1.6s ease-in-out infinite;
+}
+
+@keyframes libro-desliza-izq {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-0.22em);
+  }
+}
+
+@keyframes libro-desliza-der {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.22em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-revista svg {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .libro-riel {
+    transition: none;
+  }
+  .libro-flecha {
+    animation: none;
+  }
+}
+
+/* ── Lector a pantalla completa ─────────────────────────────────────────── */
+
+.libro-lector {
+  font-family: 'Libre Baskerville', Georgia, serif;
+  color: oklch(26% 0.035 65);
+  background:
+    radial-gradient(ellipse at 20% 10%, oklch(84% 0.05 78 / 0.5), transparent 45%),
+    radial-gradient(ellipse at 80% 85%, oklch(82% 0.06 62 / 0.45), transparent 42%),
+    radial-gradient(ellipse at 50% 50%, oklch(95% 0.026 88), oklch(89% 0.04 74));
+}
+
+.libro-lector-cuerpo {
+  font-size: calc(0.95rem * var(--escala, 1));
+  line-height: 1.7;
+  text-align: left;
+  hyphens: manual;
+}
+
+.libro-lector-cuerpo p {
+  margin: 0;
+  text-indent: 1.15em;
+}
+
+.libro-lector-cuerpo p:first-child {
+  text-indent: 0;
+}
+
+.libro-lector-cuerpo p.dialogo {
+  margin-top: 0.4em;
+}
+
+/* Separador entre las páginas del capítulo dentro del lector: el cuento sigue
+   siendo uno, pero se ve dónde cortaba cada hoja. */
+.libro-lector-corte {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 1em 0;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: oklch(60% 0.07 68);
+}
+
+.libro-lector-corte::before,
+.libro-lector-corte::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, oklch(66% 0.09 78 / 0.55), transparent);
+}
+
+.libro-lector-cuerpo [data-gloss] {
+  border-bottom-color: oklch(55% 0.13 52) !important;
+  color: oklch(34% 0.1 45);
+}

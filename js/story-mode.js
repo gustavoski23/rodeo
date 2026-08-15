@@ -37,6 +37,8 @@
   // Estado del player
   var SM = {
     episode: null,
+    episodeId: null,  // id del episodio activo (para casar el "Continuar donde ibas")
+    mic: null,        // handle del micrófono en vuelo (para abortarlo al cerrar)
     scenesById: {},
     sceneId: null,
     lines: [],        // líneas de diálogo activas (narrative o setup_dialogue)
@@ -54,7 +56,12 @@
     bubbleDelay: 0,
     bubbleStack: [],
     transitioning: false,
-    timers: []        // timeouts de la orquestación de transición (cancelables)
+    timers: [],       // timeouts de la orquestación de transición (cancelables)
+    // runId: token de sesión. Sube en cada open/close para que evaluaciones
+    // en vuelo (storyEvaluate → Puter/local, 10-30s) que llegan DESPUÉS de
+    // cerrar el episodio no pinten un panel obsoleto ni dejen SM.busy=true.
+    runId: 0,
+    dnaSaved: false
   };
 
   // Timers de transición cancelables (para no dejar callbacks colgando al cerrar)
@@ -67,17 +74,19 @@
   function injectCSS() {
     if (document.getElementById('story-imm-css')) return;
     var css = [
-      // Inter (variable font) — sirve todo el peso 100..900 desde un archivo
-      "@font-face{font-family:'InterStory';font-style:normal;font-weight:100 900;font-display:swap;" +
-        "src:url('fonts/Inter-Variable.ttf') format('truetype-variations'),url('fonts/Inter-Variable.ttf') format('truetype')}",
-      "@font-face{font-family:'InterStory';font-style:italic;font-weight:100 900;font-display:swap;" +
-        "src:url('fonts/Inter-Italic-Variable.ttf') format('truetype-variations'),url('fonts/Inter-Italic-Variable.ttf') format('truetype')}",
+      // ── RETHEME A TOKENS DE RODEO ──────────────────────────────────────────
+      // El player usaba OTRO sistema (fuente Inter + paleta dorada). El CHROME
+      // (botones, popups, stats, resumen, inputs, correcciones) ahora habla RODEO:
+      // Archivo (títulos/stats), Familjen Grotesk (body), Space Mono (eyebrows),
+      // var(--accent)/var(--accent-ink) en primarios. Se conservan como ATMÓSFERA
+      // de la ilustración: fondos de escena, viñeta, siluetas y el glow dorado del
+      // karaoke (el "brillo del texto narrativo"). Sin Inter (@font-face fuera).
       '#storyImmersionOverlay{position:fixed;inset:0;z-index:900;display:none}',
       '#storyImmersionOverlay.show{display:block}',
       '.story-imm{position:absolute;inset:0;overflow:hidden;',
-      "  font-family:'InterStory',system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif;color:#f4ece0;",
-      '  letter-spacing:-0.01em;background:#0d0b14}',
-      // Fondo de escena (gradiente placeholder segun ilustracion)
+      "  font-family:'Familjen Grotesk',system-ui,-apple-system,sans-serif;color:var(--text-primary);",
+      '  letter-spacing:-0.01em;background:var(--bg-void)}',
+      // Fondo de escena (gradiente placeholder segun ilustracion) — ATMÓSFERA
       '.si-bg{position:absolute;inset:0;transition:background 900ms ease;z-index:0}',
       '.si-bg.bg-market{background:radial-gradient(120% 90% at 70% 20%,#caa66a 0%,#7a5a32 38%,#3a2a18 78%,#1c1410 100%)}',
       '.si-bg.bg-tense{background:radial-gradient(120% 90% at 50% 30%,#5c4a52 0%,#3a2c38 42%,#211826 80%,#120d16 100%)}',
@@ -88,11 +97,11 @@
       '.si-bgimg.in{animation:siBgIn 700ms ease both}',
       // Overlay oscuro UNIFORME sobre la imagen (legibilidad del texto)
       '.si-img-overlay{position:absolute;inset:0;z-index:2;pointer-events:none;background:rgba(0,0,0,0.22)}',
-      // Textura/vineta suave encima del fondo
+      // Textura/vineta suave encima del fondo — ATMÓSFERA
       '.si-vignette{position:absolute;inset:0;z-index:2;pointer-events:none;',
       '  background:radial-gradient(80% 70% at 50% 35%,transparent 40%,rgba(0,0,0,0.55) 100%);',
       '  box-shadow:inset 0 -120px 160px rgba(0,0,0,0.65)}',
-      // Personajes (siluetas placeholder)
+      // Personajes (siluetas placeholder) — ATMÓSFERA
       '.si-actors{position:absolute;left:0;right:0;bottom:160px;top:64px;z-index:3;display:flex;',
       '  align-items:flex-end;justify-content:center;gap:8vw;pointer-events:none}',
       '.si-actor{width:170px;height:62%;border-radius:90px 90px 24px 24px;opacity:0.92;',
@@ -106,26 +115,28 @@
       // Topbar
       '.si-topbar{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;',
       '  gap:14px;padding:14px 18px;background:linear-gradient(180deg,rgba(0,0,0,0.55),transparent)}',
-      '.si-eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#d9b97e;font-weight:700}',
-      '.si-title{font-size:15px;font-weight:600;color:#f4ece0;line-height:1.2}',
-      '.si-title small{display:block;font-size:11px;font-weight:400;color:#b9ad9b}',
-      '.si-progress{flex:1;height:5px;border-radius:99px;background:rgba(255,255,255,0.14);overflow:hidden;max-width:340px}',
-      '.si-progress-fill{height:100%;background:linear-gradient(90deg,#d9b97e,#e8d3a0);width:0;transition:width 500ms ease}',
-      '.si-close{margin-left:auto;width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.25);',
-      '  background:rgba(0,0,0,0.35);color:#f4ece0;font-size:18px;cursor:pointer;display:grid;place-items:center;',
-      '  transition:background .2s,transform .2s}',
-      '.si-close:hover{background:rgba(255,255,255,0.16);transform:scale(1.06)}',
-      // Boton de icono (mute/unmute)
-      '.si-iconbtn{width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.25);',
-      '  background:rgba(0,0,0,0.35);color:#f4ece0;cursor:pointer;display:grid;place-items:center;',
-      '  transition:background .2s,transform .2s}',
-      '.si-iconbtn:hover{background:rgba(255,255,255,0.16);transform:scale(1.06)}',
-      '.si-iconbtn[aria-pressed="true"]{color:#e88296;border-color:rgba(232,130,150,0.5)}',
+      ".si-eyebrow{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:700}",
+      ".si-title{font-family:'Archivo',sans-serif;font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.2}",
+      ".si-title small{display:block;font-family:'Familjen Grotesk',sans-serif;font-size:11px;font-weight:400;color:var(--text-secondary)}",
+      '.si-progress{flex:1;height:5px;border-radius:99px;background:oklch(96% 0.004 265 / 0.14);overflow:hidden;max-width:340px}',
+      '.si-progress-fill{height:100%;background:var(--accent);width:0;transition:width 500ms ease}',
+      // X y botones de icono → target táctil 44px, cromo RODEO (hover lima)
+      '.si-close{margin-left:auto;width:44px;height:44px;border-radius:50%;border:1px solid oklch(96% 0.004 265 / 0.18);',
+      '  background:oklch(17% 0.015 265 / 0.6);color:var(--text-primary);font-size:18px;cursor:pointer;display:grid;place-items:center;',
+      '  transition:background .2s,transform .2s,border-color .2s,color .2s}',
+      '.si-close:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.06)}',
+      // Boton de icono (mute/unmute, mic)
+      '.si-iconbtn{width:44px;height:44px;border-radius:50%;border:1px solid oklch(96% 0.004 265 / 0.18);',
+      '  background:oklch(17% 0.015 265 / 0.6);color:var(--text-primary);cursor:pointer;display:grid;place-items:center;',
+      '  transition:background .2s,transform .2s,border-color .2s,color .2s}',
+      '.si-iconbtn:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.06)}',
+      '.si-iconbtn[aria-pressed="true"]{color:var(--danger);border-color:oklch(66% 0.20 27 / 0.5)}',
+      '.si-iconbtn.recording{color:var(--danger);border-color:var(--danger);background:oklch(66% 0.20 27 / 0.18);animation:siMicPulse 1.4s infinite}',
       '.si-iconbtn .material-symbols-rounded{font-size:21px}',
       // Indicador de "hablando" (onda de sonido junto al nombre del personaje)
       '.si-wave{display:none;align-items:flex-end;gap:2px;height:13px;margin-left:9px;vertical-align:middle}',
       '.si-inner.speaking .si-wave{display:inline-flex}',
-      '.si-wave i{width:3px;height:5px;background:#e8c982;border-radius:2px;display:inline-block;',
+      '.si-wave i{width:3px;height:5px;background:var(--accent);border-radius:2px;display:inline-block;',
       '  animation:siWave 0.9s ease-in-out infinite}',
       '.si-wave i:nth-child(2){animation-delay:0.15s}',
       '.si-wave i:nth-child(3){animation-delay:0.3s}',
@@ -133,115 +144,120 @@
       '.si-dialogue{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:0 0 52px;',
       '  background:linear-gradient(180deg,transparent,rgba(8,6,12,0.78) 38%,rgba(8,6,12,0.94))}',
       '.si-inner{max-width:880px;margin:0 auto;padding:0 24px}',
-      '.si-speaker{font-size:13px;letter-spacing:.04em;font-weight:700;color:#e8c982;margin:0 0 8px;text-transform:uppercase}',
-      '.si-bubble{font-family:"InterStory",system-ui,sans-serif;font-size:25px;line-height:1.42;',
-      '  color:#fbf6ec;margin:0;text-shadow:0 2px 14px rgba(0,0,0,0.6);min-height:1.4em;',
+      ".si-speaker{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.08em;font-weight:700;color:var(--accent);margin:0 0 8px;text-transform:uppercase}",
+      ".si-bubble{font-family:'Familjen Grotesk',system-ui,sans-serif;font-size:25px;line-height:1.42;",
+      '  color:var(--text-primary);margin:0;text-shadow:0 2px 14px rgba(0,0,0,0.6);min-height:1.4em;',
       '  animation:siFade 520ms ease both}',
+      // Karaoke: glow dorado del texto narrativo — se conserva como ATMÓSFERA
       '.si-k-word{display:inline-block;position:relative;transition:color 140ms ease,opacity 140ms ease,transform 140ms ease,text-shadow 140ms ease}',
       '.si-k-word.done{color:#e8c982;opacity:.92}',
       '.si-k-word.active{color:#fff4bf;opacity:1;transform:translateY(-2px) scale(1.035);',
       '  text-shadow:0 0 18px rgba(232,201,130,.55),0 2px 14px rgba(0,0,0,.65)}',
       '.si-bubble.karaoke-on .si-k-word:not(.done):not(.active){opacity:.72}',
-      // Boton de ojito para revelar la traduccion
+      // Boton de ojito para revelar la traduccion — cromo RODEO (lima)
       '.si-eye{margin-top:14px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;font:inherit;',
-      '  font-size:13px;font-weight:600;color:#e8c982;background:rgba(255,255,255,0.06);',
-      '  border:1px solid rgba(217,185,126,0.35);border-radius:99px;padding:6px 14px;',
+      '  font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-dim);',
+      '  border:1px solid oklch(87% 0.21 128 / 0.35);border-radius:99px;padding:6px 14px;',
       '  transition:background .2s,transform .15s,color .2s}',
-      '.si-eye:hover{background:rgba(217,185,126,0.18);transform:translateY(-1px)}',
+      '.si-eye:hover{background:oklch(87% 0.21 128 / 0.22);transform:translateY(-1px)}',
       '.si-eye .material-symbols-rounded{font-size:18px;line-height:1}',
-      '.si-eye.open{color:#fbf6ec;background:rgba(217,185,126,0.22)}',
-      '.si-sub{font-size:16.5px;line-height:1.5;color:#bcb1a0;margin:12px 0 0;font-style:italic}',
+      '.si-eye.open{color:var(--accent-ink);background:var(--accent)}',
+      '.si-sub{font-size:16.5px;line-height:1.5;color:var(--text-secondary);margin:12px 0 0;font-style:italic}',
       '.si-sub.reveal{animation:siFade 320ms ease both}',
       '.si-sub[hidden]{display:none}',
-      '.si-narration .si-bubble{font-style:italic;color:#e7ddcb;font-size:22px;text-align:center}',
-      '.si-narration .si-speaker{text-align:center;color:#bca97e}',
-      '.si-thought .si-bubble{font-style:italic;color:#cfc6f0}',
-      '.si-thought .si-speaker{color:#b3a6e6}',
+      '.si-narration .si-bubble{font-style:italic;color:var(--text-secondary);font-size:22px;text-align:center}',
+      '.si-narration .si-speaker{text-align:center;color:var(--text-muted)}',
+      '.si-thought .si-bubble{font-style:italic;color:var(--text-secondary)}',
+      '.si-thought .si-speaker{color:var(--text-muted)}',
       // Boton siguiente
       '.si-next{margin-top:20px;display:flex;align-items:center;gap:10px;justify-content:flex-end}',
-      '.si-hint-line{margin-right:auto;font-size:12px;color:#8d8473}',
+      ".si-hint-line{margin-right:auto;font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)}",
       '.si-btn{font:inherit;font-size:15px;font-weight:600;cursor:pointer;border-radius:99px;padding:11px 24px;',
       '  border:1.5px solid transparent;transition:transform .15s,box-shadow .2s,background .2s}',
-      '.si-btn.primary{background:linear-gradient(180deg,#ecd6a4,#d9b97e);color:#33260f;box-shadow:0 6px 18px rgba(0,0,0,0.4)}',
-      '.si-btn.primary:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,0.5)}',
-      '.si-btn.ghost{background:rgba(255,255,255,0.06);color:#f4ece0;border-color:rgba(255,255,255,0.2)}',
-      '.si-btn.ghost:hover{background:rgba(255,255,255,0.14)}',
+      '.si-btn.primary{background:var(--accent);color:var(--accent-ink);box-shadow:0 6px 18px oklch(87% 0.21 128 / 0.3)}',
+      '.si-btn.primary:hover{transform:translateY(-2px);box-shadow:0 10px 26px oklch(87% 0.21 128 / 0.4)}',
+      '.si-btn.ghost{background:transparent;color:var(--text-primary);border-color:oklch(96% 0.004 265 / 0.22)}',
+      '.si-btn.ghost:hover{background:oklch(96% 0.004 265 / 0.06);border-color:oklch(96% 0.004 265 / 0.4)}',
       '.si-btn:disabled{opacity:.5;cursor:default;transform:none}',
-      // Zona de input del usuario
-      '.si-input-card{margin-top:6px;background:rgba(18,14,26,0.78);border:1px solid rgba(217,185,126,0.28);',
+      ".si-soon{font-family:'Space Mono',monospace;font-size:11px;opacity:.7}",
+      // Zona de input del usuario — superficie RODEO
+      '.si-input-card{margin-top:6px;background:var(--bg-surface);border:1px solid var(--glass-border);',
       '  border-radius:18px;padding:18px 20px;backdrop-filter:blur(6px);animation:siRise 520ms ease both}',
-      '.si-prompt{font-size:16px;color:#f4ece0;margin:0 0 6px;font-weight:600}',
-      '.si-hint{font-size:13px;color:#cdbf9a;margin:0 0 12px;display:flex;gap:7px;align-items:flex-start}',
-      '.si-hint b{color:#e8c982;font-weight:700}',
+      '.si-prompt{font-size:16px;color:var(--text-primary);margin:0 0 6px;font-weight:600}',
+      '.si-hint{font-size:13px;color:var(--text-secondary);margin:0 0 12px;display:flex;gap:7px;align-items:flex-start}',
+      '.si-hint b{color:var(--accent);font-weight:700}',
       '.si-vocab-tags{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 12px}',
-      '.si-tag{font-size:12px;padding:4px 11px;border-radius:99px;background:rgba(217,185,126,0.16);',
-      '  color:#e8c982;border:1px solid rgba(217,185,126,0.3)}',
+      '.si-tag{font-size:12px;padding:4px 11px;border-radius:99px;background:var(--accent-dim);',
+      '  color:var(--accent);border:1px solid oklch(87% 0.21 128 / 0.3)}',
       '.si-textarea{width:100%;box-sizing:border-box;min-height:70px;resize:vertical;font:inherit;font-size:16px;',
-      '  color:#fbf6ec;background:rgba(0,0,0,0.35);border:1.5px solid rgba(255,255,255,0.18);border-radius:12px;',
+      '  color:var(--text-primary);background:oklch(9% 0.008 265 / 0.5);border:1.5px solid oklch(96% 0.004 265 / 0.18);border-radius:12px;',
       '  padding:12px 14px;line-height:1.45}',
-      '.si-textarea:focus{outline:none;border-color:#d9b97e;box-shadow:0 0 0 3px rgba(217,185,126,0.18)}',
+      '.si-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}',
       '.si-input-row{display:flex;align-items:center;gap:12px;margin-top:12px}',
       '.si-input-row .si-spacer{flex:1}',
-      '.si-mode{font-size:11px;color:#8d8473}',
+      ".si-mode{font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)}",
       // Spinner
-      '.si-spinner{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,0.25);',
-      '  border-top-color:#e8c982;animation:siSpin .8s linear infinite;display:inline-block;vertical-align:-3px}',
-      // Popup de vocabulario flotante
+      '.si-spinner{width:18px;height:18px;border-radius:50%;border:2.5px solid oklch(96% 0.004 265 / 0.25);',
+      '  border-top-color:var(--accent);animation:siSpin .8s linear infinite;display:inline-block;vertical-align:-3px}',
+      // Popup de vocabulario flotante — superficie RODEO
       '.si-vocab-popup{position:absolute;top:84px;right:26px;z-index:8;width:330px;max-width:calc(100vw - 52px);',
-      '  background:linear-gradient(180deg,rgba(36,28,18,0.97),rgba(24,18,12,0.97));',
-      '  border:1px solid rgba(217,185,126,0.5);border-radius:16px;padding:16px 18px;',
+      '  background:linear-gradient(180deg,var(--bg-elevated),var(--bg-surface));',
+      '  border:1px solid oklch(87% 0.21 128 / 0.35);border-radius:16px;padding:16px 18px;',
       '  box-shadow:0 22px 50px rgba(0,0,0,0.55);animation:siPopIn 420ms cubic-bezier(.2,.8,.25,1) both}',
       '.si-vocab-popup.out{animation:siPopOut 320ms ease both}',
-      '.si-vp-label{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#d9b97e;font-weight:700;margin:0 0 4px}',
-      '.si-vp-word{font-family:"InterStory",system-ui,sans-serif;font-size:23px;color:#fbf6ec;margin:0 0 2px;font-weight:700}',
-      '.si-vp-meaning{font-size:14px;color:#e6c98a;margin:0 0 10px}',
-      '.si-vp-block{font-size:13.5px;line-height:1.5;color:#ded3c0;margin:0 0 9px}',
-      '.si-vp-block b{color:#f1e6cf}',
-      '.si-vp-close{position:absolute;top:9px;right:11px;background:none;border:none;color:#b9ad9b;font-size:16px;cursor:pointer}',
-      // Panel de correccion
+      ".si-vp-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 4px}",
+      ".si-vp-word{font-family:'Archivo',system-ui,sans-serif;font-size:23px;color:var(--text-primary);margin:0 0 2px;font-weight:800}",
+      '.si-vp-meaning{font-size:14px;color:var(--text-secondary);margin:0 0 10px}',
+      '.si-vp-block{font-size:13.5px;line-height:1.5;color:var(--text-secondary);margin:0 0 9px}',
+      '.si-vp-block b{color:var(--text-primary)}',
+      // X del popup: padding ≥12px para un target táctil decente
+      '.si-vp-close{position:absolute;top:2px;right:2px;padding:12px;line-height:1;background:none;border:none;color:var(--text-secondary);font-size:16px;cursor:pointer;display:grid;place-items:center}',
+      // Panel de correccion — superficie RODEO
       '.si-correction{margin-top:14px;border-radius:18px;padding:18px 20px;animation:siRise 520ms ease both;',
-      '  background:rgba(18,14,26,0.86);border:1px solid rgba(255,255,255,0.12)}',
+      '  background:var(--bg-surface);border:1px solid var(--glass-border)}',
       '.si-corr-head{display:flex;align-items:center;gap:10px;margin:0 0 12px}',
       '.si-badge{font-size:12px;font-weight:700;letter-spacing:.04em;padding:5px 13px;border-radius:99px;text-transform:uppercase}',
-      '.si-badge.strong{background:rgba(106,191,105,0.2);color:#9ee59a;border:1px solid rgba(106,191,105,0.45)}',
-      '.si-badge.weak{background:rgba(232,201,130,0.18);color:#ecd6a4;border:1px solid rgba(232,201,130,0.45)}',
-      '.si-badge.incorrect{background:rgba(232,130,150,0.18);color:#f0a7b6;border:1px solid rgba(232,130,150,0.45)}',
-      '.si-stars{font-size:14px;color:#e8c982;letter-spacing:2px}',
-      '.si-corr-source{margin-left:auto;font-size:11px;color:#7c7464}',
+      '.si-badge.strong{background:var(--accent-dim);color:var(--accent);border:1px solid oklch(87% 0.21 128 / 0.45)}',
+      '.si-badge.weak{background:oklch(84% 0.16 92 / 0.18);color:var(--warn);border:1px solid oklch(84% 0.16 92 / 0.45)}',
+      '.si-badge.incorrect{background:oklch(66% 0.20 27 / 0.18);color:oklch(74% 0.20 27);border:1px solid oklch(66% 0.20 27 / 0.45)}',
+      '.si-stars{font-size:14px;color:var(--warn);letter-spacing:2px}',
+      ".si-corr-source{margin-left:auto;font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted)}",
       '.si-corr-sec{margin:0 0 12px}',
-      '.si-corr-sec h4{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#cdbf9a;margin:0 0 5px;font-weight:700}',
-      '.si-corr-sec p{margin:0;font-size:14.5px;line-height:1.5;color:#e9dfcd}',
-      '.si-native{font-family:"InterStory",system-ui,sans-serif;font-size:17px;color:#fbf6ec;font-style:italic}',
-      '.si-gerr{background:rgba(0,0,0,0.28);border-left:3px solid #e88296;border-radius:8px;padding:8px 12px;margin:0 0 8px}',
-      '.si-gerr .o{color:#f0a7b6;text-decoration:line-through}',
-      '.si-gerr .c{color:#9ee59a;font-weight:600}',
-      '.si-gerr .x{display:block;font-size:13px;color:#cabda9;margin-top:3px}',
-      '.si-encourage{font-size:14px;color:#e6c98a;margin:0;font-style:italic}',
+      ".si-corr-sec h4{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin:0 0 5px;font-weight:700}",
+      '.si-corr-sec p{margin:0;font-size:14.5px;line-height:1.5;color:var(--text-primary)}',
+      ".si-native{font-family:'Familjen Grotesk',system-ui,sans-serif;font-size:17px;color:var(--text-primary);font-style:italic}",
+      '.si-gerr{background:oklch(9% 0.008 265 / 0.4);border-left:3px solid var(--danger);border-radius:8px;padding:8px 12px;margin:0 0 8px}',
+      '.si-gerr .o{color:oklch(74% 0.20 27);text-decoration:line-through}',
+      '.si-gerr .c{color:var(--accent);font-weight:600}',
+      '.si-gerr .x{display:block;font-size:13px;color:var(--text-secondary);margin-top:3px}',
+      '.si-encourage{font-size:14px;color:var(--text-secondary);margin:0;font-style:italic}',
       // Error de IA
-      '.si-aierr{margin-top:14px;background:rgba(40,20,26,0.9);border:1px solid rgba(232,130,150,0.4);',
+      '.si-aierr{margin-top:14px;background:var(--bg-surface);border:1px solid oklch(66% 0.20 27 / 0.4);',
       '  border-radius:16px;padding:18px 20px;animation:siRise 420ms ease both}',
-      '.si-aierr h4{margin:0 0 6px;font-size:15px;color:#f0a7b6}',
-      '.si-aierr p{margin:0 0 14px;font-size:13.5px;color:#d6c3c8;line-height:1.5}',
-      // Resumen final
+      '.si-aierr h4{margin:0 0 6px;font-size:15px;color:oklch(74% 0.20 27)}',
+      '.si-aierr p{margin:0 0 14px;font-size:13.5px;color:var(--text-secondary);line-height:1.5}',
+      // Resumen final — fondo oscuro RODEO
       '.si-summary{position:absolute;inset:0;z-index:7;overflow:auto;display:flex;align-items:center;justify-content:center;',
-      '  padding:40px 20px;background:radial-gradient(100% 90% at 50% 0%,#241a2e,#0d0b14 70%)}',
+      '  padding:40px 20px;background:radial-gradient(100% 90% at 50% 0%,var(--bg-deep),var(--bg-void) 70%)}',
+      // X del resumen (reusa .si-close, la posiciona en la esquina)
+      '.si-sum-close{position:absolute;top:16px;right:16px;margin-left:0;z-index:3}',
       '.si-sum-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:0;animation:siBgIn 700ms ease both}',
-      '.si-sum-ovl{position:absolute;inset:0;z-index:1;background:rgba(13,11,20,0.62)}',
+      '.si-sum-ovl{position:absolute;inset:0;z-index:1;background:oklch(9% 0.008 265 / 0.62)}',
       '.si-sum-card{position:relative;z-index:2;width:100%;max-width:620px;text-align:center;animation:siRise 600ms ease both}',
-      '.si-sum-eyebrow{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#d9b97e;font-weight:700}',
-      '.si-sum-title{font-family:"InterStory",system-ui,sans-serif;font-size:34px;color:#fbf6ec;margin:6px 0 18px}',
+      ".si-sum-eyebrow{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);font-weight:700}",
+      ".si-sum-title{font-family:'Archivo',system-ui,sans-serif;font-weight:800;font-size:34px;color:var(--text-primary);margin:6px 0 18px}",
       '.si-sum-stats{display:flex;gap:14px;justify-content:center;margin:0 0 26px;flex-wrap:wrap}',
-      '.si-stat{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:14px;',
+      '.si-stat{background:oklch(96% 0.004 265 / 0.05);border:1px solid var(--glass-border);border-radius:14px;',
       '  padding:14px 22px;min-width:96px}',
-      '.si-stat b{display:block;font-size:30px;color:#e8c982;font-family:"InterStory",system-ui,sans-serif}',
-      '.si-stat span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a99e8d}',
+      ".si-stat b{display:block;font-size:30px;color:var(--accent);font-family:'Archivo',system-ui,sans-serif;font-weight:800}",
+      ".si-stat span{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}",
       '.si-words{text-align:left;margin:0 0 26px}',
-      '.si-words h3{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#cdbf9a;margin:0 0 12px}',
-      '.si-word{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;',
+      ".si-words h3{font-family:'Space Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-secondary);margin:0 0 12px}",
+      '.si-word{background:oklch(96% 0.004 265 / 0.04);border:1px solid var(--glass-border);border-radius:12px;',
       '  padding:13px 16px;margin:0 0 10px}',
-      '.si-word b{font-family:"InterStory",system-ui,sans-serif;font-size:18px;color:#fbf6ec}',
-      '.si-word .ctx{display:block;font-size:13px;color:#9a9486;font-style:italic;margin:2px 0 6px}',
-      '.si-word .tip{display:block;font-size:14px;color:#e9dfcd;line-height:1.45}',
+      ".si-word b{font-family:'Archivo',system-ui,sans-serif;font-weight:800;font-size:18px;color:var(--text-primary)}",
+      '.si-word .ctx{display:block;font-size:13px;color:var(--text-muted);font-style:italic;margin:2px 0 6px}',
+      '.si-word .tip{display:block;font-size:14px;color:var(--text-secondary);line-height:1.45}',
       '.si-sum-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}',
       // Keyframes (fill-mode both para que el contenido NUNCA quede oculto)
       '@keyframes siFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}',
@@ -253,9 +269,21 @@
       '@keyframes siSpin{to{transform:rotate(360deg)}}',
       '@keyframes siWave{0%,100%{height:4px}50%{height:13px}}',
       '@keyframes siBgIn{from{opacity:0}to{opacity:1}}',
+      '@keyframes siMicPulse{0%,100%{box-shadow:0 0 0 0 oklch(66% 0.20 27 / 0.4)}50%{box-shadow:0 0 0 10px oklch(66% 0.20 27 / 0)}}',
       // Responsive
+      // Stack de burbujas: los bloques anteriores se atenúan y se apagan los
+      // botones internos (siguiente / traducción). Sin estas reglas, hasta 4
+      // burbujas quedaban apiladas OPACAS con sus botones vivos, y el usuario
+      // podía disparar acciones sobre una línea que ya no es la actual.
+      '.si-bubble-block{transition:opacity .3s ease}',
+      '.si-bubble-block.dimmed{opacity:.35;pointer-events:none}',
+      '.si-bubble-block.dimmed .si-next,.si-bubble-block.dimmed .si-eye{display:none}',
+      '.si-bubble-block.leaving{opacity:0;transition:opacity .4s ease;pointer-events:none}',
+      // Móvil: el popup de vocabulario tenía top:auto+bottom:auto → caía sobre
+      // la topbar (X, mute, progreso). Ahora ancla arriba bajo la topbar (~68px)
+      // o abajo sobre la zona de diálogo, según qué media query aplique.
       '@media(max-width:680px){.si-bubble{font-size:21px}.si-actors{gap:14vw;bottom:200px}',
-      '  .si-actor{width:120px}.si-vocab-popup{top:auto;bottom:auto;right:12px;left:12px;width:auto}}',
+      '  .si-actor{width:120px}.si-vocab-popup{top:72px;right:12px;left:12px;width:auto;max-width:none}}',
       // Reduced motion
       '@media(prefers-reduced-motion:reduce){.story-imm .si-bgimg[class*="story-anim--kb-"],.story-imm .si-bg-layer.story-anim--shake,.story-imm .si-wave i{animation:none!important;transform:none!important}.story-imm .si-bgimg.in{animation-duration:200ms!important}.story-imm .si-bubble,.story-imm .si-sub.reveal{animation:siBgIn 200ms ease both!important}}'
     ].join('\n');
@@ -292,6 +320,7 @@
       return;
     }
     SM.episode = ep;
+    SM.episodeId = id;
     SM.scenesById = {};
     (ep.scenes || []).forEach(function (s) { SM.scenesById[s.scene_id] = s; });
     SM.results = [];
@@ -304,20 +333,138 @@
     SM.bubbleDelay = 0;
     SM.bubbleStack = [];
     SM.transitioning = false;
+    SM.busy = false;              // reset por si un run anterior murió con evaluación en vuelo
+    SM.lastUserText = '';         // sin esto el textarea aparece prellenado con la respuesta del run anterior
+    SM.runId++;                   // cualquier callback pendiente del run viejo se descarta al chequear runId
     clearTimers();
     var ov = ensureOverlay();
     ov.classList.add('show');
     document.body.style.overflow = 'hidden';
-    gotoScene(ep.start_scene || (ep.scenes[0] && ep.scenes[0].scene_id));
+    // Precarga best-effort: el cross-fade entre escenas puede terminar antes
+    // de que el JPG (180-310 KB) exista, dejando un flash en blanco. Sin
+    // await ni onerror: si falla, el <img> normal reintenta al pintar.
+    (ep.scenes || []).forEach(function (s) {
+      var p = s && s.background_illustration;
+      if (typeof p === 'string' && p.indexOf('/') >= 0) { var im = new Image(); im.src = p; }
+    });
+    // Android back = cerrar episodio, no cerrar la PWA entera. Marcamos la
+    // entrada con un flag para saber que fue empujada por nosotros y no
+    // recursar al llamar history.back() en el close manual.
+    // Guard de doble-open (doble tap en la card): no apilar dos entradas.
+    try { if (!(history.state && history.state.storyImm)) history.pushState({ storyImm: true }, ''); } catch (e) {}
+
+    // ¿Hay un avance guardado (<24h) de ESTE episodio? Ofrecer reanudar. Si dice
+    // que no, se descarta y arranca de cero. Sin esto, cerrar con X/Escape/atrás
+    // tiraba TODO el progreso sin remedio.
+    var startScene = ep.start_scene || (ep.scenes[0] && ep.scenes[0].scene_id);
+    var resume = loadResume(id);
+    if (resume && SM.scenesById[resume.sceneId]) {
+      var cont = true;
+      try { cont = window.confirm('Tienes un avance guardado en este episodio. ¿Continuar donde ibas?'); } catch (e) { cont = true; }
+      if (cont) {
+        SM.results = Array.isArray(resume.results) ? resume.results : [];
+        SM.vocab = Array.isArray(resume.vocab) ? resume.vocab : [];
+        gotoScene(resume.sceneId);
+        return;
+      }
+      clearResume();
+    }
+    gotoScene(startScene);
   }
 
   function closeStoryImmersion() {
     var ov = document.getElementById('storyImmersionOverlay');
+    var estaba = !!(ov && ov.classList.contains('show'));
     if (ov) ov.classList.remove('show');
     document.body.style.overflow = '';
     clearPopupTimer();
     clearTimers();
     stopSpeaking();
+    stopStoryMic();               // que no llegue un dictado tardío tras cerrar
+    SM.runId++;                   // invalida callbacks pendientes de este run
+    SM.busy = false;
+    SM.lastUserText = '';
+    // Consumimos la entrada del history que empujamos al abrir, SOLO si el
+    // cierre no vino del popstate (allí el navegador ya se la comió).
+    if (estaba && history.state && history.state.storyImm) {
+      try { history.back(); } catch (e) {}
+    }
+  }
+
+  // Botón "atrás" de Android: pop de la entrada storyImm → cerrar el
+  // episodio en vez de tumbar la PWA entera.
+  window.addEventListener('popstate', function () {
+    var ov = document.getElementById('storyImmersionOverlay');
+    if (ov && ov.classList.contains('show')) {
+      // El navegador ya consumió la entrada; cerramos sin re-hacer history.back
+      SM.runId++;
+      ov.classList.remove('show');
+      document.body.style.overflow = '';
+      clearPopupTimer();
+      clearTimers();
+      stopSpeaking();
+      stopStoryMic();
+      SM.busy = false;
+      SM.lastUserText = '';
+    }
+  });
+
+  // ---------------------------------------------------------
+  // Reanudar donde ibas — persistencia ligera del progreso
+  // ---------------------------------------------------------
+  // Cerrar el episodio (X / Escape / botón atrás de Android) tiraba TODO el
+  // avance. Ahora, al AVANZAR de escena, guardamos {episodeId, sceneId, results,
+  // vocab, ts} en localStorage; al reabrir el MISMO episodio (<24h) ofrecemos
+  // "Continuar donde ibas". Un solo slot: un episodio nuevo pisa al anterior.
+  var RESUME_KEY = 'rodeo_story_resume';
+  var RESUME_TTL_MS = 24 * 60 * 60 * 1000;
+
+  function startSceneId() {
+    var ep = SM.episode;
+    return ep ? (ep.start_scene || (ep.scenes && ep.scenes[0] && ep.scenes[0].scene_id)) : null;
+  }
+  // "Progreso real" = respondió al menos una interacción o avanzó de la escena
+  // inicial. Antes de eso no hay nada que valga la pena guardar ni confirmar.
+  function hasRealProgress() {
+    if (SM.dnaSaved) return false;         // ya llegó al resumen: el episodio está cerrado
+    var start = startSceneId();
+    return !!((SM.results && SM.results.length) || (SM.sceneId && start && SM.sceneId !== start));
+  }
+  function saveResume() {
+    if (!SM.episode || !hasRealProgress()) return;
+    try {
+      localStorage.setItem(RESUME_KEY, JSON.stringify({
+        episodeId: SM.episodeId,
+        sceneId: SM.sceneId,
+        results: SM.results || [],
+        vocab: SM.vocab || [],
+        ts: Date.now(),
+      }));
+    } catch (e) {}
+  }
+  function loadResume(id) {
+    var raw;
+    try { raw = localStorage.getItem(RESUME_KEY); } catch (e) { return null; }
+    if (!raw) return null;
+    var r;
+    try { r = JSON.parse(raw); } catch (e) { return null; }
+    if (!r || r.episodeId !== id) return null;
+    if (!r.ts || (Date.now() - r.ts) > RESUME_TTL_MS) { clearResume(); return null; }  // caducó a 24h
+    return r;
+  }
+  function clearResume() {
+    try { localStorage.removeItem(RESUME_KEY); } catch (e) {}
+  }
+
+  // Cierre con guardia: si hay progreso real, confirma antes de salir (el avance
+  // queda guardado igual para "Continuar donde ibas"). Sin progreso, cierra directo.
+  function requestClose() {
+    if (hasRealProgress()) {
+      var ok = true;
+      try { ok = window.confirm('¿Salir del episodio? Tu avance queda guardado para continuar luego.'); } catch (e) { ok = true; }
+      if (!ok) return;
+    }
+    closeStoryImmersion();
   }
 
   // ---------------------------------------------------------
@@ -376,6 +523,7 @@
     if (scene.type === 'narrative' || scene.type === 'user_input') {
       SM.lines = loadSceneLines(scene);
       renderStage(scene, sameImage);
+      saveResume();   // persistir el avance al entrar a cada escena jugable
     } else if (scene.type === 'extension_offer') {
       renderSummary();
     } else {
@@ -522,7 +670,7 @@
         '<div class="si-dialogue"><div class="si-inner" id="siDialogueInner"><div class="si-stack" id="siBubbleStack"></div></div></div>' +
       '</div>';
 
-    document.getElementById('siClose').onclick = closeStoryImmersion;
+    document.getElementById('siClose').onclick = requestClose;
     var muteBtn = document.getElementById('siMute');
     if (muteBtn) { muteBtn.onclick = toggleMute; updateMuteButton(); }
     var progress = document.getElementById('siProgressFill');
@@ -1130,9 +1278,20 @@
   // ---------------------------------------------------------
   // Zona de input del usuario + evaluación con IA
   // ---------------------------------------------------------
+  // Aborta cualquier micrófono del episodio en vuelo (al cerrar, al cambiar de
+  // escena o al remontar la zona de input) para que un resultado tardío NO
+  // aterrice sobre un textarea que ya no existe.
+  function stopStoryMic() {
+    if (SM.mic && typeof SM.mic.abort === 'function') {
+      try { SM.mic.abort(); } catch (e) {}
+    }
+    SM.mic = null;
+  }
+
   function renderInputZone(scene) {
     SM.awaitingInput = true;
     stopSpeaking();    // el turno del jugador no lleva voz
+    stopStoryMic();    // corta cualquier toma anterior antes de montar la nueva
     clearSpeakerVisual();
     SM.history = [];   // no se puede volver "antes" del turno del jugador
     var inner = document.getElementById('siDialogueInner');
@@ -1142,17 +1301,26 @@
       return '<span class="si-tag">' + esc(w) + '</span>';
     }).join('');
 
+    // El episodio promete 'text_or_voice': damos mic reusando toda la infra de
+    // RODEO (wireMic ctx 'story' pinta su propio chip ES/EN). Solo si el puente existe.
+    var micHTML = (typeof window.rodeoStoryMic === 'function')
+      ? '<button class="si-iconbtn si-mic" id="siMic" type="button" aria-label="Dictar tu respuesta" title="Dictar tu respuesta">' +
+          '<span class="material-symbols-rounded" aria-hidden="true">mic</span>' +
+        '</button>'
+      : '';
+
     inner.className = 'si-inner';
     inner.innerHTML =
       '<div class="si-input-card">' +
         '<p class="si-prompt">' + esc(it.prompt_es || 'Tu turno. ¿Qué dices?') + '</p>' +
         (it.context_hint ? '<p class="si-hint"><b>Tip</b><span>' + esc(it.context_hint) + '</span></p>' : '') +
         (tags ? '<div class="si-vocab-tags">' + tags + '</div>' : '') +
-        '<textarea class="si-textarea" id="siInput" placeholder="Escribe tu respuesta en inglés..." ' +
+        '<textarea class="si-textarea" id="siInput" placeholder="Escribe o dicta tu respuesta en inglés..." ' +
           'aria-label="Tu respuesta"></textarea>' +
         '<div class="si-input-row">' +
           '<span class="si-mode">La IA evaluará tu inglés y la historia se ramificará según tu respuesta.</span>' +
           '<span class="si-spacer"></span>' +
+          micHTML +
           '<button class="si-btn primary" id="siSend">Enviar &rsaquo;</button>' +
         '</div>' +
       '</div>';
@@ -1167,6 +1335,20 @@
       };
     }
     if (send) send.onclick = submitResponse;
+
+    // El dictado cae en el textarea (no auto-envía): evaluar+ramificar es una
+    // acción fuerte, mejor que Gus lo revise antes de darle a Enviar.
+    var micBtn = document.getElementById('siMic');
+    if (micBtn && typeof window.rodeoStoryMic === 'function') {
+      var run = SM.runId;
+      SM.mic = window.rodeoStoryMic(micBtn, ta, function (t) {
+        if (run !== SM.runId) return;            // el episodio se cerró/reabrió
+        var box = document.getElementById('siInput');
+        if (!box) return;
+        box.value = t;
+        try { box.focus(); } catch (e) {}
+      });
+    }
   }
 
   function submitResponse() {
@@ -1179,6 +1361,7 @@
       return;
     }
     SM.lastUserText = text;
+    stopStoryMic();   // el turno se envió: suelta el micrófono
     SM.busy = true;
 
     var send = document.getElementById('siSend');
@@ -1186,10 +1369,13 @@
     if (ta) ta.disabled = true;
 
     var scene = SM.scenesById[SM.sceneId];
+    var run = SM.runId;
     storyEvaluate(scene, text).then(function (out) {
+      if (run !== SM.runId) return;  // cerrado o reabierto mientras evaluaba
       SM.busy = false;
       renderCorrection(scene, out.json, out.source);
     }).catch(function (err) {
+      if (run !== SM.runId) return;
       SM.busy = false;
       renderAIError(scene, err);
     });
@@ -1341,6 +1527,12 @@
     var gerrs = (json.grammar_errors || []).filter(function (g) {
       return g && (g.original || g.corrected || g.explanation_in_spanish);
     });
+    // Las correcciones del juez del episodio van al DNA de RODEO con el MISMO
+    // shape que TALK (el puente descarta las que no traen 'corrected'). Antes se
+    // pintaban y se tiraban; ahora caen en "MIS FALLOS" y el quiz las cobra.
+    if (typeof window.rodeoStorySaveErrors === 'function' && gerrs.length) {
+      try { window.rodeoStorySaveErrors(gerrs); } catch (e) {}
+    }
     var gerrHTML = gerrs.length
       ? '<div class="si-corr-sec"><h4>Correcciones</h4>' + gerrs.map(function (g) {
           return '<div class="si-gerr">' +
@@ -1437,17 +1629,31 @@
     var meta = SM.episode.meta || {};
     var review = (SM.episode.post_episode_review && SM.episode.post_episode_review.words_to_remember) || [];
     var items = [];
+    // Índice término→significado de las fuentes que SÍ traen glosa (review +
+    // popups). Sirve para rescatar el sentido de las target_words sin inventarlo.
+    var meaningByTerm = {};
     // 1) Review: la fuente más rica (palabra + tip + contexto de la historia).
     review.forEach(function (w) {
-      if (w && w.word) items.push({ term: w.word, es: w.tip || '', frase: w.context_in_story || '' });
+      if (!w || !w.word) return;
+      if (w.tip) meaningByTerm[String(w.word).toLowerCase()] = w.tip;
+      items.push({ term: w.word, es: w.tip || '', frase: w.context_in_story || '' });
     });
-    // 2) Popups capturados durante la partida (palabra + significado/tip).
+    // 2) Popups capturados durante la partida (palabra + significado/tip). Solo
+    //    los que traen glosa: un popup sin significado no aporta nada al DNA.
     (SM.vocab || []).forEach(function (v) {
-      if (v && v.word) items.push({ term: v.word, es: v.meaning_es || v.tip || '', frase: '' });
+      if (!v || !v.word) return;
+      var es = v.meaning_es || v.tip || '';
+      if (!es) return;
+      meaningByTerm[String(v.word).toLowerCase()] = es;
+      items.push({ term: v.word, es: es, frase: '' });
     });
-    // 3) Vocabulario objetivo del episodio (aunque no haya aparecido en popup).
+    // 3) Vocabulario objetivo del episodio: SOLO las que tengan un significado
+    //    real (cruzado contra review/popups). Sin glosa entrarían como slang
+    //    degradado (es:'') y ensuciarían MIS FALLOS / el quiz / las semillas del DROP.
     (meta.target_words || []).forEach(function (w) {
-      if (w) items.push({ term: w, es: '', frase: '' });
+      if (!w) return;
+      var es = meaningByTerm[String(w).toLowerCase()];
+      if (es) items.push({ term: w, es: es, frase: '' });
     });
     try { window.guardarLexicoDrop(items); SM.dnaSaved = true; } catch (e) {}
   }
@@ -1455,6 +1661,7 @@
   function renderSummary() {
     clearPopupTimer();
     saveVocabToDNA();
+    clearResume();   // episodio terminado: ya no ofrecer "Continuar donde ibas"
     var ov = ensureOverlay();
     var meta = SM.episode.meta || {};
     var s6 = SM.scenesById['s6_choice_point'] || {};
@@ -1479,9 +1686,26 @@
       }).join('');
     }
 
+    // El CTA primario NO puede ser un callejón sin salida: "Continuar la historia"
+    // apunta a next_episode_branch (el capítulo extendido) que aún NO existe en
+    // window.STORY_EPISODES. Regla: primario = "Terminar y guardar progreso"; las
+    // ramas inexistentes quedan ghost deshabilitadas con "(pronto)".
+    function optAvailable(opt) {
+      if (!opt) return false;
+      if (opt.next_episode_branch) return !!(window.STORY_EPISODES || {})[opt.next_episode_branch];
+      return true;   // acciones locales (save_and_exit / replay_*) siempre disponibles
+    }
+    var primaryIdx = offerOptions.findIndex(function (o) { return o && o.action === 'save_and_exit'; });
+    if (primaryIdx < 0) primaryIdx = offerOptions.findIndex(optAvailable);
+
     var actionsHTML = offerOptions.map(function (opt, i) {
-      var cls = i === 0 ? 'si-btn primary' : 'si-btn ghost';
-      return '<button class="' + cls + '" data-opt="' + i + '">' + esc(opt.label_es) + '</button>';
+      var label = esc((opt && opt.label_es) || '');
+      if (!optAvailable(opt)) {
+        return '<button class="si-btn ghost" data-opt="' + i + '" disabled aria-disabled="true">' +
+          label + ' <span class="si-soon">(pronto)</span></button>';
+      }
+      var cls = (i === primaryIdx) ? 'si-btn primary' : 'si-btn ghost';
+      return '<button class="' + cls + '" data-opt="' + i + '">' + label + '</button>';
     }).join('');
 
     // Imagen de cierre del episodio (s6 -> p.ej. 6.png). Solo si es ruta real.
@@ -1492,7 +1716,9 @@
       : '';
 
     ov.innerHTML =
-      '<div class="story-imm"><div class="si-summary">' + sumBgHTML + '<div class="si-sum-card">' +
+      '<div class="story-imm"><div class="si-summary">' + sumBgHTML +
+        '<button class="si-close si-sum-close" id="siSumClose" type="button" aria-label="Cerrar" title="Cerrar">&#x2715;</button>' +
+        '<div class="si-sum-card">' +
         '<div class="si-sum-eyebrow">Episodio completado</div>' +
         '<h1 class="si-sum-title">' + esc(meta.title_es || meta.title || 'Resumen') + '</h1>' +
         '<div class="si-sum-stats">' +
@@ -1513,6 +1739,9 @@
       };
     }
 
+    var sumClose = document.getElementById('siSumClose');
+    if (sumClose) sumClose.onclick = requestClose;   // episodio ya guardado → cierra directo
+
     var btns = ov.querySelectorAll('.si-sum-actions [data-opt]');
     btns.forEach(function (b) {
       b.onclick = function () { handleOffer(offerOptions[+b.getAttribute('data-opt')]); };
@@ -1525,17 +1754,29 @@
     // episodio completo igual que 'replay_episode'.
     if (opt.action === 'replay_episode' || opt.action === 'replay_last_scene') {
       SM.results = []; SM.vocab = [];
+      SM.lastUserText = '';   // sin reset, el próximo submit-vacío no lo detecta
       gotoScene(SM.episode.start_scene || (SM.episode.scenes[0] && SM.episode.scenes[0].scene_id), true);
       return;
     }
     if (opt.action === 'save_and_exit') {
-      if (typeof srsOnCorrectAnswer === 'function') { try { srsOnCorrectAnswer(); } catch (e) {} }
+      // srsOnCorrectAnswer no existe en el codebase (mote muerto). Puente al
+      // sistema real de RODEO: contar la sesión de STORY y actualizar la
+      // racha, igual que hace un debrief de TALK/ROLEPLAY.
+      if (typeof window.rodeoStoryProgress === 'function') {
+        try { window.rodeoStoryProgress(); } catch (e) {}
+      }
       if (typeof showToast === 'function') showToast('Progreso guardado. ¡Buen trabajo!', 'success');
       closeStoryImmersion();
       return;
     }
     if (opt.next_episode_branch) {
-      // El capítulo extendido aún no existe en este MVP
+      // Si el capítulo extendido YA existe, ábrelo; si no (MVP actual), avisa.
+      // En el resumen su botón sale deshabilitado "(pronto)", así que esta rama
+      // es sobre todo un failsafe hacia adelante.
+      if ((window.STORY_EPISODES || {})[opt.next_episode_branch]) {
+        openStoryImmersion(opt.next_episode_branch);
+        return;
+      }
       if (typeof showToast === 'function') {
         showToast('El capítulo extendido llega pronto. ' + (opt.preview ? opt.preview : ''), 'info', 5000);
       }
@@ -1567,12 +1808,16 @@
       .replace(/"/g, '&quot;');
   }
 
-  // Cerrar con Escape
+  // Cerrar con Escape — PERO no mientras se escribe en el input/textarea del
+  // episodio (antes, pulsar Escape tecleando salía a media respuesta) y con
+  // confirmación si hay progreso real (requestClose).
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      var ov = document.getElementById('storyImmersionOverlay');
-      if (ov && ov.classList.contains('show')) closeStoryImmersion();
-    }
+    if (e.key !== 'Escape') return;
+    var ov = document.getElementById('storyImmersionOverlay');
+    if (!ov || !ov.classList.contains('show')) return;
+    var ae = document.activeElement;
+    if (ae && ov.contains(ae) && /^(input|textarea)$/i.test(ae.tagName || '')) return;
+    requestClose();
   });
 
   // Exponer al scope global (contrato del engine)

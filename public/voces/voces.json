@@ -1,0 +1,116 @@
+{
+  "voces": [
+    {
+      "nombre": "Zendaya",
+      "proveedor": "Fish Audio",
+      "genero": "F",
+      "acento": "US",
+      "archivo": "/voces/zendaya.mp3"
+    },
+    {
+      "nombre": "Sarah",
+      "proveedor": "Fish Audio",
+      "genero": "F",
+      "acento": "US",
+      "archivo": "/voces/sarah.mp3"
+    },
+    {
+      "nombre": "Paula",
+      "proveedor": "Fish Audio",
+      "genero": "F",
+      "acento": "US",
+      "archivo": "/voces/paula.mp3"
+    },
+    {
+      "nombre": "Ethan",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/ethan.mp3"
+    },
+    {
+      "nombre": "Butcher",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/butcher.mp3"
+    },
+    {
+      "nombre": "Mark",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/mark.mp3"
+    },
+    {
+      "nombre": "Joe Rogan",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/joe-rogan.mp3"
+    },
+    {
+      "nombre": "Keanu Reeves",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/keanu-reeves.mp3"
+    },
+    {
+      "nombre": "Chris Pratt",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/chris-pratt.mp3"
+    },
+    {
+      "nombre": "Robert Downey Jr",
+      "proveedor": "Fish Audio",
+      "genero": "M",
+      "acento": "US",
+      "archivo": "/voces/robert-downey-jr.mp3"
+    },
+    {
+      "nombre": "Sunnie",
+      "proveedor": "Gradium",
+      "genero": "F",
+      "acento": "US",
+      "archivo": "/voces/sunnie.mp3"
+    },
+    {
+      "nombre": "Declan",
+      "proveedor": "Gradium",
+      "genero": "M",
+      "acento": "Irlandés",
+      "archivo": "/voces/declan.mp3"
+    },
+    {
+      "nombre": "Desmond",
+      "proveedor": "Gradium",
+      "genero": "M",
+      "acento": "por confirmar",
+      "archivo": "/voces/desmond.mp3"
+    },
+    {
+      "nombre": "Toby",
+      "proveedor": "Gradium",
+      "genero": "M",
+      "acento": "por confirmar",
+      "archivo": "/voces/toby.mp3"
+    },
+    {
+      "nombre": "Niamh",
+      "proveedor": "Gradium",
+      "genero": "F",
+      "acento": "por confirmar",
+      "archivo": "/voces/niamh.mp3"
+    },
+    {
+      "nombre": "Freya",
+      "proveedor": "Gradium",
+      "genero": "F",
+      "acento": "por confirmar",
+      "archivo": "/voces/freya.mp3"
+    }
+  ]
+}

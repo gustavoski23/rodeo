@@ -21,6 +21,13 @@
 //
 // Node ESM puro, SIN dependencias npm (regla del repo para api/).
 
+import {
+  DEFAULT_GO_CREATIVE_MODEL,
+  openCodeContent,
+  requestOpenCode,
+  resolveGoModel,
+} from './_opencode.js';
+
 // ── SYNC: copia EXACTA de DROP_SYSTEM en index.html (~línea 2982) ──────────────
 export const DROP_SYSTEM = `You are the editorial engine of RODEO DROP, a daily one-passage English edition written for one reader: Gus — Venezuelan, lives in Medellín, works at a crypto/tech startup, English level B2+ pushing into C1. He reads sharp opinion writing for fun; he abandons anything that smells like a textbook or "AI filler".
 
@@ -113,38 +120,34 @@ export function normalizarEdicion(ed) {
 // Fecha del drop en la MISMA convención que el frontend (UTC, YYYY-MM-DD).
 export function fechaDropHoy() { return new Date().toISOString().slice(0, 10); }
 
-// URL y modelo del proveedor: espejo de api/chat.js. Duplicado a propósito para
-// no acoplar el cron al handler HTTP de chat (que además exige APP_PASS y una
-// URL absoluta si se llamara por red). El cron habla directo con el proveedor.
-const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
-const MODEL_CREATIVE = process.env.MODEL_CREATIVE || 'kimi-k2.7-code';
+// El modelo sigue siendo específico del generador; el transporte compartido con
+// api/chat.js aporta el mismo fallback sin acoplar el cron al handler.
+const MODEL_CREATIVE = resolveGoModel(
+  process.env.MODEL_GO_CREATIVE || process.env.MODEL_CREATIVE,
+  DEFAULT_GO_CREATIVE_MODEL,
+);
 
 // Genera UNA edición genérica reusando el mismo flujo de reintentos que
-// pedirEdicion() del frontend: ~1 de 5 corridas de kimi razona en voz alta y
-// quema el techo (JSON null); el proveedor a veces da 502/429 o 200 vacío.
+// pedirEdicion() del frontend: el modelo puede agotar el techo razonando o el
+// proveedor puede dar 502/429 o 200 vacío.
 // Backoff 4s, máximo 3 intentos. Lanza si los 3 fallan.
 export async function generarEdicionGenerica(apiKey, { tema = 'sorpréndeme', semillas = [] } = {}) {
   let motivo = 'sin respuesta';
   for (let i = 0; i < 3; i++) {
     if (i) await new Promise((r) => setTimeout(r, 4000));
     try {
-      const upstream = await fetch(OPENCODE_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: MODEL_CREATIVE,
-          max_tokens: 5000, // holgura: kimi razona antes del JSON (igual que el frontend)
-          temperature: 0.85,
-          messages: [
-            { role: 'system', content: DROP_SYSTEM },
-            { role: 'user', content: dropUserPrompt(tema, semillas) },
-          ],
-        }),
+      const { response: upstream, protocol } = await requestOpenCode(apiKey, {
+        model: MODEL_CREATIVE,
+        max_tokens: 5000, // holgura: kimi razona antes del JSON (igual que el frontend)
+        temperature: 0.85,
+        messages: [
+          { role: 'system', content: DROP_SYSTEM },
+          { role: 'user', content: dropUserPrompt(tema, semillas) },
+        ],
       });
       if (!upstream.ok) { motivo = 'upstream ' + upstream.status; continue; }
       const data = await upstream.json();
-      const content = (data.choices && data.choices[0] && data.choices[0].message
-        && data.choices[0].message.content) || '';
+      const content = openCodeContent(data, protocol);
       if (!content.trim()) { motivo = 'respuesta vacía'; continue; }
       const ed = normalizarEdicion(parsearEdicion(content));
       if (ed) return ed;

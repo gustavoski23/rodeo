@@ -1,0 +1,105 @@
+/* EL MUNDO DETRÁS DEL CAMINO — la lámina de cada tramo, su penumbra y su niebla.
+
+   Contexto en MUNDO-runbook. Lo que hay que saber para tocar este archivo:
+
+   UNA SOLA LÁMINA POR REGIÓN, y sirve en los dos temas. No hay un juego claro y
+   otro oscuro: son 8 archivos, no 16. Lo que cambia con el tema son dos reglas
+   de CSS que no cuestan ni un byte ni una petición, y las dos se eligieron
+   mirando capturas (scratchpad/mundo/prueba-tinta.html), no razonando:
+
+     · EL FUNDIDO va SIEMPRE, en los dos temas. Sin él la lámina termina en un
+       corte recto a media pantalla y no se lee como un sitio que se pierde: se
+       lee como una imagen rota. Va HORNEADO en el alfa del propio WebP y no en
+       un `mask-image`, que era la primera versión: una máscara obliga a una capa
+       de composición por región y son ocho en el mismo scroller, que es justo el
+       patrón que tira los cuadros en un Android de gama media. El alfa sale
+       gratis (una rampa vertical comprime en nada) y da exactamente el mismo
+       degradado.
+
+     · LA PENUMBRA va SOLO en oscuro. La lámina es tinta sobre papel blanco, y en
+       el tema oscuro un papel blanco es un foco en medio de la pantalla. El
+       filtro lo baja a papel viejo; el dibujo sobrevive porque la tinta ya era
+       lo más oscuro que había.
+
+   NADA DE `blur` NI DE `backdrop-filter` en este archivo, a propósito: ocho
+   capas desenfocadas en un scroller de 6.000 px es exactamente lo que hay que
+   evitar. La niebla es un color plano encima, que es la operación más barata que
+   sabe hacer un compositor. */
+
+.mundo-lamina {
+  position: absolute;
+  top: 0;
+  /* Sangra hasta el filo de la Card. El scroller lleva 12 px de padding (16 a
+     partir de sm) y la lámina tiene que llegar al borde igual que la cabecera
+     pegajosa, que resuelve lo mismo con su -mx-3. Medido con
+     desbordeHorizontal(): el borde derecho cae justo en el padding edge, así que
+     no agrega scrollWidth. */
+  left: -0.75rem;
+  right: -0.75rem;
+  overflow: hidden;
+  /* El camino, los nodos y sus rótulos van ENCIMA y tienen que poder tocarse. */
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .mundo-lamina {
+    left: -1rem;
+    right: -1rem;
+  }
+}
+
+.mundo-lamina__papel {
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
+  /* `cover` y no `100% auto`: la caja mide 366×240 (1,53) y la lámina 780×480
+     (1,63), así que escalar por ancho dejaría 15 px de hueco arriba y el borde
+     recto del papel quedaría a la vista contra el fondo de la app. Con cover se
+     recortan 12 px por lado, que caben de sobra en la zona segura de 24. */
+  background-size: cover;
+  background-position: center bottom;
+}
+
+/* El tema de RODEO es el atributo data-theme en <html> (tokens.css): oscuro es
+   la AUSENCIA del atributo, no `[data-theme='dark']`. */
+:root:not([data-theme='light']) .mundo-lamina__papel {
+  filter: brightness(0.42) contrast(1.22) sepia(0.18);
+}
+
+/* ── LA NIEBLA ────────────────────────────────────────────────────────────
+   Un tramo al que todavía no llegaste se ve, tiene nombre en su cabecera y está
+   apagado. Ese es el punto entero del mundo: que existan ocho regiones y que se
+   note cuáles faltan.
+
+   Y hay un regalo: LA NIEBLA ES TAMBIÉN EL ESTADO DE CARGA. Una región lejana
+   cuya lámina todavía no se descargó se ve igual que una región lejana cuya
+   lámina sí está, porque las dos están tapadas. La degradación ES el diseño.
+
+   0,83 en oscuro y 0,74 en claro salieron del prototipo: a 0,75 la región lejana
+   compite con la actual y el mapa se vuelve un mosaico de colores; a 0,90 la
+   silueta desaparece y la niebla deja de ser un sitio para ser un hueco. */
+.mundo-lamina__niebla {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-void);
+  opacity: 0;
+}
+
+.mundo-lamina[data-niebla='si'] .mundo-lamina__niebla {
+  opacity: 0.83;
+}
+
+:root[data-theme='light'] .mundo-lamina[data-niebla='si'] .mundo-lamina__niebla {
+  opacity: 0.74;
+}
+
+/* La transición es un lujo y está declarada como tal: en el teléfono MODO_LIGERO
+   está SIEMPRE activo y muchos usuarios además piden movimiento reducido, así
+   que el desbloqueo tiene que contarse solo con el cambio de color. Se diseñó
+   así a propósito — quitá esta regla entera y el antes/después sigue diciendo lo
+   mismo. */
+@media (prefers-reduced-motion: no-preference) {
+  .mundo-lamina__niebla {
+    transition: opacity 900ms ease-out;
+  }
+}

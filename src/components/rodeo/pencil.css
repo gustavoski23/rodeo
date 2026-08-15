@@ -1,0 +1,135 @@
+/* ── Trazo que se dibuja solo + texto con brillo ────────────────────────────
+   Adaptado de "Animated Loading SVG + Text Shimmer" de @zacharybydesign
+   (21st.dev). Reemplaza al lápiz de Uiverse. Prefijado rd-* para no chocar.
+
+   Va en un .css aparte (y no en tokens.css) porque son keyframes que solo
+   existen para este componente: se cargan cuando se importa. */
+
+.rd-loader {
+  display: block;
+  color: currentColor;
+}
+
+/* --path-length trae un default AQUÍ (no solo inline desde React) para que el
+   trazo anime desde el primer frame, antes de que el JS mida el valor exacto.
+   El default va un pelín por encima de la longitud real (62.711, medida con
+   getTotalLength) para que en los extremos del bucle el path quede completamente
+   oculto; el valor medido inline lo afina. Nunca hay un frame en blanco. */
+.rd-loader__stroke {
+  --path-length: 63;
+  stroke-dasharray: var(--path-length);
+  animation: rdDrawStroke 2.5s infinite;
+}
+
+@keyframes rdDrawStroke {
+  0% {
+    stroke-dashoffset: var(--path-length);
+    animation-timing-function: ease-in-out;
+  }
+  50% {
+    stroke-dashoffset: 0;
+    animation-timing-function: ease-in-out;
+  }
+  100% {
+    stroke-dashoffset: calc(var(--path-length) * -1);
+  }
+}
+
+/* Sin movimiento: el trazo queda DIBUJADO y quieto (nunca invisible). */
+@media (prefers-reduced-motion: reduce) {
+  .rd-loader__stroke {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* El trazo del CHAT en gris zinc, como el prompt (text-zinc-600 dark:zinc-200).
+   El tema oscuro es el default de RODEO (sin data-theme), así que va zinc-200 y
+   el claro baja a zinc-600. */
+.rd-loader--zinc {
+  color: rgb(228 228 231); /* zinc-200 */
+}
+:root[data-theme='light'] .rd-loader--zinc {
+  color: rgb(82 82 91); /* zinc-600 */
+}
+
+/* Fila del ícono suelto + lo que le cuelgue (p.ej. el contador). */
+.rd-pensando {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Fila del breadcrumb del prompt: ícono + texto brillo + chevron (gap-2). */
+.rd-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Texto con brillo (shimmer), VERBATIM del prompt ────────────────────────
+   Un degradado de 200% que se barre con background-position. El color del texto
+   es transparente y se pinta con el degradado recortado a la silueta de la
+   letra (background-clip: text). Los grises son los del prompt. */
+.rd-shimmer {
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  /* Oscuro (default de RODEO): zinc-400 base, blanco en el pico. */
+  background-image: linear-gradient(
+    90deg,
+    rgb(161 161 170) 0%,
+    rgb(161 161 170) 40%,
+    rgb(255 255 255) 50%,
+    rgb(161 161 170) 60%,
+    rgb(161 161 170) 100%
+  );
+  animation: rdTextShimmer 2s ease-in-out infinite;
+}
+:root[data-theme='light'] .rd-shimmer {
+  /* Claro: zinc-500 base, zinc-900 en el pico. */
+  background-image: linear-gradient(
+    90deg,
+    rgb(113 113 122) 0%,
+    rgb(113 113 122) 40%,
+    rgb(24 24 27) 50%,
+    rgb(113 113 122) 60%,
+    rgb(113 113 122) 100%
+  );
+}
+
+@keyframes rdTextShimmer {
+  0% {
+    background-position: -100% center;
+  }
+  100% {
+    background-position: 100% center;
+  }
+}
+
+/* Sin movimiento: el brillo se queda quieto pero el texto se sigue leyendo
+   (el degradado en reposo muestra el gris base, no transparente de verdad). */
+@media (prefers-reduced-motion: reduce) {
+  .rd-shimmer {
+    animation: none;
+  }
+}
+
+/* El chevron del breadcrumb (text-zinc-400 dark:zinc-500 en el prompt). */
+.rd-chevron {
+  color: rgb(113 113 122); /* zinc-500 (oscuro = default) */
+  flex: none;
+}
+:root[data-theme='light'] .rd-chevron {
+  color: rgb(161 161 170); /* zinc-400 */
+}
+
+/* El contador de segundos de la espera larga de CHARLA (bubbles.tsx lo pinta
+   como .rd-wait). Se queda igual que con el lápiz. */
+.rd-wait {
+  margin-left: 10px;
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.7rem;
+  opacity: 0.55;
+}

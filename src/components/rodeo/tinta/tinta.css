@@ -1,0 +1,107 @@
+/* TINTA Y AGUADA — la mitad de la receta que depende del TEMA.
+
+   Está en CSS y no en el TSX a propósito: así el componente no sabe si es de
+   día o de noche, y cambiar de tema no re-renderiza ni un icono. El único token
+   NUEVO de todo esto (--pigmento-verdemar) vive en styles/tokens.css, que es
+   donde vive la paleta; acá solo se consume. */
+
+:root {
+  /* ── OCRE: no es un token nuevo ──
+     Es la familia del durazno de la app (--accent, hue 68), pero NO es
+     --accent: en tema claro el acento está a L54 porque tiene que servir de
+     TEXTO sobre papel, y un pigmento a L54 no es una aguada, es una mancha
+     opaca. Estos dos valores salieron del barrido de alfas del careo, mirando
+     capturas. Por eso van literales y no como var(--accent). */
+  --pigmento-ocre: oklch(88% 0.06 70);
+  /* El ocre que se usa cuando el SUELO es claro, sea cual sea el tema. Ver
+     .suelo-claro más abajo. */
+  --pigmento-ocre-papel: oklch(78% 0.12 62);
+
+  /* ── EL MODO DE MEZCLA, QUE RESULTÓ SER *LA* DECISIÓN ──
+     La acuarela es SUSTRACTIVA: el pigmento filtra la luz que devuelve el
+     papel. Eso en CSS es `multiply`, literal, y funciona sobre el tema claro y
+     sobre los discos pastel del mapa.
+
+     Sobre el shell casi-negro NO HAY FORMA, y está medido en tres barridos:
+       · `multiply` desaparece — multiplicar por negro da negro.
+       · `normal` y `screen` con alfa baja dan un MARRÓN CHOCOLATE, porque un
+         pigmento claro al 25% sobre casi-negro compone a un marrón medio. No es
+         cuestión de afinar el número: subiéndolo el ocre se vuelve calcomanía
+         opaca y bajándolo desaparece. Se probaron cinco alfas de 0.14 a 0.60.
+       · el ocre es el que sufre; el verdemar aguanta mejor porque desaturado a
+         valor medio todavía se lee como aguada y no como barro.
+     Conclusión honesta, que va escrita y no escondida: la tinta y aguada
+     necesita FONDO CLARO. En oscuro lo mejor disponible es `screen` con un
+     pigmento pálido, y eso es una neblina entintada, no acuarela. */
+  --tinta-mezcla: screen;
+  --tinta-alfa-sangrado: 0.32;
+  --tinta-alfa-charco: 0.34;
+}
+
+:root[data-theme='light'] {
+  /* Sobre papel el pigmento puede ser el de verdad: pleno y multiplicando.
+     Esta es la versión que SÍ se ve como la lámina del mundo. */
+  --pigmento-ocre: var(--pigmento-ocre-papel);
+  --tinta-mezcla: multiply;
+  --tinta-alfa-sangrado: 0.5;
+  --tinta-alfa-charco: 0.5;
+}
+
+/* EXCEPCIÓN POR CONTENEDOR, no por icono.
+   Los nodos del mapa tienen fondo pastel CLARO en los DOS temas (mapa.tsx: el
+   nodo `actual` va con el --card-* pleno y el `hecho` con ese mismo color
+   entintado). Ahí el suelo es claro aunque el tema sea oscuro, así que la
+   aguada tiene que multiplicar como en tema claro. La clase va en el
+   contenedor y adentro funciona todo igual: la receta no cambia, cambia el
+   suelo. Y va por var() y no repitiendo los literales para que el día que se
+   afine el pigmento no queden dos verdades. */
+.suelo-claro {
+  --pigmento-ocre: var(--pigmento-ocre-papel);
+  --pigmento-verdemar: var(--pigmento-verdemar-papel);
+  --tinta-mezcla: multiply;
+  --tinta-alfa-sangrado: 0.5;
+  --tinta-alfa-charco: 0.5;
+}
+
+/* ── La tinta ──
+   currentColor y nada más. El contenedor decide el color, y por eso el mismo
+   dibujo sirve sobre el shell oscuro (color: var(--text-primary)) y dentro de
+   un nodo pastel (color: var(--card-ink)). Quien monte un IconoTinta sobre un
+   fondo con color propio TIENE que fijar `color`: heredar el del body es lo que
+   hacía desaparecer la tinta dentro del nodo `actual`. */
+.tinta-trazo {
+  stroke: currentColor;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── La aguada ── */
+.tinta-agua {
+  mix-blend-mode: var(--tinta-mezcla);
+}
+.tinta-lav {
+  stroke: none;
+}
+.tinta-ocre {
+  fill: var(--pigmento-ocre);
+}
+.tinta-verdemar {
+  fill: var(--pigmento-verdemar);
+}
+.tinta-sangrado {
+  fill-opacity: var(--tinta-alfa-sangrado);
+}
+.tinta-charco {
+  fill-opacity: var(--tinta-alfa-charco);
+}
+
+/* El mapa apaga los nodos bloqueados con filter: grayscale(1). Cae sobre la
+   aguada sin tocar nada y hace justo lo correcto: la parada cerrada queda
+   dibujada a lápiz, sin color. No hay que hacer nada — se anota para que nadie
+   lo "arregle". */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Nada que apagar: la receta es estática a propósito. Lo que molestaba de los
+     emoji no era que estuvieran quietos. */
+}

@@ -1,0 +1,116 @@
+/* CSS acompañante del card-fan-carousel: el prompt traía el componente pero no
+   su hoja (vive en el sitio original). La carta guarda la proporción 4:7 de las
+   imágenes (400×700); el redondeo y la sombra están calcados de la captura de
+   referencia (esquinas generosas, sombra suave que separa las cartas del fondo
+   negro).
+
+   ALTURAS — medidas, no copiadas, y en DOS PASOS.
+
+   Paso 1 (bug original): usar la tabla de getHeightMultiplier (22/26/28/34/38rem)
+   como ALTO de .fan-layout dejaba a los flancos fuera de la caja: el abanico
+   baja las cartas laterales 7.3rem (`y` de FAN_POSITIONS) y encima las rota
+   21°, así que su borde inferior cae mucho más abajo que el de la central.
+   Los puntos de paginación aterrizaban ENCIMA de las cartas.
+
+   Paso 2 (esta ronda): la corrección de arriba daba la holgura con una caja
+   ALTA Y SIMÉTRICA, pero el abanico solo cae hacia ABAJO — la mitad de arriba
+   sobraba y, al centrar la capa, ese sobrante se sumaba al hueco negro
+   superior (~198px en móvil). Ahora la caja mide EXACTAMENTE lo que mide la
+   carta central y la holgura se da SOLO POR ABAJO con padding-bottom
+   (box-sizing: content-box para que la altura declarada siga siendo la de la
+   carta). Las cartas son `position:absolute` sin offsets: su posición estática
+   la fija el `items-center` del flex, o sea el centro del CONTENT box — el
+   padding no las mueve, solo reserva sitio para la caída.
+
+   Cuánto reservar: el flanco (escala .7756, rotación 21°) tiene una semialtura
+   envolvente de (alto·cos21 + ancho·sen21)·.7756/2 ≈ .4415·alto, y baja 7.3rem.
+   Su borde inferior queda .4415·alto + 7.3rem por debajo del centro, y el de
+   la carta central .5·alto → sobresale 7.3rem − .0585·alto. De ahí la fórmula
+   del padding-bottom (con ~.3rem de colchón para la sombra).
+
+   Paso 3 (ronda 4, el HOVER): faltaba la holgura de ARRIBA. Al pasar el ratón,
+   el componente sube la carta 2.5rem·hMult (≈37px) y la escala a 1.08, lo que
+   añade otro 4% del alto por el borde superior (≈18px): pide unos 55-60px de
+   aire sobre la carta en reposo. La capa (.aurora-carrusel) es fixed con
+   overflow:hidden, así que lo que falta no desborda: se CORTA. Medido antes de
+   este arreglo: a 1280×800 la carta quedaba a 2px del techo y a partir de 780px
+   de alto se comía las esquinas (4px a 1366×768, 15px a 1280×700).
+
+   El arreglo son las dos reglas de abajo, y van juntas:
+   a) padding-top = --cf-holgura. Con box-sizing: content-box y las cartas
+      centradas por el flex, el padding-top SÍ las baja (a diferencia del
+      padding-bottom): el centrado es respecto al content box. Ojo, la capa
+      centra la sección entera, así que la mitad de ese padding se la come el
+      recentrado — el aire neto que gana la carta es la mitad… salvo que no
+      haya holgura sobrante, y ahí el padding es lo único que la sostiene.
+   b) --cf-alto deja de ser un % de la pantalla y pasa a ser LO QUE SOBRA: se
+      resta el cromo fijo (chevron de cerrar 72px + paddings de la sección +
+      flechas y puntos + la caída del abanico + la holgura de hover + 12px de
+      colchón) y lo que queda se reparte entre la carta y su padding-bottom,
+      que depende del propio alto → de ahí el factor 1.062 (= 1/0.9415).
+      Así el conjunto ENTERO cabe siempre, con o sin hover, y el tope por
+      breakpoint sigue mandando en pantallas altas. */
+
+.fan-layout {
+  /* Aire reservado ARRIBA para el levantamiento del hover. */
+  --cf-holgura: 3.25rem;
+  /* Cromo fijo que NO es la carta: 88px de la sección (paddings + mandos) +
+     72px del chevron de cerrar + 52px de holgura + 121.6px de caída + 12px. */
+  --cf-cromo: 21.6rem;
+  --cf-tope: 26rem;
+  /* La barra de casa del iPhone NO estaba en el presupuesto. La capa reserva
+     `padding-bottom: calc(72px + env(safe-area-inset-bottom))` (aurora.css), y
+     --cf-cromo contabiliza los 72px del chevron pero no el inset: en un iPhone
+     son ~34px que el abanico se cree suyos y no lo son. El conjunto sale ~34px
+     más alto que su caja, las flechas y los puntos quedan pisando el borde de
+     abajo, y al TOCARLOS Safari los mete en vista desplazando el contenedor —
+     el mismo saltico vertical, ahora sin deslizar nada. En Android y en el
+     escritorio el inset es 0, y por eso ahí nunca se vio. */
+  --cf-alto: clamp(
+    14rem,
+    calc((100dvh - var(--cf-cromo) - env(safe-area-inset-bottom, 0px)) * 1.062),
+    var(--cf-tope)
+  );
+  box-sizing: content-box;
+  height: var(--cf-alto);
+  padding-top: var(--cf-holgura);
+  /* El abanico se hojea de lado: lo horizontal es NUESTRO y lo vertical sigue
+     siendo del navegador. Sin esta línea el valor es `auto` y el navegador se
+     queda con el gesto entero desde el primer píxel; en iOS eso significa que
+     un deslizamiento lateral con una pizca de vertical arranca el rebote
+     elástico de la página — el "saltico como de recargar" del reporte. Va
+     junto al preventDefault del touchmove del componente, no en su lugar:
+     pan-y evita que el navegador reclame lo horizontal, y el preventDefault
+     corta lo vertical una vez que sabemos que el dedo va de lado. */
+  touch-action: pan-y;
+  /* 7.3rem de caída del flanco − lo que ya sobresale la carta central. */
+  padding-bottom: calc(7.6rem - var(--cf-alto) * 0.0585);
+}
+
+.fan-card {
+  position: absolute;
+  height: var(--cf-alto);
+  aspect-ratio: 4 / 7;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow:
+    0 18px 44px rgb(0 0 0 / 0.5),
+    0 4px 12px rgb(0 0 0 / 0.4);
+  will-change: transform, opacity;
+}
+
+@media (min-width: 640px) {
+  .fan-layout { --cf-tope: 27rem; }
+}
+
+/* A partir de 768px la sección pasa a mt-6 y flechas de 48px: +16px de cromo. */
+@media (min-width: 768px) {
+  .fan-layout { --cf-tope: 28rem; --cf-cromo: 22.6rem; }
+  .fan-card { border-radius: 1.5rem; }
+}
+
+/* A partir de 1024px la sección pasa de py-4 a py-8: +32px de cromo. */
+@media (min-width: 1024px) {
+  .fan-layout { --cf-tope: 30rem; --cf-cromo: 24.6rem; }
+  .fan-card { border-radius: 1.75rem; }
+}

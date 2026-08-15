@@ -1,17 +1,28 @@
 // RODEO — proxy serverless hacia OpenCode Zen
 // La API key vive SOLO aquí (env var OPENCODE_API_KEY), nunca en el frontend.
-// Modelos configurables: MODEL_CHAT (conversación, latencia baja) y MODEL_CREATIVE (generación).
+// Modelos configurables: MODEL_GO_CHAT y MODEL_GO_CREATIVE (con aliases legacy).
 
-const OPENCODE_URL = 'https://opencode.ai/zen/v1/chat/completions';
+import {
+  DEFAULT_GO_CHAT_MODEL,
+  DEFAULT_GO_CREATIVE_MODEL,
+  openCodeContent,
+  requestOpenCode,
+  resolveGoModel,
+} from './_opencode.js';
+import { registrarUso, usuarioDe } from './_uso.js';
 
-// chat: claude-haiku-4-5 en vez de kimi-k2.6. Kimi es un modelo razonador y
-// quemaba ~1200 tokens pensando antes de la primera palabra, dejando cada turno
-// de TALK en 9-19s. Medido con el prompt real: Haiku responde en 1.9-2.6s con
-// ~80 tokens, JSON siempre valido y correcciones bien formadas.
-// creative sigue en Kimi: SLANG/STORY/SUBE estan afinados a su salida.
+// Luna usa la cuota Go y no exige activar proveedores alojados en China. Es el
+// modelo accesible más económico con esa preferencia desactivada y responde con
+// latencia baja. Los aliases legacy solo ganan si son compatibles con Go.
 const MODELS = {
-  chat: process.env.MODEL_CHAT || 'claude-haiku-4-5',
-  creative: process.env.MODEL_CREATIVE || 'kimi-k2.7-code',
+  chat: resolveGoModel(
+    process.env.MODEL_GO_CHAT || process.env.MODEL_CHAT,
+    DEFAULT_GO_CHAT_MODEL,
+  ),
+  creative: resolveGoModel(
+    process.env.MODEL_GO_CREATIVE || process.env.MODEL_CREATIVE,
+    DEFAULT_GO_CREATIVE_MODEL,
+  ),
 };
 
 // Sin temperature explícita quedábamos con el default del proveedor. Subirla
@@ -56,8 +67,15 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'missing_messages' }));
   }
 
-  // Límites duros para que un bug del frontend no queme crédito
-  const safeMessages = messages.slice(-40).map((m) => ({
+  // Límites duros para que un bug del frontend no queme crédito.
+  // OJO: preservar el SYSTEM (mensaje 0) al recortar — es el contrato del
+  // flujo (esquema JSON estricto, marcadores ⟦en||es⟧, reglas del rol). Sin
+  // esto, tras ~20 turnos de ROLEPLAY/TALK cae fuera de la ventana y el
+  // modelo empieza a devolver texto plano en vez de JSON.
+  const hasSystem = messages[0] && messages[0].role === 'system';
+  const head = hasSystem ? [messages[0]] : [];
+  const tail = messages.slice(hasSystem ? 1 : 0).slice(-(40 - head.length));
+  const safeMessages = [...head, ...tail].map((m) => ({
     role: m.role === 'assistant' || m.role === 'system' ? m.role : 'user',
     content: String(m.content).slice(0, 8000),
   }));
@@ -65,27 +83,29 @@ export default async function handler(req, res) {
   // techo debe ser holgado o el JSON se trunca. 8000 deja aire de sobra.
   const safeMaxTokens = Math.min(Number(max_tokens) || 2500, 8000);
   const model = MODELS[mode] || MODELS.chat;
+  const quien = usuarioDe(req);
+  const t0 = Date.now();
 
   try {
-    const upstream = await fetch(OPENCODE_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: safeMaxTokens,
-        temperature: TEMPS[mode] ?? TEMPS.chat,
-        stream: wantsStream === true,
-        messages: safeMessages,
-      }),
-    });
+    const requestBody = {
+      model,
+      max_tokens: safeMaxTokens,
+      temperature: TEMPS[mode] ?? TEMPS.chat,
+      stream: wantsStream === true,
+      messages: safeMessages,
+    };
+    const { response: upstream, model: servedModel, protocol } = await requestOpenCode(apiKey, requestBody);
 
     if (!upstream.ok) {
-      const detail = await upstream.text();
-      res.statusCode = 502;
-      return res.end(JSON.stringify({ error: 'upstream_error', status: upstream.status, detail: detail.slice(0, 500) }));
+      await registrarUso({
+        servicio: 'opencode',
+        modelo: servedModel,
+        modo: mode,
+        usuario: quien,
+        ok: false,
+        ms: Date.now() - t0,
+      });
+      return aiUnavailable(res);
     }
 
     // ── Modo streaming (SSE) ───────────────────────────────────────────────
@@ -124,6 +144,15 @@ export default async function handler(req, res) {
             if (!payload || payload === '[DONE]') continue;
             try {
               const j = JSON.parse(payload);
+              if (protocol === 'responses') {
+                if (j.type === 'response.output_text.delta' && j.delta) send({ delta: j.delta });
+                if (j.type === 'response.completed' && j.response) {
+                  finishReason = j.response.status === 'completed' ? 'stop' : j.response.status;
+                  usage = j.response.usage || usage;
+                }
+                if (j.cost) cost = j.cost;
+                continue;
+              }
               const choice = j.choices && j.choices[0];
               const delta = (choice && choice.delta) || {};
               if (delta.content) send({ delta: delta.content });
@@ -133,9 +162,28 @@ export default async function handler(req, res) {
             } catch { /* linea partida entre chunks: se completa en la siguiente vuelta */ }
           }
         }
-        send({ done: true, finish_reason: finishReason, cost, usage, model: MODELS[mode] || model });
+        send({ done: true, finish_reason: finishReason, cost, usage, model: servedModel });
+        await registrarUso({
+          servicio: 'opencode',
+          modelo: servedModel,
+          modo: mode,
+          usuario: quien,
+          tokens_in: usage && (usage.prompt_tokens ?? usage.input_tokens),
+          tokens_out: usage && (usage.completion_tokens ?? usage.output_tokens),
+          costo_usd: cost,
+          ok: true,
+          ms: Date.now() - t0,
+        });
       } catch (streamErr) {
         send({ done: true, error: 'stream_broken', detail: String(streamErr && streamErr.message).slice(0, 200) });
+        await registrarUso({
+          servicio: 'opencode',
+          modelo: servedModel,
+          modo: mode,
+          usuario: quien,
+          ok: false,
+          ms: Date.now() - t0,
+        });
       }
       res.write('data: [DONE]\n\n');
       return res.end();
@@ -149,23 +197,46 @@ export default async function handler(req, res) {
     // Si Kimi consumió el presupuesto razonando y no dejó content, NO es un error:
     // devolvemos 200 con content vacío + finish_reason para que el cliente reintente
     // con más tokens (callJSON reintenta ante content no parseable).
-    const content = msg.content || '';
+    const content = openCodeContent(data, protocol);
+    const responseModel = data.model || servedModel;
+
+    await registrarUso({
+      servicio: 'opencode',
+      modelo: responseModel,
+      modo: mode,
+      usuario: quien,
+      tokens_in: data.usage && (data.usage.prompt_tokens ?? data.usage.input_tokens),
+      tokens_out: data.usage && (data.usage.completion_tokens ?? data.usage.output_tokens),
+      costo_usd: data.cost,
+      ok: true,
+      ms: Date.now() - t0,
+    });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
     return res.end(
       JSON.stringify({
         content,
-        model: data.model,
-        finish_reason: choice && choice.finish_reason,
+        model: responseModel,
+        finish_reason: protocol === 'responses'
+          ? (data.status === 'completed' ? 'stop' : data.status)
+          : (choice && choice.finish_reason),
         cost: data.cost,
         usage: data.usage,
       })
     );
   } catch (err) {
-    res.statusCode = 502;
-    return res.end(JSON.stringify({ error: 'proxy_failed', detail: String(err && err.message).slice(0, 300) }));
+    return aiUnavailable(res);
   }
+}
+
+function aiUnavailable(res) {
+  res.statusCode = 503;
+  res.setHeader('Content-Type', 'application/json');
+  return res.end(JSON.stringify({
+    error: 'ai_temporarily_unavailable',
+    detail: 'La IA no está disponible en este momento. Intenta de nuevo en un minuto.',
+  }));
 }
 
 function readBody(req) {
