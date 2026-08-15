@@ -71,20 +71,6 @@
       "pack": "/podcasts/ep-04-pack.json"
     },
     {
-      "id": "ep-05",
-      "titulo_en": "Revenge of the Night Owl",
-      "titulo_es": "La venganza del búho nocturno",
-      "hosts": {
-        "A": "Sunnie",
-        "B": "Declan"
-      },
-      "duracion": "6:12",
-      "imagen": "/podcasts/ep-05.jpg",
-      "audio": "/podcasts/ep-05.mp3",
-      "timing": "/podcasts/ep-05-timing.json",
-      "pack": "/podcasts/ep-05-pack.json"
-    },
-    {
       "id": "ep-06",
       "titulo_en": "The Medium Popcorn Is a Trap",
       "titulo_es": "Las palomitas medianas son una trampa",
@@ -113,20 +99,6 @@
       "pack": "/podcasts/ep-07-pack.json"
     },
     {
-      "id": "ep-08",
-      "titulo_en": "The Airport That Beat Waiting by Making You Walk",
-      "titulo_es": "El aeropuerto que venció la espera haciéndote caminar",
-      "hosts": {
-        "A": "Sunnie",
-        "B": "Desmond"
-      },
-      "duracion": "5:56",
-      "imagen": "/podcasts/ep-08.jpg",
-      "audio": "/podcasts/ep-08.mp3",
-      "timing": "/podcasts/ep-08-timing.json",
-      "pack": "/podcasts/ep-08-pack.json"
-    },
-    {
       "id": "ep-09",
       "titulo_en": "Eddie the Eagle: The Worst Olympian Everyone Loved",
       "titulo_es": "Eddie el Águila: el peor olímpico que todos amaron",
@@ -139,6 +111,20 @@
       "audio": "/podcasts/ep-09.mp3",
       "timing": "/podcasts/ep-09-timing.json",
       "pack": "/podcasts/ep-09-pack.json"
+    },
+    {
+      "id": "ep-rdj",
+      "titulo_en": "Success, Perspective, and Where You Come From",
+      "titulo_es": "El éxito, la perspectiva y de dónde vienes",
+      "hosts": {
+        "A": "Robert",
+        "B": "Zendaya"
+      },
+      "duracion": "1:06",
+      "imagen": "/podcasts/ep-rdj.jpg",
+      "audio": "/podcasts/ep-rdj.mp3",
+      "timing": "/podcasts/ep-rdj-timing.json",
+      "pack": "/podcasts/ep-rdj-pack.json"
     }
   ]
 }

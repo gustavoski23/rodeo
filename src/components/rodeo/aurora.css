@@ -1563,6 +1563,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* El tono va en dos líneas como mucho: es una frase, no una etiqueta, y
+   truncarla a una sola deja «joven, suave y cerca…» que no dice nada. */
+.voz-card__tono {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin-top: 3px;
+  color: oklch(from var(--vz-glass-fg) l c h / 42%);
+  font-size: .6rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
 .voz-card__punto {
   width: 7px;
   height: 7px;

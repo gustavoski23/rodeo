@@ -5,112 +5,144 @@
       "proveedor": "Fish Audio",
       "genero": "F",
       "acento": "US",
-      "archivo": "/voces/zendaya.mp3"
+      "archivo": "/voces/zendaya.mp3",
+      "id": "aaca6b1640b048feb3682eb45fdd5fe7",
+      "tono": "joven, conversacional, narradora"
     },
     {
       "nombre": "Sarah",
       "proveedor": "Fish Audio",
       "genero": "F",
       "acento": "US",
-      "archivo": "/voces/sarah.mp3"
+      "archivo": "/voces/sarah.mp3",
+      "id": "933563129e564b19a115bedd57b7406a",
+      "tono": "joven, suave y cercana, algo susurrada y sincera"
     },
     {
       "nombre": "Paula",
       "proveedor": "Fish Audio",
       "genero": "F",
       "acento": "US",
-      "archivo": "/voces/paula.mp3"
+      "archivo": "/voces/paula.mp3",
+      "id": "c2623f0c075b4492ac367989aee1576f",
+      "tono": "adulta, clara y profesional, articulada y amable; la más «profesora» del roster"
     },
     {
       "nombre": "Ethan",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/ethan.mp3"
+      "archivo": "/voces/ethan.mp3",
+      "id": "536d3a5e000945adb7038665781a4aca",
+      "tono": "adulto, calmado y documental, explica con autoridad sin sonar duro"
     },
     {
       "nombre": "Butcher",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/butcher.mp3"
+      "archivo": "/voces/butcher.mp3",
+      "id": "542fc7aab61e4561bae5ebd536d717c0",
+      "tono": ""
     },
     {
       "nombre": "Mark",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/mark.mp3"
+      "archivo": "/voces/mark.mp3",
+      "id": "028f9d4cbfef4b109a828febf4986858",
+      "tono": ""
     },
     {
       "nombre": "Joe Rogan",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/joe-rogan.mp3"
+      "archivo": "/voces/joe-rogan.mp3",
+      "id": "734a9b543ce2453ea3e0e4212f5fd7f9",
+      "tono": "clon de celebridad"
     },
     {
       "nombre": "Keanu Reeves",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/keanu-reeves.mp3"
+      "archivo": "/voces/keanu-reeves.mp3",
+      "id": "351ff3f8e4bf49baa3d649f1a967d0d3",
+      "tono": "clon de celebridad"
     },
     {
       "nombre": "Chris Pratt",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/chris-pratt.mp3"
+      "archivo": "/voces/chris-pratt.mp3",
+      "id": "f7450dd5bc0d4410b0dc54fb4e14a436",
+      "tono": "clon de celebridad"
     },
     {
       "nombre": "Robert Downey Jr",
       "proveedor": "Fish Audio",
       "genero": "M",
       "acento": "US",
-      "archivo": "/voces/robert-downey-jr.mp3"
+      "archivo": "/voces/robert-downey-jr.mp3",
+      "id": "9a2d93494a434c09bfdedbc4373892c9",
+      "tono": "clon de celebridad"
     },
     {
       "nombre": "Sunnie",
       "proveedor": "Gradium",
       "genero": "F",
       "acento": "US",
-      "archivo": "/voces/sunnie.mp3"
+      "archivo": "/voces/sunnie.mp3",
+      "id": "YVzbrdWnnu9FgRn5",
+      "tono": "joven, alegre, cálida y burbujeante, tono medio-alto"
     },
     {
       "nombre": "Declan",
       "proveedor": "Gradium",
       "genero": "M",
       "acento": "Irlandés",
-      "archivo": "/voces/declan.mp3"
+      "archivo": "/voces/declan.mp3",
+      "id": "I7GYfpcKbafFrYUv",
+      "tono": "calmado y confiado, ritmo estable y natural"
     },
     {
       "nombre": "Desmond",
       "proveedor": "Gradium",
       "genero": "M",
       "acento": "por confirmar",
-      "archivo": "/voces/desmond.mp3"
+      "archivo": "/voces/desmond.mp3",
+      "id": "bwRhQrJel4IuvxLF",
+      "tono": ""
     },
     {
       "nombre": "Toby",
       "proveedor": "Gradium",
       "genero": "M",
       "acento": "por confirmar",
-      "archivo": "/voces/toby.mp3"
+      "archivo": "/voces/toby.mp3",
+      "id": "dME3IWyZBvmh1n1q",
+      "tono": ""
     },
     {
       "nombre": "Niamh",
       "proveedor": "Gradium",
       "genero": "F",
       "acento": "por confirmar",
-      "archivo": "/voces/niamh.mp3"
+      "archivo": "/voces/niamh.mp3",
+      "id": "loR_Y0Gn96j0PXrI",
+      "tono": ""
     },
     {
       "nombre": "Freya",
       "proveedor": "Gradium",
       "genero": "F",
       "acento": "por confirmar",
-      "archivo": "/voces/freya.mp3"
+      "archivo": "/voces/freya.mp3",
+      "id": "GgfEkEJtxZR7gnpy",
+      "tono": ""
     }
   ]
 }

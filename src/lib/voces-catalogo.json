@@ -1,0 +1,138 @@
+{
+  "_comentario": "Catálogo oficial de voces para los podcasts de RODEO. Decidido por Gus el 13-ago-2026 tras comparar Fish Audio, Bland y Gradium con el mismo guion. Bland quedó descartado (la voz masculina se oía como llamada con mala señal incluso tras cambiarla). Alice y David salieron del catálogo: eran el dúo nativo sin reference_id, vetado desde el 14-ago.",
+  "regla_de_guion": "Las primeras 4 intervenciones de CADA voz deben ser oraciones largas (2 líneas, ~18-30 palabras) con carga emocional explícita. Las frases cortas al arrancar suenan robóticas; el motor necesita contexto prosódico antes de poder soltar frases de 3-4 palabras.",
+  "fish": {
+    "modelo": "s2.1-pro-free (hasta 31-ago-2026), luego s2.1-pro a $15/M bytes",
+    "endpoint": "POST https://api.fish.audio/v1/tts — el modelo va en la CABECERA 'model', no en el body",
+    "ventaja": "único motor que genera los dos hablantes en UNA pasada con <|speaker:0|>/<|speaker:1|> y acepta [laughing], [chuckling], [sighing], [hesitant]",
+    "limite": "reference_id solo acepta UNA voz por llamada; el dúo nativo no lleva ID",
+    "voces": [
+      {
+        "nombre": "Zendaya",
+        "id": "aaca6b1640b048feb3682eb45fdd5fe7",
+        "como_se_invoca": "reference_id, línea por línea (pierde las risas nativas)",
+        "genero": "femenina",
+        "acento": "inglés US",
+        "tono": "joven, conversacional, narradora (tags de la API: female, young, conversational, narration)"
+      },
+      {
+        "nombre": "Butcher",
+        "id": "542fc7aab61e4561bae5ebd536d717c0",
+        "genero": "masculino",
+        "acento": "por confirmar",
+        "tono": "por confirmar (elegida por Gus 14-ago)"
+      },
+      {
+        "nombre": "Mark",
+        "id": "028f9d4cbfef4b109a828febf4986858",
+        "genero": "masculino",
+        "acento": "por confirmar",
+        "tono": "por confirmar (elegida por Gus 14-ago)"
+      },
+      {
+        "nombre": "Joe Rogan",
+        "id": "734a9b543ce2453ea3e0e4212f5fd7f9",
+        "genero": "masculino",
+        "acento": "US",
+        "tono": "clon de celebridad — riesgo de derechos de imagen en producción comercial"
+      },
+      {
+        "nombre": "Keanu Reeves",
+        "id": "351ff3f8e4bf49baa3d649f1a967d0d3",
+        "genero": "masculino",
+        "acento": "US",
+        "tono": "clon de celebridad — mismo aviso"
+      },
+      {
+        "nombre": "Chris Pratt",
+        "id": "f7450dd5bc0d4410b0dc54fb4e14a436",
+        "genero": "masculino",
+        "acento": "US",
+        "tono": "clon de celebridad — mismo aviso"
+      },
+      {
+        "nombre": "Robert Downey Jr",
+        "id": "9a2d93494a434c09bfdedbc4373892c9",
+        "genero": "masculino",
+        "acento": "US",
+        "tono": "clon de celebridad — mismo aviso; el audio sale BAJO: normalizar RMS al concatenar"
+      },
+      {
+        "nombre": "Sarah",
+        "id": "933563129e564b19a115bedd57b7406a",
+        "genero": "femenina",
+        "acento": "inglés US",
+        "tono": "joven, suave y cercana, algo susurrada y sincera (tags: female, young, conversational, soft, breathy, intimate)"
+      },
+      {
+        "nombre": "Paula",
+        "id": "c2623f0c075b4492ac367989aee1576f",
+        "genero": "femenina",
+        "acento": "inglés US",
+        "tono": "adulta, clara y profesional, articulada y amable; la más «profesora» del roster (tags: female, middle-aged, educational, professional, articulate)"
+      },
+      {
+        "nombre": "Ethan",
+        "id": "536d3a5e000945adb7038665781a4aca",
+        "genero": "masculino",
+        "acento": "inglés US",
+        "tono": "adulto, calmado y documental, explica con autoridad sin sonar duro (tags: male, middle-aged, educational, narration, calm, authoritative)"
+      }
+    ]
+  },
+  "gradium": {
+    "endpoint": "POST https://api.gradium.ai/api/post/speech/tts — cabecera x-api-key, body {text, voice_id, output_format, only_audio}",
+    "limite": "free tier prohíbe uso comercial; 1.500 chars/sesión; generación línea por línea",
+    "voces": [
+      {
+        "nombre": "Sunnie",
+        "id": "YVzbrdWnnu9FgRn5",
+        "genero": "femenina",
+        "acento": "inglés US",
+        "tono": "joven, alegre, cálida y burbujeante, tono medio-alto (descripción oficial: joyful young American voice, warm and bubbly)"
+      },
+      {
+        "nombre": "Declan",
+        "id": "I7GYfpcKbafFrYUv",
+        "genero": "masculino",
+        "acento": "inglés irlandés",
+        "tono": "calmado y confiado, ritmo estable y natural (descripción oficial: calm and confident Irish English voice)"
+      },
+      {
+        "nombre": "Toby",
+        "id": "dME3IWyZBvmh1n1q",
+        "genero": "masculino",
+        "acento": "por confirmar en la librería de Gradium",
+        "tono": "por confirmar — hay muestra generada en el demo (variante Sunnie + Toby del episodio de conspiraciones)"
+      },
+      {
+        "nombre": "Desmond",
+        "id": "bwRhQrJel4IuvxLF",
+        "genero": "masculino",
+        "acento": "por confirmar en la librería de Gradium",
+        "tono": "por confirmar — muestra en la variante Sunnie + Desmond"
+      },
+      {
+        "nombre": "Niamh",
+        "id": "loR_Y0Gn96j0PXrI",
+        "genero": "femenina",
+        "acento": "por confirmar (nombre irlandés; la librería tiene línea irlandesa)",
+        "tono": "por confirmar — muestra en la variante Niamh + Declan"
+      },
+      {
+        "nombre": "Freya",
+        "id": "GgfEkEJtxZR7gnpy",
+        "genero": "femenina",
+        "acento": "por confirmar en la librería de Gradium",
+        "tono": "por confirmar — muestra en la variante Freya + Declan"
+      }
+    ],
+    "nota_2026_08_15": "Los 2 episodios de Gradium (Night Owl, Airport) se retiraron de la app el 15-ago: tenían las pausas viejas y sin créditos no se podían regenerar. Las muestras de voz siguen en el catálogo. Recordar que su free tier prohíbe uso comercial."
+  },
+  "descartados": {
+    "bland": "voz masculina inaceptable (se oye como llamada telefónica con mala señal, probado con Aaron y Josh); la femenina Sandra era buena",
+    "deepgram_aura2": "sigue siendo el motor del coach en tiempo real, pero para episodios el dúo de Fish suena más natural",
+    "supertonic_kokoro": "self-hosted viables pero lentos en la CPU actual (34-55 min por episodio de 40 min)"
+  },
+  "regla_de_pausas": "El em-dash (—) NO genera pausa en el TTS: la voz acelera y suena antinatural. Usar coma o punto en el texto hablado; el pipeline convierte em-dash→coma automáticamente antes de enviar (el texto mostrado conserva el em-dash)."
+}

@@ -19,6 +19,10 @@ type Voz = {
   genero: string;
   acento: string;
   archivo: string;
+  /* Del catálogo (src/lib/voces-catalogo.json). Describe cómo SUENA la voz,
+     que es lo único que sirve para elegirla sin escucharlas las 16. Puede
+     venir vacío en las que aún no tienen descripción confirmada. */
+  tono?: string;
 };
 
 const VOL_KEY = 'rodeo_voces_vol';
@@ -167,6 +171,8 @@ export function VocesCatalogo() {
                   <span className="voz-card__meta">
                     {voz.proveedor} · {voz.genero === 'F' ? 'Femenina' : 'Masculina'} · {voz.acento}
                   </span>
+                  {/* Cómo suena. Sin esto hay que escuchar las 16 para elegir. */}
+                  {voz.tono && <span className="voz-card__tono">{voz.tono}</span>}
                 </span>
                 {/* Puntito «hablando»: solo late mientras la voz suena. */}
                 <span className="voz-card__punto" />
