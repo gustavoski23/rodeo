@@ -1,0 +1,98 @@
+/* NAV MÓVIL — lo poco que Tailwind no expresa bien inline.
+
+   Las píldoras siguen siendo GlassButton (sign-up.tsx, INTOCABLE) por su DOM
+   y su indicador, pero el MATERIAL de la navbar es LIQUID GLASS (decisión de
+   Gus 2026-08-14, tercera vuelta: «igual de transparente que shuttletv.su,
+   ese blanco no»). Los valores no son de oído: se extrajeron EN VIVO de
+   shuttletv.su con getComputedStyle — barra `rgba(0,0,0,.2)` + hairline
+   inset blanca de 0.5px + sombras 4/16 y 8/24; sus chips del tamaño de
+   nuestras píldoras usan black/25-30 + blur(8-10). Aquí están (1) los tokens
+   por tema, (2) la receta liquid de las píldoras, (3) el apartarse cuando una
+   capa global tapa la pantalla y (4) el mini-panel de Profile. */
+
+.nav-movil {
+  /* Tokens del vidrio: la TINTA cambia por tema (oscura sobre papel, casi
+     blanca sobre aurora/noche — abajo); --background ya no pinta la lámina
+     (el relleno liquid es fijo) pero se conserva para cualquier derivado del
+     verbatim que siga vivo. */
+  --background: oklch(97% 0.014 85);
+  --foreground: oklch(25% 0.02 265);
+  transition: opacity 200ms ease;
+}
+:root:not([data-theme='light']) .nav-movil {
+  --foreground: oklch(97% 0.005 265);
+}
+
+/* LA RECETA LIQUID (shuttletv, extraída): negro translúcido + blur saturado +
+   hairline blanca + dos sombras suaves. Va con `nav.nav-movil` (0,2,1) y
+   re-declarando :hover/:active A PROPÓSITO: GlassStyles es un <style> que
+   React monta en el body — llega DESPUÉS del CSS bundleado y ganaría los
+   empates de especificidad, y además su :hover casi apaga el blur
+   (blur(0.01em)) y sus estados re-declaran box-shadow. El estado pressed del
+   wrap (`:has(:active)`, 0,3,0 en el verbatim) también se cubre aparte. */
+nav.nav-movil .glass-button,
+nav.nav-movil .glass-button:hover,
+nav.nav-movil .glass-button:active {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+}
+nav.nav-movil .glass-button-wrap:has(.glass-button:active) .glass-button {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(10px) saturate(1.2);
+  -webkit-backdrop-filter: blur(10px) saturate(1.2);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12),
+    0 2px 10px rgba(0, 0, 0, 0.12);
+}
+/* El cromo del vidrio del gate se apaga SOLO en la navbar: el aro cónico, el
+   barrido de brillo y la sombra-blob son de otro material. GlassStyles global
+   queda intacto para el gate. */
+nav.nav-movil .glass-button::after,
+nav.nav-movil .glass-button-text::after,
+nav.nav-movil .glass-button-shadow {
+  display: none;
+}
+/* Patrón `oculto` de MenuFlotante: con el personalizador o Suscripción
+   abiertos la navbar se desvanece y suelta el puntero SIN desmontarse — así el
+   indicador deslizante no pierde su layout al volver. pointer-events hereda,
+   de modo que también apaga píldoras y panel. */
+.nav-movil--oculta {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* El mini-panel de Profile: la MISMA familia liquid que las píldoras, como
+   hoja rectangular — un menú tiene que leerse encima de cualquier contenido,
+   así que su relleno es más denso que el de las píldoras. En claro va en
+   blanco lechoso con la tinta oscura; en oscuro/gradiente, negro translúcido
+   con la tinta clara (los ítems derivan de --foreground y se tiñen solos). */
+.nav-movil__panel {
+  border-radius: 20px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.55);
+  border: none;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.6),
+    0 16px 40px oklch(from var(--foreground) l c h / 18%);
+}
+:root:not([data-theme='light']) .nav-movil__panel {
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.12),
+    0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.nav-movil__item {
+  color: oklch(from var(--foreground) l c h / 90%);
+  -webkit-tap-highlight-color: transparent;
+}
+/* El feedback de toque es el MISMO gris del indicador de las píldoras. */
+.nav-movil__item:active {
+  background: oklch(from var(--foreground) l c h / 12%);
+}

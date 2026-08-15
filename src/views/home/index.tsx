@@ -1,10 +1,11 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft } from 'lucide-react';
 
 import { AuroraPillButton } from '@/components/rodeo/aurora-pill-button';
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { TryMeButton, type TryMeTheme } from '@/components/ui/try-me-button';
+import { ES_TELEFONO } from '@/lib/device';
 import { cn } from '@/lib/utils';
 import type { Tema } from '@/lib/theme';
 import { programarPrecargaConversacion, programarPrecargaHome } from '@/lib/preload';
@@ -39,18 +40,14 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
   const tema = useApp((s) => s.tema);
   /* ← AL ORIGEN (regla 5). El Home nace con la vitrina ABIERTA si quien nos
      trajo de vuelta fue el ← de una vista a la que se entró por una carta:
-     esa carta dejó levantado `carruselAlVolver` (stores/app.ts). Se lee UNA
-     vez, en el inicializador del useState — no como suscripción — para que
-     bajar la marca justo después no vuelva a cerrar la vitrina. */
-  const [carruselAbierto, setCarruselAbierto] = useState(() => useApp.getState().carruselAlVolver);
+     esa carta dejó levantado `carruselAlVolver` (stores/app.ts). El traspaso
+     marca→vitrina y el consumo de la marca ya NO viven aquí: los hace
+     setView('home') dentro del store, porque `carruselAbierto` subió a
+     stores/app.ts para que la navbar de teléfono (nav-movil) pueda abrir la
+     vitrina desde cualquier vista. Este componente solo la lee y la cierra. */
+  const carruselAbierto = useApp((s) => s.carruselAbierto);
+  const setCarruselAbierto = useApp((s) => s.setCarruselAbierto);
   const moreRef = useRef<HTMLButtonElement>(null);
-
-  /* Y se consume: la marca vale por UN regreso. Si sobreviviera, el siguiente
-     Home (p. ej. tras "Inicio" del menú) también abriría la vitrina. Bajarla es
-     idempotente, así que el doble montaje de StrictMode no cambia nada. */
-  useEffect(() => {
-    useApp.getState().setCarruselAlVolver(false);
-  }, []);
 
   useEffect(() => {
     const cancelarConversacion = programarPrecargaConversacion();
@@ -91,7 +88,16 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
        inline que queda es el `transparent` del gradiente, y ese no compite con
        el barrido: en gradiente el lienzo es el <FondoTema/> global. */
     <div
-      className="aurora-shell flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(18px,env(safe-area-inset-bottom))]"
+      className={cn(
+        'aurora-shell flex min-h-dvh flex-col px-5 pt-[max(14px,env(safe-area-inset-top))]',
+        /* En teléfonos la navbar de píldoras (nav-movil) flota abajo: el shell
+           reserva su franja (~52px de píldora + 12px de offset + aire) para que
+           "Conversación libre" no quede tapada. En PC no hay navbar y el pb es
+           el de siempre. */
+        ES_TELEFONO
+          ? 'pb-[calc(96px+env(safe-area-inset-bottom))]'
+          : 'pb-[max(18px,env(safe-area-inset-bottom))]',
+      )}
       style={tema === 'gradiente' ? { background: 'transparent' } : undefined}
     >
       {/* FILA SUPERIOR — Menu ≡ a la izquierda y el botón de tema a la derecha
@@ -157,25 +163,33 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
               propósito: con la vitrina abierta la regla `:not(.aurora-more)`
               (aurora.css) lo oculta —queda tapado por la capa del carrusel— y se
               cierra con el ← / Escape (regla 2). El tema del pomo sigue al de
-              Hablarte y el anillo va en Alan Sans, la letra del Home. */}
-          <TryMeButton
-            ref={moreRef}
-            theme={temaTryMe(tema)}
-            size="clamp(128px, 34vw, 152px)"
-            label="TRY ME"
-            ariaLabel={carruselAbierto ? 'Ocultar las features' : 'Ver las features'}
-            aria-expanded={carruselAbierto}
-            /* aria-controls SOLO cuando la capa existe: cerrada no está montada
-               (AnimatePresence la desmonta) y apuntar a un id ausente es una
-               referencia colgante en el árbol de accesibilidad. */
-            aria-controls={carruselAbierto ? 'aurora-carrusel' : undefined}
-            onClick={() => setCarruselAbierto((v) => !v)}
-            /* Un centímetro más abajo (pedido de Gus, r3). ≈38px al DPR de
-               referencia; se suma al `gap: 16px` de .aurora-home__actions. Va
-               inline y no como clase Tailwind porque aurora.css maneja este
-               contenedor y prefiero no rozar sus reglas. */
-            style={{ marginTop: '38px' }}
-          />
+              Hablarte y el anillo va en Alan Sans, la letra del Home.
+
+              En TELÉFONOS el pomo NO se monta: la vitrina se abre desde la
+              pestaña Explore de la navbar inferior (nav-movil) y el TryMe solo
+              robaba alto a una pantalla que ya cede franja a esa navbar. El
+              moreRef queda sin dueño y los `moreRef.current?.focus()` de
+              Escape y del ← se vuelven no-ops — a propósito. */}
+          {!ES_TELEFONO && (
+            <TryMeButton
+              ref={moreRef}
+              theme={temaTryMe(tema)}
+              size="clamp(128px, 34vw, 152px)"
+              label="TRY ME"
+              ariaLabel={carruselAbierto ? 'Ocultar las features' : 'Ver las features'}
+              aria-expanded={carruselAbierto}
+              /* aria-controls SOLO cuando la capa existe: cerrada no está montada
+                 (AnimatePresence la desmonta) y apuntar a un id ausente es una
+                 referencia colgante en el árbol de accesibilidad. */
+              aria-controls={carruselAbierto ? 'aurora-carrusel' : undefined}
+              onClick={() => setCarruselAbierto(!carruselAbierto)}
+              /* Un centímetro más abajo (pedido de Gus, r3). ≈38px al DPR de
+                 referencia; se suma al `gap: 16px` de .aurora-home__actions. Va
+                 inline y no como clase Tailwind porque aurora.css maneja este
+                 contenedor y prefiero no rozar sus reglas. */
+              style={{ marginTop: '38px' }}
+            />
+          )}
         </div>
       </div>
 
