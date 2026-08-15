@@ -19,15 +19,16 @@
   transition: opacity 200ms ease;
 }
 
-/* La lámina original del .glass-button (relleno --background al 5–20%) está
-   pensada para asentar sobre el papel claro del gate: sobre el Home oscuro se
-   veía transparente-oscura, apenas un tinte. Se sube el relleno a 62–88% para
-   que la píldora se lea CREMA (frosted claro) sobre cualquier fondo y la tinta
-   oscura contraste siempre. La especificidad .nav-movil .glass-button (0,2,0)
-   le gana al selector plano que inyecta GlassStyles, sin tocar sign-up.tsx.
-   El hover del verbatim no re-declara background, así que esta lámina
-   sobrevive a todos sus estados. */
-.nav-movil .glass-button {
+/* LÁMINA POR TEMA (decisión de Gus, 2026-08-14): en DÍA y en GRADIENTE manda
+   la lámina VERBATIM de GlassStyles (relleno --background al 5–20%) — el
+   vidrio aireado del gate tal cual, que es el default de la app. Solo en
+   NOCHE (ni data-theme='light' ni data-fondo='gradiente', el contrato de
+   theme.ts) el relleno sube a crema 62–88%: sobre el lienzo negro plano la
+   lámina 5–20% desaparecía en un tinte, y la crema mantiene la tinta oscura
+   leyéndose siempre. El selector con :root+2×:not (0,5,0) le gana al plano de
+   GlassStyles sin tocar sign-up.tsx, y el hover del verbatim no re-declara
+   background, así que sobrevive a todos sus estados. */
+:root:not([data-theme='light']):not([data-fondo='gradiente']) .nav-movil .glass-button {
   background: linear-gradient(
     -75deg,
     oklch(from var(--background) l c h / 62%),
