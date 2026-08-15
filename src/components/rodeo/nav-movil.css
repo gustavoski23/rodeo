@@ -19,16 +19,18 @@
   transition: opacity 200ms ease;
 }
 
-/* LÁMINA POR TEMA (decisión de Gus, 2026-08-14): en DÍA y en GRADIENTE manda
-   la lámina VERBATIM de GlassStyles (relleno --background al 5–20%) — el
-   vidrio aireado del gate tal cual, que es el default de la app. Solo en
-   NOCHE (ni data-theme='light' ni data-fondo='gradiente', el contrato de
-   theme.ts) el relleno sube a crema 62–88%: sobre el lienzo negro plano la
-   lámina 5–20% desaparecía en un tinte, y la crema mantiene la tinta oscura
-   leyéndose siempre. El selector con :root+2×:not (0,5,0) le gana al plano de
+/* LÁMINA POR TEMA (decisión de Gus 2026-08-14 + corrección medida): en DÍA
+   manda la lámina VERBATIM de GlassStyles (relleno --background al 5–20%) —
+   sobre el papel claro es idéntica al gate. En NOCHE y en GRADIENTE el
+   relleno sube a crema 62–88%: la aurora también es oscura, y con la 5–20%
+   las píldoras se veían tinte ahumado con la tinta 25% de los labels muerta
+   (verificado con screenshot en el demo; Gus pidió "este vidrio" sobre la
+   gradiente, pero un nav ilegible no es ese vidrio — el MATERIAL sigue siendo
+   el verbatim: rims, aro cónico, sombra e indicador no cambian, solo el
+   relleno). El selector :root:not(...) (0,3,0) le gana al plano de
    GlassStyles sin tocar sign-up.tsx, y el hover del verbatim no re-declara
    background, así que sobrevive a todos sus estados. */
-:root:not([data-theme='light']):not([data-fondo='gradiente']) .nav-movil .glass-button {
+:root:not([data-theme='light']) .nav-movil .glass-button {
   background: linear-gradient(
     -75deg,
     oklch(from var(--background) l c h / 62%),
