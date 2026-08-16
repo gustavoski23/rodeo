@@ -57,6 +57,46 @@ nav.nav-movil .glass-button-text::after,
 nav.nav-movil .glass-button-shadow {
   display: none;
 }
+/* Y el GIRO 3D del gate entra en la misma lista, por la misma razón. El
+   verbatim inclina el envoltorio 25° mientras el dedo está abajo
+   (`.glass-button-wrap:has(.glass-button:active) { transform: rotateX(25deg) }`,
+   con transform-style: preserve-3d). En un botón grande de login es un detalle
+   rico; en una píldora de 34 px pegada al borde inferior es MOVER EL BLANCO
+   justo en el instante en que el dedo se levanta y el navegador decide a quién
+   le tocó el click. La navbar no se queda sin respuesta al toque: el bloque de
+   arriba ya oscurece la lámina al 35 % en :active, que es el feedback que se
+   quiso. Especificidad 0,4,1 contra el 0,3,0 del verbatim, así que gana sin
+   depender del orden en que se inyecte GlassStyles. */
+nav.nav-movil .glass-button-wrap:has(.glass-button:active) {
+  transform: none;
+}
+
+/* ── EL BLANCO TÁCTIL: 44 px de escucha sobre 34 px de píldora ─────────────
+   La píldora MIDE 34 px de alto a propósito (pedido de Gus, 2ª ronda:
+   «horizontales como ES/ENG y un poquitito más bajitas») y eso no se toca. El
+   problema no es cómo se ve, es a qué le responde: 34 px queda por debajo de
+   los 44 que piden tanto Apple como Android para un blanco de dedo, y esta
+   fila vive en el borde inferior de la pantalla, que es justo donde peor
+   apunta el pulgar.
+
+   MEDIDO con document.elementFromPoint sobre la píldora Profile a 390×844: a
+   6 px del borde de abajo el punto YA NO cae dentro del <button> — cae en el
+   div envoltorio, y de ahí solo llega al botón por el reenvío de GlassButton.
+   Un toque un pelo más abajo no cae en nada y se pierde entero.
+
+   Esto NO agranda la píldora: agranda solo la zona que escucha, con un
+   ::before transparente que se sale 5 px arriba y abajo. El hit-test de un
+   pseudo-elemento se le atribuye a su elemento originador, así que el toque se
+   registra en el envoltorio y sigue la ruta que ya existía. Horizontal solo
+   2 px: el gap entre píldoras es de 8 px y dos zonas de escucha vecinas no se
+   pueden solapar (quien apunta al hueco no debe activar a la de al lado).
+   El envoltorio ya es position:relative en el verbatim. */
+nav.nav-movil .glass-button-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -5px -2px;
+  border-radius: 9999px;
+}
 /* Patrón `oculto` de MenuFlotante: con el personalizador o Suscripción
    abiertos la navbar se desvanece y suelta el puntero SIN desmontarse — así el
    indicador deslizante no pierde su layout al volver. pointer-events hereda,
