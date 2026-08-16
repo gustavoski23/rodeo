@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { CircleUserRound, Compass, House, MessageCircle } from 'lucide-react';
 
@@ -38,6 +38,37 @@ import './nav-movil.css';
    pasa por el roll de letras del FloatingMenu que se las comía. */
 
 type BotonId = 'home' | 'explore' | 'talk' | 'profile';
+
+/* ── UN solo disparo por toque en las píldoras ─────────────────────────────
+   El cuarto gemelo del mismo remedio (charla-session.tsx, escenas-session.tsx,
+   libro/index.tsx). GlassButton (sign-up.tsx, INTOCABLE) envuelve el <button>
+   en un <div> con un onClick de "click fix" que reenvía el toque al botón
+   cuando el evento no vino de él:
+
+     if (button && e.target !== button) button.click();
+
+   El toque real NUNCA cae en el <button>: cae en el <span> interior, en el
+   icono o en la etiqueta, porque el padding entero lo pone ese span
+   (contentClassName). Así que el evento burbujea al botón —el handler corre—,
+   sigue hasta el div, `e.target !== button` es cierto y lo vuelve a disparar:
+   DOS ejecuciones por toque.
+
+   AQUÍ es donde por fin se vio, y por eso este arreglo llega el último: Home,
+   Explore y Talk son idempotentes (llamar a setView('home') dos veces deja lo
+   mismo), pero Profile es un TOGGLE — abría el panel y lo cerraba en el mismo
+   tap, así que tocarlo no hacía nada. Medido con page.touchscreen a 390×844:
+   2 clicks en el <button> y aria-expanded="false" tras un único toque.
+
+   Se envuelven las CUATRO por igual: las otras tres no fallaban a la vista,
+   pero igual pagaban doble render en cada toque. Cortamos la propagación en el
+   propio botón; el toque que cae en el margen del envoltorio sigue
+   funcionando. No toca sign-up.tsx. */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fn();
+  };
 
 export function NavMovil({
   onPersonalizar,
@@ -210,7 +241,7 @@ export function NavMovil({
             <GlassButton
               type="button"
               size="sm"
-              onClick={onClick}
+              onClick={unSoloClick(onClick)}
               aria-current={activo ? 'page' : undefined}
               aria-expanded={id === 'profile' ? panelAbierto : undefined}
               /* Icono y label EN FILA a 34px de alto (pedido de Gus, 2ª ronda:
