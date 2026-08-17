@@ -163,8 +163,18 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       const onStartEvt = () => cb.current.onPeelStart?.();
       const onEndEvt = () => cb.current.onPeelEnd?.();
       const onReadyEvt = () => cb.current.onReady?.();
-      // Si el usuario toca el sticker, el preview automático cede al gesto real.
-      const onPointerDownEvt = () => cancelAnimationFrame(previewRafRef.current);
+      /* Si el usuario toca el sticker, el preview automático cede al gesto real.
+         Y se marca el host como "el foco de aquí vino del DEDO" — ver el estilo
+         del shadow root, más abajo. */
+      const onPointerDownEvt = () => {
+        cancelAnimationFrame(previewRafRef.current);
+        el.setAttribute('data-foco-puntero', '');
+      };
+      /* Cualquier tecla en la página significa que el usuario pasó al teclado:
+         se retira la marca y el anillo de foco vuelve a existir. Va en
+         `document` y en captura porque el Tab que ENTRA al canvas se dispara
+         sobre el elemento anterior, no sobre él. */
+      const onTeclaEvt = () => el.removeAttribute('data-foco-puntero');
 
       el.addEventListener('detachcomplete', onDetachEvt);
       el.addEventListener('peelchange', onPeelEvt);
@@ -172,6 +182,7 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       el.addEventListener('peelend', onEndEvt);
       el.addEventListener('ready', onReadyEvt);
       el.addEventListener('pointerdown', onPointerDownEvt);
+      document.addEventListener('keydown', onTeclaEvt, true);
 
       /* LA SOURCE VA ANTES DE CONECTAR. Al hacer appendChild se dispara
          connectedCallback, que si no encuentra source anotada arranca el
@@ -187,13 +198,26 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
 
       host.appendChild(el);
 
-      /* Quitar el anillo de foco CUADRADO del canvas al pelar (el engine hace
-         .focus() en pointerdown). Se inyecta en el shadow root para no tocar el
-         engine; se conserva el foco de teclado vía :focus-visible (a11y).
+      /* Quitar el anillo de foco CUADRADO del canvas al pelar. El engine hace
+         `event.preventDefault()` y DESPUÉS `focus({preventScroll:true})` en el
+         pointerdown del borde (sticker-forge.ts): para Chrome ese foco no viene
+         de un gesto de puntero "limpio", así que lo marca `:focus-visible` y el
+         `:not(:focus-visible)` de siempre NO aplicaba durante el pelado — el
+         marco de 1px rodeaba la caja ENTERA del sticker después de cada pelada
+         y se quedaba ahí hasta tocar otra cosa (medido en la revisión hostil:
+         la fila superior del recorte pasaba de 41.9 a 255.0 de luminancia, y
+         reproducía igual en build de producción).
+
+         Se decide entonces por PROCEDENCIA del foco, que es la pregunta real:
+         `data-foco-puntero` lo pone el pointerdown del propio wrapper y lo
+         quita la primera tecla. Con el dedo no hay anillo; con Tab sí, que es
+         lo que pide la accesibilidad. El `:not(:focus-visible)` se queda como
+         segunda red para el resto de casos.
          Va DESPUÉS del appendChild: el shadow root nace en connectedCallback. */
       if (el.shadowRoot) {
         const fix = document.createElement('style');
         fix.textContent =
+          ':host([data-foco-puntero]) canvas:focus{outline:none!important}' +
           'canvas:focus:not(:focus-visible){outline:none!important}';
         el.shadowRoot.appendChild(fix);
       }
@@ -206,6 +230,7 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
         el.removeEventListener('peelend', onEndEvt);
         el.removeEventListener('ready', onReadyEvt);
         el.removeEventListener('pointerdown', onPointerDownEvt);
+        document.removeEventListener('keydown', onTeclaEvt, true);
         el.remove();
         elRef.current = null;
       };

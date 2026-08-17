@@ -188,15 +188,32 @@ export function Pelala() {
             de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
             para cerrar el aire de abajo sin encoger el gráfico.
 
-            SUBIDO de 31vh/165-330 a 44vh/200-450 (2026-08-17): esta pantalla ya
-            no paga la fila del toggler de tema (~66px) ni la navbar (~84px), y
-            el sticker es el héroe — Gus pidió agrandarlo con ese aire. El techo
-            de 450px se queda por debajo del MAX_STICKER_HEIGHT_PX=520 del motor,
-            así que el gráfico crece de verdad y no se topa con su límite interno.
-            MEDIDO a 412×915 con el significado destapado (que es el estado más
-            alto): la columna entera cabe sin empujar el input bajo el pliegue —
-            el reparto exacto está en el comentario del min-h del chat. */}
-        <div className="relative -mb-6 h-[clamp(185px,44vh,440px)] w-full shrink-0 select-none">
+            SUBIDO de 31vh/165-330 (2026-08-17): esta pantalla ya no paga la
+            fila del toggler de tema (~66px) ni la navbar (~84px), y el sticker
+            es el héroe — Gus pidió agrandarlo con ese aire.
+
+            EL ALTO NO PUEDE COMERSE EL INPUT DEL CHAT, y por eso no es un `vh`
+            a secas: `44vh` medía bien a 412×915 pero a 360×780 empujaba el
+            input 38px bajo el pliegue (77px de desborde), o sea que agrandar el
+            héroe escondía la práctica — lo cazó la revisión hostil. El
+            `100dvh - 512px` es el reparto MEDIDO de lo que ocupa el resto de la
+            columna en su estado más alto (barra de sección 48 + dock con el
+            significado destapado 452 + respiro 8 − el solape −24 del -mb-6, más
+            los 28 de padding del main): lo que sobra de ahí es lo que puede
+            medir el sticker sin tapar nada. Se toma el MENOR de los dos, así
+            que en pantallas altas manda el 44vh (412×915 → 402px) y en las
+            cortas manda el hueco real (360×780 → 268px). Por debajo de ~700px
+            de alto no hay reparto posible y entra el mínimo de 185px: ahí la
+            columna scrollea, que para eso está el velo de "sigue abajo".
+            El techo de 440px queda bajo el MAX_STICKER_HEIGHT_PX=520 del motor.
+
+            OJO con lo que este alto NO hace: el motor dimensiona el gráfico por
+            el ANCHO (`viewWidth * 0.78`, sticker-forge.ts) y usa el alto solo de
+            tope. Los 26 términos que todavía no tienen ilustración en
+            content/pelala/stickers.ts son texto y NO crecen con esta caja —
+            solo `wind-up`, que sí trae SVG. Agrandarlos de verdad pasa por
+            ilustrarlos, no por subir este número. */}
+        <div className="relative -mb-6 h-[clamp(185px,min(44vh,100dvh-512px),440px)] w-full shrink-0 select-none">
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -230,7 +247,10 @@ export function Pelala() {
         <div className="p-4">
           {/* Caption anclada arriba, alineada a la izquierda como el cuerpo. */}
           <p className="mb-3 text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
-            Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>pela el sticker</span> para el siguiente
+            {/* «desliza», no «pela»: el rótulo de arriba dice DESLIZA Y APRENDE
+               y la pista de la esquina dice «desliza aquí». Eran tres verbos
+               para el mismo gesto en la misma pantalla. */}
+            Cuando ya te lo sepas, <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>desliza el sticker</span> para el siguiente
           </p>
 
           {/* Cabecera: ICONO DE LÍNEA (no emoji) en badge + término dominante +
