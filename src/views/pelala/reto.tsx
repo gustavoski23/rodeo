@@ -108,8 +108,16 @@ export function Pelala() {
   const retoSiguiente = usePelala((s) => s.retoSiguiente);
   const guardados = usePelala((s) => s.guardados);
   const toggleGuardar = usePelala((s) => s.toggleGuardar);
-  const peelHintVisto = usePelala((s) => s.peelHintVisto);
-  const marcarPeelHintVisto = usePelala((s) => s.marcarPeelHintVisto);
+
+  /* La pista "desliza aquí" (+ el auto-pelado de la esquina) SIEMPRE sale al
+     entrar a SLANG, y se retira solo cuando el usuario empieza a pelar (pedido
+     de Gus, 2026-08-17: «vuelve a ponerle eso, la señalización que sale SIEMPRE
+     al inicio»). Por eso es estado LOCAL del montaje y NO el flag persistido del
+     store (`peelHintVisto`), que la escondía para siempre tras el primer pelado:
+     como App monta y desmonta cada vista al navegar, este `useState(false)` se
+     rearma en cada visita — la pista vuelve, exactamente lo que se pidió. El
+     campo del store queda sin consumir; se limpia aparte. */
+  const [pistaGuiada, setPistaGuiada] = useState(true);
 
   const [revelado, setRevelado] = useState(false);
   const stickerRef = useRef<PeelStickerHandle>(null);
@@ -118,22 +126,24 @@ export function Pelala() {
   /* ← AL ORIGEN: como toda vista, vuelve al Home, que reabre el carrusel. */
   const volver = useCallback(() => useApp.getState().setView('home'), []);
 
-  /* Al empezar a pelar: barrido holográfico (el mismo de la entrada). */
+  /* Al empezar a pelar: barrido holográfico (el mismo de la entrada) y se
+     retira la pista para no estorbar el gesto que el usuario ya está haciendo. */
   const onPeelStart = useCallback(() => {
     stickerRef.current?.sweep();
-    marcarPeelHintVisto(); // al pelar por primera vez, la pista ya no vuelve
-  }, [marcarPeelHintVisto]);
+    setPistaGuiada(false);
+  }, []);
 
-  /* Primera vez: tras la entrada, el sticker se auto-pela en bucle desde la
-     esquina hasta que el usuario pela por primera vez (luego no vuelve). */
+  /* Tras la entrada, el sticker se auto-pela en bucle desde la esquina hasta
+     que el usuario pela (o sale). Atado a `pistaGuiada`, que se rearma en cada
+     montaje, así que la muestra vuelve cada vez que se entra a SLANG. */
   useEffect(() => {
-    if (peelHintVisto) return;
+    if (!pistaGuiada) return;
     const t = window.setTimeout(() => stickerRef.current?.peelPreview(), 1100);
     return () => {
       window.clearTimeout(t);
       stickerRef.current?.stopPeelPreview();
     };
-  }, [peelHintVisto]);
+  }, [pistaGuiada]);
 
   /* Al despegar del todo: entra el siguiente término (significado reseteado). */
   const onDetach = useCallback(() => {
@@ -146,6 +156,13 @@ export function Pelala() {
   if (!term) return null;
   const guardado = guardados.includes(term.id);
   const Icono = ICONO_TERMINO[term.id] ?? ICONO_FALLBACK;
+  /* ¿Este término trae ILUSTRACIÓN (el formato de "wind up") o es solo texto?
+     Decide el ALTO del sticker: Gus pidió agrandar SOLO los ilustrados y dejar
+     los de texto como estaban («deja las demás con el tamaño que tienen, solo
+     tenías que agrandar las que son como el formato visual de wind up»). El
+     motor dimensiona por ancho, así que a un sticker de TEXTO una caja más alta
+     solo le añade aire muerto; a uno ilustrado sí le da cuerpo. */
+  const ilustrado = term.id in STICKER_SVG;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -188,32 +205,30 @@ export function Pelala() {
             de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
             para cerrar el aire de abajo sin encoger el gráfico.
 
-            SUBIDO de 31vh/165-330 (2026-08-17): esta pantalla ya no paga la
-            fila del toggler de tema (~66px) ni la navbar (~84px), y el sticker
-            es el héroe — Gus pidió agrandarlo con ese aire.
-
-            EL ALTO NO PUEDE COMERSE EL INPUT DEL CHAT, y por eso no es un `vh`
-            a secas: `44vh` medía bien a 412×915 pero a 360×780 empujaba el
-            input 38px bajo el pliegue (77px de desborde), o sea que agrandar el
-            héroe escondía la práctica — lo cazó la revisión hostil. El
-            `100dvh - 512px` es el reparto MEDIDO de lo que ocupa el resto de la
-            columna en su estado más alto (barra de sección 48 + dock con el
-            significado destapado 452 + respiro 8 − el solape −24 del -mb-6, más
-            los 28 de padding del main): lo que sobra de ahí es lo que puede
-            medir el sticker sin tapar nada. Se toma el MENOR de los dos, así
-            que en pantallas altas manda el 44vh (412×915 → 402px) y en las
-            cortas manda el hueco real (360×780 → 268px). Por debajo de ~700px
-            de alto no hay reparto posible y entra el mínimo de 185px: ahí la
-            columna scrollea, que para eso está el velo de "sigue abajo".
-            El techo de 440px queda bajo el MAX_STICKER_HEIGHT_PX=520 del motor.
-
-            OJO con lo que este alto NO hace: el motor dimensiona el gráfico por
-            el ANCHO (`viewWidth * 0.78`, sticker-forge.ts) y usa el alto solo de
-            tope. Los 26 términos que todavía no tienen ilustración en
-            content/pelala/stickers.ts son texto y NO crecen con esta caja —
-            solo `wind-up`, que sí trae SVG. Agrandarlos de verdad pasa por
-            ilustrarlos, no por subir este número. */}
-        <div className="relative -mb-6 h-[clamp(185px,min(44vh,100dvh-512px),440px)] w-full shrink-0 select-none">
+            DOS ALTOS, según el término (`ilustrado`):
+            · ILUSTRADO (formato "wind up", trae SVG): caja ALTA. Gus pidió
+              agrandar estos con el aire que dejaron la fila del toggler (~66px)
+              y la navbar (~84px). No puede comerse el input del chat, y por eso
+              no es un `vh` a secas: `44vh` medía bien a 412×915 pero a 360×780
+              empujaba el input 38px bajo el pliegue (lo cazó la revisión
+              hostil). El `100dvh - 512px` es el reparto MEDIDO del resto de la
+              columna en su estado más alto (barra 48 + dock destapado 452 +
+              respiro 8 − solape −24 + padding 28); se toma el MENOR, así que en
+              pantallas altas manda el 44vh (412×915 → 402px) y en las cortas el
+              hueco real (360×780 → 268px). El techo 440px queda bajo el
+              MAX_STICKER_HEIGHT_PX=520 del motor.
+            · TEXTO (sin ilustración): el alto ORIGINAL (31vh, 165-330px). Gus:
+              «deja las demás con el tamaño que tienen». El motor dimensiona por
+              ANCHO, así que a un sticker de texto una caja más alta solo le
+              sumaría aire muerto; se le deja el tamaño de siempre. */}
+        <div
+          className={cn(
+            'relative -mb-6 w-full shrink-0 select-none',
+            ilustrado
+              ? 'h-[clamp(185px,min(44vh,100dvh-512px),440px)]'
+              : 'h-[clamp(165px,31vh,330px)]',
+          )}
+        >
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -223,7 +238,7 @@ export function Pelala() {
             onDetach={onDetach}
             className="h-full w-full"
           />
-          {!peelHintVisto && <CornerHint />}
+          {pistaGuiada && <CornerHint />}
         </div>
 
         {/* ── DOCK ÚNICO: significado + práctica en UNA sola superficie glass.

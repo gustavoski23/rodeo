@@ -9,23 +9,11 @@ import { DECK, type SlangTerm } from '@/content/pelala/deck';
 
 export type PelalaMode = 'picker' | 'muro' | 'reto';
 
-/* Pista de esquina "por dónde pelar" — se muestra una sola vez (persistida).
-   Sufijo _v2: resetea la pista para quien ya tenía el flag viejo. */
-const PEEL_HINT_KEY = 'pelala_peel_hint_visto_v2';
-function leerPeelHintVisto(): boolean {
-  try {
-    return localStorage.getItem(PEEL_HINT_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-function marcarPeelHintVistoLS(): void {
-  try {
-    localStorage.setItem(PEEL_HINT_KEY, '1');
-  } catch {
-    /* almacenamiento no disponible: se ignora */
-  }
-}
+/* La pista de esquina "por dónde pelar" YA NO vive en el store ni se persiste:
+   Gus la quiere SIEMPRE al entrar a SLANG, no una vez en la vida. Ahora es
+   estado local del montaje en views/pelala/reto.tsx, que se rearma en cada
+   visita. Se quitó también la clave localStorage 'pelala_peel_hint_visto_v2';
+   la que exista en discos viejos queda huérfana e inocua. */
 
 /* Términos guardados — persistidos a localStorage (patrón manual de Rodeo). */
 const GUARDADOS_KEY = 'pelala_guardados';
@@ -83,9 +71,6 @@ type PelalaState = {
   estaGuardado: (id: string) => boolean;
   toggleGuardar: (id: string) => void;
 
-  /* ----- Pista de esquina "por dónde pelar" (una sola vez) ----- */
-  peelHintVisto: boolean;
-  marcarPeelHintVisto: () => void;
 };
 
 export const usePelala = create<PelalaState>((set, get) => ({
@@ -136,10 +121,4 @@ export const usePelala = create<PelalaState>((set, get) => ({
       return { guardados: next };
     }),
 
-  peelHintVisto: leerPeelHintVisto(),
-  marcarPeelHintVisto: () => {
-    if (get().peelHintVisto) return;
-    marcarPeelHintVistoLS();
-    set({ peelHintVisto: true });
-  },
 }));
