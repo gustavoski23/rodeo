@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { BubbleBackground } from '@/components/ui/components-backgrounds-bubble';
+import { GradientBackground } from '@/components/ui/sign-up';
 import { MODO_LIGERO } from '@/lib/device';
 import { useApp } from '@/stores/app';
 
@@ -16,9 +17,18 @@ import './aurora.css';
    del switch de vistas, así que las burbujas quedan detrás de SLANG, STORY,
    SUBE, DNA, OFICINA y también de la sesión de charla.
 
-   Se monta SOLO con el tema gradiente: es un árbol de motion con seis capas
-   animadas en loop infinito y un filtro goo, y no tiene por qué estar
-   corriendo en claro/oscuro (donde el fondo es el plano del body).
+   Se monta SOLO con los temas que piden fondo: es un árbol animado en loop y
+   no tiene por qué estar corriendo en claro/oscuro (donde el fondo es el plano
+   del body). Hay dos:
+
+     · gradiente → BubbleBackground (seis capas motion + filtro goo) sobre el
+       shell oscuro. En MODO_LIGERO cae a una versión estática de puro CSS.
+     · amanecer  → el MISMO GradientBackground del gate (components/ui/sign-up),
+       o sea las manchas borrosas de "Get started" sobre papel crema. Gus pidió
+       poder elegir ese fondo como tema (2026-08-17). No necesita rama de
+       MODO_LIGERO: el componente ya apaga sus dos animaciones float por media
+       query en ≤767px, pointer:coarse y prefers-reduced-motion — o sea que en
+       teléfono es un SVG quieto, que es exactamente lo que se ve en el gate.
 
    La capa es `position:fixed; inset:0; z-index:-1`, o sea: por encima del
    lienzo del body y por debajo de todo el contenido en flujo, sin tener que
@@ -31,6 +41,18 @@ export function FondoTema() {
   const [interactivo] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px) and (pointer: fine)').matches,
   );
+
+  /* AMANECER: el gradiente del gate. Las --color-* que consume el SVG las
+     declara `.aurora-fondo-amanecer` (aurora.css) y viven SOLO ahí dentro: son
+     los mismos nombres que el puente Tailwind de tokens.css (--color-primary,
+     --color-chart-3…), así que declararlas en :root repintaría media app. */
+  if (tema === 'amanecer') {
+    return (
+      <div className="aurora-fondo-amanecer" aria-hidden="true">
+        <GradientBackground />
+      </div>
+    );
+  }
 
   if (tema !== 'gradiente') return null;
 

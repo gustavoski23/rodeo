@@ -263,7 +263,7 @@ export function AlfredLive({
           whileTap={{ scale: 0.94 }}
           onClick={cerrar}
           aria-label="Cerrar la charla con Alfred"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <X size={17} strokeWidth={2} />
@@ -280,7 +280,7 @@ export function AlfredLive({
           onClick={() => toggleTts()}
           aria-label="Activar o desactivar la voz de Alfred"
           aria-pressed={ttsOn}
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={
             ttsOn
               ? { borderColor: 'var(--accent)', background: 'var(--accent-dim)', color: 'var(--accent)' }

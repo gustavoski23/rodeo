@@ -9,7 +9,6 @@ import {
   escenasHechas,
   estaDesbloqueada,
   proximaEscena,
-  puntoDeRetomar,
   tareaHecha,
   unidadVirgen,
   useA1,
@@ -191,15 +190,6 @@ export default function A1View({
     setPantalla({ tipo: 'coach', unit: u });
   }
 
-  function seguir() {
-    const r = puntoDeRetomar();
-    if (!r) return;
-    setPantalla({
-      tipo: 'sesion',
-      arranque: { modo: 'escena', unit: r.unit, scene: r.scene, desde: r.chunkIdx },
-    });
-  }
-
   const alMapa = () => setPantalla({ tipo: 'mapa' });
 
   return (
@@ -263,7 +253,6 @@ export default function A1View({
           onUnidad={abrirUnidad}
           onCoach={abrirConversacion}
           onRepaso={abrirRepaso}
-          onSeguir={seguir}
           onGuardadas={() => setGuardadas(true)}
           onPanico={() => setPanico(true)}
         />

@@ -9,7 +9,7 @@
    Deepgram viene lento o se cae, el texto se libera igual y la pantalla nunca
    se queda congelada.
 
-   Uso en los motores de turno (use-coach-turn.ts, rp-turn.ts):
+   Uso en el motor de turnos (use-coach-turn.ts):
      await hablarSincronizado(reply);
      // recién aquí se pintan las letras */
 

@@ -11,7 +11,7 @@
 
    El texto va con los marcadores ⟦en||es⟧ de lib/gloss.ts, así que <GlossText>
    los vuelve palabras TOCABLES: tap → significado → ＋ guardar al DNA. Es el
-   mismo camino que TALK y ESCENAS, o sea que lo que caiga aquí vuelve después
+   mismo camino que TALK, o sea que lo que caiga aquí vuelve después
    en la conversación.
 
    ESTRUCTURA: 7 capítulos × 5 páginas. Cada página tiene su oficio y su largo:

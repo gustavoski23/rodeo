@@ -7,7 +7,7 @@ import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { TryMeButton, type TryMeTheme } from '@/components/ui/try-me-button';
 import { ES_TELEFONO } from '@/lib/device';
 import { cn } from '@/lib/utils';
-import type { Tema } from '@/lib/theme';
+import { esTemaClaro, type Tema } from '@/lib/theme';
 import { programarPrecargaConversacion, programarPrecargaHome } from '@/lib/preload';
 import { useApp } from '@/stores/app';
 const CarruselFeatures = lazy(() => import('@/components/rodeo/carrusel-features'));
@@ -18,11 +18,12 @@ const CarruselFeatures = lazy(() => import('@/components/rodeo/carrusel-features
 const BentoFeatures = lazy(() => import('@/components/rodeo/bento-features'));
 
 /* El TryMeButton trae sus propios tres temas (dark/light/alternate). Se mapea al
-   tema de Hablarte: papel → light; oscuro y gradiente → dark (el botón es un pomo
-   oscuro que asienta sobre ambos fondos). El único acento que le queda es el aro
-   de foco, en var(--accent), así que ya va con la marca sin ramas aquí. */
+   tema de Hablarte con el mismo criterio que todo lo demás (esTemaClaro): los de
+   papel → light; oscuro y gradiente → dark (el botón es un pomo oscuro que
+   asienta sobre ambos fondos). El único acento que le queda es el aro de foco,
+   en var(--accent), así que ya va con la marca sin ramas aquí. */
 function temaTryMe(tema: Tema): TryMeTheme {
-  return tema === 'claro' ? 'light' : 'dark';
+  return esTemaClaro(tema) ? 'light' : 'dark';
 }
 
 /* HOME — markup y comportamiento 1:1 de la referencia aprobada
@@ -103,7 +104,9 @@ export default function HomeView({ onPersonalizar, menuOculto = false }: { onPer
           ? 'pb-[calc(96px+env(safe-area-inset-bottom))]'
           : 'pb-[max(18px,env(safe-area-inset-bottom))]',
       )}
-      style={tema === 'gradiente' ? { background: 'transparent' } : undefined}
+      /* Con fondo animado (gradiente o amanecer) el shell se aparta: su
+         background opaco taparía la capa fija de z-index:-1. */
+      style={tema === 'gradiente' || tema === 'amanecer' ? { background: 'transparent' } : undefined}
     >
       {/* FILA SUPERIOR — Menu ≡ a la izquierda y el botón de tema a la derecha
           (regla 3). Ya no se escribe aquí: es la pieza compartida

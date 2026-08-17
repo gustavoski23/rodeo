@@ -81,7 +81,7 @@ export default function PodcastView() {
              ver carrusel-features.tsx) y el Home reabre la vitrina solo. */
           onClick={() => (seleccionado ? setSeleccionado(null) : setView('home'))}
           aria-label={seleccionado ? 'Volver a los episodios' : 'Volver al inicio'}
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <ArrowLeft size={17} strokeWidth={2} />

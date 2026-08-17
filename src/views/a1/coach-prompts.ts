@@ -31,7 +31,7 @@ import { ESPANOL_NEUTRO_EN } from '@/lib/espanol-neutro';
 
 /** Techos de tokens. Bajos: el turno del coach son ocho palabras, no un
     párrafo. El reintento con techo alto lo hace `callJSON` cuando el JSON llega
-    truncado con finish 'length' (la trampa que ya costó una ronda en rp-turn). */
+    truncado con finish 'length' (la trampa que ya costó una ronda en el motor de ESCENAS, borrado el 2026-08-17). */
 export const COACH_MAX_TOKENS = 900;
 export const COACH_CIERRE_MAX_TOKENS = 1200;
 

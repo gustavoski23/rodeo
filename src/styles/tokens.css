@@ -396,3 +396,29 @@
   animation: none;
   mix-blend-mode: normal;
 }
+
+/* ── BLANCO TÁCTIL DE 44px PARA LOS BOTONES CIRCULARES DE 36px ─────────────
+   Los ← de vuelta y los mandos redondos de la app se dibujan a `size-9`
+   (36×36). Medido con elementFromPoint a 390×844: acertaban a ±18px del centro
+   y fallaban a ±20 — o sea, 36px de escucha exactos, cero margen.
+
+   Desde que el teléfono esconde la navbar dentro de cada feature (App.tsx),
+   ese ← dejó de ser un atajo y pasó a ser LA salida: el único blanco de la
+   pantalla para volver al Home. Cobrarle un fallo de toque al usuario ahí es
+   dejarlo encerrado hasta que acierte.
+
+   Este pseudo-elemento le da los 44px que piden tanto Apple como Android SIN
+   mover un píxel del dibujo — es exactamente el remedio que ya lleva la navbar
+   de píldoras (nav-movil.css: «44 px de escucha sobre 34 px de píldora»), y
+   por eso la constante es la misma y no un número nuevo.
+   `inset: -4px` sobre 36 = 44. Al ir en ::after no toca el layout, no pinta
+   nada y hereda el radio, así que la zona sigue siendo redonda. */
+.rd-toque-44 {
+  position: relative;
+}
+.rd-toque-44::after {
+  position: absolute;
+  content: '';
+  inset: -4px;
+  border-radius: 9999px;
+}

@@ -1178,6 +1178,67 @@
   pointer-events: none;
 }
 
+/* ══════════════════════════════════════════════════════════════════════
+   TEMA AMANECER — el gradiente del gate ("Get started") como tema
+   ══════════════════════════════════════════════════════════════════════
+   Gus: «que puedas escoger el tema de la pantalla inicial del get started, me
+   gusta mucho esa gradiente» (2026-08-17). No es una paleta nueva: es el tema
+   CLARO (data-theme='light', misma tinta oscura sobre papel) con la capa de
+   manchas borrosas del gate por fondo — el mismo componente GradientBackground
+   de components/ui/sign-up.tsx que pinta el login, no una copia a ojo.
+
+   Mismo cableado que gradiente, línea por línea: el shell crea contexto de
+   apilado para que la capa (z-index:-1) quede por encima de su propio
+   background y por debajo del contenido, y el carrusel se aparta. */
+:root[data-fondo='amanecer'] .aurora-shell {
+  position: relative;
+  z-index: 0;
+}
+:root[data-fondo='amanecer'] .aurora-carrusel {
+  background: transparent;
+}
+/* El papel del GATE, que es un crema más CÁLIDO que el del tema Día
+   (oklch 98.5% 0.003 95). Doble atributo a propósito: amanecer también pone
+   data-theme='light', y con un solo atributo las dos reglas empatarían en
+   especificidad y mandaría el orden de importación de las hojas. */
+:root[data-theme='light'][data-fondo='amanecer'] {
+  --bg-void: oklch(97.5% 0.012 85);
+}
+.aurora-fondo-amanecer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: oklch(97.5% 0.012 85);
+
+  /* Las manchas, COPIADAS del gate (views/gate/index.tsx, bloque .gate-tema):
+     luminosidad alta 74-82% para que el papel siga claro y el texto oscuro se
+     lea, con chroma de verdad (0.095-0.175) para que el ámbar sea ámbar y el
+     coral, coral. Van SCOPEADAS a esta capa y no a :root porque son los mismos
+     nombres del puente Tailwind de tokens.css (--color-primary, --color-chart-*
+     …): sueltas en :root le cambiarían el color a media app. Aquí dentro solo
+     vive el SVG que las consume. */
+  --color-primary: oklch(78% 0.115 250); /* azulado con cuerpo (izq) */
+  --color-secondary: oklch(80% 0.155 72); /* ámbar (arriba-der) */
+  --color-accent: oklch(80% 0.105 246); /* azulado (arriba-izq) */
+  --color-destructive: oklch(74% 0.175 30); /* coral (abajo-der) */
+  --color-chart-1: oklch(82% 0.15 80); /* ámbar cálido */
+  --color-chart-2: oklch(80% 0.15 58);
+  --color-chart-3: oklch(82% 0.095 244); /* azul con presencia */
+  --color-chart-4: oklch(78% 0.165 58); /* naranja/ámbar */
+  --color-chart-5: oklch(81% 0.14 42); /* durazno */
+}
+/* Velo lechoso: en el gate las manchas viven detrás de UNA losa de vidrio y de
+   cuatro líneas de texto. Aquí viven detrás de la app entera —listas, chips,
+   texto --text-muted—, así que se bajan un punto con un lavado de papel. Sin
+   él, el ámbar a plena fuerza se comía el texto secundario. */
+.aurora-fondo-amanecer::after {
+  position: absolute;
+  content: '';
+  inset: 0;
+  background: oklch(97.5% 0.012 85 / 0.34);
+  pointer-events: none;
+}
+
 @media (max-width: 767px), (pointer: coarse) {
   .aurora-pill__mass,
   .assistant-thinking::before {
@@ -1241,6 +1302,17 @@
     radial-gradient(circle at 26% 72%, rgba(0, 220, 255, 0.6), transparent 55%),
     linear-gradient(135deg, #4c1d95, #1e3a8a);
 }
+/* Amanecer: las cuatro manchas del gate sobre su papel crema, en miniatura y
+   en las MISMAS posiciones que el SVG (azul abajo-izq, ámbar arriba-der, coral
+   abajo-der, azulado arriba-izq). */
+.aurora-tema-card__preview[data-tema='amanecer'] {
+  background:
+    radial-gradient(circle at 24% 78%, oklch(78% 0.115 250 / 0.8), transparent 52%),
+    radial-gradient(circle at 80% 22%, oklch(80% 0.155 72 / 0.85), transparent 52%),
+    radial-gradient(circle at 82% 76%, oklch(74% 0.175 30 / 0.7), transparent 48%),
+    radial-gradient(circle at 8% 18%, oklch(80% 0.105 246 / 0.7), transparent 46%),
+    oklch(97.5% 0.012 85);
+}
 .aurora-tema-card__check {
   font-family: 'Space Mono', monospace;
   font-size: 0.56rem;
@@ -1280,6 +1352,33 @@
 }
 :root[data-theme='light'] .aurora-preset__name {
   color: oklch(30% 0.012 265);
+}
+
+/* LOSAS Y MANDOS DEL PERSONALIZADOR SOBRE PAPEL.
+   Las tarjetas de tema ya traían su tinta oscura (abajo), pero viven DENTRO de
+   `.aurora-customizer__map`, que seguía siendo una losa oscura al 60% sin rama
+   clara: tinta oscura sobre losa oscura dentro de una hoja crema. Medido por
+   píxel en la revisión hostil: los nombres de los temas daban 1.27–1.37:1 y el
+   `×` de cerrar 1.27:1 — o sea, invisibles. Y es justo la única pantalla donde
+   se lee el NOMBRE del tema (el toast se retiró, stores/app.ts).
+   Se invierten las tres superficies con la misma receta que el resto del bloque
+   claro: film de tinta en vez de film de luz. */
+:root[data-theme='light'] .aurora-customizer__map,
+:root[data-theme='light'] .aurora-customizer__preview {
+  border-color: oklch(22% 0.012 265 / 0.1);
+  background: oklch(22% 0.012 265 / 0.045);
+}
+:root[data-theme='light'] .aurora-customizer__close,
+:root[data-theme='light'] .aurora-customizer__reset,
+:root[data-theme='light'] .aurora-customizer__swap {
+  color: oklch(26% 0.014 265);
+  background: oklch(22% 0.012 265 / 0.05);
+  border-color: oklch(22% 0.012 265 / 0.16);
+}
+/* El ○ / ● de la tarjeta iba al 55% de opacidad, calibrado sobre fondo oscuro;
+   sobre papel eso lo dejaba en 1.17:1. Sube y hereda la tinta de la tarjeta. */
+:root[data-theme='light'] .aurora-tema-card__check {
+  opacity: 0.85;
 }
 
 /* Las tarjetas de TEMA sobre papel: mismo dibujo, tinta oscura. */

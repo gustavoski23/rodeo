@@ -4,6 +4,7 @@
    real, así que lo que ajustes aquí es lo que verás en SLANG. El default es el
    que marcó Gus; «Restablecer» vuelve a él. */
 import { BorderBeam } from '@/components/ui/border-beam';
+import { esTemaClaro } from '@/lib/theme';
 import { useApp } from '@/stores/app';
 import { BEAM_COLORS, BEAM_SIZES, isBeamDefault, useBeam } from '@/stores/beam';
 
@@ -36,7 +37,7 @@ export function BeamCustomizer() {
           key={`${beam.size}-${tema}`}
           size={beam.size}
           colorVariant={beam.colorVariant}
-          theme={tema === 'claro' ? 'light' : 'dark'}
+          theme={esTemaClaro(tema) ? 'light' : 'dark'}
           strength={beam.strength}
           brightness={beam.brightness}
           duration={beam.duration}

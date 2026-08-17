@@ -738,7 +738,7 @@ function Lector({ cap, onCerrar, escala }: { cap: Capitulo; onCerrar: () => void
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar el capítulo"
-            className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+            className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
             style={{
               borderColor: 'oklch(62% 0.08 70 / 0.6)',
               background: 'oklch(72% 0.07 72 / 0.4)',
@@ -1087,7 +1087,7 @@ export default function LibroView() {
             whileTap={{ scale: 0.94 }}
             onClick={() => setView('home')}
             aria-label="Volver al inicio"
-            className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+            className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
             style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
           >
             <ArrowLeft size={17} strokeWidth={2} />
@@ -1114,7 +1114,7 @@ export default function LibroView() {
           whileTap={{ scale: 0.94 }}
           onClick={() => setView('home')}
           aria-label="Volver al inicio"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <ArrowLeft size={17} strokeWidth={2} />
@@ -1345,7 +1345,7 @@ export default function LibroView() {
           onClick={() => ir(cara - 1)}
           disabled={cara === 0}
           aria-label="Página anterior"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border disabled:cursor-default disabled:opacity-35"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border disabled:cursor-default disabled:opacity-35"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <ChevronLeft size={17} strokeWidth={2.2} />
@@ -1364,7 +1364,7 @@ export default function LibroView() {
           onClick={() => ir(cara + 1)}
           disabled={cara >= TOTAL - 1}
           aria-label="Página siguiente"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border disabled:cursor-default disabled:opacity-35"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border disabled:cursor-default disabled:opacity-35"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <ChevronRight size={17} strokeWidth={2.2} />

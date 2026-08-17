@@ -13,11 +13,11 @@ import {
   useAurora,
 } from '@/stores/aurora';
 
-/* Los tres temas de la app, en el orden del ciclo del toggler. Las
+/* Los CUATRO temas de la app, en el orden del ciclo del toggler. Las
    miniaturas son CSS estático (aurora.css, .aurora-tema-card__preview):
    montar un BubbleBackground de 42px para previsualizar el gradiente sería
    un segundo árbol animado corriendo dentro de una hoja modal. */
-const TEMAS: Tema[] = ['claro', 'oscuro', 'gradiente'];
+const TEMAS: Tema[] = ['claro', 'oscuro', 'gradiente', 'amanecer'];
 
 /* Navegación en dos niveles (pedido de Gus, 14-ago): el panel abría con TODO
    desplegado y se veía «regado». Ahora el nivel raíz muestra un pill grande

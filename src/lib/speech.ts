@@ -377,11 +377,13 @@ export function toggleVoz(): VozId {
 
 export const MIC_LANGS = { es: 'es-419', en: 'en-US' } as const;
 export type MicLang = keyof typeof MIC_LANGS;
-export type MicCtx = 'talk' | 'rp' | 'story' | 'ladder' | 'drop';
+/* 'rp' (ROLEPLAY) se fue con la feature ESCENAS el 2026-08-17. La clave
+   `rodeo_miclang_rp` que algún usuario tenga en disco queda huérfana e inocua:
+   nadie vuelve a leerla. */
+export type MicCtx = 'talk' | 'story' | 'ladder' | 'drop';
 
 const MIC_LANG_DEFAULTS: Record<MicCtx, MicLang> = {
   talk: 'es', // TALK: puede preguntar "cómo digo X" en español
-  rp: 'es', // ROLEPLAY: puede salirse de personaje para preguntar
   story: 'en', // STORY: actúa en inglés dentro de la ficción
   ladder: 'en', // SUBE: produce su versión C1 en inglés
   drop: 'en', // DROP: responde la lectura en inglés

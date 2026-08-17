@@ -1,6 +1,6 @@
-/* Throttle del stream a un frame. Lo comparten el turno de CHARLA (sendTurn,
-   public/legacy.html:4109) y el de ESCENAS (rpTurn, L7373): los dos reciben de
-   callStream el acumulado en CADA chunk — decenas por segundo — y en React cada
+/* Throttle del stream a un frame. Lo usa el turno de CHARLA (sendTurn,
+   public/legacy.html:4109) — y lo usaba también el de ESCENAS, borrada el
+   2026-08-17: recibe de callStream el acumulado en CADA chunk — decenas por segundo — y en React cada
    patch repinta la lista entera de burbujas. Con rAF se pinta como mucho una
    vez por frame, que es lo máximo que el ojo puede ver.
 

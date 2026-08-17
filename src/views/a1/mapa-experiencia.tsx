@@ -35,7 +35,6 @@ type MapaExperienciaProps = {
   onUnidad: (id: string) => void;
   onCoach: (unitId: string) => void;
   onRepaso: () => void;
-  onSeguir: () => void;
   onGuardadas: () => void;
   onPanico: () => void;
 };
@@ -260,7 +259,6 @@ export function MapaExperiencia({
   onUnidad,
   onCoach,
   onRepaso,
-  onSeguir,
   onGuardadas,
   onPanico,
 }: MapaExperienciaProps) {
@@ -360,12 +358,13 @@ export function MapaExperiencia({
         </div>
       </header>
 
-      {retomar && (
-        <button className="a1j-resume" type="button" onClick={onSeguir}>
-          <span><small>SIGUE DONDE IBAS</small><strong>{retomar.unit.title_es}</strong></span>
-          <ChevronDown size={17} strokeWidth={2.4} />
-        </button>
-      )}
+      {/* Aquí flotaba la tira "SIGUE DONDE IBAS". Se borró el 2026-08-17
+          (decisión de Gus): iba en position:absolute con un top:112px fijo
+          compensado por un padding-top:60px en el scroller, y como medía ~70px
+          la cuenta no cerraba — tapaba la primera lección de la lista, que
+          además solía ser LA MISMA que ella anunciaba (se veía el texto
+          duplicado por detrás). La lección donde se quedó el usuario sigue
+          marcada en el mapa: es `actualId`, que la pinta como la actual. */}
 
       <div ref={scroller} className="a1j-scroll" onScroll={detectarRegion}>
         {regiones.map((region, index) => (

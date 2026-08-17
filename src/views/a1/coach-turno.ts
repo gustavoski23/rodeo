@@ -26,7 +26,7 @@ import {
   coachSystem,
 } from './coach-prompts';
 
-/* LA MÁQUINA DE TURNOS DEL COACH — el patrón de rp-turn.ts, no su copia.
+/* LA MÁQUINA DE TURNOS DEL COACH — el patrón de el motor de turnos de ESCENAS (borrado el 2026-08-17), no su copia.
 
    Lo que se hereda de ahí, que es lo que ya costó rondas:
 
@@ -35,7 +35,8 @@ import {
      pinta en la nueva ni le mete un assistant al historial.
    · EL REINTENTO POR JSON TRUNCADO. Kimi razona antes de responder y se queda
      sin tokens a mitad de pensamiento: el JSON llega roto con finish 'length'.
-     rp-turn lo resuelve parseando primero y reintentando solo en ese caso. Acá
+     el motor de ESCENAS (borrado) lo resolvía parseando primero y reintentando
+     solo en ese caso. Acá
      no se recopia: `callJSON` (lib/api.ts) ES esa lógica ya factorizada — mismo
      parseo defensivo, mismo reintento único, mismo techo. Un tercer lugar con
      la misma trampa escrita a mano es un lugar donde se va a arreglar tarde.

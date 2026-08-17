@@ -6,7 +6,7 @@ import type { JobPack, JobPackId } from '@/content/a1/tipos';
 
    Elegir trabajo es la única decisión de identidad que toma el usuario en el
    módulo, así que se pinta con el vocabulario más "físico" que tiene la app:
-   la tarjeta-sticker pastel de src/views/talk/escena-card.tsx. Cuatro papelitos
+   la tarjeta-sticker pastel de las tarjetas de escena de TALK (borradas con ESCENAS el 2026-08-17). Cuatro papelitos
    de colores en una grilla se leen como "escoge uno", no como un formulario.
 
    Este componente NO decide dónde se guarda la elección: solo avisa con

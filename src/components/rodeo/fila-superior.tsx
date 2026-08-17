@@ -21,8 +21,9 @@ import { useApp } from '@/stores/app';
      · AnimatedThemeToggler (Magic UI, verbatim) en modo CONTROLADO: es binario
        —solo sabe decir light/dark— así que se le ignora lo que reporta y el
        siguiente tema lo decide Hablarte (SIGUIENTE_TEMA: día → noche →
-       gradiente → día). Se le pasa el tema VISUAL para que el icono no mienta
-       (gradiente se dibuja como noche, porque sus tokens son los oscuros).
+       gradiente → amanecer → día). Se le pasa el tema VISUAL para que el icono
+       no mienta: gradiente se dibuja como noche y amanecer como día, según el
+       papel de cada uno (esTemaClaro, lib/theme.ts).
      · REGLA OBLIGATORIA (pedido de Gus): el botón de tema tiene que VERSE en
        TODAS las pantallas y en los TRES temas. El look "transparente + icono
        negro al 70%" era casi INVISIBLE sobre el papel del tema claro (parecía
@@ -73,7 +74,7 @@ export function FilaSuperior({
         theme={temaVisual(tema)}
         duration={700}
         onThemeChange={() => cambiarTema(SIGUIENTE_TEMA[tema])}
-        aria-label="Cambiar de tema: día, noche o gradiente"
+        aria-label="Cambiar de tema: día, noche, gradiente o amanecer"
         className="inline-flex size-10 cursor-pointer items-center justify-center rounded-xl border border-[var(--borde-sutil)] bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm [&_svg]:size-5"
       />
     </div>

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { MotionConfig } from 'motion/react';
 
 import { FilaSuperior } from '@/components/rodeo/fila-superior';
@@ -7,11 +7,10 @@ import { NavMovil } from '@/components/rodeo/nav-movil';
 import { Toaster } from '@/components/rodeo/toaster';
 import { ES_TELEFONO, MODO_LIGERO } from '@/lib/device';
 import { cn } from '@/lib/utils';
-import { useEnLeccion } from '@/stores/a1-leccion';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useOnboarding } from '@/stores/onboarding';
-import { useEnCharla, useEnSesion } from '@/stores/talk';
+import { useEnCharla } from '@/stores/talk';
 import HomeView from '@/views/home';
 import GateView from '@/views/gate';
 // SLANG ahora ES la experiencia de sticker peel (Pélala) — decisión de Gus: la
@@ -68,30 +67,34 @@ export default function App() {
      igual que con la hoja del personalizador. */
   const suscripcionAbierta = useSuscripcion((s) => s.abierto);
   const view = useApp((s) => s.view);
-  // Con sesión viva la tab bar se va y el main recupera su hueco inferior:
-  // es el body.rd-sesion del viejo (L1459-1462), derivado del estado.
-  const enSesion = useEnSesion();
-  /* La SESIÓN DE CHARLA ya no es una excepción de cabecera: la fila superior
-     (Menu + toggler) está en TODAS las pantallas, también dentro de la sesión
-     — regla 3 del contrato («el boton de cambiar los temas … debe verse en
-     todas y cada una de las pantallas»). Lo único que la sesión sigue pidiendo
-     es aire: su Card es alta y a 390px cada píxel cuenta, así que la fila
-     cierra con un pb corto. El hook va SUELTO, nunca dentro de un `&&`:
-     cortocircuitarlo lo saltaría en los renders de otras vistas y rompería el
-     orden de hooks. */
+
+  /* PANTALLA COMPLETA DENTRO DE CADA FEATURE (pedido de Gus, 2026-08-17).
+     Fuera del Home, el teléfono entrega TODO su alto a la feature: se esconden
+     el toggler de tema (la fila superior) y la navbar de píldoras. Los dos
+     vuelven en el Home, y de cada feature se sale por su ← (verificado: talk,
+     slang, a1, story, ladder, dna, libro, podcast, perfil y profes tienen el
+     suyo, todos con setView('home')).
+
+     Esto RELEVA a la regla 3 del contrato («el botón de tema debe verse en
+     todas las pantallas»): a 390×844 esa fila costaba ~62px arriba y la navbar
+     ~84px abajo — 146px de cromo permanente sobre una app que se usa a una
+     mano. Es el mismo criterio que ya se aplicaba al LIBRO y a la lección del
+     A1; ahora es la regla, no la excepción.
+
+     SOLO EN TELÉFONO (ES_TELEFONO): en PC la fila se queda en todas las
+     pantallas, porque allá sobra alto y encima es donde vive el Menu ≡ — que en
+     teléfono ya se había mudado a la pestaña Profile de la navbar. */
+  const inmersiva = view !== 'home';
+
+  /* La sesión de CHARLA es lo único que sigue mirando el estado de sesión, y
+     solo para PC: su Card es alta y la fila (que allá sí se monta) cierra con
+     un pb corto. En teléfono la fila ya no existe fuera del Home, así que las
+     señales `enSesion` / `a1EnLeccion` que antes decidían el cromo se fueron
+     con él — hoy lo decide `inmersiva`, una sola vez y para todas las vistas.
+     El hook va SUELTO, nunca dentro de un `&&`: cortocircuitarlo lo saltaría en
+     los renders de otras vistas y rompería el orden de hooks. */
   const enCharla = useEnCharla();
   const charlaEnSesion = view === 'talk' && enCharla;
-
-  /* A1 DENTRO DE LA LECCIÓN — el mismo trato que pidió CHARLA, por el mismo
-     motivo (stores/a1-leccion.ts). En la portada, la sesión, la misión y la
-     charla de parada, la cabecera propia del loop (←, los puntos, el bombillo,
-     Alfred) YA es el header: la fila de arriba era una segunda cabecera encima
-     de la primera. En el MAPA la señal es false y la fila sigue ahí, que es
-     desde donde se navega el módulo.
-     El hook va SUELTO, nunca dentro de un `&&`: cortocircuitarlo lo saltaría en
-     los renders de las otras vistas y rompería el orden de hooks. */
-  const enLeccionA1 = useEnLeccion();
-  const a1EnLeccion = view === 'a1' && enLeccionA1;
 
   /* El gate de login es LO PRIMERO que se ve (pedido de Gus): antes que el
      Home aurora. `listo` evita el flash — hasta resolver getSession no se
@@ -101,25 +104,15 @@ export default function App() {
   const gateNecesario = useAuth((s) => s.gateNecesario);
   const onboardingNecesario = useOnboarding((s) => s.necesario);
 
-  /* ENTRAR = SIEMPRE GRADIENTE (pedido de Gus): al pasar el gate —loguearse o
-     pulsar Skip— el shell se abre en gradiente, de Home en adelante, sea cual
-     sea el tema que quedara guardado. El gate tiene su propio tema claro
-     scopeado, así que solo forzamos cuando ya NO se necesita el gate. Se hace
-     UNA vez por entrada (el ref evita repetir en cada render): si el usuario
-     cambia el tema dentro de la sesión, su elección vive hasta que recargue o
-     vuelva a pasar por el gate, donde gradiente vuelve a mandar. Va ANTES de
-     los early-returns para no romper el orden de hooks. */
-  const cambiarTema = useApp((s) => s.cambiarTema);
-  const entrada = useRef(false);
-  useEffect(() => {
-    if (!authListo || gateNecesario) {
-      entrada.current = false; // salió/volvió al gate: rearmar para la próxima entrada
-      return;
-    }
-    if (entrada.current) return;
-    entrada.current = true;
-    cambiarTema('gradiente');
-  }, [authListo, gateNecesario, cambiarTema]);
+  /* MANDA LA ELECCIÓN DEL USUARIO (decisión de Gus, 2026-08-17). Aquí vivía un
+     efecto que forzaba `cambiarTema('gradiente')` en CADA entrada al pasar el
+     gate, pisando —y reescribiendo en disco— el tema que hubiera guardado. Con
+     cuatro temas en el ciclo eso volvía la elección papel mojado: elegir
+     Amanecer y recargar devolvía Gradiente para siempre.
+     No hace falta nada en su lugar: `hidratarTema()` (lib/theme.ts) ya aplica
+     el tema guardado al crear el store y cae en 'gradiente' cuando NO hay
+     elección previa, que es exactamente el "todo el mundo abre en gradiente"
+     original — solo que ahora para quien nunca eligió, no para quien sí. */
 
   {/* El placeholder pre-auth también va con el lienzo del tema: era el último
       #14161a suelto (regla 4 del contrato — todos los fondos iguales). */}
@@ -173,21 +166,23 @@ export default function App() {
               // En sesión la Card es alta y a 390px pide todo el alto que
               // pueda: la fila cierra corta. Fuera de sesión, el pb-3 de siempre.
               charlaEnSesion ? 'pb-1.5' : 'pb-3',
-              // En el LIBRO móvil la fila entera se esconde (pedido de Gus): la
-              // hoja se mide contra el alto disponible y el Menu + toggler eran
-              // una franja muerta que le recortaba página al libro. El corte a
-              // 739px espeja el UMBRAL_MOVIL=700 de la vista (700 de caja + 40
-              // del px-5 del main). En PC la fila se queda: ahí sobra alto y el
-              // toggler es de todas las pantallas.
-              view === 'libro' && 'max-[739px]:hidden',
-              /* Y la lección del A1 entra en la MISMA excepción que el libro:
-                 en el teléfono la fila entera se va. El corte es `max-md`
-                 (≤767px) porque es literalmente la cláusula de ancho de
-                 MODO_LIGERO (lib/device.ts) — la definición que ya tiene la app
-                 de "esto es un teléfono"—, y no un número nuevo.
-                 En PC se queda, igual que en el libro: allá sobra alto y el
-                 toggler es de todas las pantallas (regla 3 del contrato). */
-              a1EnLeccion && 'max-md:hidden',
+              /* EN TELÉFONO NO SE MONTA: estamos dentro de una feature (esta
+                 rama es todo lo que no es Home) y el alto es de ella. Antes
+                 esta línea era la excepción del LIBRO y de la lección del A1;
+                 ahora vale para todas.
+
+                 El guardia es `ES_TELEFONO` Y ADEMÁS `max-md`, el MISMO par que
+                 monta la navbar unas líneas abajo, y eso no es redundancia:
+                 ES_TELEFONO exige ancho ≤767 **y** dedo (lib/device.ts:13),
+                 mientras que `max-md` solo mira el ancho. Con el corte de ancho
+                 a secas, una ventana de PC de 740px se comía la fila —y con
+                 ella el Menu ≡ y el tema— mientras la navbar, que sí pide dedo,
+                 no llegaba a reemplazarla: el usuario se quedaba sin ninguna de
+                 las dos (hallazgo de la revisión hostil). Con los dos guardias
+                 iguales, o está la fila o está la navbar, nunca ninguna.
+                 En PC se queda siempre: allá sobra alto y encima es donde vive
+                 el Menu ≡. */
+              ES_TELEFONO && 'max-md:hidden',
             )}
           />
 
@@ -197,27 +192,19 @@ export default function App() {
               /* Cuando la fila superior se esconde, alguien tiene que poner el
                  hueco del notch: era ELLA quien lo ponía. Se copia su misma
                  expresión (max(14px, safe-area-top)) para que en el iPhone la
-                 cabecera del loop quede exactamente donde estaba el Menu, ni un
-                 píxel debajo de la muesca. Solo en el rango donde la fila
-                 desaparece; en PC la fila sigue montada y ya lo hace ella. */
-              a1EnLeccion && 'max-md:pt-[max(14px,env(safe-area-inset-top))]',
-              // El pb reserva 84px para la tab bar… que hoy está OCULTA (ver
-              // abajo). En sesión ya se recortaba a 12px. SLANG (Pélala) también
-              // lo recorta: su columna (sticker + significado + chat de práctica)
-              // es alta y esos 84px muertos empujaban el input fuera del pliegue
-              // en PC al 100%. Con la tab bar sin montar, reclamarlos es honesto;
-              // max(…, safe-area) respeta el notch/inferior del móvil.
-              // LIBRO entra en la misma excepción que SLANG: la hoja se mide
-              // contra el alto disponible, así que 84px muertos ahí abajo le
-              // recortan la página al libro entero, no solo un margen.
-              // Y la LECCIÓN del A1 se suma a la lista: medido a 390×844, la
-              // portada pagaba 84px de franja muerta bajo el "Dale, arranquemos"
-              // por una barra que nadie monta, mientras arriba la tarjeta de la
-              // unidad se recortaba por falta de alto. En PC va igual: la tab bar
-              // no existe en ningún ancho.
-              enSesion || view === 'slang' || view === 'libro' || a1EnLeccion
-                ? 'pb-[max(14px,env(safe-area-inset-bottom))]'
-                : 'pb-[calc(84px+env(safe-area-inset-bottom))]',
+                 cabecera de la feature quede exactamente donde estaba el
+                 toggler, ni un píxel debajo de la muesca. Solo en el rango
+                 donde la fila desaparece; en PC la fila sigue montada y ya lo
+                 hace ella. */
+              'max-md:pt-[max(14px,env(safe-area-inset-top))]',
+              /* Y el pie va al mínimo SIEMPRE. Ese pb reservaba 84px para una
+                 barra inferior que, fuera del Home, ya no se monta en ningún
+                 ancho: en teléfono porque la feature se lleva la pantalla
+                 entera, y en PC porque la navbar nunca existió allá. SLANG,
+                 LIBRO, la lección del A1 y la sesión ya lo reclamaban una por
+                 una; ahora es la regla. max(…, safe-area) respeta el borde
+                 inferior del móvil. */
+              'pb-[max(14px,env(safe-area-inset-bottom))]',
             )}
           >
             <Suspense
@@ -261,13 +248,16 @@ export default function App() {
 
       {/* NAVBAR DE TELÉFONO — cuatro píldoras de vidrio (el glass del gate)
           con el indicador gris que se desliza (nav-movil.tsx). Solo existe en
-          teléfonos (ES_TELEFONO, decidido al arranque como MODO_LIGERO). NO se
-          monta en las pantallas inmersivas donde el main ya recorta el pb de
-          84px —sesión viva, SLANG, LIBRO y la lección del A1—, que reclaman
-          ese borde inferior para sí. Con el personalizador o Suscripción
-          abiertos se APARTA sin desmontar (patrón `oculto` de MenuFlotante):
-          desmontarla haría saltar el indicador al volver, sin morph. */}
-      {ES_TELEFONO && !enSesion && view !== 'slang' && view !== 'libro' && !a1EnLeccion && (
+          teléfonos (ES_TELEFONO, decidido al arranque como MODO_LIGERO) y SOLO
+          EN EL HOME: dentro de una feature el alto es de la feature, y de cada
+          una se sale por su ← (mismo pedido que esconde el toggler de tema).
+          Antes se caía sola en las cuatro pantallas que reclamaban el borde
+          inferior (sesión, SLANG, LIBRO, lección del A1); la lista se acabó
+          volviendo "todo menos el Home", así que eso es lo que dice ahora.
+          Con el personalizador o Suscripción abiertos se APARTA sin desmontar
+          (patrón `oculto` de MenuFlotante): desmontarla haría saltar el
+          indicador al volver, sin morph. */}
+      {ES_TELEFONO && !inmersiva && (
         <NavMovil
           onPersonalizar={() => setCustomizerOpen(true)}
           oculta={customizerOpen || suscripcionAbierta}

@@ -5,6 +5,7 @@ import { Send } from 'lucide-react';
 
 import { GlassButton } from '@/components/ui/sign-up';
 import { cn } from '@/lib/utils';
+import { esTemaClaro } from '@/lib/theme';
 import { useApp } from '@/stores/app';
 
 /* Estado vacío de CHARLA — REDISEÑO (encargo de Gus): fuera la tarjeta de
@@ -13,7 +14,8 @@ import { useApp } from '@/stores/app';
    envuelto en el Border Beam "Pulse" (border-beam.com), flotando centrado.
    Escribes en inglés, envías, y arranca la conversación libre con el coach
    (tu mensaje es el primer turno; el coach responde). Los chips de escenario
-   siguen vivos en la pestaña ESCENAS — aquí no se repiten.
+   no volvieron: se fueron con el rediseño y su última casa —la pestaña
+   ESCENAS— se borró entera el 2026-08-17.
 
    Border Beam: paquete `border-beam` (pulse-inner). colorVariant "sunset"
    (naranja-amarillo-rojo, CERO verde) por REGLA 7 del contrato —no el
@@ -36,7 +38,7 @@ const unSoloClick =
 
 export function CharlaEmpty({ onSend }: { onSend: (texto: string) => void }) {
   const tema = useApp((s) => s.tema);
-  const beamTheme = tema === 'claro' ? 'light' : 'dark';
+  const beamTheme = esTemaClaro(tema) ? 'light' : 'dark';
   const [texto, setTexto] = useState('');
 
   const enviar = () => {
@@ -54,13 +56,14 @@ export function CharlaEmpty({ onSend }: { onSend: (texto: string) => void }) {
   const vacio = !texto.trim();
 
   return (
-    <div
-      role="tabpanel"
-      id="rd-talk-panel-charla"
-      aria-labelledby="rd-talk-tab-charla"
-      tabIndex={0}
-      className={cn(COLUMNA, 'flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-1 pb-4')}
-    >
+    /* SIN role="tabpanel". Lo llevaba junto con id="rd-talk-panel-charla" y
+       aria-labelledby="rd-talk-tab-charla" cuando TALK era dos pestañas; al
+       borrarse ESCENAS y con ella el tablist, ese aria-labelledby apuntaba a un
+       id que ya no existe —referencia colgante en el árbol de accesibilidad— y
+       un tabpanel sin tab no significa nada. Ahora es lo que es: el cuerpo de
+       la vista. El tabIndex={0} también se va: un div sin rol no debe estar en
+       el orden de tabulación (parada muerta para quien navega con teclado). */
+    <div className={cn(COLUMNA, 'flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-1 pb-4')}>
       <motion.p
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

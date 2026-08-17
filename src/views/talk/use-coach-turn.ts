@@ -149,7 +149,9 @@ export async function lanzarLibreAurora(opts: { focoVolver?: boolean } = {}): Pr
   if (useTalk.getState().busy) return false;
   if (!premiumGate('talk')) return false;
 
-  useTalk.getState().setTalkMode('charla');
+  /* Aquí iba un `setTalkMode('charla')` que forzaba el pane correcto por si el
+     usuario había dejado TALK en ESCENAS. Con ESCENAS borrada no hay otro pane
+     al que llegar. */
 
   if (nivelUsuario() === 'A1') {
     const ice = await rompehielosA1().catch(() => elegirRompehielos());

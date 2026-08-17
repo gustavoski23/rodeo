@@ -40,7 +40,7 @@ import './nav-movil.css';
 type BotonId = 'home' | 'explore' | 'talk' | 'profile';
 
 /* ── UN solo disparo por toque en las píldoras ─────────────────────────────
-   El cuarto gemelo del mismo remedio (charla-session.tsx, escenas-session.tsx,
+   El cuarto gemelo del mismo remedio (charla-session.tsx, usar-slang.tsx,
    libro/index.tsx). GlassButton (sign-up.tsx, INTOCABLE) envuelve el <button>
    en un <div> con un onClick de "click fix" que reenvía el toque al botón
    cuando el evento no vino de él:

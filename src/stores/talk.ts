@@ -20,12 +20,14 @@ import type { Maquina } from '@/views/talk/typewriter';
       implícito. No es una función nueva: es el mismo dato, con dueño.
 
    2. `busy` es el `state.busy` GLOBAL del viejo — compartido entre CHARLA,
-      ESCENAS, STORY y DROP. La generación de escenas lo consulta para no
-      pedirle dos cosas a la vez al modelo, así que vive aquí, no dentro de
-      `session`. La bombilla y el debrief de escena llevan flags propios a
-      propósito (§8 trampa 15). */
+      STORY y DROP: sirve para no pedirle dos cosas a la vez al modelo, así que
+      vive aquí y no dentro de `session`. La bombilla y el debrief llevan flags
+      propios a propósito (§8 trampa 15).
 
-export type TalkMode = 'charla' | 'escenas';
+   3. `talkMode` y `roleplayActivo` se fueron con ESCENAS (borrada el
+      2026-08-17 a pedido de Gus: TALK es CHARLA y nada más). Con un solo modo,
+      un campo que solo puede valer 'charla' no es estado, es una constante — y
+      `roleplayActivo` se quedó sin nadie que lo encendiera. */
 
 export type TalkSession = {
   scenario: ScenarioKey;
@@ -68,21 +70,16 @@ export type Debrief = {
 let seqBurbuja = 0;
 
 type TalkState = {
-  talkMode: TalkMode;
   session: TalkSession | null;
   displayLog: Burbuja[];
   busy: boolean;
   sessions: number;
-  /** Lo enciende ESCENAS al abrir una escena: la tab bar se esconde igual. */
-  roleplayActivo: boolean;
   /** Datos del debrief mientras la hoja está abierta; null = cerrada. */
   debrief: Debrief | null;
   /** Al entrar desde el Home por TECLADO, el foco debe caer en "Volver a los
       escenarios" (brief del Home aurora). La sesión lo consume y lo apaga. */
   focoVolver: boolean;
-  setTalkMode: (m: TalkMode) => void;
   setBusy: (v: boolean) => void;
-  setRoleplayActivo: (v: boolean) => void;
   setDebrief: (d: Debrief | null) => void;
   setFocoVolver: (v: boolean) => void;
 
@@ -98,18 +95,14 @@ type TalkState = {
 };
 
 export const useTalk = create<TalkState>((set, get) => ({
-  talkMode: 'charla',
   session: null,
   displayLog: [],
   busy: false,
   sessions: store.get<number>('rodeo_sessions', 0),
-  roleplayActivo: false,
   debrief: null,
   focoVolver: false,
 
-  setTalkMode: (talkMode) => set({ talkMode }),
   setBusy: (busy) => set({ busy }),
-  setRoleplayActivo: (roleplayActivo) => set({ roleplayActivo }),
   setDebrief: (debrief) => set({ debrief }),
   setFocoVolver: (focoVolver) => set({ focoVolver }),
 
@@ -161,19 +154,19 @@ export const useTalk = create<TalkState>((set, get) => ({
   },
 }));
 
-/** ¿Hay una sesión viva en cualquiera de los dos panes? (el `body.rd-sesion`
-    del viejo, L3702: con sesión desaparecen la tab bar y el toggle de panes). */
+/** ¿Hay una sesión viva? (el `body.rd-sesion` del viejo, L3702: con sesión
+    desaparecía la tab bar). Con ESCENAS borrada solo queda la de CHARLA, así
+    que las dos señales miran lo mismo; se conservan separadas porque cada una
+    tiene su consumidor (FirstTip la de sesión, App la de charla) y decir
+    "session !== null" en dos sitios distintos no explicaría por qué. */
 export function useEnSesion(): boolean {
-  return useTalk((s) => s.session !== null || s.roleplayActivo);
+  return useTalk((s) => s.session !== null);
 }
 
-/** ¿Hay una sesión de CHARLA viva? (no ESCENAS). La usa App para mandar la
-    charla a pantalla completa —sin Header de marca ni divisoria—, porque su
-    propia barra de sesión (← · título · Terminar) ya hace de header y el
-    wordmark de arriba era ruido duplicado (marcado en rojo por Gus). ESCENAS y
-    el resto de vistas se quedan con el Header de siempre. */
+/** ¿Hay una sesión de CHARLA viva? La usa App para dejarle a la charla todo el
+    alto: su propia barra de sesión (← · título · Terminar) ya hace de header. */
 export function useEnCharla(): boolean {
-  return useTalk((s) => s.talkMode === 'charla' && s.session !== null);
+  return useTalk((s) => s.session !== null);
 }
 
 /* Memoria anti-repetición de aperturas (rodeo_openers, L4226): las últimas 8,

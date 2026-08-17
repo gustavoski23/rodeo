@@ -14,14 +14,26 @@
    significado dentro de la MISMA superficie glass. El borde animado lo pinta el
    dock (BorderBeam del paquete, config en el store useBeam). Los mandos
    mic/enviar (GlassButton) se quedan EXACTOS: es el vidrio que Gus marcó como
-   bueno en la captura. */
+   bueno en la captura.
+
+   EL MIC YA FUNCIONA (2026-08-17). Era un stub `disabled` con el title "se
+   conecta al micrófono en la próxima entrega": Gus tocaba y no pasaba nada.
+   Ahora usa el MISMO dictado que el resto de la app —useDictado + OndaDictado,
+   o sea MediaRecorder → /api/stt (Deepgram Nova-3 multi)—, no el
+   SpeechRecognition del navegador, que en este repo ya se retiró por inventar
+   texto y por no convivir con el AudioContext de la onda en Android.
+   El término en curso viaja como `keyterm`: es justo la palabra rara que el
+   usuario va a intentar decir, y avisarle a Deepgram sube el acierto.
+   Y como en SUBE: lo transcrito CAE AL CAMPO, nunca se autoenvía — enviar
+   sigue siendo un gesto aparte. */
 
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
 
 import confetti from 'canvas-confetti';
-import { Mic, Send, Sparkles } from 'lucide-react';
+import { Mic, MicOff, Send, Sparkles } from 'lucide-react';
 
+import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
 import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import type { SlangTerm } from '@/content/pelala/deck';
 import { evaluarUso, type Veredicto } from '@/lib/pelala/coach';
@@ -72,12 +84,29 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [revisando, setRevisando] = useState(false);
   const hostRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  /* Reset al cambiar de término (al pelar y entrar el siguiente). */
+  /* Dictado: lo que Deepgram entienda cae al campo y el foco vuelve al input
+     para que se pueda corregir antes de enviar (mismo cableado que SUBE,
+     ladder/rung.tsx). El término en curso va de keyterm. */
+  const dictado = useDictado((t) => {
+    setFrase((prev) => (prev.trim() ? `${prev.trim()} ${t}` : t));
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [term.term]);
+  const grabando = dictado.grabando;
+
+  /* Reset al cambiar de término (al pelar y entrar el siguiente). Una toma a
+     medio grabar NO puede aterrizar en el término siguiente: se cancela. */
   useEffect(() => {
     setFrase('');
     setMensajes([]);
     setRevisando(false);
+    dictado.cancelar();
+    // `dictado` se recrea en cada render; meterlo en deps cancelaría la toma en
+    // curso a cada tecla. La identidad de `cancelar` es estable (useCallback de
+    // deps vacías en use-grabadora.ts) y lo único que importa es el cambio de
+    // término, que es lo que se declara.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term.id]);
 
   const enviar = async () => {
@@ -136,19 +165,28 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           por tema las declara `vidrio-tema` en el DockPractica ancestro. */}
       <GlassStyles />
 
-      {/* Intro (solo si aún no hay turnos). */}
-      {mensajes.length === 0 && (
-        <p className="mb-3 text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>
-          Ahora úsalo tú: escribe{' '}
-          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>«{term.term}»</span>{' '}
-          en una frase y te digo si suena natural.
-        </p>
-      )}
+      {/* ── Zona de conversación ────────────────────────────────────────────
+          Con `min-h` reservado: el chat ES la práctica, y arrancaba tan bajito
+          (una línea de intro y ya) que el dock terminaba a media pantalla y
+          debajo quedaba un vacío — lo que Gus rayó en la captura. Reservar el
+          alto lo alarga hacia abajo desde el primer frame, sin saltos cuando
+          entra el primer turno. Sigue creciendo con la conversación; el
+          desborde lo lleva el scroller de la vista, no una caja con barra
+          propia (una barra dentro de otra en un teléfono es una trampa). */}
+      <div className="mb-3 flex min-h-[148px] flex-col gap-2">
+        {/* Intro (solo si aún no hay turnos). */}
+        {mensajes.length === 0 && (
+          <p className="text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>
+            Ahora úsalo tú: escribe{' '}
+            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>«{term.term}»</span>{' '}
+            en una frase y te digo si suena natural.
+          </p>
+        )}
 
-      {/* Log de conversación. */}
-      {mensajes.length > 0 && (
-        <div className="mb-3 flex flex-col gap-2">
-          {mensajes.map((m, i) =>
+        {/* Log de conversación. */}
+        {mensajes.length > 0 && (
+          <>
+            {mensajes.map((m, i) =>
             m.rol === 'user' ? (
               <motion.div
                 key={i}
@@ -184,38 +222,46 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
               </motion.div>
             ),
           )}
-          {revisando && (
-            <div className="flex items-center gap-2 self-start">
-              <span
-                aria-hidden="true"
-                className="flex size-7 shrink-0 items-center justify-center rounded-full"
-                style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
-              >
-                <Sparkles size={14} />
-              </span>
-              <span className="text-[0.8rem]" style={{ color: 'var(--text-muted)' }}>Revisando…</span>
-            </div>
-          )}
-        </div>
-      )}
+            {revisando && (
+              <div className="flex items-center gap-2 self-start">
+                <span
+                  aria-hidden="true"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full"
+                  style={{ background: 'var(--bg-elevated)', border: '1px solid var(--borde-sutil)', color: 'var(--text-secondary)' }}
+                >
+                  <Sparkles size={14} />
+                </span>
+                <span className="text-[0.8rem]" style={{ color: 'var(--text-muted)' }}>Revisando…</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* La onda en vivo mientras dictas. Montarla es lo que enciende el mic
+          (el waveform pide el stream y la grabadora se cuelga de ÉL: una sola
+          petición de permiso, ver use-grabadora.ts). Solo existe mientras se
+          graba o se transcribe. */}
+      <OndaDictado g={dictado} className="pb-2" height={26} />
 
       {/* Compositor. */}
       <div className="flex items-center gap-2">
-        {/* Mic — stub declarado: se conecta al STT (src/lib/speech.ts) en el
-            pendiente de voz. En el vidrio del login (REGLA 7), apagado. */}
+        {/* Mic VIVO. Mismo vidrio de siempre (REGLA 7); la única señal de que
+            está grabando es el icono tachado + la tinta coral, como el morph
+            del MicButton del resto de la app. */}
         <GlassButton
           type="button"
           size="icon"
-          disabled
-          aria-disabled="true"
-          className="pointer-events-none shrink-0 opacity-40"
-          contentClassName="text-[var(--text-muted)]!"
-          aria-label="Hablar (próximamente)"
-          title="Hablar — se conecta al micrófono en la próxima entrega"
+          onClick={unSoloClick(dictado.toggle)}
+          aria-label={grabando ? 'Detener el dictado' : 'Hablar por micrófono'}
+          aria-pressed={grabando}
+          className="shrink-0"
+          contentClassName={grabando ? 'text-[var(--danger)]!' : 'text-[var(--text-primary)]!'}
         >
-          <Mic size={17} />
+          {grabando ? <MicOff size={17} /> : <Mic size={17} />}
         </GlassButton>
         <input
+          ref={inputRef}
           value={frase}
           onChange={(e) => setFrase(e.target.value)}
           onKeyDown={(e) => {

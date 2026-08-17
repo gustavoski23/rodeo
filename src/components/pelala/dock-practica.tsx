@@ -22,6 +22,7 @@
 import type { ReactNode } from 'react';
 
 import { BorderBeam } from '@/components/ui/border-beam';
+import { esTemaClaro } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useBeam } from '@/stores/beam';
@@ -37,7 +38,9 @@ export function DockPractica({ className, children }: { className?: string; chil
       key={`${beam.size}-${tema}`}
       size={beam.size}
       colorVariant={beam.colorVariant}
-      theme={tema === 'claro' ? 'light' : 'dark'}
+      /* El beam sigue al PAPEL, no al nombre del tema: claro y amanecer son
+         fondos claros; oscuro y gradiente, oscuros (esTemaClaro, lib/theme). */
+      theme={esTemaClaro(tema) ? 'light' : 'dark'}
       strength={beam.strength}
       brightness={beam.brightness}
       duration={beam.duration}

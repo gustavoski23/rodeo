@@ -31,8 +31,12 @@ export function Cabecera({
         type="button"
         whileTap={{ scale: 0.94 }}
         onClick={onSalir}
-        aria-label="Volver al inicio"
-        className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+        /* Dice MAPA porque va al mapa (onSalir={alMapa} en views/a1/index.tsx),
+           no al Home. Decía "Volver al inicio" y mentía: quien lo tocaba
+           esperando salir del módulo se quedaba a medio camino, y en teléfono
+           —sin navbar dentro de la feature— ese ← es lo único que se oye. */
+        aria-label="Volver al mapa de la ruta"
+        className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
         style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
       >
         <ArrowLeft size={17} strokeWidth={2} />

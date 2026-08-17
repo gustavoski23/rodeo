@@ -173,20 +173,30 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
       el.addEventListener('ready', onReadyEvt);
       el.addEventListener('pointerdown', onPointerDownEvt);
 
+      /* LA SOURCE VA ANTES DE CONECTAR. Al hacer appendChild se dispara
+         connectedCallback, que si no encuentra source anotada arranca el
+         renderer con el DEFAULT_SOURCE del paquete — el sticker "PEEL ME /
+         @cats_juice" del demo original, que se veía entrar y a los ~700 ms
+         cambiaba al término real (glitch reportado por Gus el 2026-08-17).
+         Anotándola aquí, connectedCallback la encuentra puesta y crea la
+         instancia con el término bueno: no hay dos stickers, hay uno.
+         setSource devuelve una promesa que sin conexión resuelve al instante
+         (ver la enmienda en lib/sticker-forge/sticker-forge.ts). */
+      void el.setSource(sourceRef.current);
+      if (options) el.setOptions(options);
+
       host.appendChild(el);
 
       /* Quitar el anillo de foco CUADRADO del canvas al pelar (el engine hace
          .focus() en pointerdown). Se inyecta en el shadow root para no tocar el
-         engine; se conserva el foco de teclado vía :focus-visible (a11y). */
+         engine; se conserva el foco de teclado vía :focus-visible (a11y).
+         Va DESPUÉS del appendChild: el shadow root nace en connectedCallback. */
       if (el.shadowRoot) {
         const fix = document.createElement('style');
         fix.textContent =
           'canvas:focus:not(:focus-visible){outline:none!important}';
         el.shadowRoot.appendChild(fix);
       }
-
-      void el.setSource(sourceRef.current);
-      if (options) el.setOptions(options);
 
       return () => {
         cancelAnimationFrame(previewRafRef.current);

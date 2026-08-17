@@ -8,7 +8,7 @@
    ese es justo el efecto contrario al que busca la app.
 
    La regla vive en UN solo sitio a propósito. Estaba repetida —con palabras
-   distintas— en el prompt de Alfred, en el de CHARLA y en el de ESCENAS, y
+   distintas— en el prompt de Alfred y en el de CHARLA, y
    basta que una copia se quede vieja para que un coach hable distinto que otro
    y el usuario note la costura.
 
@@ -16,7 +16,7 @@
    programa, no para el usuario) y la vista SLANG, donde la jerga regional es el
    contenido que se enseña, no la voz que enseña. */
 
-/** Bloque para prompts en INGLÉS (Alfred, CHARLA, ESCENAS). */
+/** Bloque para prompts en INGLÉS (Alfred, CHARLA). */
 export const ESPANOL_NEUTRO_EN = `SPANISH REGISTER — non-negotiable:
 - Write NEUTRAL LATIN AMERICAN Spanish: the kind that reads the same in Santiago, Lima, Bogotá, Mexico City or Caracas. Use "tú". Never "vos", never "usted", never "vosotros".
 - BANNED because they mark one country and leave every other learner outside: "parce", "parcero", "pana", "güey", "wey", "boludo", "che", "chévere", "bacano", "berraco", "hágale", "dale pues", "listo pues", "ahorita", "platicar", "carro" vs "coche" arguments, "vale" as a filler, and "fresco"/"bacano" as slang for fine.

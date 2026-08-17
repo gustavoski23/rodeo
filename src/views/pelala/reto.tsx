@@ -159,7 +159,7 @@ export function Pelala() {
           whileTap={{ scale: 0.94 }}
           onClick={volver}
           aria-label="Volver al inicio"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <ArrowLeft size={17} strokeWidth={2} />
@@ -168,7 +168,7 @@ export function Pelala() {
           className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold tracking-[0.14em] uppercase"
           style={{ color: 'var(--text-muted)' }}
         >
-          Slang · pélala y aprende
+          Slang · desliza y aprende
         </span>
       </div>
 
@@ -186,8 +186,17 @@ export function Pelala() {
             (clamp por vh, no aspect fijo): en pantallas cortas cede altura para
             que el significado y el chat entren completos en el viewport, en vez
             de empujar el input bajo el pliegue. El -mb pega la tarjeta al canvas
-            para cerrar el aire de abajo sin encoger el gráfico. */}
-        <div className="relative -mb-6 h-[clamp(165px,31vh,330px)] w-full shrink-0 select-none">
+            para cerrar el aire de abajo sin encoger el gráfico.
+
+            SUBIDO de 31vh/165-330 a 44vh/200-450 (2026-08-17): esta pantalla ya
+            no paga la fila del toggler de tema (~66px) ni la navbar (~84px), y
+            el sticker es el héroe — Gus pidió agrandarlo con ese aire. El techo
+            de 450px se queda por debajo del MAX_STICKER_HEIGHT_PX=520 del motor,
+            así que el gráfico crece de verdad y no se topa con su límite interno.
+            MEDIDO a 412×915 con el significado destapado (que es el estado más
+            alto): la columna entera cabe sin empujar el input bajo el pliegue —
+            el reparto exacto está en el comentario del min-h del chat. */}
+        <div className="relative -mb-6 h-[clamp(185px,44vh,440px)] w-full shrink-0 select-none">
           <PeelSticker
             ref={stickerRef}
             key="reto"
@@ -203,8 +212,19 @@ export function Pelala() {
         {/* ── DOCK ÚNICO: significado + práctica en UNA sola superficie glass.
             Antes eran dos cajas idénticas apiladas (en oscuro "cajita dentro de
             cajita", el fallo de la captura). Ahora un solo material continuo con
-            divisor interior y el border beam (paquete, config en el store). ── */}
-        <DockPractica>
+            divisor interior y el border beam (paquete, config en el store).
+
+            `shrink-0` NO es decorativo. El dock es un ítem de esta columna flex y
+            por defecto ENCOGE: cuando la columna no cabía (teléfono corto, o el
+            significado destapado, que suma ~17px), el envoltorio del BorderBeam
+            se comprimía —medido a 390×844: 452px de contenido dentro de una caja
+            de 413— y su contenido se salía por abajo SIN generar scroll
+            (scrollHeight === clientHeight, comprobado). O sea: el input del chat
+            quedaba cortado y no había forma de llegar a él. Con shrink-0 el
+            contenido desborda de verdad, el scroller scrollea y el velo de
+            "sigue abajo" aparece, que es la salida que la vista ya tenía
+            prevista. ── */}
+        <DockPractica className="shrink-0">
         {/* Zona SIGNIFICADO (revelable + guardable) — ya sin caja propia: es
             contenido con padding dentro del dock, no una isla con su borde. */}
         <div className="p-4">

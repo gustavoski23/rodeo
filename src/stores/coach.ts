@@ -17,7 +17,7 @@ import {
    sobrevivir a cualquier repintado. La IDENTIDAD de la sesión es la referencia
    del objeto `sesion`: si el usuario sale y entra a otra parada, el turno viejo
    compara `getState().sesion === ses` y no pinta en la nueva. Esa trampa ya está
-   pagada en rp-turn.ts (§8 trampa 13) y acá se copia el patrón, no la letra.
+   pagada en el motor de turnos de ESCENAS (borrado el 2026-08-17) (§8 trampa 13) y acá se copia el patrón, no la letra.
 
    Lo que NO vive acá: la cuenta de correcciones, el vocabulario permitido y lo
    que va al SRS. Eso es `Conversacion` (lib/coach-a1.ts), que es puro y se

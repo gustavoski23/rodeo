@@ -183,7 +183,7 @@ export function GlossText({
   reply: string;
   /** El array `glosses` del JSON. Memoízalo si lo construyes al vuelo. */
   glosses?: Gloss[] | null;
-  /** Con `savable` cada chunk puede irse al DNA desde el tooltip (TALK/ESCENAS). */
+  /** Con `savable` cada chunk puede irse al DNA desde el tooltip (TALK). */
   savable?: boolean;
   className?: string;
 }) {

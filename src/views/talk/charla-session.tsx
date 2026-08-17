@@ -43,7 +43,8 @@ import type { useCoachTurn } from './use-coach-turn';
 
    · Abajo, la ConversationBar de ElevenLabs sustituye al dock de voz: el mic
      héroe, la OndaDictado y la barra de teclado se van de ESTA vista (los
-     componentes siguen en el repo — ESCENAS y OFICINA los usan). La barra ya
+     componentes siguen en el repo — OFICINA, SUBE y el chat de SLANG los
+     usan). La barra ya
      trae su propio waveform, su teclado plegable y su botón de colgar.
 
    · La barra de SESIÓN de arriba se queda (volver / Terminar y la fila de
@@ -61,7 +62,7 @@ import type { useCoachTurn } from './use-coach-turn';
      glass del login»: los cuatro mandos de audio son GlassButton size="icon" y
      Terminar es GlassButton size="sm", con los MISMOS iconos, aria-labels y
      acciones. El ← redondo canónico NO se toca (es el de toda la app) y el
-     PillButton compartido tampoco: ESCENAS y OFICINA lo siguen usando.
+     PillButton compartido tampoco: OFICINA lo sigue usando.
 
    El vidrio necesita dos cosas que ya pone el ancestro (talk/index.tsx:90-95):
    la clase `vidrio-tema` (declara --background/--foreground crudas por tema) y
@@ -150,8 +151,8 @@ export function CharlaSession({ motor }: { motor: Motor }) {
      la distancia del borde inferior de la ventana al techo del bloque de la
      barra, que es exactamente el borde de abajo de la Card — el tip queda
      apoyado en la tarjeta y justo encima de la barra. Se recalcula si la barra
-     crece (al abrir el teclado) y se retira al salir, para que ESCENAS y
-     OFICINA sigan con su offset de siempre. */
+     crece (al abrir el teclado) y se retira al salir, para que el resto de
+     pantallas sigan con su offset de siempre. */
   useEffect(() => {
     const el = barraRef.current;
     if (!el) return;
@@ -248,8 +249,8 @@ export function CharlaSession({ motor }: { motor: Motor }) {
             type="button"
             whileTap={{ scale: 0.94 }}
             onClick={motor.volver}
-            aria-label="Volver a los escenarios"
-            className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+            aria-label="Volver a la portada de Talk"
+            className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
             style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
           >
             <ArrowLeft size={17} strokeWidth={2} />

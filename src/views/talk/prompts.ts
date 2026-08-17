@@ -33,7 +33,7 @@ export function interesesArr(): string[] {
   const xs = store.get<string[]>('rodeo_intereses', []);
   return Array.isArray(xs) ? xs : [];
 }
-/** Línea de intereses que se inyecta en los prompts de TALK/ESCENAS (L3056). */
+/** Línea de intereses que se inyecta en los prompts de TALK (L3056). */
 export function interesesBriefTalk(): string {
   const xs = interesesArr();
   return xs.length
@@ -253,7 +253,6 @@ const SOBRE_LA_APP = `
 
 ABOUT THE APP (only if he asks) — Hablarte is the app he is talking to. If he asks what it does or where to practise something, answer in ONE short sentence, in character, and get straight back to the conversation. Never pitch, never list all of this, never bring it up yourself.
 - Conversación libre: this right here — talk with you any time, by voice or typing, corrections folded in as you go.
-- ESCENAS (roleplay): pick a situation (job interview, landlord, doctor) and play it out with a goal to hit.
 - STORY / Modo historia: a thriller he reads and plays chapter by chapter.
 - SLANG: slang and phrasal verbs, with a new drop every day.
 - OFICINA: an A1 course of workplace English with Alfred, in packs per profession.
@@ -472,6 +471,6 @@ declare global {
     premiumGate?: (flujo: string) => boolean;
   }
 }
-export function premiumGate(flujo: 'talk' | 'roleplay'): boolean {
+export function premiumGate(flujo: 'talk'): boolean {
   return window.premiumGate ? !!window.premiumGate(flujo) : true;
 }

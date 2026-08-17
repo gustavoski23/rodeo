@@ -12,7 +12,7 @@ import { IconMorph } from '@/components/rodeo/pill-button';
 
    Presentacional a propósito: el reconocedor lo crea la vista con
    crearReconocedor(), porque es ella quien sabe qué hacer con el texto final
-   (sendTurn en charla, rpTurn en escenas). */
+   (sendTurn en la charla de TALK, revealRung en SUBE). */
 
 /* Chip ES/EN pegado al mic (wireMicToggle, L2969). Fija el idioma en que el
    dictado ESCUCHA; se lee justo antes de cada toma, así el cambio aplica en la
@@ -63,7 +63,7 @@ export function MicButton({
   ctx?: MicCtx;
   recording: boolean;
   onToggle: () => void;
-  /** Lado en px. 72 = héroe del dock de TALK; 46 = mic de línea (escenas). */
+  /** Lado en px. 72 = héroe del dock de TALK; 44-46 = mic de línea (SUBE, A1). */
   size?: number;
   /** 'hero' = relleno lima (mic-hero); 'plain' = círculo neutro (.icon-btn). */
   variant?: 'hero' | 'plain';

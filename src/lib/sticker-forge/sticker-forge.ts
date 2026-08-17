@@ -2525,6 +2525,24 @@ export class StickerForgeElement extends HTMLElementBase {
 
   async setSource(source: StickerSource): Promise<void> {
     this.pendingSource = source;
+    /* SIN CONECTAR TODAVÍA → solo se ANOTA y se sale. Es la única enmienda de
+       Hablarte al paquete vendored, y arregla el fogonazo del sticker "PEEL ME
+       / @cats_juice" (el demo del upstream) que se veía ~700 ms antes del
+       término real:
+
+         appendChild(el)  → connectedCallback: pendingSource está vacío, así que
+                            se rellena con DEFAULT_SOURCE y ensureInstance()
+                            arranca createSticker() con "PEEL ME" — SÍNCRONO.
+         el.setSource(…)  → llegaba después y solo podía esperar a esa promesa
+                            para pisar el contenido: de ahí el cambio a la vista.
+
+       Con esta línea, el llamador puede anotar la source ANTES de conectar
+       (peel-sticker.tsx lo hace) y entonces connectedCallback ya la encuentra
+       puesta —su guarda es `if (!this.pendingSource)`— y crea la instancia
+       directamente con ella. El primer frame visible ya es el término bueno.
+       No se puede simplemente `ensureInstance()` aquí: sin conectar no existe
+       mountElement y la promesa se rechazaría. */
+    if (!this.isConnected) return;
     const instance = await this.ensureInstance();
     await instance.setSource(source);
   }

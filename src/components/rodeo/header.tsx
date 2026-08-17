@@ -64,7 +64,7 @@ export function Header({ onPersonalizar, menuOculto = false }: { onPersonalizar:
         theme={temaVisual(tema)}
         duration={700}
         onThemeChange={() => cambiarTema(SIGUIENTE_TEMA[tema])}
-        aria-label="Cambiar de tema: día, noche o gradiente"
+        aria-label="Cambiar de tema: día, noche, gradiente o amanecer"
         className="border-border bg-transparent text-foreground inline-flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border [&_svg]:size-5"
       />
     </header>

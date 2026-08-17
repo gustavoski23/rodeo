@@ -51,6 +51,19 @@
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 17%), 0 7px 16px rgb(0 0 0 / 22%);
 }
 
+/* Mismo blanco táctil de 44px que .rd-toque-44 (tokens.css): estos dos van
+   por CSS y no por clase, así que la regla se repite aquí en vez de dejarlos
+   en 36px. El ← de esta cabecera es la salida del módulo A1 en teléfono. */
+.a1j-title-row button::after {
+  position: absolute;
+  content: '';
+  inset: -4px;
+  border-radius: 9999px;
+}
+.a1j-title-row button {
+  position: relative;
+}
+
 .a1j-title-row button:last-child {
   transform: rotate(-90deg);
 }
@@ -110,31 +123,21 @@
   transition: width 360ms ease;
 }
 
-.a1j-resume {
-  position: absolute;
-  z-index: 31;
-  top: 112px;
-  right: 12px;
-  left: 12px;
-  display: flex;
-  min-height: 52px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 13px;
-  color: #fff;
-  text-align: left;
-  background: linear-gradient(135deg, rgb(25 39 53 / 94%), rgb(8 16 25 / 92%));
-  border: 1px solid rgb(255 159 79 / 32%);
-  border-radius: 16px;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 14px 25px rgb(0 0 0 / 27%);
-}
+/* Aquí vivían las reglas de `.a1j-resume` (la tira "SIGUE DONDE IBAS") y el
+   `padding-top: 60px` con el que el scroller le hacía sitio. Se fueron con ella
+   el 2026-08-17: ver el comentario en mapa-experiencia.tsx. */
 
-.a1j-resume span { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
-.a1j-resume small { color: #ffae62; font-family: var(--font-mono); font-size: 0.52rem; font-weight: 700; letter-spacing: 0.12em; }
-.a1j-resume strong { overflow: hidden; font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
-.a1j-resume > svg { color: var(--a1j-orange); transform: rotate(-90deg); }
-
+/* SIN scroll-snap, a propósito. Este scroller tenía `scroll-snap-type: y
+   proximity` y cada `.a1j-region` era un punto de anclaje (`scroll-snap-align:
+   start`, `min-height: 610px`). El pie de herramientas (Repasar · Mis frases ·
+   Salvavidas) NO es una región, así que no era candidato a anclaje: para verlo
+   había que pasarse ~160px del último punto (610 de bloque + 90 de pie − el
+   alto del scroller), y al levantar el dedo Chrome anclaba al único candidato
+   que tenía —el arranque del último bloque— y devolvía el scroll hacia arriba
+   hasta esconder el pie. Con `scroll-behavior: smooth` encima, el salto se veía
+   como un rebote. Ese era el "glitch del fondo" reportado el 2026-08-17.
+   El snap no lo pedía nadie: a las regiones se llega por el chevron de la
+   cabecera, que hace su propio scrollTo({behavior:'smooth'}) — eso sigue igual. */
 .a1j-scroll {
   min-height: 0;
   flex: 1;
@@ -143,18 +146,14 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
   scroll-behavior: smooth;
-  scroll-snap-type: y proximity;
 }
 
 .a1j-scroll::-webkit-scrollbar { display: none; }
-.a1j-resume + .a1j-scroll { padding-top: 60px; }
 
 .a1j-region {
   position: relative;
   min-height: 610px;
   overflow: hidden;
-  scroll-margin-top: 1px;
-  scroll-snap-align: start;
   background:
     radial-gradient(circle at 76% 16%, rgb(63 141 179 / 16%), transparent 34%),
     linear-gradient(180deg, #071827, #050d16 64%, #03070c);

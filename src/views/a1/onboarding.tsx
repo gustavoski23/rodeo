@@ -179,7 +179,7 @@ export function Onboarding({ onListo }: { onListo: () => void }) {
           whileTap={{ scale: 0.94 }}
           onClick={() => setView("home")}
           aria-label="Volver al inicio"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{
             borderColor: "var(--borde-sutil)",
             background: "var(--bg-surface)",

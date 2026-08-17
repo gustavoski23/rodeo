@@ -157,7 +157,7 @@ export function Coach({ unit, onSalir, onPanico }: { unit: A1UnitRuta; onSalir: 
             onSalir();
           }}
           aria-label="Salir de la conversación"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
           <ArrowLeft size={17} strokeWidth={2} />
@@ -173,7 +173,7 @@ export function Coach({ unit, onSalir, onPanico }: { unit: A1UnitRuta; onSalir: 
           whileTap={{ scale: 0.94 }}
           onClick={onPanico}
           aria-label="Frases de emergencia"
-          className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
+          className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{
             borderColor: 'color-mix(in oklch, var(--accent) 35%, transparent)',
             background: 'var(--accent-dim)',
