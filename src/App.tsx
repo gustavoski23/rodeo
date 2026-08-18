@@ -1,7 +1,6 @@
 import { Suspense, lazy, useState } from 'react';
 import { MotionConfig } from 'motion/react';
 
-import { FilaSuperior } from '@/components/rodeo/fila-superior';
 import { FondoTema } from '@/components/rodeo/fondo-tema';
 import { NavMovil } from '@/components/rodeo/nav-movil';
 import { Toaster } from '@/components/rodeo/toaster';
@@ -10,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
 import { useOnboarding } from '@/stores/onboarding';
-import { useEnCharla } from '@/stores/talk';
 import HomeView from '@/views/home';
 import GateView from '@/views/gate';
 // SLANG ahora ES la experiencia de sticker peel (Pélala) — decisión de Gus: la
@@ -86,16 +84,6 @@ export default function App() {
      teléfono ya se había mudado a la pestaña Profile de la navbar. */
   const inmersiva = view !== 'home';
 
-  /* La sesión de CHARLA es lo único que sigue mirando el estado de sesión, y
-     solo para PC: su Card es alta y la fila (que allá sí se monta) cierra con
-     un pb corto. En teléfono la fila ya no existe fuera del Home, así que las
-     señales `enSesion` / `a1EnLeccion` que antes decidían el cromo se fueron
-     con él — hoy lo decide `inmersiva`, una sola vez y para todas las vistas.
-     El hook va SUELTO, nunca dentro de un `&&`: cortocircuitarlo lo saltaría en
-     los renders de otras vistas y rompería el orden de hooks. */
-  const enCharla = useEnCharla();
-  const charlaEnSesion = view === 'talk' && enCharla;
-
   /* El gate de login es LO PRIMERO que se ve (pedido de Gus): antes que el
      Home aurora. `listo` evita el flash — hasta resolver getSession no se
      decide nada y la pantalla queda en el negro del Home. Con sesión o con
@@ -154,49 +142,23 @@ export default function App() {
         <HomeView onPersonalizar={() => setCustomizerOpen(true)} menuOculto={customizerOpen || suscripcionAbierta} />
       ) : (
         <>
-          {/* La MISMA fila del Home, sin marca ni divisoria: Menu ≡ a la
-              izquierda y el toggler de tema a la derecha. Ella pone el hueco
-              del notch (el mismo max(14px, safe-area) del Home), así que el
-              main ya no necesita pt propio. */}
-          <FilaSuperior
-            onPersonalizar={() => setCustomizerOpen(true)}
-            menuOculto={customizerOpen || suscripcionAbierta}
-            className={cn(
-              'px-5 pt-[max(14px,env(safe-area-inset-top))]',
-              // En sesión la Card es alta y a 390px pide todo el alto que
-              // pueda: la fila cierra corta. Fuera de sesión, el pb-3 de siempre.
-              charlaEnSesion ? 'pb-1.5' : 'pb-3',
-              /* EN TELÉFONO NO SE MONTA: estamos dentro de una feature (esta
-                 rama es todo lo que no es Home) y el alto es de ella. Antes
-                 esta línea era la excepción del LIBRO y de la lección del A1;
-                 ahora vale para todas.
-
-                 El guardia es `ES_TELEFONO` Y ADEMÁS `max-md`, el MISMO par que
-                 monta la navbar unas líneas abajo, y eso no es redundancia:
-                 ES_TELEFONO exige ancho ≤767 **y** dedo (lib/device.ts:13),
-                 mientras que `max-md` solo mira el ancho. Con el corte de ancho
-                 a secas, una ventana de PC de 740px se comía la fila —y con
-                 ella el Menu ≡ y el tema— mientras la navbar, que sí pide dedo,
-                 no llegaba a reemplazarla: el usuario se quedaba sin ninguna de
-                 las dos (hallazgo de la revisión hostil). Con los dos guardias
-                 iguales, o está la fila o está la navbar, nunca ninguna.
-                 En PC se queda siempre: allá sobra alto y encima es donde vive
-                 el Menu ≡. */
-              ES_TELEFONO && 'max-md:hidden',
-            )}
-          />
-
+          {/* SIN FILA SUPERIOR (Menu + toggler de tema) DENTRO DE LAS FEATURES,
+              ni en teléfono NI en PC (pedido de Gus, 2026-08-17: «quita el menú
+              y el ícono de cambiar de tema para subirlo hasta allí, así como
+              hicimos con el teléfono»). Fuera del Home el alto entero es de la
+              feature y se sale por su ←; el Menu y el tema viven en el Home.
+              Hasta hoy la fila se quedaba en PC (allá sobra alto), pero medido a
+              1440×820 y 1512×900 esa franja de 74px empujaba el input del chat
+              de SLANG FUERA del pliegue — el desktop pedía el mismo aire que ya
+              tenía el teléfono. El `pt` que la fila ponía lo pone ahora el main,
+              en todos los anchos. */}
           <main
             className={cn(
               'flex min-h-0 flex-1 flex-col px-5',
-              /* Cuando la fila superior se esconde, alguien tiene que poner el
-                 hueco del notch: era ELLA quien lo ponía. Se copia su misma
-                 expresión (max(14px, safe-area-top)) para que en el iPhone la
-                 cabecera de la feature quede exactamente donde estaba el
-                 toggler, ni un píxel debajo de la muesca. Solo en el rango
-                 donde la fila desaparece; en PC la fila sigue montada y ya lo
-                 hace ella. */
-              'max-md:pt-[max(14px,env(safe-area-inset-top))]',
+              /* El hueco del notch/arriba: la fila superior lo ponía; ahora que
+                 no está en ningún ancho, lo pone el main. En el iPhone respeta
+                 la muesca (safe-area-top); en PC son 14px planos. */
+              'pt-[max(14px,env(safe-area-inset-top))]',
               /* Y el pie va al mínimo SIEMPRE. Ese pb reservaba 84px para una
                  barra inferior que, fuera del Home, ya no se monta en ningún
                  ancho: en teléfono porque la feature se lleva la pantalla

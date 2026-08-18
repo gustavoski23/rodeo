@@ -99,10 +99,17 @@ test('onboarding keeps the first flow narrow and warms up the Home menu', async 
   assert.match(onboarding, /\{ id: 'en', Bandera: BanderaUS \}/);
   assert.match(onboarding, /from '@\/components\/rodeo\/banderas'/);
   assert.doesNotMatch(onboarding, /id: 'pt'|id: 'fr'/);
-  assert.match(onboarding, /programarPrecargaHome\(\)/);
+  // La pantalla de "preparando tu inglés" ya no calienta solo el menú del Home:
+  // ESPERA a que la precarga baje features + imágenes de la vitrina para que al
+  // entrar todo se sienta fluido (precargarTodoYEsperar, pedido de Gus).
+  assert.match(onboarding, /precargarTodoYEsperar\(\)/);
   assert.match(preload, /homeInteraccionesPrecargadas/);
   assert.match(preload, /rodeo:home-interacciones-listas/);
   assert.match(preload, /import\('@\/components\/ui\/liquid-morph-floating-menu'\)/);
+  // Y la precarga cubre las features pesadas (Pélala arrastra three) + su
+  // esperador, que es lo que la pantalla de carga aguarda.
+  assert.match(preload, /import\('@\/views\/pelala'\)/);
+  assert.match(preload, /export function precargarTodoYEsperar/);
 });
 
 test('carousel serves smaller modern images on phones with a jpeg fallback', async () => {

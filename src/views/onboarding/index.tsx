@@ -8,7 +8,7 @@ import { GradientBackground } from '@/components/ui/sign-up';
 import { BanderaES, BanderaUS } from '@/components/rodeo/banderas';
 import { UiLangToggle } from '@/components/rodeo/ui-lang-toggle';
 import { useT } from '@/lib/demoStrings';
-import { programarPrecargaHome } from '@/lib/preload';
+import { precargarTodoYEsperar } from '@/lib/preload';
 import { cn } from '@/lib/utils';
 import { store } from '@/lib/storage';
 import { useOnboarding, type Nivel } from '@/stores/onboarding';
@@ -50,9 +50,18 @@ const IDIOMAS = [
 ] as const;
 type IdiomaId = (typeof IDIOMAS)[number]['id'];
 
-/* Cuánto vive la pantalla de carga antes de soltar al Home. Con duración 1.1s
-   + pausa 0.6s por palabra, alcanzan ~3 barridos completos del reveal. */
-const CARGA_MS = 5600;
+/* La pantalla de carga ya no vive un tiempo FIJO: ESPERA a que la precarga
+   termine de bajar los chunks de feature (Pélala+three, story, oficina…) y las
+   imágenes de la vitrina, para que al entrar al Home todo se sienta fluido y no
+   haya "toco SLANG y espero 7 s con la pantalla vacía" (pedido de Gus,
+   2026-08-17: «que todo esto se descargue desde esta pantalla; no importa si
+   tarda unos segundos»).
+   Dos topes la enmarcan: un MÍNIMO para que el reveal cromático respire aunque
+   la precarga ya esté caliente (caché), y un MÁXIMO por si la red va lenta o un
+   chunk se cae — nunca se cuelga aquí. Con duración 1.1s + pausa 0.6s por
+   palabra, el mínimo alcanza ~2 barridos del reveal. */
+const CARGA_MIN_MS = 3200;
+const CARGA_MAX_MS = 12_000;
 
 const PASOS: Paso[] = ['nombre', 'idioma', 'nivel', 'gustos'];
 
@@ -104,18 +113,28 @@ export function OnboardingView() {
     { id: 'B2-C1', etiqueta: 'B2–C1', titulo: t.obNivelAvanzado, detalle: t.obNivelAvanzadoDetalle },
   ];
 
-  /* La "carga" es teatro con propósito: da aire para que el reveal respire y
-     al terminar persiste TODO de una vez (completar) — App deja de pintar
-     este view solo cuando los datos ya están guardados. */
+  /* La "carga" hace DOS cosas a la vez: da aire para que el reveal respire, y
+     ESPERA a que la precarga baje todo lo que hace fluido el Home. Al terminar
+     persiste TODO de una vez (completar) — App deja de pintar este view solo
+     cuando los datos ya están guardados. */
   useEffect(() => {
     if (paso !== 'carga') return;
-    const cancelarPrecarga = programarPrecargaHome();
-    const t = window.setTimeout(() => {
-      completar({ nombre, idioma, nivel, intereses, area });
-    }, CARGA_MS);
+    let vivo = true;
+    const inicio = Date.now();
+    // Arranca la descarga de features + imágenes YA (sin esperar idle).
+    const preload = precargarTodoYEsperar();
+    // Suelta cuando la precarga termine O al vencer el tope, lo que pase antes.
+    const tope = new Promise<void>((r) => window.setTimeout(r, CARGA_MAX_MS));
+    void Promise.race([preload, tope]).then(() => {
+      if (!vivo) return;
+      // Pero nunca antes del mínimo, para no cortar el reveal si ya había caché.
+      const restante = Math.max(0, CARGA_MIN_MS - (Date.now() - inicio));
+      window.setTimeout(() => {
+        if (vivo) completar({ nombre, idioma, nivel, intereses, area });
+      }, restante);
+    });
     return () => {
-      cancelarPrecarga();
-      window.clearTimeout(t);
+      vivo = false;
     };
   }, [paso, nombre, idioma, nivel, intereses, area, completar]);
 
@@ -368,8 +387,10 @@ export function OnboardingView() {
 
               {/* ── CARGA · el reveal cromático de beui (captura 1) ───────
                   El usuario "espera" mientras el texto barre palabras:
-                  "Preparando tu español / vocabulario / práctica…". Al vencer
-                  CARGA_MS, completar() persiste y App suelta el Home. */}
+                  "Preparando tu español / vocabulario / práctica…". Y de verdad
+                  se prepara: detrás, la precarga baja las features y las
+                  imágenes de la vitrina. Cuando termina (o al vencer el tope),
+                  completar() persiste y App suelta el Home ya caliente. */}
               {paso === 'carga' && (
                 <div className="flex flex-col items-center gap-5 py-10 text-center">
                   <ChromaticTextReveal

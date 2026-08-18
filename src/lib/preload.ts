@@ -111,13 +111,14 @@ function precargarImagenesVitrina(): void {
    ORDEN a propósito: Pélala primero porque es la más pesada Y el dolor concreto
    de Gus; el resto detrás. Los LIBROS quedan fuera (pedido de Gus: su descarga
    se ve al tocarlos), y el bento es solo de teléfono. */
-let featuresListas = false;
-function precargarFeatures(): void {
-  if (featuresListas || !puedePrecargarPesado()) return;
-  featuresListas = true;
+let promesaFeatures: Promise<void> | null = null;
+function precargarFeatures(): Promise<void> {
+  if (promesaFeatures) return promesaFeatures;
+  if (!puedePrecargarPesado()) return Promise.resolve();
   // Se disparan en cadena, no todas de un golpe: la primera es la que más pesa
-  // y la que más se pide. `void` porque no esperamos el resultado — es warmup.
-  void import('@/views/pelala')
+  // (Pélala arrastra three.module) y la que más se pide, así el chunk que el
+  // usuario querrá tocar primero llega antes; el resto detrás.
+  promesaFeatures = import('@/views/pelala')
     .then(() =>
       Promise.all([
         import('@/views/story'),
@@ -129,10 +130,12 @@ function precargarFeatures(): void {
         import('@/views/profes'),
       ]),
     )
+    .then(() => undefined)
     .catch(() => {
       // Warmup: un chunk que no baja se pedirá otra vez al navegar, sin drama.
-      featuresListas = false;
+      promesaFeatures = null;
     });
+  return promesaFeatures;
 }
 
 /** Download the conversation route only after Home is interactive. */
@@ -176,6 +179,21 @@ export function programarPrecargaHome(): () => void {
   };
 
   return programar(cargar, 150, 600);
+}
+
+/** Precarga TODO ya (sin esperar idle) y resuelve cuando los chunks de feature
+    están abajo — para que la pantalla "Preparando tu inglés" la ESPERE en vez
+    de cerrarse a un tiempo fijo (pedido de Gus: «no importa si tarda esa
+    pantalla, lo que importa es que al entrar se sienta fluido»). Comparte las
+    mismas promesas single-flight que el warmup del Home, así que nada se baja
+    dos veces. Resuelve aunque falle un chunk: la carga nunca se cuelga por esto
+    —el llamador le pone su propio tope de tiempo—. */
+export function precargarTodoYEsperar(): Promise<void> {
+  if (!puedePrecargar()) return Promise.resolve();
+  precargarImagenesVitrina();
+  return Promise.all([precargarInteraccionesHome().catch(() => undefined), precargarFeatures()]).then(
+    () => undefined,
+  );
 }
 
 export function escucharPrecargaHome(listener: () => void): () => void {

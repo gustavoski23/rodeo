@@ -255,11 +255,21 @@ export function Pelala() {
             quedaba cortado y no había forma de llegar a él. Con shrink-0 el
             contenido desborda de verdad, el scroller scrollea y el velo de
             "sigue abajo" aparece, que es la salida que la vista ya tenía
-            prevista. ── */}
-        <DockPractica className="shrink-0">
+            prevista.
+
+            EN DESKTOP (`md:`) el dock DEJA de encoger y pasa a LLENAR el alto
+            que sobra (`md:flex-1`): sin la fila superior (que en PC también se
+            retiró), la columna cabe entera sin scroll, así que en vez de dejar
+            el dock flotando a media pantalla —la "caja dentro de otra caja" que
+            marcó Gus— se estira hasta el pie y el chat crece con él. El teléfono
+            NO se toca: sigue `shrink-0` y su scroller, que es lo que Gus dio por
+            bueno. ── */}
+        <DockPractica className="shrink-0 md:flex md:min-h-0 md:flex-1 md:flex-col">
         {/* Zona SIGNIFICADO (revelable + guardable) — ya sin caja propia: es
-            contenido con padding dentro del dock, no una isla con su borde. */}
-        <div className="p-4">
+            contenido con padding dentro del dock, no una isla con su borde.
+            `md:shrink-0`: en el reparto vertical del dock en desktop, el
+            significado ocupa lo suyo y el chat se lleva el resto. */}
+        <div className="p-4 md:shrink-0">
           {/* Caption anclada arriba, alineada a la izquierda como el cuerpo. */}
           <p className="mb-3 text-[0.76rem]" style={{ color: 'var(--text-muted)' }}>
             {/* «desliza», no «pela»: el rótulo de arriba dice DESLIZA Y APRENDE

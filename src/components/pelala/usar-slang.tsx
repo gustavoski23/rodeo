@@ -153,7 +153,11 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   return (
     <div
       ref={hostRef}
-      className="relative p-4"
+      /* En desktop (`md:`) esta zona LLENA el alto que le deja el dock y se
+         vuelve columna flex, para que el log de conversación crezca hasta el
+         pie y el input quede abajo del todo — el chat "alargado" que pidió Gus.
+         En teléfono las clases md: no aplican y es el bloque de siempre. */
+      className="relative p-4 md:flex md:min-h-0 md:flex-1 md:flex-col"
       /* Sin caja propia: es la zona de práctica DENTRO del dock. El único borde
          es el DIVISOR superior (hairline) que la separa del significado en la
          misma superficie glass. El material del vidrio (vidrio-tema) y la sombra
@@ -172,8 +176,12 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           alto lo alarga hacia abajo desde el primer frame, sin saltos cuando
           entra el primer turno. Sigue creciendo con la conversación; el
           desborde lo lleva el scroller de la vista, no una caja con barra
-          propia (una barra dentro de otra en un teléfono es una trampa). */}
-      <div className="mb-3 flex min-h-[148px] flex-col gap-2">
+          propia (una barra dentro de otra en un teléfono es una trampa).
+          En desktop (`md:flex-1`) crece para llenar el dock alargado: el log
+          ocupa todo el alto libre y el compositor queda anclado abajo. Con
+          muchos turnos hace su propio scroll (`md:overflow-y-auto`) en vez de
+          empujar el input fuera de la pantalla. */}
+      <div className="mb-3 flex min-h-[148px] flex-col gap-2 md:min-h-0 md:flex-1 md:overflow-y-auto">
         {/* Intro (solo si aún no hay turnos). */}
         {mensajes.length === 0 && (
           <p className="text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>

@@ -47,7 +47,12 @@ export function DockPractica({ className, children }: { className?: string; chil
       className={className}
     >
       <div
-        className={cn('vidrio-tema relative overflow-hidden rounded-[22px]')}
+        /* En desktop hereda el "llenar el alto" del wrapper (reto.tsx pasa
+           `md:flex-1` al BorderBeam): el div interior tiene que ser también una
+           columna flex a alto completo para que el significado y el chat se
+           repartan el espacio. En teléfono estas clases md: no aplican y queda
+           el bloque de siempre. */
+        className={cn('vidrio-tema relative overflow-hidden rounded-[22px] md:flex md:h-full md:min-h-0 md:flex-col')}
         style={{
           background: 'var(--bg-surface)',
           border: '1px solid var(--borde-sutil)',
