@@ -145,6 +145,37 @@ viable ~$20-50/agente/mes. Piloto: 4 semanas, una campaña, ≤20 agentes,
 medir ramp-up + QA + confianza. TODA la evidencia de impacto es
 vendor-claimed — medir el piloto propio.
 
+## 6.5 · MVP del copiloto — plan de construcción (decidido 19-08-2026)
+
+Restricciones de Gus: vive DENTRO de rodeo sin afectar la velocidad de la app
+(la vista ya es lazy: un estudiante jamás la descarga), y el mundo profe se
+abre solo a quien diga que es profe. Camino de grabación fase 1: Zoom/Meet y
+presencial (subir/grabar audio); fase 2 (post-validación): videollamada
+dentro de la app.
+
+Tubería existente que se reusa: `api/stt.js` (Deepgram Nova-3 `language=multi`
+— code-switching español/inglés real, ~$0.26/hora) y el patrón
+`api/chat.js`/`_opencode.js` para el LLM. Límite de payload Vercel 4.5 MB →
+el audio va en chunks de ~5 min desde el cliente.
+
+1. **Rol de profe**: `rodeo_rol=profe` activado desde #/profes ("Soy profe")
+   u onboarding. Con el flag: Plataforma en el menú y pestañas reales. Sin
+   flag: nada cambia para estudiantes.
+2. **Grabar y transcribir**: alumnos reales (crear/editar), botón Grabar
+   clase (getDisplayMedia para pestaña Zoom/Meet + mic; getUserMedia para
+   presencial), MediaRecorder en chunks de 5 min → `/api/copiloto-stt`
+   (patrón stt.js, endpoint propio para no tocar los límites del coach) →
+   transcript concatenado. Persistencia local primero; Supabase después.
+3. **Resumen + ideas**: `/api/copiloto.js` (patrón chat.js): transcript →
+   JSON {resumen, vocab, ideas, foco}. La UI ya existe en #/plataforma —
+   pasar de datos demo a datos reales del alumno.
+4. **Memoria + chat**: historial de clases por alumno; el chat "pregúntale al
+   copiloto" manda el historial como contexto.
+5. **Consentimiento**: checkbox al crear la clase + banner al grabar +
+   borrar el audio tras transcribir (retener solo transcript/resumen).
+6. **Mamá-test**: clase real de la mamá de Gus (profesora de español, primera
+   tester). Medir: ¿el resumen sirvió?, ¿usó alguna idea?, ¿cuánto tardó?
+
 ## 7 · Roadmap propuesto (cada fase = su feature-loop)
 
 1. **Copiloto MVP** (resumen + plan próxima clase + página por alumno) sobre
