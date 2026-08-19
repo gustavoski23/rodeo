@@ -83,6 +83,54 @@
   background: var(--accent);
 }
 
+/* Controles del modo real (alumnos del copiloto): input y botones pill en el
+   lenguaje de la casa. Botón primario = durazno con tinta oscura (mismo par
+   que los CTA de PROFES), fantasma = borde sutil. */
+.plata-input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--borde-sutil);
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.86rem;
+  outline: none;
+  min-width: 0;
+}
+.plata-input::placeholder {
+  color: var(--text-muted);
+}
+.plata-input:focus-visible {
+  border-color: var(--accent);
+}
+.plata-boton,
+.plata-boton-fantasma {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 2.5rem;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.plata-boton {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 0;
+}
+.plata-boton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.plata-boton-fantasma {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--borde-sutil);
+}
+
 /* La tabla comparativa: scroll propio en teléfono, nunca desborda la vista. */
 .plata-tabla {
   overflow-x: auto;

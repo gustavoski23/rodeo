@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 
 import { escucharPrecargaHome, homeInteraccionesPrecargadas } from '@/lib/preload';
+import { store } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import { useAuth } from '@/stores/auth';
@@ -127,10 +128,14 @@ export function MenuFlotante({
        deep-link solo no descubre nadie. Una palabra, sin tilde: las reglas
        tipográficas del FloatingMenu de arriba. */
     { label: 'Profes', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('profes'); } },
-    /* PLATAFORMA — el panel del profe en demo (2026-08-19): la continuación de
-       Profes. Misma razón de entrada al menú: sin carta en la vitrina, un
-       deep-link solo no lo descubre nadie. */
-    { label: 'Plataforma', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('plataforma'); } },
+    /* PLATAFORMA — el panel del profe (2026-08-19): solo aparece cuando el rol
+       es profe (rodeo_rol), para no meterle ruido al menú del estudiante. El
+       estudiante curioso llega igual por el botón de la vista Profes; quien
+       activa "Soy profe" gana la entrada directa. Se lee al armar el menú:
+       si el flag cambió, el próximo render lo refleja. */
+    ...(store.get<string | null>('rodeo_rol', null) === 'profe'
+      ? [{ label: 'Plataforma', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('plataforma'); } }]
+      : []),
     /* CUENTA — la misma ranura sirve para las dos direcciones:
        · con sesión  → "Cerrar sesion": logout() cierra en Supabase, resetea el
          "skip" en memoria y marca gateNecesario, así que la puerta vuelve sola.

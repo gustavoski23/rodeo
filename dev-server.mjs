@@ -15,6 +15,9 @@ if (existsSync('.env.local')) {
 
 const { default: handler } = await import('./api/chat.js');
 const { default: ttsHandler } = await import('./api/tts.js');
+const { default: sttHandler } = await import('./api/stt.js');
+const { default: copilotoHandler } = await import('./api/copiloto.js');
+const { default: copilotoSttHandler } = await import('./api/copiloto-stt.js');
 const { default: criptoHandler } = await import('./api/cripto.js');
 const { default: cronHandler } = await import('./api/cron-drop.js');
 const { default: dropTodayHandler } = await import('./api/drop-today.js');
@@ -42,6 +45,15 @@ createServer(async (req, res) => {
   }
   if (url.pathname === '/api/tts') {
     return ttsHandler(req, res);
+  }
+  if (url.pathname === '/api/stt') {
+    return sttHandler(req, res);
+  }
+  if (url.pathname === '/api/copiloto') {
+    return copilotoHandler(req, res);
+  }
+  if (url.pathname === '/api/copiloto-stt') {
+    return copilotoSttHandler(req, res);
   }
   if (url.pathname === '/api/cripto') {
     return criptoHandler(req, res);

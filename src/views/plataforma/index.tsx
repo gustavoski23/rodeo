@@ -3,9 +3,11 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Check } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
+import { activarProfe, esProfe } from '@/lib/copiloto';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 
+import AlumnosReales from './alumnos-reales';
 import './plataforma.css';
 
 /* Vista PLATAFORMA — el panel del profe completo, navegable, en DEMO.
@@ -73,6 +75,10 @@ function pestanaInicial(): Pestana {
 export default function PlataformaView() {
   const setView = useApp((s) => s.setView);
   const [pestana, setPestana] = useState<Pestana>(pestanaInicial);
+  /* El rol vive en localStorage (rodeo_rol): con 'profe' la pestaña Alumnos
+     deja el demo y monta el copiloto REAL. Estado local para re-render al
+     activarlo desde el banner, sin recargar. */
+  const [profe, setProfe] = useState<boolean>(esProfe);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -130,12 +136,37 @@ export default function PlataformaView() {
           {/* key= remonta el árbol al cambiar de pestaña: así las entradas
              CSS (plata-bloque) se re-disparan por sección, no solo al entrar
              a la vista. */}
-          <div key={pestana} className="flex flex-col gap-6">
+          <div key={pestana + (profe ? '-real' : '')} className="flex flex-col gap-6">
             {pestana === 'inicio' && <SeccionInicio />}
             {pestana === 'cobros' && <SeccionCobros />}
             {pestana === 'retiros' && <SeccionRetiros />}
             {pestana === 'agenda' && <SeccionAgenda />}
-            {pestana === 'alumnos' && <SeccionAlumnos />}
+            {pestana === 'alumnos' &&
+              (profe ? (
+                <AlumnosReales />
+              ) : (
+                <>
+                  <section className="plata-bloque" aria-label="Activar el panel real">
+                    <div className="flex flex-wrap items-center gap-3 rounded-[18px] border px-5 py-4" style={{ borderColor: 'var(--accent-dim)', background: 'var(--accent-dim)' }}>
+                      <p className="min-w-0 flex-1 text-[0.86rem] leading-[1.5]" style={{ color: 'var(--text-primary)' }}>
+                        Lo de abajo es demostración. <strong>¿Das clases?</strong> Activa tu panel real: crea tus alumnos,
+                        graba una clase y el copiloto la resume de verdad.
+                      </p>
+                      <button
+                        type="button"
+                        className="plata-boton"
+                        onClick={() => {
+                          activarProfe();
+                          setProfe(true);
+                        }}
+                      >
+                        Soy profe — activar
+                      </button>
+                    </div>
+                  </section>
+                  <SeccionAlumnos />
+                </>
+              ))}
             {pestana === 'academia' && <SeccionAcademia />}
             {pestana === 'empresas' && <SeccionEmpresas />}
             {pestana === 'plan' && <SeccionPlan />}
