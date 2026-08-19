@@ -1,7 +1,8 @@
 /* Mini-chat "úsalo tú" — invita a usar el slang/phrasal verb en una frase propia
-   y lo corrige: felicitación pequeña si suena natural, o explica por qué no.
-   El juicio real lo hace la AI (api/chat.js) en la integración; aquí va el
-   evaluador local para el demo (ver @/lib/pelala/coach).
+   y lo corrige DE VERDAD: felicitación pequeña si suena natural, o la versión que
+   sí diría un nativo si no. Y también responde preguntas sueltas ("¿esto se puede
+   usar así?"). El juicio lo hace la AI (el mismo /api/chat que el resto de la
+   app), ya no un stub local que felicitaba cualquier cosa — ver @/lib/pelala/coach.
 
    REDISEÑO al contrato visual: CERO colores crudos (neutral-x, dark:) — todo por
    tokens del tema. Segunda pasada (auditoría de pulido): se lee como CONVERSACIÓN
@@ -36,7 +37,7 @@ import { Mic, MicOff, Send, Sparkles } from 'lucide-react';
 import { OndaDictado, useDictado } from '@/components/rodeo/onda-dictado';
 import { GlassButton, GlassStyles } from '@/components/ui/sign-up';
 import type { SlangTerm } from '@/content/pelala/deck';
-import { evaluarUso, type Veredicto } from '@/lib/pelala/coach';
+import { evaluarUso, type CoachTurno, type Veredicto } from '@/lib/pelala/coach';
 import { cn } from '@/lib/utils';
 
 /* Tinte de la burbuja del tutor por token semántico (color-mix para fondo/borde;
@@ -60,6 +61,13 @@ const TINTE: Record<Veredicto['estado'], { bg: string; border: string }> = {
   falta: {
     bg: 'var(--danger-dim)',
     border: 'color-mix(in oklch, var(--danger) 34%, transparent)',
+  },
+  /* 'respuesta' — una pregunta contestada (o un aviso), no una frase juzgada:
+     burbuja NEUTRA estándar (mismo material que cualquier respuesta del tutor),
+     sin señal de acierto ni de error. */
+  respuesta: {
+    bg: 'var(--bg-elevated)',
+    border: 'var(--borde-sutil)',
   },
 };
 
@@ -112,13 +120,28 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
   const enviar = async () => {
     const t = frase.trim();
     if (!t || revisando) return;
+    /* El historial que ve la IA son los turnos PREVIOS (sin el que se acaba de
+       escribir): así una pregunta de seguimiento —"¿y en pasado?"— sabe de qué
+       se venía hablando. Se arma ANTES de empujar el turno nuevo al log. */
+    const historial: CoachTurno[] = mensajes.map((m) => ({
+      rol: m.rol === 'user' ? 'user' : 'tutor',
+      texto: m.texto,
+    }));
     setMensajes((m) => [...m, { rol: 'user', texto: t }]);
     setFrase('');
     setRevisando(true);
-    const v = await evaluarUso(term, t);
-    setMensajes((m) => [...m, { rol: 'tutor', texto: v.mensaje, estado: v.estado }]);
-    setRevisando(false);
-    if (v.estado === 'bien') celebrar();
+    try {
+      const v = await evaluarUso(term, t, historial);
+      setMensajes((m) => [...m, { rol: 'tutor', texto: v.mensaje, estado: v.estado }]);
+      if (v.estado === 'bien') celebrar();
+    } catch (err) {
+      /* La IA no está disponible: un aviso honesto y neutro. NUNCA un falso
+         "perfecto" — ese rubber-stamp es justo el bug que este feature entierra. */
+      const msg = err instanceof Error ? err.message : 'No pude revisar eso ahora, intenta de nuevo';
+      setMensajes((m) => [...m, { rol: 'tutor', texto: msg, estado: 'respuesta' }]);
+    } finally {
+      setRevisando(false);
+    }
   };
 
   /* Felicitación CONTENIDA: burst denso y corto que cae rápido (ticks bajos +
@@ -187,7 +210,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           <p className="text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>
             Ahora úsalo tú: escribe{' '}
             <span className="font-bold" style={{ color: 'var(--text-primary)' }}>«{term.term}»</span>{' '}
-            en una frase y te digo si suena natural.
+            en una frase y te digo si suena natural — o pregúntame lo que quieras sobre cómo se usa.
           </p>
         )}
 
@@ -239,7 +262,7 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
                 >
                   <Sparkles size={14} />
                 </span>
-                <span className="text-[0.8rem]" style={{ color: 'var(--text-muted)' }}>Revisando…</span>
+                <span className="text-[0.8rem]" style={{ color: 'var(--text-muted)' }}>Pensando…</span>
               </div>
             )}
           </>
