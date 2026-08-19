@@ -173,17 +173,28 @@ export default function ProfesView() {
 
               {/* El botón del panel NO finge: abre la wallet real, que está en
                   producción. Un mock deshabilitado diría menos que el producto
-                  vivo a un toque de distancia. */}
-              <a
-                href={PANGEA_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-[0.88rem] font-bold"
-                style={{ background: 'var(--card-ink)', color: 'var(--card-paper)' }}
-              >
-                Abrir mi wallet Pangea
-                <ArrowUpRight size={15} strokeWidth={2.4} />
-              </a>
+                  vivo a un toque de distancia. Al lado, el recorrido del panel
+                  completo — la vista PLATAFORMA, declarada demo. */}
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <a
+                  href={PANGEA_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-[0.88rem] font-bold"
+                  style={{ background: 'var(--card-ink)', color: 'var(--card-paper)' }}
+                >
+                  Abrir mi wallet Pangea
+                  <ArrowUpRight size={15} strokeWidth={2.4} />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setView('plataforma')}
+                  className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-5 text-[0.88rem] font-bold"
+                  style={{ borderColor: 'var(--card-ink-soft)', color: 'var(--card-ink)' }}
+                >
+                  Recorrer el panel completo
+                </button>
+              </div>
               <p className="mt-3 text-[0.72rem] leading-[1.45]" style={{ color: 'var(--card-ink-soft)' }}>
                 Los montos de este panel son de demostración. La wallet es real: está en producción, en mainnet.
               </p>

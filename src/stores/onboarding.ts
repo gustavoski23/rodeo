@@ -38,9 +38,9 @@ type OnboardingState = {
 };
 
 /* Dos visitas NO deben pasar por el "¿quién eres?":
-   · Un enlace directo a PROFES — material de referencia que se comparte con
-     profesores, instituciones y revisores para que LEAN una página, no para
-     que estrenen la app.
+   · Un enlace directo a PROFES o a PLATAFORMA (su panel en demo) — material
+     de referencia que se comparte con profesores, instituciones y revisores
+     para que LEAN una página, no para que estrenen la app.
    · El MODO DEMO (?demo=1) — el enlace de demo completo: junto con el skip
      del gate (stores/auth.ts) hace que un deep link compartido aterrice
      directo en la vista pedida.
@@ -51,7 +51,7 @@ type OnboardingState = {
    escribir la URL de vuelta. */
 const hashExime =
   typeof location !== 'undefined' &&
-  (/^#\/?profes\b/i.test(location.hash) || new URLSearchParams(location.search).get('demo') === '1');
+  (/^#\/?(profes|plataforma)\b/i.test(location.hash) || new URLSearchParams(location.search).get('demo') === '1');
 
 export const useOnboarding = create<OnboardingState>((set) => ({
   necesario: !hashExime && !store.get<string | null>(CLAVE_HECHO, null),

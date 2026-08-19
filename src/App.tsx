@@ -35,6 +35,9 @@ const PerfilView = lazy(() => import('@/views/perfil'));
    con los rieles de Pangea. Lazy como el resto: es una vista de lectura que
    la mayoría de estudiantes nunca abre. */
 const ProfesView = lazy(() => import('@/views/profes'));
+/* PLATAFORMA: el panel del profe completo en demo — la continuación navegable
+   de PROFES. Lazy por la misma razón: la mayoría de estudiantes no la abre. */
+const PlataformaView = lazy(() => import('@/views/plataforma'));
 const OnboardingView = lazy(() => import('@/views/onboarding'));
 const AuroraCustomizer = lazy(() =>
   import('@/components/rodeo/aurora-customizer').then((m) => ({ default: m.AuroraCustomizer })),
@@ -192,6 +195,8 @@ export default function App() {
                 <PerfilView />
               ) : view === 'profes' ? (
                 <ProfesView />
+              ) : view === 'plataforma' ? (
+                <PlataformaView />
               ) : view === 'libro' ? (
                 <LibroView />
               ) : (

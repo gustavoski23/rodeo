@@ -1,0 +1,115 @@
+/* PLATAFORMA — el panel del profe en demo.
+
+   Mismas reglas de la casa que PROFES: las entradas van con CSS keyframes y
+   animation-fill-mode: both, NUNCA con GSAP/motion — un reveal que decide si
+   el contenido se ve no puede depender de un ticker que el headless no corre.
+   El stagger va por bloque de sección; el remonte por key= en index.tsx hace
+   que se re-dispare al cambiar de pestaña. */
+
+@keyframes plata-sube {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.plata-bloque {
+  animation: plata-sube 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.plata-bloque:nth-child(2) { animation-delay: 0.05s; }
+.plata-bloque:nth-child(3) { animation-delay: 0.1s; }
+.plata-bloque:nth-child(4) { animation-delay: 0.15s; }
+.plata-bloque:nth-child(5) { animation-delay: 0.2s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .plata-bloque {
+    animation: none;
+  }
+}
+
+/* Tarjeta-sticker: idéntica al lenguaje de PROFES y de las cards de contenido
+   (pastel pleno, tinta oscura, 24px, rotación leve por custom property). */
+.plata-sticker {
+  border-radius: 24px;
+  padding: 20px 22px;
+  color: var(--card-ink);
+  box-shadow: 0 16px 34px oklch(0% 0 0 / 0.22);
+  transform: rotate(var(--giro, 0deg));
+}
+
+/* Monto grande del saldo. */
+.plata-monto {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-size: clamp(2.1rem, 9vw, 3rem);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Renglón de lista editorial (feed, enlaces, alumnos): divisores, no cards. */
+.plata-fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+}
+.plata-fila + .plata-fila {
+  border-top: 1px solid var(--borde-sutil);
+}
+
+/* Renglón editorial con más aire (puertas de retiro, días, módulos). */
+.plata-puerta + .plata-puerta {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde-sutil);
+}
+
+/* Barra de progreso durazno (academia y scorecard B2B). */
+.plata-progreso {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.plata-progreso i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+/* La tabla comparativa: scroll propio en teléfono, nunca desborda la vista. */
+.plata-tabla {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.plata-tabla table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.plata-tabla th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 14px 8px 0;
+}
+.plata-tabla td {
+  padding: 10px 14px 10px 0;
+  border-top: 1px solid var(--borde-sutil);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.plata-tabla td strong {
+  color: var(--text-primary);
+}

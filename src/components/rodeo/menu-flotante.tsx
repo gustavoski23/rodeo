@@ -127,6 +127,10 @@ export function MenuFlotante({
        deep-link solo no descubre nadie. Una palabra, sin tilde: las reglas
        tipográficas del FloatingMenu de arriba. */
     { label: 'Profes', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('profes'); } },
+    /* PLATAFORMA — el panel del profe en demo (2026-08-19): la continuación de
+       Profes. Misma razón de entrada al menú: sin carta en la vitrina, un
+       deep-link solo no lo descubre nadie. */
+    { label: 'Plataforma', onClick: () => { cerrarMenu(); setCarruselAlVolver(false); setView('plataforma'); } },
     /* CUENTA — la misma ranura sirve para las dos direcciones:
        · con sesión  → "Cerrar sesion": logout() cierra en Supabase, resetea el
          "skip" en memoria y marca gateNecesario, así que la puerta vuelve sola.
