@@ -6,14 +6,22 @@
    señala con tinta encendida + borde más fuerte + check, no con --accent. */
 
 import { motion, AnimatePresence } from 'motion/react';
-import { Briefcase, Check, Compass, Sparkles, X, type LucideIcon } from 'lucide-react';
+import { Bitcoin, Briefcase, Check, Compass, Dices, Sparkles, X, type LucideIcon } from 'lucide-react';
 
 import { CATEGORIAS, DECK, categoriaDe, type CategoriaId } from '@/content/pelala/deck';
 
 const ICONO_CAT: Record<CategoriaId, LucideIcon> = {
   'dia-a-dia': Sparkles,
   oficina: Briefcase,
+  crypto: Bitcoin,
+  aleatoria: Dices,
 };
+
+/* La categoría «aleatoria» lleva un DADO en badge de VIDRIO esmerilado (pedido de
+   Gus: «un simbolito en glass de dados»). El vidrio va inline (no depende del
+   vidrio-tema del dock, que no está en scope en este overlay): translúcido +
+   blur + brillo superior. */
+const CAT_VIDRIO: Partial<Record<CategoriaId, boolean>> = { aleatoria: true };
 
 function conteo(cat: CategoriaId): number {
   return DECK.filter((t) => categoriaDe(t) === cat).length;
@@ -89,11 +97,12 @@ export function SelectorCategorias({
                 </button>
               </div>
 
-              {/* Categorías */}
-              <div className="flex flex-col gap-2">
+              {/* Categorías (con tope de alto + scroll por si crecen). */}
+              <div className="flex max-h-[58dvh] flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {CATEGORIAS.map((c) => {
                   const Icono = ICONO_CAT[c.id];
                   const esActiva = c.id === activa;
+                  const glass = !!CAT_VIDRIO[c.id];
                   return (
                     <motion.button
                       key={c.id}
@@ -114,11 +123,23 @@ export function SelectorCategorias({
                       <span
                         aria-hidden="true"
                         className="flex size-10 shrink-0 items-center justify-center rounded-xl"
-                        style={{
-                          background: 'var(--bg-surface)',
-                          border: '1px solid var(--borde-sutil)',
-                          color: esActiva ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        }}
+                        style={
+                          glass
+                            ? {
+                                // Dado de VIDRIO esmerilado (autocontenido).
+                                background:
+                                  'linear-gradient(135deg, color-mix(in oklch, var(--text-primary) 12%, transparent), color-mix(in oklch, var(--text-primary) 4%, transparent))',
+                                backdropFilter: 'blur(6px)',
+                                border: '1px solid color-mix(in oklch, var(--text-primary) 24%, transparent)',
+                                boxShadow: 'inset 0 1px 0 color-mix(in oklch, white 34%, transparent)',
+                                color: 'var(--text-primary)',
+                              }
+                            : {
+                                background: 'var(--bg-surface)',
+                                border: '1px solid var(--borde-sutil)',
+                                color: esActiva ? 'var(--text-primary)' : 'var(--text-secondary)',
+                              }
+                        }
                       >
                         <Icono size={20} strokeWidth={2} />
                       </span>
