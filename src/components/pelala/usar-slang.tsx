@@ -204,7 +204,15 @@ export function UsarSlang({ term }: { term: SlangTerm }) {
           ocupa todo el alto libre y el compositor queda anclado abajo. Con
           muchos turnos hace su propio scroll (`md:overflow-y-auto`) en vez de
           empujar el input fuera de la pantalla. */}
-      <div className="mb-3 flex min-h-[148px] flex-col gap-2 md:min-h-0 md:flex-1 md:overflow-y-auto">
+      <div
+        className={cn(
+          'mb-3 flex min-h-[148px] flex-col gap-2 md:min-h-0 md:flex-1 md:overflow-y-auto',
+          // Estado vacío: centra la invitación en el alto reservado en vez de
+          // dejarla arriba con un hueco muerto debajo (se nota en teléfono y en
+          // PC). Con turnos, el log fluye desde arriba como siempre.
+          mensajes.length === 0 && 'justify-center',
+        )}
+      >
         {/* Intro (solo si aún no hay turnos). */}
         {mensajes.length === 0 && (
           <p className="text-[0.8rem]" style={{ color: 'var(--text-secondary)' }}>

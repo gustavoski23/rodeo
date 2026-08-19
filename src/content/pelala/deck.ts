@@ -8,7 +8,17 @@
    `image` queda como pack curado pre-generado (fase de contenido posterior); por ahora
    `emoji` da un placeholder demostrable y Pélala arranca en variante "contexto en blanco". */
 
-export type SlangKind = 'phrasal' | 'slang';
+export type SlangKind = 'phrasal' | 'slang' | 'idiom';
+
+/** Un significado de un término polisémico (ver `senses`). */
+export type SlangSense = {
+  /** El significado, en español latino neutro. */
+  gloss_es: string;
+  /** Ejemplo natural en inglés para ESTE significado. */
+  example_en: string;
+  /** Traducción del ejemplo. */
+  example_es: string;
+};
 
 export type SlangTerm = {
   id: string;
@@ -26,6 +36,10 @@ export type SlangTerm = {
   emoji: string;
   /** Prompt para generar la imagen de acción del pack curado (fase posterior). */
   imagePrompt: string;
+  /** Términos con VARIOS significados (p. ej. "pay off": vale la pena / saldar una
+      deuda / sobornar): un solo sticker, pero la tarjeta de significado los explica
+      todos. Si está presente, el render revelado lo usa en vez de gloss_es solo. */
+  senses?: SlangSense[];
 };
 
 export const DECK: SlangTerm[] = [
@@ -336,6 +350,146 @@ export const DECK: SlangTerm[] = [
     accept: ['wrap up', 'wrapped up', 'wrapping up', 'wrap it up'],
     emoji: '🎁',
     imagePrompt: 'flat illustration of hands tying a bow to close a wrapped box, minimal',
+  },
+  /* ── Lote 2 (2026-08-19): términos sacados de cuentas de inglés en Instagram
+     (vocabulary_sailingo, teacheromizz, johnplusenglish…) y con sticker ilustrado
+     propio en STICKER_IMG. "pay off" trae `senses`: un solo sticker, tres usos. ── */
+  {
+    id: 'pay-off',
+    term: 'pay off',
+    kind: 'phrasal',
+    context_en: 'All those late nights finally paid off.',
+    target: 'paid off',
+    gloss_es: 'dar frutos / valer la pena el esfuerzo',
+    accept: ['pay off', 'paid off', 'pays off', 'paying off', 'pay it off', 'paid it off'],
+    emoji: '💰',
+    imagePrompt:
+      'flat sticker of a green sprout growing out of a jar of gold coins with a sparkling star, effort paying off, minimal',
+    senses: [
+      {
+        gloss_es: 'Valer la pena / dar frutos (un esfuerzo).',
+        example_en: 'All those late nights finally paid off.',
+        example_es: 'Todas esas trasnochadas al final valieron la pena.',
+      },
+      {
+        gloss_es: 'Terminar de pagar una deuda por completo.',
+        example_en: 'I finally paid off my credit card.',
+        example_es: 'Por fin terminé de pagar la tarjeta de crédito.',
+      },
+      {
+        gloss_es: 'Sobornar a alguien (informal).',
+        example_en: 'They paid off the inspector to stay quiet.',
+        example_es: 'Sobornaron al inspector para que se quedara callado.',
+      },
+    ],
+  },
+  {
+    id: 'break-out-of',
+    term: 'break out of',
+    kind: 'phrasal',
+    context_en: 'I want to break out of this boring routine.',
+    target: 'break out of',
+    gloss_es: 'escapar de algo; salir de golpe de una situación o rutina',
+    accept: ['break out of', 'broke out of', 'breaking out of', 'break out'],
+    emoji: '🔓',
+    imagePrompt:
+      'flat sticker of a happy character leaping out through bent-open prison bars, breaking free, minimal',
+  },
+  {
+    id: 'snap-out-of',
+    term: 'snap out of',
+    kind: 'phrasal',
+    context_en: 'Snap out of it — we can fix this.',
+    target: 'Snap out of',
+    gloss_es: 'espabilar; salir de golpe de un bajón, tristeza o distracción',
+    accept: ['snap out of', 'snap out of it', 'snapped out of', 'snaps out of'],
+    emoji: '🫰',
+    imagePrompt:
+      'flat sticker of a character snapping fingers as a grey gloom cloud dissolves, brightening up, minimal',
+  },
+  {
+    id: 'shake-off',
+    term: 'shake off',
+    kind: 'phrasal',
+    context_en: "I can't shake off this cold.",
+    target: 'shake off',
+    gloss_es: 'quitarse de encima algo o a alguien molesto',
+    accept: ['shake off', 'shook off', 'shakes off', 'shaking off', 'shake it off'],
+    emoji: '💦',
+    imagePrompt:
+      'flat sticker of a puppy-like character shaking off water droplets and a clingy burr, motion lines, minimal',
+  },
+  {
+    id: 'get-over',
+    term: 'get over',
+    kind: 'phrasal',
+    context_en: 'It took her months to get over the breakup.',
+    target: 'get over',
+    gloss_es: 'superar algo (una enfermedad, una ruptura, un mal momento)',
+    accept: ['get over', 'got over', 'gets over', 'getting over', 'get over it'],
+    emoji: '🌈',
+    imagePrompt:
+      'flat sticker of a character stepping over a hill toward a rising sun, moving past an obstacle, minimal',
+  },
+  {
+    id: 'get-a-grip',
+    term: 'get a grip',
+    kind: 'idiom',
+    context_en: "Get a grip — it's not the end of the world.",
+    target: 'Get a grip',
+    gloss_es: 'controlarse y recuperar la calma',
+    accept: ['get a grip', 'got a grip', 'get a grip on', 'getting a grip'],
+    emoji: '✊',
+    imagePrompt:
+      'flat sticker of two hands firmly steadying a wobbling steering wheel, calm control, minimal',
+  },
+  {
+    id: 'daily-grind',
+    term: 'the daily grind',
+    kind: 'idiom',
+    context_en: 'Coffee helps me get through the daily grind.',
+    target: 'daily grind',
+    gloss_es: 'la rutina diaria de trabajo o estudio, monótona y agotadora',
+    accept: ['daily grind', 'the daily grind', 'back to the grind'],
+    emoji: '☕',
+    imagePrompt:
+      'flat sticker of a tired character walking a hamster wheel holding coffee, a big gear turning, minimal',
+  },
+  {
+    id: 'switch-up',
+    term: 'switch up',
+    kind: 'phrasal',
+    context_en: "Let's switch up the routine this week.",
+    target: 'switch up',
+    gloss_es: 'cambiar algo, darle un giro (a la rutina, el plan, el estilo)',
+    accept: ['switch up', 'switched up', 'switching up', 'switch it up'],
+    emoji: '🔀',
+    imagePrompt:
+      'flat sticker of a character flipping a chunky toggle switch with two swapping arrows, fresh change, minimal',
+  },
+  {
+    id: 'pull-yourself-together',
+    term: 'pull yourself together',
+    kind: 'idiom',
+    context_en: 'Pull yourself together and tell me what happened.',
+    target: 'Pull yourself together',
+    gloss_es: 'recomponerse: calmarse y recuperar el control',
+    accept: ['pull yourself together', 'pull myself together', 'pulled himself together', 'pull it together'],
+    emoji: '🧩',
+    imagePrompt:
+      'flat sticker of a character clicking floating puzzle-piece parts of itself back into place, composed, minimal',
+  },
+  {
+    id: 'up-in-the-air',
+    term: 'up in the air',
+    kind: 'idiom',
+    context_en: 'The wedding date is still up in the air.',
+    target: 'up in the air',
+    gloss_es: 'en el aire: incierto, sin decidir, sin saberse aún qué pasará',
+    accept: ['up in the air', 'still up in the air', 'be up in the air'],
+    emoji: '🎈',
+    imagePrompt:
+      'flat sticker of a character shrugging with a paper plane, question mark and balloon floating around, uncertainty, minimal',
   },
 ];
 

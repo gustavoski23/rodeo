@@ -30,6 +30,7 @@ import { CornerHint } from '@/components/pelala/corner-hint';
 import { DockPractica } from '@/components/pelala/dock-practica';
 import { PeelSticker, slangTextSource, type PeelStickerHandle } from '@/components/pelala/peel-sticker';
 import { UsarSlang } from '@/components/pelala/usar-slang';
+import { STICKER_IMG } from '@/content/pelala/sticker-images';
 import { STICKER_SVG } from '@/content/pelala/stickers';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -41,6 +42,10 @@ import { ICONO_TERMINO, ICONO_FALLBACK } from './term-iconos';
    manda; si no, el sticker cae al texto de siempre (paridad con los términos
    sin ilustrar todavía — el pack se va llenando de a poco). */
 function sourceDe(term: { id: string; term: string }) {
+  // Imagen die-cut primero (pack IA, alfa real → pela por su silueta); si no hay,
+  // el SVG de texto de "wind up"; y si tampoco, el sticker de texto genérico.
+  const img = STICKER_IMG[term.id];
+  if (img) return { type: 'image', src: img } as const;
   const svg = STICKER_SVG[term.id];
   return svg ? ({ type: 'svg', svg } as const) : slangTextSource(term.term, '¿cómo se dice?');
 }
@@ -64,9 +69,10 @@ function resaltarTermino(context: string, target: string): ReactNode {
   );
 }
 
-const ETIQUETA_KIND: Record<'phrasal' | 'slang', string> = {
+const ETIQUETA_KIND: Record<'phrasal' | 'slang' | 'idiom', string> = {
   phrasal: 'phrasal verb',
   slang: 'slang',
+  idiom: 'idiom',
 };
 
 /* Pista de que HAY MÁS ABAJO (mismo patrón que App/useDesborde). El scroller
@@ -162,7 +168,7 @@ export function Pelala() {
      tenías que agrandar las que son como el formato visual de wind up»). El
      motor dimensiona por ancho, así que a un sticker de TEXTO una caja más alta
      solo le añade aire muerto; a uno ilustrado sí le da cuerpo. */
-  const ilustrado = term.id in STICKER_SVG;
+  const ilustrado = term.id in STICKER_SVG || term.id in STICKER_IMG;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -329,12 +335,41 @@ export function Pelala() {
           >
             {revelado ? (
               <div className="relative px-4 py-3.5">
-                <p className="pr-8 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-                  {term.gloss_es}
-                </p>
-                <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  “{resaltarTermino(term.context_en, term.target)}”
-                </p>
+                {term.senses ? (
+                  /* Término con VARIOS significados (p. ej. "pay off"): un solo
+                     sticker arriba, pero acá se explican TODOS los usos numerados,
+                     cada uno con su ejemplo. Pedido de Gus para "pay off". */
+                  <ol className="flex flex-col gap-2.5 pr-8">
+                    {term.senses.map((s, i) => (
+                      <li key={i} className="flex gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[0.62rem] font-bold"
+                          style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[0.9rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                            {s.gloss_es}
+                          </p>
+                          <p className="mt-0.5 text-[0.8rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                            “{s.example_en}” — {s.example_es}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <>
+                    <p className="pr-8 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                      {term.gloss_es}
+                    </p>
+                    <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                      “{resaltarTermino(term.context_en, term.target)}”
+                    </p>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => setRevelado(false)}
