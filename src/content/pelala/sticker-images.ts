@@ -20,6 +20,15 @@ import shakeOff from './stickers/shake-off.webp';
 import snapOutOf from './stickers/snap-out-of.webp';
 import switchUp from './stickers/switch-up.webp';
 import upInTheAir from './stickers/up-in-the-air.webp';
+// Oficina
+import touchBase from './stickers/touch-base.webp';
+import circleBack from './stickers/circle-back.webp';
+import followUp from './stickers/follow-up.webp';
+import reachOut from './stickers/reach-out.webp';
+import loopIn from './stickers/loop-in.webp';
+import runBy from './stickers/run-by.webp';
+import rampUp from './stickers/ramp-up.webp';
+import rollOut from './stickers/roll-out.webp';
 
 /** id del término → URL del webp die-cut. */
 export const STICKER_IMG: Record<string, string> = {
@@ -33,4 +42,12 @@ export const STICKER_IMG: Record<string, string> = {
   'switch-up': switchUp,
   'pull-yourself-together': pullYourselfTogether,
   'up-in-the-air': upInTheAir,
+  'touch-base': touchBase,
+  'circle-back': circleBack,
+  'follow-up': followUp,
+  'reach-out': reachOut,
+  'loop-in': loopIn,
+  'run-by': runBy,
+  'ramp-up': rampUp,
+  'roll-out': rollOut,
 };

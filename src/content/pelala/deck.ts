@@ -10,6 +10,9 @@
 
 export type SlangKind = 'phrasal' | 'slang' | 'idiom';
 
+/** Categorías de exploración de Pélala (el botón «explorar» las abre). */
+export type CategoriaId = 'dia-a-dia' | 'oficina';
+
 /** Un significado de un término polisémico (ver `senses`). */
 export type SlangSense = {
   /** El significado, en español latino neutro. */
@@ -24,6 +27,8 @@ export type SlangTerm = {
   id: string;
   term: string;
   kind: SlangKind;
+  /** Categoría de exploración; SIN valor = 'dia-a-dia' (calle/vida). */
+  cat?: CategoriaId;
   /** Frase natural que usa el término (para El Muro y para el fill-in-the-blank de Pélala). */
   context_en: string;
   /** El término tal como aparece en context_en, para poder blanquearlo. */
@@ -491,6 +496,115 @@ export const DECK: SlangTerm[] = [
     imagePrompt:
       'flat sticker of a character shrugging with a paper plane, question mark and balloon floating around, uncertainty, minimal',
   },
+  /* ── Categoría OFICINA (2026-08-19): el inglés de reuniones, correos y trabajo.
+     `cat: 'oficina'` los separa del feed por defecto; el botón «explorar» cambia. ── */
+  {
+    id: 'touch-base',
+    term: 'touch base',
+    kind: 'idiom',
+    cat: 'oficina',
+    context_en: "Let's touch base next week about the plan.",
+    target: 'touch base',
+    gloss_es: 'hacer un contacto rápido para ponerse al día',
+    accept: ['touch base', 'touched base', 'touch base with', 'touching base'],
+    emoji: '🤝',
+    imagePrompt: 'flat sticker of two fists bumping in a quick friendly check-in, minimal',
+  },
+  {
+    id: 'circle-back',
+    term: 'circle back',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: "Let's circle back on this tomorrow.",
+    target: 'circle back',
+    gloss_es: 'retomar un tema más adelante',
+    accept: ['circle back', 'circled back', 'circle back to', 'circle back on', 'circling back'],
+    emoji: '🔄',
+    imagePrompt: 'flat sticker of a looping return arrow curving back to a chat bubble, minimal',
+  },
+  {
+    id: 'follow-up',
+    term: 'follow up',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: "I'll follow up with an email after the call.",
+    target: 'follow up',
+    gloss_es: 'dar seguimiento a algo o a alguien',
+    accept: ['follow up', 'followed up', 'following up', 'follow up on', 'follow up with'],
+    emoji: '📩',
+    imagePrompt: 'flat sticker of a character sending an envelope with a checkmark and a clock, minimal',
+  },
+  {
+    id: 'reach-out',
+    term: 'reach out',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: 'Reach out if you need anything.',
+    target: 'Reach out',
+    gloss_es: 'contactar a alguien (para pedir o ofrecer ayuda)',
+    accept: ['reach out', 'reached out', 'reaching out', 'reach out to'],
+    emoji: '🙋',
+    imagePrompt: 'flat sticker of a character extending a hand toward a chat bubble, reaching out, minimal',
+  },
+  {
+    id: 'loop-in',
+    term: 'loop in',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: 'Let me loop in the design team on this.',
+    target: 'loop in',
+    gloss_es: 'incluir a alguien en un tema o conversación',
+    accept: ['loop in', 'looped in', 'looping in', 'loop me in'],
+    emoji: '➰',
+    imagePrompt: 'flat sticker of a rope loop gathering two colleagues into the group, minimal',
+  },
+  {
+    id: 'run-by',
+    term: 'run by',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: 'Can I run this by you before I send it?',
+    target: 'run this by',
+    gloss_es: 'consultar algo con alguien para conocer su opinión',
+    accept: ['run by', 'run it by', 'run this by', 'ran by', 'run that by'],
+    emoji: '💭',
+    imagePrompt: 'flat sticker of a character showing a clipboard idea to another for a quick opinion, minimal',
+  },
+  {
+    id: 'ramp-up',
+    term: 'ramp up',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: 'We need to ramp up production this quarter.',
+    target: 'ramp up',
+    gloss_es: 'aumentar o intensificar (producción, esfuerzo, ritmo)',
+    accept: ['ramp up', 'ramped up', 'ramping up'],
+    emoji: '📈',
+    imagePrompt: 'flat sticker of a character running up a rising arrow chart, increasing, minimal',
+  },
+  {
+    id: 'roll-out',
+    term: 'roll out',
+    kind: 'phrasal',
+    cat: 'oficina',
+    context_en: "We're rolling out the new feature next week.",
+    target: 'rolling out',
+    gloss_es: 'lanzar o desplegar algo nuevo (un producto, una función)',
+    accept: ['roll out', 'rolled out', 'rolling out'],
+    emoji: '🚀',
+    imagePrompt: 'flat sticker of a character unrolling a red carpet while a rocket lifts off, launching, minimal',
+  },
+];
+
+/** La categoría de un término (sin `cat` = 'dia-a-dia'). */
+export function categoriaDe(t: SlangTerm): CategoriaId {
+  return t.cat === 'oficina' ? 'oficina' : 'dia-a-dia';
+}
+
+/** Las categorías que pinta el selector «explorar», en orden. */
+export const CATEGORIAS: { id: CategoriaId; label: string; desc: string }[] = [
+  { id: 'dia-a-dia', label: 'Del día a día', desc: 'Slang y phrasal verbs de la calle y la vida diaria' },
+  { id: 'oficina', label: 'En la oficina', desc: 'Los que se dicen en reuniones, correos y trabajo' },
 ];
 
 /** El contexto con el término blanqueado, para el reto fill-in-the-blank. */
