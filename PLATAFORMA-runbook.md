@@ -7,6 +7,22 @@
 > dos tandas de investigación (16 agentes, 19-ago-2026), cifras con fuente.
 > Lo no verificado lleva ~.
 
+## Decisiones del fundador (19-08-2026)
+
+- **Copiloto MVP: arranca YA.** Es la prioridad #1 (ventana Bobbin 7-sep).
+- **Comisión: 8% con tope de $1.50/h.** Resuelve la regresividad del fee
+  plano: a $20/h paga $1.50 (7.5%), a $10/h paga $0.80 (8%) — siempre por
+  debajo de italki. Cómo interactúa con los planes Empieza/Pro queda por
+  definir (¿tope $2.00 gratis / tope $1.50 en Pro?).
+- **Nicho: AMBOS** — profes de español→EE.UU. y de inglés→LATAM.
+- **Primera tester real: la mamá de Gus** (profesora de español).
+- **B2B call centers: en pausa** hasta que el copiloto tenga cohorte.
+- **Visión de escala confirmada**: el mismo dashboard (sesión grabada →
+  memoria por cliente → ideas → cobros) sirve para cualquier práctica
+  independiente de interacción humana recurrente — psicólogos, consultores,
+  coaches. Categoría: gestión de práctica AI-nativa. Nombre del producto
+  general: en definición.
+
 ## La tesis (en tres frases)
 
 Al profesor independiente de idiomas le vendemos tres cosas: **gana más**
