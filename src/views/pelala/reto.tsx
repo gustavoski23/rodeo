@@ -144,6 +144,12 @@ export function Pelala() {
   const [pistaGuiada, setPistaGuiada] = useState(true);
 
   const [revelado, setRevelado] = useState(false);
+  /* El sticker WebGL tarda en arrancar (el motor compila shaders y sube la
+     textura): sin esto, al abrir SLANG o al cambiar de término se ve un HUECO en
+     blanco hasta que pinta. `stickerListo` arranca en false y una IMAGEN estática
+     precargada (instantánea) cubre ese hueco; cuando el motor avisa (onReady),
+     se cruza al sticker WebGL interactivo. Pedido de Gus: nada de blanco. */
+  const [stickerListo, setStickerListo] = useState(false);
   const stickerRef = useRef<PeelStickerHandle>(null);
   const scroller = useDesborde();
 
@@ -179,6 +185,8 @@ export function Pelala() {
      cambiar de categoría (mazo nuevo desde 0, mismo retoIndex pero otro término). */
   useEffect(() => {
     setRevelado(false);
+    // Nuevo término → el WebGL vuelve a arrancar: la imagen estática cubre otra vez.
+    setStickerListo(false);
   }, [retoIndex, categoria]);
 
   // Mazo siempre poblado (el store arranca con DECK); guarda defensivo por si acaso.
@@ -270,8 +278,29 @@ export function Pelala() {
             sourceKey={term.id}
             onPeelStart={onPeelStart}
             onDetach={onDetach}
+            onReady={() => setStickerListo(true)}
             className="h-full w-full"
           />
+          {/* Cobertor estático PRECARGADO: se ve al instante (la imagen ya está en
+              caché por la precarga de la entrada) y se cruza (fade) al sticker
+              WebGL cuando el motor termina de arrancar. Así nunca hay blanco al
+              abrir SLANG ni al cambiar de término. */}
+          {(STICKER_IMG[term.id] || STICKER_SVG[term.id]) && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center transition-opacity duration-200"
+              style={{ opacity: stickerListo ? 0 : 1 }}
+            >
+              {STICKER_IMG[term.id] ? (
+                <img src={STICKER_IMG[term.id]} alt="" className="max-h-[86%] max-w-[62%] object-contain" />
+              ) : (
+                <div
+                  className="flex h-full w-full items-center justify-center [&>svg]:max-h-[86%] [&>svg]:max-w-[62%]"
+                  dangerouslySetInnerHTML={{ __html: STICKER_SVG[term.id]! }}
+                />
+              )}
+            </div>
+          )}
           {pistaGuiada && <CornerHint />}
         </div>
 
