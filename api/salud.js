@@ -23,6 +23,7 @@ import {
   DEFAULT_GO_CHAT_MODEL,
   DEFAULT_GO_CREATIVE_MODEL,
   OPENCODE_ZEN_URL,
+  cabecerasOpenCode,
   openCodeContent,
   requestOpenCode,
   resolveGoModel,
@@ -110,8 +111,7 @@ async function pingOpenCode(apiKey) {
   const out = [];
   const sonda = { max_tokens: 16, messages: [{ role: 'user', content: 'Say "ok".' }] };
 
-  try {
-    const { response, model, usedFallback } = await requestOpenCode(apiKey, { ...sonda, model: MODELS.chat });
+  try {      const { response, model, usedFallback } = await requestOpenCode(apiKey, { ...sonda, model: MODELS.chat }, fetch, 'salud-ping');
     out.push({
       camino: 'chat_real',
       modelo_pedido: MODELS.chat,
@@ -125,10 +125,9 @@ async function pingOpenCode(apiKey) {
     out.push({ camino: 'chat_real', modelo_pedido: MODELS.chat, alcanzado: false, error: String(err && err.message).slice(0, 150) });
   }
 
-  try {
-    const r = await fetch(OPENCODE_ZEN_URL, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+  try {      const r = await fetch(OPENCODE_ZEN_URL, {
+        method: 'POST',
+        headers: cabecerasOpenCode(apiKey, 'salud-respaldo'),
       body: JSON.stringify({ ...sonda, model: MODELO_GRATIS }),
     });
     out.push({ camino: 'respaldo_gratis_directo', modelo: MODELO_GRATIS, status: r.status, ok: r.ok, diagnostico: await diagnosticoDe(r) });
@@ -169,7 +168,7 @@ async function turnoDeHumo(apiKey, indice, quien) {
           { role: 'system', content: TURNO_SYSTEM },
           { role: 'user', content: texto },
         ],
-      });
+      }, fetch, `salud-turno-${indice}`);
       if (!r.ok) return { error: 'ningun_modelo_respondio', status: r.status, diagnostico: await diagnosticoDe(r), mensaje_de_prueba: texto, ms: Date.now() - t0 };
       const data = await r.json();
       const crudo = String(openCodeContent(data, protocol) || '');

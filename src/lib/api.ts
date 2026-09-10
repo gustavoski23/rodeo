@@ -40,7 +40,24 @@ function headersBase(): Record<string, string> {
   if (pass) headers['x-rodeo-pass'] = pass;
   const quien = etiquetaUsuario();
   if (quien) headers['x-rodeo-user'] = quien;
+  /* OpenCode (el proveedor de IA) rechaza desde sep-2026 todo request sin
+     x-opencode-session. Viaja como x-rodeo-session y el backend lo reenvía.
+     Estable POR INSTALACIÓN: el proveedor lo usa para enrutar y cachear
+     prompts (10x más barato en tokens cacheados), y una conversación larga
+     del coach gana mucho. No es identidad ni secreto: solo un id opaco. */
+  headers['x-rodeo-session'] = sesionOpenCode();
   return headers;
+}
+
+export function sesionOpenCode(): string {
+  let sid = store.get<string | null>('rodeo_opencode_session', null);
+  if (!sid) {
+    sid = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `hablarte-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    store.set('rodeo_opencode_session', sid);
+  }
+  return sid;
 }
 
 /* Etiqueta del tester para el panel /uso: con varias personas probando, el

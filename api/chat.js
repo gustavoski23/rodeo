@@ -67,6 +67,7 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: 'missing_messages' }));
   }
 
+
   // Límites duros para que un bug del frontend no queme crédito.
   // OJO: preservar el SYSTEM (mensaje 0) al recortar — es el contrato del
   // flujo (esquema JSON estricto, marcadores ⟦en||es⟧, reglas del rol). Sin
@@ -94,7 +95,10 @@ export default async function handler(req, res) {
       stream: wantsStream === true,
       messages: safeMessages,
     };
-    const { response: upstream, model: servedModel, protocol } = await requestOpenCode(apiKey, requestBody);
+    // OpenCode rechaza sin x-opencode-session (gate de sep 2026) y el id
+    // estable por conversación activa su prompt caching barato. El navegador
+    // lo manda como x-rodeo-session.
+    const { response: upstream, model: servedModel, protocol } = await requestOpenCode(apiKey, requestBody, fetch, req.headers['x-rodeo-session']);
 
     if (!upstream.ok) {
       await registrarUso({

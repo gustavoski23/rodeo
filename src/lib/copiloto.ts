@@ -1,5 +1,5 @@
 import { store } from '@/lib/storage';
-import { etiquetaUsuario } from '@/lib/api';
+import { etiquetaUsuario, sesionOpenCode } from '@/lib/api';
 
 /* Copiloto del profe — el lado del navegador: los alumnos y sus sesiones
    (persistidos en localStorage con el store de la casa), el cliente de los
@@ -67,6 +67,9 @@ function cabeceras(extra: Record<string, string> = {}): Record<string, string> {
   if (pass) h['x-rodeo-pass'] = pass;
   const quien = etiquetaUsuario();
   if (quien) h['x-rodeo-user'] = quien;
+  /* Mismo gate de OpenCode que lib/api.ts: el backend reenvía este id como
+     x-opencode-session. Sin él, el proveedor responde 400 a cada llamada. */
+  h['x-rodeo-session'] = sesionOpenCode();
   return h;
 }
 

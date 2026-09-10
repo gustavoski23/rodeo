@@ -168,6 +168,94 @@ test('oculta ambos errores técnicos cuando también falla el fallback', async (
   });
 });
 
+/* El gate de OpenCode (sep-2026): sin x-opencode-session upstream responde 400
+   MissingSessionID y el chat de producción entero cae. Estas pruebas pinsan que
+   el header SIEMPRE viaja — con el id del cliente si vino, con el del proceso
+   si no — y que el User-Agent no es el genérico de Node. */
+test('envía x-opencode-session y User-Agent propios al proveedor', async () => {
+  const vistas = [];
+  await withFetch(async (url, init) => {
+    vistas.push(init.headers);
+    return jsonResponse({
+      model: 'gpt-5.6-luna', status: 'completed',
+      output: [{ content: [{ type: 'output_text', text: 'ok' }] }],
+    });
+  }, async () => {
+    const res = response();
+    await handler(
+      { method: 'POST', headers: { 'x-rodeo-session': 'sesion-de-prueba' }, body: { messages: [{ role: 'user', content: 'Hola' }] } },
+      res,
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(vistas.length, 1);
+    assert.equal(vistas[0]['x-opencode-session'], 'sesion-de-prueba');
+    assert.match(vistas[0]['User-Agent'], /hablarte\//);
+    assert.notEqual(vistas[0]['User-Agent'], 'node');
+  });
+});
+
+test('sin sesión del cliente genera una estable del proceso', async () => {
+  const vistas = [];
+  await withFetch(async (url, init) => {
+    vistas.push(init.headers);
+    return jsonResponse({
+      model: 'gpt-5.6-luna', status: 'completed',
+      output: [{ content: [{ type: 'output_text', text: 'ok' }] }],
+    });
+  }, async () => {
+    const res = response();
+    await handler(request({ messages: [{ role: 'user', content: 'Hola' }] }), res);
+    assert.equal(res.statusCode, 200);
+    const sid = vistas[0]['x-opencode-session'];
+    assert.ok(sid, 'debe existir siempre un session id');
+    const res2 = response();
+    await handler(request({ messages: [{ role: 'user', content: 'Hola' }] }), res2);
+    assert.equal(vistas[1]['x-opencode-session'], sid, 'el id del proceso no cambia entre llamadas');
+  });
+});
+
+test('el header del cliente llega limpio aunque venga repetido o con espacios', async () => {
+  const vistas = [];
+  await withFetch(async (url, init) => {
+    vistas.push(init.headers);
+    return jsonResponse({
+      model: 'gpt-5.6-luna', status: 'completed',
+      output: [{ content: [{ type: 'output_text', text: 'ok' }] }],
+    });
+  }, async () => {
+    const res = response();
+    await handler(
+      { method: 'POST', headers: { 'x-rodeo-session': ['  sesión-sucia  ', 'duplicado'] }, body: { messages: [{ role: 'user', content: 'Hola' }] } },
+      res,
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(vistas[0]['x-opencode-session'], 'sesión-sucia');
+  });
+});
+
+test('el fallback gratis también lleva la sesión y el User-Agent', async () => {
+  const vistas = [];
+  await withFetch(async (url, init) => {
+    vistas.push({ url, headers: init.headers });
+    if (vistas.length === 1) {
+      return jsonResponse({ name: 'CreditsError', message: 'Insufficient balance' }, { status: 402 });
+    }
+    return jsonResponse({
+      model: DEFAULT_FREE_MODEL,
+      choices: [{ message: { content: 'respaldo' }, finish_reason: 'stop' }],
+    });
+  }, async () => {
+    const res = response();
+    await handler(
+      { method: 'POST', headers: { 'x-rodeo-session': 'sesion-fallback' }, body: { messages: [{ role: 'user', content: 'Hola' }] } },
+      res,
+    );
+    assert.equal(res.statusCode, 200);
+    assert.equal(vistas[1].headers['x-opencode-session'], 'sesion-fallback');
+    assert.match(vistas[1].headers['User-Agent'], /hablarte\//);
+  });
+});
+
 test('el fallback también conserva streaming SSE', async () => {
   let calls = 0;
   await withFetch(async () => {

@@ -144,7 +144,7 @@ export async function generarEdicionGenerica(apiKey, { tema = 'sorpréndeme', se
           { role: 'system', content: DROP_SYSTEM },
           { role: 'user', content: dropUserPrompt(tema, semillas) },
         ],
-      });
+      }, fetch, 'drop-cron');
       if (!upstream.ok) { motivo = 'upstream ' + upstream.status; continue; }
       const data = await upstream.json();
       const content = openCodeContent(data, protocol);

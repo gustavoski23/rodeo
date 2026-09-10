@@ -7,7 +7,7 @@
 // testeados en tests/copiloto.test.mjs).
 
 import { construirPromptIdea, construirPromptResumen, extraerJson, validarResumen } from './_copiloto.js';
-import { DEFAULT_FREE_MODEL, OPENCODE_ZEN_URL } from './_opencode.js';
+import { DEFAULT_FREE_MODEL, OPENCODE_ZEN_URL, cabecerasOpenCode } from './_opencode.js';
 import { registrarUso, usuarioDe } from './_uso.js';
 
 const MAX_BODY = 900_000; // transcript de 1 h ≈ 60-80 KB; margen 10x
@@ -74,7 +74,9 @@ export default async function handler(req, res) {
   try {
     const upstream = await fetch(OPENCODE_ZEN_URL, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      // x-opencode-session: gate de OpenCode de sep 2026. Un id por alumno
+      // mantiene las clases de cada uno en caches separados del proveedor.
+      headers: cabecerasOpenCode(apiKey, `alumno-${nombre}`),
       body: JSON.stringify({ model, messages, temperature: 0.4, max_tokens: maxTokens }),
     });
     if (!upstream.ok) {

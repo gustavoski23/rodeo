@@ -73,12 +73,12 @@ export function openCodeContent(data, protocol) {
   return '';
 }
 
-export async function requestOpenCode(apiKey, body, fetchImpl = fetch) {
+export async function requestOpenCode(apiKey, body, fetchImpl = fetch, sessionId = null) {
   const primaryModel = body.model;
   const usesResponsesApi = primaryModel === 'gpt-5.6-luna';
   const primaryUrl = usesResponsesApi ? OPENCODE_GO_RESPONSES_URL : OPENCODE_GO_URL;
   const primaryBody = usesResponsesApi ? toResponsesBody(body) : body;
-  const primary = await send(fetchImpl, primaryUrl, apiKey, primaryBody);
+  const primary = await send(fetchImpl, primaryUrl, apiKey, primaryBody, sessionId);
   if (primary.ok) {
     return {
       response: primary,
@@ -113,7 +113,7 @@ export async function requestOpenCode(apiKey, body, fetchImpl = fetch) {
     };
   }
 
-  const fallback = await send(fetchImpl, OPENCODE_ZEN_URL, apiKey, { ...body, model: fallbackModel });
+  const fallback = await send(fetchImpl, OPENCODE_ZEN_URL, apiKey, { ...body, model: fallbackModel }, sessionId);
   return { response: fallback, model: fallbackModel, protocol: 'chat', usedFallback: true };
 }
 
@@ -126,13 +126,43 @@ function toResponsesBody(body) {
   };
 }
 
-function send(fetchImpl, url, apiKey, body) {
+/* Gate nuevo de OpenCode (10-sep-2026, con el chat de producción caído): cada
+   request sin x-opencode-session muere con 400 MissingSessionID, y el User-Agent
+   de librería genérica también está proscrito (quieren clientes identificables).
+   El id debe ser ESTABLE por conversación: aparte de pasar el gate, habilita su
+   prompt caching — Luna cobra 10x menos los tokens cacheados. El navegador manda
+   el suyo por x-rodeo-session (uno por instalación de la app); si no llega, uno
+   por proceso del serverless es el mejor compromiso: estable entre invocaciones
+   calientes y sin filtrar nada del cliente. */
+const UA_HABLARTE = 'hablarte/2.0 (https://rodeo-sigma.vercel.app)';
+
+let sesionDeProceso = null;
+function sesionPorDefecto() {
+  if (!sesionDeProceso) {
+    sesionDeProceso = globalThis.crypto && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `hablarte-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+  return sesionDeProceso;
+}
+
+export function cabecerasOpenCode(apiKey, sessionId) {
+  // Node http puede entregar cabeceras repetidas como arreglo; un id con coma
+  // dentro rompería la estabilidad que da el caching. Un solo valor, limpio.
+  const sid = Array.isArray(sessionId) ? sessionId[0] : sessionId;
+  const limpia = typeof sid === 'string' ? sid.trim().slice(0, 128) : '';
+  return {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'x-opencode-session': limpia || sesionPorDefecto(),
+    'User-Agent': UA_HABLARTE,
+  };
+}
+
+function send(fetchImpl, url, apiKey, body, sessionId) {
   return fetchImpl(url, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers: cabecerasOpenCode(apiKey, sessionId),
     body: JSON.stringify(body),
   });
 }
