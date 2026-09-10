@@ -193,7 +193,11 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
          instancia con el término bueno: no hay dos stickers, hay uno.
          setSource devuelve una promesa que sin conexión resuelve al instante
          (ver la enmienda en lib/sticker-forge/sticker-forge.ts). */
-      void el.setSource(sourceRef.current);
+      /* onReady al RESOLVER el setSource inicial (además del evento nativo
+         `ready`): es la señal de que la fuente ya está lista para pintar, y la
+         usa el overlay de la vista para cruzar de la imagen estática al sticker
+         WebGL sin dejar un hueco en blanco mientras el motor arranca. */
+      void el.setSource(sourceRef.current).then(() => requestAnimationFrame(() => cb.current.onReady?.()));
       if (options) el.setOptions(options);
 
       host.appendChild(el);
@@ -247,7 +251,12 @@ export const PeelSticker = forwardRef<PeelStickerHandle, PeelStickerProps>(
         firstRender.current = false;
         return; // el set inicial ya lo hizo el efecto de montaje
       }
-      void el.setSource(sourceRef.current).then(() => el.reappear());
+      /* Cambio de término: además de reappear, avisa onReady al resolver para
+         que el overlay estático del término nuevo se cruce al WebGL sin blanco. */
+      void el.setSource(sourceRef.current).then(() => {
+        el.reappear();
+        requestAnimationFrame(() => cb.current.onReady?.());
+      });
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [sourceKey]);
 

@@ -5,7 +5,7 @@
 
 import { create } from 'zustand';
 
-import { DECK, type SlangTerm } from '@/content/pelala/deck';
+import { DECK, categoriaDe, type CategoriaId, type SlangTerm } from '@/content/pelala/deck';
 
 export type PelalaMode = 'picker' | 'muro' | 'reto';
 
@@ -42,12 +42,24 @@ function rotated<T>(arr: T[], offset: number): T[] {
   return arr.slice(k).concat(arr.slice(0, k));
 }
 
+/** Los términos de una categoría, en el orden del DECK. */
+function mazoDe(cat: CategoriaId): SlangTerm[] {
+  return DECK.filter((t) => categoriaDe(t) === cat);
+}
+
+/** Categoría con la que arranca SLANG. */
+const CAT_INICIAL: CategoriaId = 'dia-a-dia';
+
 type PelalaState = {
   mode: PelalaMode;
   open: (mode: Exclude<PelalaMode, 'picker'>) => void;
   toPicker: () => void;
 
-  /* ----- Mazo compartido (orden de la sesión) ----- */
+  /* ----- Categoría activa (el botón «explorar» la cambia) ----- */
+  categoria: CategoriaId;
+  setCategoria: (c: CategoriaId) => void;
+
+  /* ----- Mazo compartido (orden de la sesión, ya filtrado por categoría) ----- */
   orden: SlangTerm[];
   barajar: (offset?: number) => void;
 
@@ -78,8 +90,14 @@ export const usePelala = create<PelalaState>((set, get) => ({
   open: (mode) => set({ mode }),
   toPicker: () => set({ mode: 'picker' }),
 
-  orden: DECK,
-  barajar: (offset = 3) => set({ orden: rotated(DECK, offset) }),
+  categoria: CAT_INICIAL,
+  /* Cambiar de categoría reinicia el recorrido (mazo nuevo desde el principio):
+     el índice del reto/muro y el intento en curso no tienen sentido en otro mazo. */
+  setCategoria: (categoria) =>
+    set({ categoria, orden: mazoDe(categoria), retoIndex: 0, muroIndex: 0, intento: 'idle' }),
+
+  orden: mazoDe(CAT_INICIAL),
+  barajar: (offset = 3) => set((s) => ({ orden: rotated(mazoDe(s.categoria), offset) })),
 
   muroIndex: 0,
   muroActual: () => {

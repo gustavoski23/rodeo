@@ -22,14 +22,18 @@
    · Sticker más compacto + caption anclada + barra de progreso: menos aire muerto y una
      columna cohesionada en vez de dos islas. */
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft, Bookmark, BookmarkCheck, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Compass, Eye, EyeOff } from 'lucide-react';
 
 import { CornerHint } from '@/components/pelala/corner-hint';
 import { DockPractica } from '@/components/pelala/dock-practica';
 import { PeelSticker, slangTextSource, type PeelStickerHandle } from '@/components/pelala/peel-sticker';
+import { SelectorCategorias } from '@/components/pelala/selector-categorias';
 import { UsarSlang } from '@/components/pelala/usar-slang';
+import { GlassButton } from '@/components/ui/sign-up';
+import { CATEGORIAS } from '@/content/pelala/deck';
+import { STICKER_IMG } from '@/content/pelala/sticker-images';
 import { STICKER_SVG } from '@/content/pelala/stickers';
 import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
@@ -41,12 +45,26 @@ import { ICONO_TERMINO, ICONO_FALLBACK } from './term-iconos';
    manda; si no, el sticker cae al texto de siempre (paridad con los términos
    sin ilustrar todavía — el pack se va llenando de a poco). */
 function sourceDe(term: { id: string; term: string }) {
+  // Imagen die-cut primero (pack IA, alfa real → pela por su silueta); si no hay,
+  // el SVG de texto de "wind up"; y si tampoco, el sticker de texto genérico.
+  const img = STICKER_IMG[term.id];
+  if (img) return { type: 'image', src: img } as const;
   const svg = STICKER_SVG[term.id];
   return svg ? ({ type: 'svg', svg } as const) : slangTextSource(term.term, '¿cómo se dice?');
 }
 
 const COLUMNA = 'mx-auto w-full max-w-[640px]';
 const SIN_BARRA = '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+
+/* GlassButton (sign-up.tsx) envuelve el <button> en un <div> con un onClick que
+   re-dispara el click si el evento no nace del botón exacto — DOS ejecuciones por
+   toque. Se corta la propagación en el botón (mismo patrón que usar-slang). */
+const unSoloClick =
+  (fn: () => void) =>
+  (e: MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    fn();
+  };
 
 /* Resalta el término dentro de su frase de ejemplo. NEUTRO a propósito (negrita +
    --text-primary, no --accent): el sticker ya pinta el término en AZUL y la lima
@@ -64,9 +82,10 @@ function resaltarTermino(context: string, target: string): ReactNode {
   );
 }
 
-const ETIQUETA_KIND: Record<'phrasal' | 'slang', string> = {
+const ETIQUETA_KIND: Record<'phrasal' | 'slang' | 'idiom', string> = {
   phrasal: 'phrasal verb',
   slang: 'slang',
+  idiom: 'idiom',
 };
 
 /* Pista de que HAY MÁS ABAJO (mismo patrón que App/useDesborde). El scroller
@@ -108,6 +127,11 @@ export function Pelala() {
   const retoSiguiente = usePelala((s) => s.retoSiguiente);
   const guardados = usePelala((s) => s.guardados);
   const toggleGuardar = usePelala((s) => s.toggleGuardar);
+  const categoria = usePelala((s) => s.categoria);
+  const setCategoria = usePelala((s) => s.setCategoria);
+
+  /* El selector de categorías (lo abre el botón «explorar» del header). */
+  const [catAbierto, setCatAbierto] = useState(false);
 
   /* La pista "desliza aquí" (+ el auto-pelado de la esquina) SIEMPRE sale al
      entrar a SLANG, y se retira solo cuando el usuario empieza a pelar (pedido
@@ -120,6 +144,12 @@ export function Pelala() {
   const [pistaGuiada, setPistaGuiada] = useState(true);
 
   const [revelado, setRevelado] = useState(false);
+  /* El sticker WebGL tarda en arrancar (el motor compila shaders y sube la
+     textura): sin esto, al abrir SLANG o al cambiar de término se ve un HUECO en
+     blanco hasta que pinta. `stickerListo` arranca en false y una IMAGEN estática
+     precargada (instantánea) cubre ese hueco; cuando el motor avisa (onReady),
+     se cruza al sticker WebGL interactivo. Pedido de Gus: nada de blanco. */
+  const [stickerListo, setStickerListo] = useState(false);
   const stickerRef = useRef<PeelStickerHandle>(null);
   const scroller = useDesborde();
 
@@ -151,6 +181,14 @@ export function Pelala() {
     retoSiguiente();
   }, [retoSiguiente]);
 
+  /* El significado se re-oculta al cambiar de término: al pelar (retoIndex) o al
+     cambiar de categoría (mazo nuevo desde 0, mismo retoIndex pero otro término). */
+  useEffect(() => {
+    setRevelado(false);
+    // Nuevo término → el WebGL vuelve a arrancar: la imagen estática cubre otra vez.
+    setStickerListo(false);
+  }, [retoIndex, categoria]);
+
   // Mazo siempre poblado (el store arranca con DECK); guarda defensivo por si acaso.
   const term = orden[retoIndex % orden.length];
   if (!term) return null;
@@ -162,7 +200,11 @@ export function Pelala() {
      tenías que agrandar las que son como el formato visual de wind up»). El
      motor dimensiona por ancho, así que a un sticker de TEXTO una caja más alta
      solo le añade aire muerto; a uno ilustrado sí le da cuerpo. */
-  const ilustrado = term.id in STICKER_SVG;
+  const ilustrado = term.id in STICKER_SVG || term.id in STICKER_IMG;
+  /* El rótulo de arriba refleja la categoría activa (antes decía "desliza y
+     aprende", que ya lo dice el dock): así se sabe en qué mazo estás sin abrir
+     el selector. */
+  const catLabel = CATEGORIAS.find((c) => c.id === categoria)?.label ?? '';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -185,7 +227,7 @@ export function Pelala() {
           className="min-w-0 flex-1 truncate text-[0.62rem] font-semibold tracking-[0.14em] uppercase"
           style={{ color: 'var(--text-muted)' }}
         >
-          Slang · desliza y aprende
+          Slang · {catLabel}
         </span>
       </div>
 
@@ -236,8 +278,29 @@ export function Pelala() {
             sourceKey={term.id}
             onPeelStart={onPeelStart}
             onDetach={onDetach}
+            onReady={() => setStickerListo(true)}
             className="h-full w-full"
           />
+          {/* Cobertor estático PRECARGADO: se ve al instante (la imagen ya está en
+              caché por la precarga de la entrada) y se cruza (fade) al sticker
+              WebGL cuando el motor termina de arrancar. Así nunca hay blanco al
+              abrir SLANG ni al cambiar de término. */}
+          {(STICKER_IMG[term.id] || STICKER_SVG[term.id]) && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center transition-opacity duration-200"
+              style={{ opacity: stickerListo ? 0 : 1 }}
+            >
+              {STICKER_IMG[term.id] ? (
+                <img src={STICKER_IMG[term.id]} alt="" className="max-h-[86%] max-w-[62%] object-contain" />
+              ) : (
+                <div
+                  className="flex h-full w-full items-center justify-center [&>svg]:max-h-[86%] [&>svg]:max-w-[62%]"
+                  dangerouslySetInnerHTML={{ __html: STICKER_SVG[term.id]! }}
+                />
+              )}
+            </div>
+          )}
           {pistaGuiada && <CornerHint />}
         </div>
 
@@ -299,6 +362,22 @@ export function Pelala() {
                 {ETIQUETA_KIND[term.kind]}
               </span>
             </div>
+            {/* EXPLORAR: mismo vidrio del login que el mic (GlassButton), alusivo
+                a explorar (brújula). Abre el selector de categorías. Va aquí, a la
+                izquierda del bookmark, donde Gus lo marcó. El vidrio hereda
+                --background/--foreground del `vidrio-tema` del DockPractica y su
+                CSS lo monta el GlassStyles de UsarSlang (misma vista). */}
+            <GlassButton
+              type="button"
+              size="icon"
+              onClick={unSoloClick(() => setCatAbierto(true))}
+              aria-label="Explorar categorías"
+              aria-haspopup="dialog"
+              className="shrink-0"
+              contentClassName="text-[var(--text-primary)]!"
+            >
+              <Compass size={17} />
+            </GlassButton>
             <motion.button
               type="button"
               whileTap={{ scale: 0.86 }}
@@ -329,12 +408,41 @@ export function Pelala() {
           >
             {revelado ? (
               <div className="relative px-4 py-3.5">
-                <p className="pr-8 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-                  {term.gloss_es}
-                </p>
-                <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
-                  “{resaltarTermino(term.context_en, term.target)}”
-                </p>
+                {term.senses ? (
+                  /* Término con VARIOS significados (p. ej. "pay off"): un solo
+                     sticker arriba, pero acá se explican TODOS los usos numerados,
+                     cada uno con su ejemplo. Pedido de Gus para "pay off". */
+                  <ol className="flex flex-col gap-2.5 pr-8">
+                    {term.senses.map((s, i) => (
+                      <li key={i} className="flex gap-2.5">
+                        <span
+                          aria-hidden="true"
+                          className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full text-[0.62rem] font-bold"
+                          style={{ background: 'var(--chip-bg)', color: 'var(--text-secondary)' }}
+                        >
+                          {i + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[0.9rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                            {s.gloss_es}
+                          </p>
+                          <p className="mt-0.5 text-[0.8rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                            “{s.example_en}” — {s.example_es}
+                          </p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <>
+                    <p className="pr-8 text-[0.95rem] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                      {term.gloss_es}
+                    </p>
+                    <p className="mt-1.5 text-[0.82rem] leading-snug" style={{ color: 'var(--text-muted)' }}>
+                      “{resaltarTermino(term.context_en, term.target)}”
+                    </p>
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => setRevelado(false)}
@@ -388,6 +496,14 @@ export function Pelala() {
           transition={{ duration: 0.18 }}
         />
       </div>
+
+      {/* Selector de categorías (hoja modal); lo abre el botón «explorar». */}
+      <SelectorCategorias
+        abierto={catAbierto}
+        activa={categoria}
+        onElegir={setCategoria}
+        onCerrar={() => setCatAbierto(false)}
+      />
     </div>
   );
 }
