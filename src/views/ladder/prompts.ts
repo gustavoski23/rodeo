@@ -28,8 +28,9 @@ function sysGenerador(): string {
 }
 
 /** startVeta L6905-6910. `avoid` son los últimos 60 b2 vistos o 'ninguna'. */
-export function msgsGenerador(veta: Veta, avoid: string, ownPhrase?: string): ChatMessage[] {
+export function msgsGenerador(veta: Veta, avoid: string, ownPhrase?: string, habilidad?: string): ChatMessage[] {
   const area = areaUsuario();
+  const foco = habilidad?.trim() || 'una mejora C1 general: precision, naturalidad y registro';
   const target =
     veta === 'own'
       ? `Genera 3 versiones-peldaño C1 de ESTA frase del usuario: "${ownPhrase}".`
@@ -39,6 +40,10 @@ export function msgsGenerador(veta: Veta, avoid: string, ownPhrase?: string): Ch
             : 'CALLE (vida diaria, casual, social)'
         }.`;
   return [
+    {
+      role: 'system',
+      content: `The target skill for this batch is: "${foco}". Every generated rung must provide observable evidence of that skill, not merely use longer vocabulary.`,
+    },
     { role: 'system', content: sysGenerador() },
     {
       role: 'user',
@@ -49,8 +54,13 @@ export function msgsGenerador(veta: Veta, avoid: string, ownPhrase?: string): Ch
 
 /** Juez del intento — revealRung L6980-6983. La nota bilingüe va pegada al
     final del system tras un espacio, como en el viejo. */
-export function msgsJuez(b2: string, c1: string, attempt: string): ChatMessage[] {
+export function msgsJuez(b2: string, c1: string, attempt: string, habilidad?: string): ChatMessage[] {
+  const foco = habilidad?.trim() || 'mejora C1 general';
   return [
+    {
+      role: 'system',
+      content: `The specific skill being trained is: "${foco}". Judge primarily whether the attempt demonstrates that skill, while still requiring grammatical and idiomatic English. Explain the evidence for or against it in one_liner_es.`,
+    },
     {
       role: 'system',
       content:

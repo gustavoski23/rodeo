@@ -136,7 +136,7 @@ export function RungCard({
       setBusy(true);
       setEsperando(true);
       try {
-        const { parsed } = await callJSON('chat', msgsJuez(r.b2, r.c1, intento), 1500);
+        const { parsed } = await callJSON('chat', msgsJuez(r.b2, r.c1, intento, r.habilidad), 1500);
         veredicto = parsed as Judge;
       } catch {
         /* si el juez falla, seguimos sin él — en silencio, sin toast (§9.7) */

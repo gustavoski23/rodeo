@@ -29,6 +29,8 @@ export type Rung = {
   swap: string;
   register: string;
   note_es: string;
+  /** Habilidad concreta que el juez debe buscar en este peldaño. */
+  habilidad?: string;
 };
 
 const XP_DEFECTO: LadderXP = { pct: 0, clavados: 0, bestCombo: 0 };

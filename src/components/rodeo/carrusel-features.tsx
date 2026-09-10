@@ -172,7 +172,7 @@ export function CarruselFeatures() {
   const ruta: CardItem = {
     imgUrl: '/carrusel/oficina.jpg',
     alt: 'RUTA · Tu ruta de inglés, paso a paso',
-    onClick: () => abrirFeature('a1'),
+    onClick: () => abrirFeature(nivel === 'B2-C1' ? 'ladder' : 'a1'),
     contenido: (
       <OverlayFeature
         titulo="RUTA"

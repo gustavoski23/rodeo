@@ -12,6 +12,7 @@ import { useLadder, pushSeen, seenAvoid, type Rung } from '@/stores/ladder';
 import { toast } from '@/stores/toast';
 
 import { RungCard } from './rung';
+import { RutaB2C1 } from './ruta';
 import { LadderSummary } from './summary';
 import { EX_B2, msgsGenerador, type Veta } from './prompts';
 import './ladder.css';
@@ -61,6 +62,7 @@ export default function LadderView() {
   const limpiarRun = useLadder((s) => s.limpiarRun);
   const registrarClavado = useLadder((s) => s.registrarClavado);
   const setView = useApp((s) => s.setView);
+  const nivel = useApp((s) => s.nivel);
 
   const [cargando, setCargando] = useState(false);
   const [vacioFallos, setVacioFallos] = useState(false);
@@ -69,9 +71,10 @@ export default function LadderView() {
      estado vacío, así que a los tres segundos nadie sabía si había pasado algo
      ni por dónde volver a intentarlo. Guardamos también la veta (y la frase
      propia, si la hubo) para poder repetir EXACTAMENTE la misma llamada. */
-  const [fallo, setFallo] = useState<{ veta: Veta; own?: string; msg: string } | null>(null);
+  const [fallo, setFallo] = useState<{ veta: Veta; own?: string; habilidad?: string; msg: string } | null>(null);
   const [frase, setFrase] = useState('');
   const [resumen, setResumen] = useState(false);
+  const [modo, setModo] = useState<'ruta' | 'practica'>(() => (useApp.getState().nivel === 'B2-C1' ? 'ruta' : 'practica'));
 
   /* renderLadder() L6855: entrar a SUBE acredita la racha del día y descarta
      el run anterior. Se ejecuta al montar la vista, que es exactamente cuando
@@ -86,7 +89,8 @@ export default function LadderView() {
     if (pool.length && idx >= pool.length) setResumen(true);
   }, [pool.length, idx]);
 
-  async function startVeta(veta: Veta, ownPhrase?: string) {
+  async function startVeta(veta: Veta, options: { ownPhrase?: string; habilidad?: string } = {}) {
+    const { ownPhrase, habilidad } = options;
     // startVeta L6876 leía `state.busy`, el flag VIVO. Aquí también: la copia
     // suscrita (`busy`) es la del render y no se entera de setBusy(true)
     // dentro del mismo lote, así que dos disparos en el mismo tick colarían
@@ -120,7 +124,7 @@ export default function LadderView() {
     setBusy(true);
     setCargando(true);
     try {
-      const { parsed } = await callJSON('creative', msgsGenerador(veta, seenAvoid(), ownPhrase), 3800);
+      const { parsed } = await callJSON('creative', msgsGenerador(veta, seenAvoid(), ownPhrase, habilidad), 3800);
       const rungs = parsed as Rung[] | null;
       /* El modelo devuelve a veces el ejemplo del prompt tal cual, o un
          "peldaño" que no sube nada: fuera los dos (§9.6). */
@@ -133,12 +137,13 @@ export default function LadderView() {
           !EX_B2.includes(String(r.b2).toLowerCase().trim()),
       );
       if (!valid.length) throw new Error('Respuesta inválida, dale otra vez');
-      pushSeen(valid.map((r) => r.b2));
-      iniciarRun(valid);
+      const focused = habilidad ? valid.map((r) => ({ ...r, habilidad })) : valid;
+      pushSeen(focused.map((r) => r.b2));
+      iniciarRun(focused);
     } catch (err) {
       limpiarRun();
       const msg = err instanceof Error ? err.message : String(err);
-      setFallo({ veta, own: ownPhrase, msg });
+      setFallo({ veta, own: ownPhrase, habilidad, msg });
       toast('Error: ' + msg);
     } finally {
       setCargando(false);
@@ -150,7 +155,24 @@ export default function LadderView() {
     const v = frase.trim();
     if (!v) return; // vacío: no hace nada, ni limpia
     setFrase('');
-    void startVeta('own', v);
+    void startVeta('own', { ownPhrase: v });
+  }
+
+  function empezarTramo(veta: Veta, habilidad: string) {
+    setModo('practica');
+    /* The criterio step uses the own slot, but its practice needs a generated
+       category when the user has not supplied a phrase. */
+    void startVeta(veta === 'own' ? 'trabajo' : veta, { habilidad });
+  }
+
+  function salirDePractica() {
+    limpiarRun();
+    setResumen(false);
+    if (nivel === 'B2-C1') {
+      setModo('ruta');
+      return;
+    }
+    setView('home');
   }
 
   /* selfJudge L7031: recordUpgrade SIEMPRE (clavado o no — el "CASI" deja el
@@ -163,6 +185,10 @@ export default function LadderView() {
 
   const rung = pool[idx];
 
+  if (nivel === 'B2-C1' && modo === 'ruta') {
+    return <RutaB2C1 xp={xp} onStart={empezarTramo} />;
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* ── Barra de sección ─────────────────────────────────────────────── */}
@@ -170,8 +196,8 @@ export default function LadderView() {
         <motion.button
           type="button"
           whileTap={{ scale: 0.94 }}
-          onClick={() => setView('home')}
-          aria-label="Volver al inicio"
+          onClick={salirDePractica}
+          aria-label={nivel === 'B2-C1' ? 'Volver a la ruta' : 'Volver al inicio'}
           className="rd-toque-44 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full border"
           style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)', color: 'var(--text-primary)' }}
         >
@@ -181,7 +207,7 @@ export default function LadderView() {
           className="min-w-0 flex-1 truncate font-mono text-[0.64rem] font-bold tracking-[0.16em] uppercase"
           style={{ color: 'var(--accent)' }}
         >
-          Sube · B2 → C1
+          {nivel === 'B2-C1' ? 'Práctica · B2 → C1' : 'Sube · B2 → C1'}
         </span>
       </div>
 
@@ -271,7 +297,7 @@ export default function LadderView() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void startVeta(fallo.veta, fallo.own)}
+                  onClick={() => void startVeta(fallo.veta, { ownPhrase: fallo.own, habilidad: fallo.habilidad })}
                   className="mt-3 cursor-pointer rounded-full border-0 px-[22px] py-2.5 text-[0.82rem] font-bold disabled:opacity-45"
                   style={{ minHeight: 44, background: 'var(--accent)', color: 'var(--accent-ink)' }}
                 >
@@ -353,7 +379,8 @@ export default function LadderView() {
         pct={xp.pct}
         onClose={() => {
           setResumen(false);
-          limpiarRun(); // el LISTO del viejo vaciaba #ladder-runarea
+          limpiarRun();
+          if (nivel === 'B2-C1') setModo('ruta');
         }}
       />
     </div>
