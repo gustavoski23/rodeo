@@ -3,7 +3,6 @@ import { motion } from 'motion/react';
 import { ArrowLeft, ArrowRight, BookOpen, Check, Lightbulb, Lock, Play, Sparkles, Target } from 'lucide-react';
 
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import { useApp } from '@/stores/app';
 import type { LadderXP } from '@/stores/ladder';
 
@@ -36,6 +35,22 @@ const HABILIDADES_JUEZ: Record<string, string> = {
   registro: 'registro profesional: ser claro y firme con un tono colaborativo',
   criterio: 'criterio y hedging: calibrar certeza y distinguir evidencia de inferencia',
   'c1-vivo': 'sintesis C1: integrar precision, matiz, registro y proximo paso bajo presion',
+};
+
+/* El arte de cada parada. Son los mismos 3Dicons (render de color dinámico,
+   fondo transparente) con los que se pinta el mapa de la ruta A1
+   (mapa-experiencia.tsx): reusarlos mantiene UNA sola familia de material entre
+   las dos rutas en vez de meter un pack de ilustración distinto por nivel.
+   diana→precisión, bocadillos→naturalidad, cohete→fluidez, bocadillo con
+   líneas→registro, escudo→criterio, micrófono→C1 en vivo. */
+const ASSET_3D = '/assets/a1-experience';
+const ARTE_TRAMO: Record<string, string> = {
+  precision: `${ASSET_3D}/target-3dicons.png`,
+  naturalidad: `${ASSET_3D}/chat-3dicons.png`,
+  fluidez: `${ASSET_3D}/rocket-3dicons.png`,
+  registro: `${ASSET_3D}/chat-text-3dicons.png`,
+  criterio: `${ASSET_3D}/sheild-3dicons.png`,
+  'c1-vivo': `${ASSET_3D}/mic-3dicons.png`,
 };
 
 function crearEjemplo(antes: string, despues: string, nota: string): Ejemplo {
@@ -78,12 +93,12 @@ function crearTramo(
 }
 
 const TRAMOS: Tramo[] = [
-  crearTramo('precision', '01', 'Precisión', 'De una frase correcta a una frase que dice exactamente lo que querés decir.', 'matiz y elección de palabras', '5 min', 0, 18, 'trabajo', 'Elegir la palabra que apunta al problema real, no la primera que se parece.', 'Un verbo preciso hace más trabajo que tres adverbios vagos.', [crearEjemplo('We need to fix this soon.', 'We need to address the bottleneck before it delays the launch.', 'address + bottleneck nombra la acción y el problema.'), crearEjemplo('The results were good.', 'The results were consistently strong across the three tests.', 'strong y consistently hacen la evaluación comprobable.')], ['cambiá verbos genéricos por verbos de acción', 'nombrá el impacto o la condición', 'quitá intensificadores que no agregan información'], 'Reescribí una frase de trabajo usando un verbo más exacto y un resultado observable.'),
-  crearTramo('naturalidad', '02', 'Naturalidad', 'De traducir ideas a combinar las palabras como las combina un hablante experto.', 'collocations e idioms', '7 min', 18, 36, 'calle', 'Combinar palabras que suelen ir juntas para sonar natural sin traducir palabra por palabra.', 'En C1 no solo importa la palabra correcta: importa su pareja habitual.', [crearEjemplo('We need to arrive to an agreement.', 'We need to reach an agreement.', 'reach an agreement es la combinación natural.'), crearEjemplo('This is very unlikely to happen.', 'This is highly unlikely to happen.', 'highly modifica adjetivos de evaluación con más naturalidad.')], ['aprendé bloques, no palabras aisladas', 'escuchá qué verbo pide cada sustantivo', 'preferí combinaciones frecuentes sobre traducciones literales'], 'Elegí una idea que repetís mucho y convertíla en un bloque de dos o tres palabras.'),
-  crearTramo('fluidez', '03', 'Fluidez', 'Conectá tus ideas sin frenar: el pensamiento también tiene ritmo.', 'phrasal verbs y conectores', '6 min', 36, 54, 'calle', 'Conectar ideas con ritmo para que tu respuesta avance sin sonar como una lista.', 'La fluidez no es hablar más rápido: es hacer visible la relación entre tus ideas.', [crearEjemplo('The launch was delayed. We worked on the docs.', 'The launch was delayed. In the meantime, we focused on the documentation.', 'in the meantime organiza la secuencia y evita el salto brusco.'), crearEjemplo('I agree with the idea, but it is risky.', 'I see the appeal of the idea. That said, the current timeline makes it risky.', 'That said introduce un giro sin borrar lo anterior.')], ['usá conectores que expliquen la relación', 'alterná frases cortas con una frase desarrollada', 'tené a mano una forma de ganar tiempo sin rellenar'], 'Uní dos frases cortas con un conector que explique causa, contraste o secuencia.'),
-  crearTramo('registro', '04', 'Registro', 'Elegí el tono que pide la situación, desde un chat casual hasta una decisión difícil.', 'tono profesional y voz', '8 min', 54, 70, 'trabajo', 'Ajustar el tono para ser claro, firme y colaborativo en contextos profesionales.', 'El registro cambia la relación, no solo el vocabulario.', [crearEjemplo('Send me the numbers today.', 'Could you share the latest figures by the end of the day?', 'Could you + share suaviza la orden sin perder plazo.'), crearEjemplo('I disagree with this plan.', 'I am not convinced this plan addresses the main risk.', 'La desacuerdo se vuelve específico y abre conversación.')], ['pedí con could you cuando no estás dando una instrucción formal', 'elegí share, raise o clarify según la acción', 'criticá la idea o el riesgo, no a la persona'], 'Convertí una orden o desacuerdo directo en una frase profesional que conserve el límite.'),
-  crearTramo('criterio', '05', 'Criterio', 'Suavizá, defendé o cuestioná una idea sin sonar rígido ni ambiguo.', 'hedging y postura', '8 min', 70, 86, 'own', 'Mostrar seguridad sin sonar absoluto: anticipar límites, evidencia y condiciones.', 'Hedging no es dudar de todo; es calibrar la fuerza de lo que afirmás.', [crearEjemplo('This will fail if we launch now.', 'This may fall short unless we resolve the onboarding issue first.', 'may + unless expresa riesgo y condición, no una sentencia.'), crearEjemplo('The data proves users want this.', 'The data suggests there is clear demand, although the sample is still small.', 'suggests y although hacen la afirmación más rigurosa.')], ['usá may, tends to o appears to para graduar certeza', 'agregá unless, provided that o although cuando importa la condición', 'separá lo que sabés de lo que inferís'], 'Defendé una propuesta con una condición explícita y una reserva honesta.'),
-  crearTramo('c1-vivo', '06', 'C1 vivo', 'Juntá precisión, ritmo y criterio para responder bajo presión.', 'síntesis y soltura', '10 min', 86, 100, 'trabajo', 'Responder bajo presión integrando precisión, naturalidad, registro y criterio.', 'C1 vivo es elegir bien mientras pensás, no recitar frases difíciles.', [crearEjemplo('The plan is good but risky.', 'The direction is promising, although its success hinges on a tighter rollout plan.', 'promising + hinges on sintetiza evaluación y condición.'), crearEjemplo('We should do it because users asked for it.', 'The feedback supports moving forward, provided that we validate the retention impact first.', 'supports + provided that convierte opinión en decisión razonada.')], ['abrí con la conclusión o la postura', 'sumá un matiz que demuestre criterio', 'cerrá con una condición, consecuencia o próximo paso'], 'Respondé en dos frases: postura clara primero, matiz y siguiente paso después.'),
+  crearTramo('precision', '01', 'Precisión', 'De una frase correcta a una frase que dice exactamente lo que quieres decir.', 'matiz y elección de palabras', '5 min', 0, 18, 'trabajo', 'Elegir la palabra que apunta al problema real, no la primera que se parece.', 'Un verbo preciso hace más trabajo que tres adverbios vagos.', [crearEjemplo('We need to fix this soon.', 'We need to address the bottleneck before it delays the launch.', 'address + bottleneck nombra la acción y el problema.'), crearEjemplo('The results were good.', 'The results were consistently strong across the three tests.', 'strong y consistently hacen la evaluación comprobable.')], ['cambia verbos genéricos por verbos de acción', 'nombra el impacto o la condición', 'quita intensificadores que no agregan información'], 'Reescribe una frase de trabajo usando un verbo más exacto y un resultado observable.'),
+  crearTramo('naturalidad', '02', 'Naturalidad', 'De traducir ideas a combinar las palabras como las combina un hablante experto.', 'collocations e idioms', '7 min', 18, 36, 'calle', 'Combinar palabras que suelen ir juntas para sonar natural sin traducir palabra por palabra.', 'En C1 no solo importa la palabra correcta: importa su pareja habitual.', [crearEjemplo('We need to arrive to an agreement.', 'We need to reach an agreement.', 'reach an agreement es la combinación natural.'), crearEjemplo('This is very unlikely to happen.', 'This is highly unlikely to happen.', 'highly modifica adjetivos de evaluación con más naturalidad.')], ['aprende bloques, no palabras aisladas', 'escucha qué verbo pide cada sustantivo', 'prefiere combinaciones frecuentes sobre traducciones literales'], 'Elige una idea que repites mucho y conviértela en un bloque de dos o tres palabras.'),
+  crearTramo('fluidez', '03', 'Fluidez', 'Conecta tus ideas sin frenar: el pensamiento también tiene ritmo.', 'phrasal verbs y conectores', '6 min', 36, 54, 'calle', 'Conectar ideas con ritmo para que tu respuesta avance sin sonar como una lista.', 'La fluidez no es hablar más rápido: es hacer visible la relación entre tus ideas.', [crearEjemplo('The launch was delayed. We worked on the docs.', 'The launch was delayed. In the meantime, we focused on the documentation.', 'in the meantime organiza la secuencia y evita el salto brusco.'), crearEjemplo('I agree with the idea, but it is risky.', 'I see the appeal of the idea. That said, the current timeline makes it risky.', 'That said introduce un giro sin borrar lo anterior.')], ['usa conectores que expliquen la relación', 'alterna frases cortas con una frase desarrollada', 'ten a mano una forma de ganar tiempo sin rellenar'], 'Une dos frases cortas con un conector que explique causa, contraste o secuencia.'),
+  crearTramo('registro', '04', 'Registro', 'Elige el tono que pide la situación, desde un chat casual hasta una decisión difícil.', 'tono profesional y voz', '8 min', 54, 70, 'trabajo', 'Ajustar el tono para ser claro, firme y colaborativo en contextos profesionales.', 'El registro cambia la relación, no solo el vocabulario.', [crearEjemplo('Send me the numbers today.', 'Could you share the latest figures by the end of the day?', 'Could you + share suaviza la orden sin perder plazo.'), crearEjemplo('I disagree with this plan.', 'I am not convinced this plan addresses the main risk.', 'El desacuerdo se vuelve específico y abre conversación.')], ['pide con could you cuando no estás dando una instrucción formal', 'elige share, raise o clarify según la acción', 'critica la idea o el riesgo, no a la persona'], 'Convierte una orden o desacuerdo directo en una frase profesional que conserve el límite.'),
+  crearTramo('criterio', '05', 'Criterio', 'Suaviza, defiende o cuestiona una idea sin sonar rígido ni ambiguo.', 'hedging y postura', '8 min', 70, 86, 'own', 'Mostrar seguridad sin sonar absoluto: anticipar límites, evidencia y condiciones.', 'Hedging no es dudar de todo; es calibrar la fuerza de lo que afirmas.', [crearEjemplo('This will fail if we launch now.', 'This may fall short unless we resolve the onboarding issue first.', 'may + unless expresa riesgo y condición, no una sentencia.'), crearEjemplo('The data proves users want this.', 'The data suggests there is clear demand, although the sample is still small.', 'suggests y although hacen la afirmación más rigurosa.')], ['usa may, tends to o appears to para graduar certeza', 'agrega unless, provided that o although cuando importa la condición', 'separa lo que sabes de lo que infieres'], 'Defiende una propuesta con una condición explícita y una reserva honesta.'),
+  crearTramo('c1-vivo', '06', 'C1 vivo', 'Junta precisión, ritmo y criterio para responder bajo presión.', 'síntesis y soltura', '10 min', 86, 100, 'trabajo', 'Responder bajo presión integrando precisión, naturalidad, registro y criterio.', 'C1 vivo es elegir bien mientras piensas, no recitar frases difíciles.', [crearEjemplo('The plan is good but risky.', 'The direction is promising, although its success hinges on a tighter rollout plan.', 'promising + hinges on sintetiza evaluación y condición.'), crearEjemplo('We should do it because users asked for it.', 'The feedback supports moving forward, provided that we validate the retention impact first.', 'supports + provided that convierte opinión en decisión razonada.')], ['abre con la conclusión o la postura', 'suma un matiz que demuestre criterio', 'cierra con una condición, consecuencia o próximo paso'], 'Responde en dos frases: postura clara primero, matiz y siguiente paso después.'),
 ];
 
 function estadoTramo(tramo: Tramo, pct: number): 'hecho' | 'actual' | 'bloqueado' {
@@ -101,7 +116,7 @@ function ProgresoRuta({ pct }: { pct: number }) {
             Tu avance
           </p>
           <p className="mt-1 text-[0.86rem]" style={{ color: 'var(--text-secondary)' }}>
-            {pct === 0 ? 'Arrancás desde el punto justo.' : `${pct}% del camino ya es tuyo.`}
+            {pct === 0 ? 'Arrancas desde el punto justo.' : `${pct}% del camino ya es tuyo.`}
           </p>
         </div>
         <span className="font-display text-[1.7rem] leading-none font-extrabold" style={{ color: 'var(--text-primary)' }}>
@@ -134,59 +149,204 @@ function ProgresoRuta({ pct }: { pct: number }) {
   );
 }
 
-function TramoCard({ tramo, estado, onOpen }: { tramo: Tramo; estado: ReturnType<typeof estadoTramo>; onOpen: (tramo: Tramo) => void }) {
+/* ── EL RECORRIDO COMO CAMINO ──────────────────────────────────────────────
+   Antes esto era una lista vertical de tarjetas iguales. Una lista se lee como
+   catálogo: todo pesa lo mismo y no se ve dónde estás. El mapa de la ruta A1
+   (mapa-experiencia.tsx) ya resolvió esto con un CAMINO — un carril serpenteante
+   a la izquierda por donde bajan las paradas, cada una un nodo con su arte. Esta
+   es la misma idea para B2→C1, con SEIS paradas en vez de decenas y con los
+   tokens de esta ruta (acento oro, theme-aware) en lugar del mundo petróleo de
+   A1, para que no parezca otra app pegada dentro de la misma tarjeta.
+
+   Geometría: mismo esquema que el mapa A1. El nodo vive en el carril de la
+   izquierda y se corre ±AMPL px en zigzag; el camino en SVG conecta los centros
+   por detrás y se llena en --accent hasta donde ya llegaste. El copy (título +
+   promesa) va a la derecha, que es donde entra sin cortarse. */
+const FILA = 96; // alto de cada parada
+const RAIL = 96; // ancho del carril del nodo, a la izquierda
+const EJE = RAIL / 2;
+const AMPL = 14; // vaivén del camino
+const NODO = 64;
+
+function desvio(i: number): number {
+  const m = i % 4;
+  return m === 1 ? AMPL : m === 3 ? -AMPL : 0;
+}
+function cxNodo(i: number): number {
+  return EJE + desvio(i);
+}
+function cyNodo(i: number): number {
+  return i * FILA + FILA / 2;
+}
+/* Cúbicas con puntos de control verticales: la curva entra y sale de cada nodo
+   en vertical, así el camino ondula suave en vez de quebrarse en diagonal. */
+function caminoD(n: number): string {
+  let d = `M ${cxNodo(0)} ${cyNodo(0)}`;
+  for (let i = 1; i < n; i += 1) {
+    const y = cyNodo(i);
+    const py = cyNodo(i - 1);
+    const x = cxNodo(i);
+    const px = cxNodo(i - 1);
+    d += ` C ${px} ${py + FILA * 0.42}, ${x} ${y - FILA * 0.42}, ${x} ${y}`;
+  }
+  return d;
+}
+
+function NodoTramo({
+  tramo,
+  estado,
+  i,
+  onOpen,
+}: {
+  tramo: Tramo;
+  estado: ReturnType<typeof estadoTramo>;
+  i: number;
+  onOpen: (tramo: Tramo) => void;
+}) {
   const bloqueado = estado === 'bloqueado';
   const hecho = estado === 'hecho';
+  const actual = estado === 'actual';
 
   return (
     <motion.button
       type="button"
       whileTap={{ scale: bloqueado ? 1 : 0.985 }}
-      onClick={() => !bloqueado && onOpen(tramo)}
-      className={cn(
-        'relative flex w-full items-start gap-3 rounded-[22px] border p-3.5 text-left transition-colors',
-        bloqueado ? 'cursor-not-allowed' : 'cursor-pointer',
-      )}
-      style={{
-        borderColor: estado === 'actual' ? 'color-mix(in oklch, var(--accent) 54%, transparent)' : 'var(--borde-sutil)',
-        background: estado === 'actual' ? 'color-mix(in oklch, var(--accent-dim) 65%, var(--bg-surface))' : 'var(--bg-surface)',
-        opacity: bloqueado ? 0.6 : 1,
-      }}
+      disabled={bloqueado}
+      onClick={() => onOpen(tramo)}
       aria-label={bloqueado ? `${tramo.titulo}, bloqueado` : `Abrir lección de ${tramo.titulo}`}
+      className="grid h-full w-full items-center gap-2 text-left"
+      style={{ gridTemplateColumns: `${RAIL}px minmax(0,1fr) auto`, cursor: bloqueado ? 'default' : 'pointer' }}
     >
-      <span
-        className="flex size-10 shrink-0 items-center justify-center rounded-[14px] font-mono text-[0.7rem] font-bold"
-        style={{
-          background: hecho || estado === 'actual' ? 'var(--accent)' : 'var(--chip-bg-fuerte)',
-          color: hecho || estado === 'actual' ? 'var(--accent-ink)' : 'var(--text-muted)',
-        }}
-      >
-        {hecho ? <Check className="size-4" strokeWidth={2.6} aria-hidden="true" /> : tramo.numero}
+      {/* ── El nodo, corrido sobre el carril para caer sobre el camino ── */}
+      <span className="relative block" style={{ marginLeft: cxNodo(i) - NODO / 2, width: NODO, height: NODO }}>
+        <span
+          className="grid size-full place-items-center rounded-[20px] border"
+          style={{
+            borderColor: actual
+              ? 'var(--accent)'
+              : hecho
+                ? 'color-mix(in oklch, var(--accent) 45%, var(--borde-medio))'
+                : 'var(--borde-medio)',
+            background: actual
+              ? 'color-mix(in oklch, var(--accent) 20%, var(--bg-elevated))'
+              : bloqueado
+                ? 'var(--chip-bg)'
+                : 'var(--bg-elevated)',
+            boxShadow: actual
+              ? '0 0 0 1px var(--accent), 0 10px 24px color-mix(in oklch, var(--accent) 30%, transparent)'
+              : '0 6px 14px oklch(0% 0 0 / 0.14)',
+            opacity: bloqueado ? 0.62 : 1,
+            transform: actual ? 'scale(1.05)' : undefined,
+          }}
+        >
+          <img
+            src={ARTE_TRAMO[tramo.id]}
+            alt=""
+            width={NODO - 12}
+            height={NODO - 12}
+            /* El icono cerrado se apaga; el resto lleva su color pleno con una
+               sombra corta que lo despega del disco. */
+            style={{
+              objectFit: 'contain',
+              filter: bloqueado ? 'grayscale(0.65) brightness(0.92)' : 'drop-shadow(0 6px 6px oklch(0% 0 0 / 0.32))',
+              opacity: bloqueado ? 0.5 : 1,
+            }}
+          />
+
+          {hecho && (
+            <span
+              aria-hidden="true"
+              className="absolute -right-1.5 -bottom-1.5 grid size-5 place-items-center rounded-full"
+              style={{ background: 'var(--accent)', color: 'var(--accent-ink)', border: '2px solid var(--bg-surface)' }}
+            >
+              <Check className="size-3" strokeWidth={3.2} />
+            </span>
+          )}
+          {bloqueado && (
+            <span
+              aria-hidden="true"
+              className="absolute -right-1.5 -bottom-1.5 grid size-5 place-items-center rounded-full"
+              style={{ background: 'var(--bg-elevated)', border: '2px solid var(--bg-surface)', color: 'var(--text-muted)' }}
+            >
+              <Lock className="size-2.5" strokeWidth={2.6} />
+            </span>
+          )}
+        </span>
       </span>
 
-      <span className="flex min-w-0 flex-1 flex-col gap-1">
+      {/* ── La promesa de la parada ── */}
+      <span className="flex min-w-0 flex-col gap-1">
         <span className="flex items-center gap-2">
-          <span className="font-display text-[1.02rem] leading-[1.15] font-bold tracking-[-0.02em]">{tramo.titulo}</span>
-          {estado === 'actual' && (
-            <span className="rounded-full px-2 py-1 font-mono text-[0.52rem] font-bold tracking-[0.12em] uppercase" style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}>
+          <span
+            className="font-display text-[1.02rem] leading-[1.12] font-bold tracking-[-0.02em]"
+            style={{ color: bloqueado ? 'var(--text-secondary)' : 'var(--text-primary)' }}
+          >
+            {tramo.titulo}
+          </span>
+          {actual && (
+            <span
+              className="rounded-full px-2 py-0.5 font-mono text-[0.52rem] font-bold tracking-[0.12em] uppercase"
+              style={{ background: 'var(--accent-dim)', color: 'var(--accent)' }}
+            >
               ahora
             </span>
           )}
         </span>
-        <span className="text-[0.8rem] leading-[1.35]" style={{ color: 'var(--text-secondary)' }}>
+        <span className="line-clamp-2 text-[0.78rem] leading-[1.3]" style={{ color: 'var(--text-secondary)' }}>
           {tramo.descripcion}
         </span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[0.58rem] tracking-[0.04em] uppercase" style={{ color: 'var(--text-muted)' }}>
-          <span>{tramo.foco}</span>
-          <span aria-hidden="true">·</span>
-          <span>{tramo.minutos}</span>
+        <span className="font-mono text-[0.56rem] tracking-[0.04em] uppercase" style={{ color: 'var(--text-muted)' }}>
+          {tramo.foco} · {tramo.minutos}
         </span>
       </span>
 
-      <span className="mt-1 shrink-0" style={{ color: hecho ? 'var(--accent)' : 'var(--text-muted)' }}>
-        {bloqueado ? <Lock className="size-4" strokeWidth={2} aria-hidden="true" /> : <ArrowRight className="size-4" strokeWidth={2.2} aria-hidden="true" />}
+      {/* ── El acento del lado derecho: flecha si se puede entrar, nada si no ── */}
+      <span className="shrink-0 pr-0.5" style={{ color: hecho || actual ? 'var(--accent)' : 'var(--text-muted)' }}>
+        {!bloqueado && <ArrowRight className="size-4" strokeWidth={2.2} aria-hidden="true" />}
       </span>
     </motion.button>
+  );
+}
+
+function RecorridoMapa({ pct, onOpen }: { pct: number; onOpen: (tramo: Tramo) => void }) {
+  const n = TRAMOS.length;
+  const hechos = TRAMOS.filter((tramo) => estadoTramo(tramo, pct) === 'hecho').length;
+  /* El camino se llena por segmentos hechos: con 2 de 6 hechos, dos de los cinco
+     tramos de carretera van en --accent. pathLength=100 hace el dash independiente
+     de la longitud real del path. */
+  const frac = n > 1 ? Math.min(1, hechos / (n - 1)) : 0;
+  const alto = n * FILA;
+  const d = caminoD(n);
+
+  return (
+    <div className="relative" style={{ height: alto }}>
+      <svg
+        className="pointer-events-none absolute top-0 left-0"
+        width={RAIL}
+        height={alto}
+        viewBox={`0 0 ${RAIL} ${alto}`}
+        fill="none"
+        aria-hidden="true"
+      >
+        <path d={d} stroke="var(--borde-medio)" strokeWidth={5} strokeLinecap="round" />
+        <motion.path
+          d={d}
+          stroke="var(--accent)"
+          strokeWidth={6}
+          strokeLinecap="round"
+          pathLength={100}
+          initial={false}
+          animate={{ strokeDasharray: `${frac * 100} 100` }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        />
+      </svg>
+
+      {TRAMOS.map((tramo, i) => (
+        <div key={tramo.id} className="relative" style={{ height: FILA }}>
+          <NodoTramo tramo={tramo} estado={estadoTramo(tramo, pct)} i={i} onOpen={onOpen} />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -363,7 +523,7 @@ export function RutaB2C1({ xp, onStart }: { xp: LadderXP; onStart: (veta: Veta, 
                   Level up
                 </p>
                 <h1 className="mt-1 font-display text-[2.15rem] leading-[0.95] font-extrabold tracking-[-0.04em] sm:text-[2.55rem]">
-                  No empezás de cero<span style={{ color: 'var(--accent)' }}>.</span>
+                  No empiezas de cero<span style={{ color: 'var(--accent)' }}>.</span>
                 </h1>
               </div>
             </div>
@@ -405,11 +565,7 @@ export function RutaB2C1({ xp, onStart }: { xp: LadderXP; onStart: (veta: Veta, 
                 {TRAMOS.filter((tramo) => estadoTramo(tramo, pct) === 'hecho').length}/{TRAMOS.length} hechos
               </span>
             </div>
-            <div className="flex flex-col gap-2">
-              {TRAMOS.map((tramo) => (
-                <TramoCard key={tramo.id} tramo={tramo} estado={estadoTramo(tramo, pct)} onOpen={setLeccion} />
-              ))}
-            </div>
+            <RecorridoMapa pct={pct} onOpen={setLeccion} />
           </div>
 
           <div className="shrink-0 rounded-[18px] border px-3.5 py-3.5" style={{ borderColor: 'var(--borde-sutil)', background: 'var(--bg-surface)' }}>
@@ -417,7 +573,7 @@ export function RutaB2C1({ xp, onStart }: { xp: LadderXP; onStart: (veta: Veta, 
               Cómo funciona
             </p>
             <p className="mt-1.5 text-[0.84rem] leading-[1.45]" style={{ color: 'var(--text-secondary)' }}>
-              La app te da una frase B2. Vos la subís. El juez te muestra qué cambia cuando el idioma gana precisión.
+              La app te da una frase B2. Tú la subes. El juez te muestra qué cambia cuando el idioma gana precisión.
             </p>
           </div>
         </div>
